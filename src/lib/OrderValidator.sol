@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../interfaces/ReactorStructs.sol";
-import {IValidationContract} from "../interfaces/IValidationContract.sol";
+import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 contract OrderValidator {
     error InvalidReactor();
@@ -24,7 +24,7 @@ contract OrderValidator {
         // TODO: maybe needs to not be view
         if (
             order.validationContract != address(0)
-                && !IValidationContract(order.validationContract).validate(order)
+                && !IValidationCallback(order.validationContract).validate(order)
         ) {
             revert InvalidOrder();
         }

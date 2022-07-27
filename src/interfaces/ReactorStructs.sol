@@ -42,5 +42,5 @@ struct Output {
 
 struct ResolvedOrder {
     TokenAmount input;
-    TokenAmount[] outputs;
+    Output[] outputs;
 }

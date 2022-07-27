@@ -5,8 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
 import {MockValidationContract} from "../../src/test/MockValidationContract.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 contract OrderValidatorTest is Test {
+    using OrderInfoBuilder for OrderInfo;
+
     OrderValidator validator;
 
     function setUp() public {
@@ -15,16 +18,7 @@ contract OrderValidatorTest is Test {
 
     function testInvalidReactor() public {
         vm.expectRevert(OrderValidator.InvalidReactor.selector);
-        validator.validateOrder(
-            OrderInfo({
-                reactor: address(0),
-                offerer: address(1),
-                validationContract: address(0),
-                validationData: bytes(""),
-                counter: 0,
-                deadline: block.timestamp
-            })
-        );
+        validator.validateOrder(OrderInfoBuilder.init().withReactor(address(0)));
     }
 
     function testDeadlinePassed() public {
@@ -32,14 +26,9 @@ contract OrderValidatorTest is Test {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         validator.validateOrder(
-            OrderInfo({
-                reactor: address(validator),
-                offerer: address(1),
-                validationContract: address(0),
-                validationData: bytes(""),
-                counter: 0,
-                deadline: timestamp
-            })
+            OrderInfoBuilder.init().withReactor(address(validator)).withDeadline(
+                block.timestamp - 1
+            )
         );
     }
 
@@ -48,27 +37,15 @@ contract OrderValidatorTest is Test {
         validationContract.setValid(false);
         vm.expectRevert(OrderValidator.InvalidOrder.selector);
         validator.validateOrder(
-            OrderInfo({
-                reactor: address(validator),
-                offerer: address(1),
-                validationContract: address(validationContract),
-                validationData: bytes(""),
-                counter: 0,
-                deadline: block.timestamp
-            })
+            OrderInfoBuilder.init().withReactor(address(validator)).withDeadline(
+                block.timestamp
+            ).withValidationContract(address(validationContract))
         );
     }
 
     function testValid() public view {
         validator.validateOrder(
-            OrderInfo({
-                reactor: address(validator),
-                offerer: address(1),
-                validationContract: address(0),
-                validationData: bytes(""),
-                counter: 0,
-                deadline: block.timestamp
-            })
+            OrderInfoBuilder.init().withReactor(address(validator))
         );
     }
 
@@ -76,14 +53,9 @@ contract OrderValidatorTest is Test {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
         validator.validateOrder(
-            OrderInfo({
-                reactor: address(validator),
-                offerer: address(1),
-                validationContract: address(validationContract),
-                validationData: bytes(""),
-                counter: 0,
-                deadline: block.timestamp
-            })
+            OrderInfoBuilder.init().withReactor(address(validator)).withValidationContract(
+                address(validationContract)
+            )
         );
     }
 }

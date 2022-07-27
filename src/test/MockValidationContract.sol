@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../interfaces/ReactorStructs.sol";
-import {IValidationContract} from "../interfaces/IValidationContract.sol";
+import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
-contract MockValidationContract {
+contract MockValidationContract is IValidationCallback {
     bool public valid;
 
     function setValid(bool _valid) external {

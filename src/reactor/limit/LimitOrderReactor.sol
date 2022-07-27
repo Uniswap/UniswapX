@@ -9,17 +9,15 @@ import {
 } from "../../interfaces/ReactorStructs.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 
+/// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
-    function resolve(Order calldata order)
+    function _resolve(Order calldata order)
         internal
+        pure
         override
         returns (ResolvedOrder memory)
     {
         LimitOrderData memory data = abi.decode(order.data, (LimitOrderData));
-        TokenAmount[] memory outputs = new TokenAmount[](data.outputs.length);
-        for (uint i = 0; i < outputs.length; i++) {
-            outputs[i] = TokenAmount(outputs[i].token, outputs[i].amount);
-        }
-        return ResolvedOrder(data.input, outputs);
+        return ResolvedOrder(data.input, data.outputs);
     }
 }
