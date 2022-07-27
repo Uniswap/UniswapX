@@ -29,6 +29,8 @@ contract OrderValidatorTest is Test {
 
     function testDeadlinePassed() public {
         vm.expectRevert(OrderValidator.DeadlinePassed.selector);
+        uint256 timestamp = block.timestamp;
+        vm.warp(timestamp + 100);
         validator.validateOrder(
             OrderInfo({
                 reactor: address(validator),
@@ -36,7 +38,7 @@ contract OrderValidatorTest is Test {
                 validationContract: address(0),
                 validationData: bytes(""),
                 counter: 0,
-                deadline: block.timestamp - 1
+                deadline: timestamp
             })
         );
     }
