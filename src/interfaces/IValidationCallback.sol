@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {OrderInfo} from "./ReactorStructs.sol";
 
 /// @notice Callback to validate an order
-interface IValidationContract {
+interface IValidationCallback {
     /// @notice Called by the reactor for custom validation of an order
     /// @param order The order to validate
     /// @return true if valid, else false

@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {TokenAmount} from "./ReactorStructs.sol";
-
-struct Signature {
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-}
+import {TokenAmount, Signature} from "./ReactorStructs.sol";
 
 /// @notice Contract to manage user ERC20 approvals
 /// @dev Transfers tokens on behalf of a user via signed permit
