@@ -18,7 +18,7 @@ contract OrderValidatorTest is Test {
 
     function testInvalidReactor() public {
         vm.expectRevert(OrderValidator.InvalidReactor.selector);
-        validator.validateOrder(OrderInfoBuilder.init().withReactor(address(0)));
+        validator.validateOrder(OrderInfoBuilder.init(address(0)));
     }
 
     function testDeadlinePassed() public {
@@ -26,9 +26,7 @@ contract OrderValidatorTest is Test {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         validator.validateOrder(
-            OrderInfoBuilder.init().withReactor(address(validator)).withDeadline(
-                block.timestamp - 1
-            )
+            OrderInfoBuilder.init(address(validator)).withDeadline(block.timestamp - 1)
         );
     }
 
@@ -37,23 +35,20 @@ contract OrderValidatorTest is Test {
         validationContract.setValid(false);
         vm.expectRevert(OrderValidator.InvalidOrder.selector);
         validator.validateOrder(
-            OrderInfoBuilder.init().withReactor(address(validator)).withDeadline(
-                block.timestamp
-            ).withValidationContract(address(validationContract))
+            OrderInfoBuilder.init(address(validator)).withDeadline(block.timestamp)
+                .withValidationContract(address(validationContract))
         );
     }
 
     function testValid() public view {
-        validator.validateOrder(
-            OrderInfoBuilder.init().withReactor(address(validator))
-        );
+        validator.validateOrder(OrderInfoBuilder.init(address(validator)));
     }
 
     function testValidationContractValid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
         validator.validateOrder(
-            OrderInfoBuilder.init().withReactor(address(validator)).withValidationContract(
+            OrderInfoBuilder.init(address(validator)).withValidationContract(
                 address(validationContract)
             )
         );

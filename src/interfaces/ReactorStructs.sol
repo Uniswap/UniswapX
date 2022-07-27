@@ -21,18 +21,6 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-struct Order {
-    OrderInfo info;
-    bytes data;
-}
-
-struct OrderExecution {
-    Order order;
-    Signature sig;
-    address fillContract;
-    bytes fillData;
-}
-
 // internal structs
 struct Output {
     address token;

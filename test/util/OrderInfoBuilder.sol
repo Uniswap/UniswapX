@@ -4,24 +4,15 @@ pragma solidity ^0.8.0;
 import {Output, OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
 
 library OrderInfoBuilder {
-    function init() internal view returns (OrderInfo memory) {
+    function init(address reactor) internal view returns (OrderInfo memory) {
         return OrderInfo({
-            reactor: address(0),
+            reactor: reactor,
             offerer: address(0),
             validationContract: address(0),
             validationData: bytes(""),
             counter: 0,
             deadline: block.timestamp
         });
-    }
-
-    function withReactor(OrderInfo memory info, address _reactor)
-        internal
-        pure
-        returns (OrderInfo memory)
-    {
-        info.reactor = _reactor;
-        return info;
     }
 
     function withOfferer(OrderInfo memory info, address _offerer)
