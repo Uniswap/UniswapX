@@ -20,6 +20,10 @@ contract OrderValidator {
             revert DeadlinePassed();
         }
 
+        if (block.timestamp < order.deadline) {
+            revert DeadlinePassed();
+        }
+
         // TODO: maybe bubble up error
         // TODO: maybe needs to not be view
         if (
