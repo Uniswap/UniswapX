@@ -2,10 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {
-    TokenAmount, Output, OrderInfo
+    TokenAmount,
+    Output,
+    OrderInfo,
+    Signature
 } from "../../interfaces/ReactorStructs.sol";
 
-struct LimitOrderData {
+struct LimitOrder {
+    OrderInfo info;
     TokenAmount input;
     Output[] outputs;
+}
+
+struct LimitOrderExecution {
+    LimitOrder order;
+    Signature sig;
+    address fillContract;
+    bytes fillData;
 }

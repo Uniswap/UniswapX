@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {
     OrderInfo,
-    Order,
-    OrderExecution,
     Output,
     Signature,
     TokenAmount
@@ -14,13 +12,16 @@ import {OrderValidator} from "../../src/lib/OrderValidator.sol";
 import {MockERC20} from "../../src/test/MockERC20.sol";
 import {MockMaker} from "../../src/test/users/MockMaker.sol";
 import {MockFillContract} from "../../src/test/MockFillContract.sol";
-import {LimitOrderData} from "../../src/reactor/limit/LimitOrderStructs.sol";
+import {
+    LimitOrder,
+    LimitOrderExecution
+} from "../../src/reactor/limit/LimitOrderStructs.sol";
 import {LimitOrderReactor} from "../../src/reactor/limit/LimitOrderReactor.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {OrderExecutionBuilder} from "../util/OrderExecutionBuilder.sol";
 
 contract LimitOrderReactorTest is Test {
-    using OrderExecutionBuilder for OrderExecution;
+    using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
 
@@ -42,15 +43,16 @@ contract LimitOrderReactorTest is Test {
 
     function testExecute() public {
         maker.approve(address(tokenIn), address(reactor), ONE);
-        LimitOrderData memory limitOrderData = LimitOrderData({
-            input: TokenAmount(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        LimitOrderExecution memory execution = LimitOrderExecution({
+            order: LimitOrder({
+                info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+                input: TokenAmount(address(tokenIn), ONE),
+                outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            }),
+            sig: Signature(0, 0, 0),
+            fillContract: address(fillContract),
+            fillData: bytes("")
         });
-
-        OrderExecution memory execution = OrderExecutionBuilder.init()
-            .withReactor(address(reactor)).withOfferer(address(maker)).withData(
-            abi.encode(limitOrderData)
-        ).withFillContract(address(fillContract));
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart =

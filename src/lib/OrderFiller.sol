@@ -1,35 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import "solmate/tokens/ERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {
     TokenAmount,
-    OrderExecution,
-    Order,
     Output,
     ResolvedOrder,
     Signature
 } from "../interfaces/ReactorStructs.sol";
-import {OrderValidator} from "../lib/OrderValidator.sol";
-import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {IReactor} from "../interfaces/IReactor.sol";
 
-abstract contract BaseReactor is IReactor, OrderValidator {
-    /// @inheritdoc IReactor
-    function execute(OrderExecution calldata execution) external override {
-        validateOrder(execution.order.info);
-        ResolvedOrder memory order = _resolve(execution.order);
-        _fill(
-            order,
-            execution.order.info.offerer,
-            execution.sig,
-            execution.fillContract,
-            execution.fillData
-        );
-    }
-
+library OrderFiller {
     /// @notice fill an order
-    function _fill(
+    function fill(
         ResolvedOrder memory order,
         address offerer,
         Signature memory,
@@ -37,7 +20,6 @@ abstract contract BaseReactor is IReactor, OrderValidator {
         bytes memory fillData
     )
         internal
-        virtual
     {
         // TODO: use permit post instead to send input tokens to fill contract
         // transfer input tokens to the fill contract
@@ -55,13 +37,4 @@ abstract contract BaseReactor is IReactor, OrderValidator {
             );
         }
     }
-
-    /// @notice resolve an order's inputs and outputs
-    /// @param order The order to resolve
-    /// @return The real inputs and outputs after resolution
-    function _resolve(Order calldata order)
-        internal
-        pure
-        virtual
-        returns (ResolvedOrder memory);
 }
