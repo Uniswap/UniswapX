@@ -15,6 +15,7 @@ contract LimitOrderReactorTest is Test {
         reactor = new DutchLimitOrderReactor();
     }
 
+    // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
     function testResolve() public {
         vm.warp(1659087340);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
@@ -30,10 +31,13 @@ contract LimitOrderReactorTest is Test {
             ),
             1659029740,
             1659130540,
-            TokenAmount(address(0), 12345),
+            TokenAmount(address(0), 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
-        console.log(resolvedOrder.outputs[0].amount);
+        assertEq(resolvedOrder.outputs[0].amount, 943);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+        assertEq(resolvedOrder.input.token, address(0));
     }
 }
