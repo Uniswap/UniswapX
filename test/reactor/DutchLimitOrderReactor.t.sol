@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchOutput, ResolvedOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder, ResolvedOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
 import "forge-std/console.sol";
 
