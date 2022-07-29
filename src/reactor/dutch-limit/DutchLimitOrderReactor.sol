@@ -25,11 +25,16 @@ contract DutchLimitOrderReactor is OrderValidator {
         Output[] memory outputs = new Output[](dutchLimitOrder.outputs.length);
         for (uint i = 0; i < outputs.length; i++) {
             DutchOutput calldata dutchOutput_i =  dutchLimitOrder.outputs[i];
-            uint decayedAmount =
-                dutchOutput_i.startAmount
-                - (dutchOutput_i.startAmount - dutchOutput_i.endAmount)
-                * (block.timestamp - dutchLimitOrder.startTime)
-                / (dutchLimitOrder.endTime - dutchLimitOrder.startTime);
+            uint decayedAmount;
+            if (dutchLimitOrder.endTime < block.timestamp) {
+                decayedAmount = dutchOutput_i.endAmount;
+            } else {
+                decayedAmount =
+                    dutchOutput_i.startAmount
+                    - (dutchOutput_i.startAmount - dutchOutput_i.endAmount)
+                    * (block.timestamp - dutchLimitOrder.startTime)
+                    / (dutchLimitOrder.endTime - dutchLimitOrder.startTime);
+            }
             outputs[i] = Output(
                 dutchOutput_i.token,
                 decayedAmount,

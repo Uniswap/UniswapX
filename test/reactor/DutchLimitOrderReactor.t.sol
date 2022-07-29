@@ -16,7 +16,7 @@ contract LimitOrderReactorTest is Test {
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
-    function testResolve() public {
+    function testResolveEndTimeAfterNow() public {
         vm.warp(1659087340);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
@@ -27,7 +27,7 @@ contract LimitOrderReactorTest is Test {
                 address(0),
                 '',
                 0,
-                0
+                1659130540
             ),
             1659029740,
             1659130540,
@@ -36,6 +36,31 @@ contract LimitOrderReactorTest is Test {
         );
         ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
         assertEq(resolvedOrder.outputs[0].amount, 943);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+        assertEq(resolvedOrder.input.token, address(0));
+    }
+
+    function testResolveEndTimeBeforeNow() public {
+        vm.warp(1659100541);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfo(
+                address(0),
+                address(0),
+                address(0),
+                '',
+                0,
+                1659130540
+            ),
+            1659029740,
+            1659100540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        assertEq(resolvedOrder.outputs[0].amount, 900);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
         assertEq(resolvedOrder.input.token, address(0));
