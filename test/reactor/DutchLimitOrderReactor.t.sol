@@ -41,8 +41,10 @@ contract LimitOrderReactorTest is Test {
         assertEq(resolvedOrder.input.token, address(0));
     }
 
+    // Test that resolved amount = endAmount if end time is before now
     function testResolveEndTimeBeforeNow() public {
-        vm.warp(1659100541);
+        uint now = 1659100541;
+        vm.warp(now);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -55,7 +57,7 @@ contract LimitOrderReactorTest is Test {
                 1659130540
             ),
             1659029740,
-            1659100540,
+            now - 1,
             TokenAmount(address(0), 0),
             dutchOutputs
         );
