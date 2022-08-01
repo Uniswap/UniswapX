@@ -79,4 +79,23 @@ contract LimitOrderReactorTest is Test {
         assertEq(resolvedOrder.input.amount, 0);
         assertEq(resolvedOrder.input.token, address(0));
     }
+
+    // Test that when startTime = now, that the output = startAmount
+    function testResolveStartTimeEqualsNow() public {
+        vm.warp(1659029740);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659029740,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+        assertEq(resolvedOrder.input.token, address(0));
+    }
 }
