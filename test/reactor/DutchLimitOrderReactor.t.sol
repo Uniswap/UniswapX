@@ -43,8 +43,8 @@ contract LimitOrderReactorTest is Test {
 
     // Test that resolved amount = endAmount if end time is before now
     function testResolveEndTimeBeforeNow() public {
-        uint now = 1659100541;
-        vm.warp(now);
+        uint mockNow = 1659100541;
+        vm.warp(mockNow);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -57,13 +57,44 @@ contract LimitOrderReactorTest is Test {
                 1659130540
             ),
             1659029740,
-            now - 1,
+            mockNow - 1,
             TokenAmount(address(0), 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
         assertEq(resolvedOrder.outputs[0].amount, 900);
         assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+        assertEq(resolvedOrder.input.token, address(0));
+    }
+
+    // Test multiple dutch outputs get resolved correctly. Use same time points as
+    // testResolveEndTimeAfterNow().
+    function testResolveMultipleDutchOutputs() public {
+        vm.warp(1659087340);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[1] = DutchOutput(address(0), 10000, 9000, address(0));
+        dutchOutputs[2] = DutchOutput(address(0), 2000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfo(
+                address(0),
+                address(0),
+                address(0),
+                '',
+                0,
+                1659130540
+            ),
+            1659029740,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        assertEq(resolvedOrder.outputs.length, 3);
+        assertEq(resolvedOrder.outputs[0].amount, 943);
+        assertEq(resolvedOrder.outputs[1].amount, 9429);
+        assertEq(resolvedOrder.outputs[2].amount, 1429);
         assertEq(resolvedOrder.input.amount, 0);
         assertEq(resolvedOrder.input.token, address(0));
     }
