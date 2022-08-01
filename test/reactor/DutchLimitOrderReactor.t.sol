@@ -8,7 +8,7 @@ import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import "forge-std/console.sol";
 
-contract LimitOrderReactorTest is Test {
+contract DutchLimitOrderReactorTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
@@ -118,5 +118,19 @@ contract LimitOrderReactorTest is Test {
         vm.warp(1659030748);
         resolvedOrder = reactor.resolve(dlo);
         assertEq(resolvedOrder.outputs[0].amount, 999);
+    }
+
+    function testValidateDutchEndTimeBeforeStart() public {
+        vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130541,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        reactor.validateDutchLimitOrder(dlo);
     }
 }

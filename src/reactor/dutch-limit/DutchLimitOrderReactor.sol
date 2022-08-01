@@ -10,7 +10,11 @@ import {ResolvedOrder, TokenAmount, Output} from "../../interfaces/ReactorStruct
 contract DutchLimitOrderReactor is OrderValidator {
     using OrderFiller for ResolvedOrder;
 
+    error EndTimeBeforeStart();
+    error DeadlineBeforeEndTime();
+
     function execute(DutchLimitOrderExecution calldata execution) external {
+        validateDutchLimitOrder(execution.order);
         validateOrder(execution.order.info);
         ResolvedOrder memory order = resolve(execution.order);
         order.fill(
@@ -42,5 +46,14 @@ contract DutchLimitOrderReactor is OrderValidator {
             );
         }
         resolvedOrder = ResolvedOrder(dutchLimitOrder.input, outputs);
+    }
+
+    function validateDutchLimitOrder(DutchLimitOrder calldata dutchLimitOrder) public pure {
+        if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
+            revert EndTimeBeforeStart();
+        }
+        if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
+            revert DeadlineBeforeEndTime();
+        }
     }
 }
