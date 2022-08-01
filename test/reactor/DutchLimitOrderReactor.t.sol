@@ -98,4 +98,25 @@ contract LimitOrderReactorTest is Test {
         assertEq(resolvedOrder.input.amount, 0);
         assertEq(resolvedOrder.input.token, address(0));
     }
+
+    // At time 1659030747, output will still be 1000. One second later at 1659030748,
+    // the first decay will occur and the output will be 999.
+    function testResolveFirstDecay() public {
+        vm.warp(1659030747);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659029740,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+
+        vm.warp(1659030748);
+        resolvedOrder = reactor.resolve(dlo);
+        assertEq(resolvedOrder.outputs[0].amount, 999);
+    }
 }
