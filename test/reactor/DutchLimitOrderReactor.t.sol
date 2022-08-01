@@ -133,4 +133,44 @@ contract DutchLimitOrderReactorTest is Test {
         );
         reactor.validateDutchLimitOrder(dlo);
     }
+
+    function testValidateDutchEndTimeAfterStart() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659120540,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        reactor.validateDutchLimitOrder(dlo);
+    }
+
+    function testValidateDutchDeadlineBeforeEndTime() public {
+        vm.expectRevert(DutchLimitOrderReactor.DeadlineBeforeEndTime.selector);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130530),
+            1659120540,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        reactor.validateDutchLimitOrder(dlo);
+    }
+
+    function testValidateDutchDeadlineAfterEndTime() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130550),
+            1659120540,
+            1659130540,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        reactor.validateDutchLimitOrder(dlo);
+    }
 }
