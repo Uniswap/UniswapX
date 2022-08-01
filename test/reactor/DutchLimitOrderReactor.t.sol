@@ -5,9 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, ResolvedOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import "forge-std/console.sol";
 
 contract LimitOrderReactorTest is Test {
+    using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
 
@@ -21,14 +23,7 @@ contract LimitOrderReactorTest is Test {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
-            OrderInfo(
-                address(0),
-                address(0),
-                address(0),
-                '',
-                0,
-                1659130540
-            ),
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
             TokenAmount(address(0), 0),
@@ -48,14 +43,7 @@ contract LimitOrderReactorTest is Test {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
-            OrderInfo(
-                address(0),
-                address(0),
-                address(0),
-                '',
-                0,
-                1659130540
-            ),
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             mockNow - 1,
             TokenAmount(address(0), 0),
@@ -77,14 +65,7 @@ contract LimitOrderReactorTest is Test {
         dutchOutputs[1] = DutchOutput(address(0), 10000, 9000, address(0));
         dutchOutputs[2] = DutchOutput(address(0), 2000, 1000, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
-            OrderInfo(
-                address(0),
-                address(0),
-                address(0),
-                '',
-                0,
-                1659130540
-            ),
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
             TokenAmount(address(0), 0),
