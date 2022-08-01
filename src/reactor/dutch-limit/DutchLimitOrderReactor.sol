@@ -15,7 +15,6 @@ contract DutchLimitOrderReactor is OrderValidator {
 
     function execute(DutchLimitOrderExecution calldata execution) external {
         validateDutchLimitOrder(execution.order);
-        validateOrder(execution.order.info);
         ResolvedOrder memory order = resolve(execution.order);
         order.fill(
             execution.order.info.offerer,
@@ -48,12 +47,13 @@ contract DutchLimitOrderReactor is OrderValidator {
         resolvedOrder = ResolvedOrder(dutchLimitOrder.input, outputs);
     }
 
-    function validateDutchLimitOrder(DutchLimitOrder calldata dutchLimitOrder) public pure {
+    function validateDutchLimitOrder(DutchLimitOrder calldata dutchLimitOrder) public view {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
         if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
             revert DeadlineBeforeEndTime();
         }
+        validateOrder(dutchLimitOrder.info);
     }
 }
