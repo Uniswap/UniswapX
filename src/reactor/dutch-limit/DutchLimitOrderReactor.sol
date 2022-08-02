@@ -33,7 +33,6 @@ contract DutchLimitOrderReactor is OrderValidator {
         ResolvedOrder memory order = resolve(execution.order);
         order.fill(
             OrderFill({
-                offerer: execution.order.info.offerer,
                 sig: execution.sig,
                 permitPost: permitPost,
                 // TODO: use eip 712 typed msg hashing

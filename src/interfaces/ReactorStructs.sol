@@ -31,7 +31,6 @@ struct ResolvedOrder {
 }
 
 struct OrderFill {
-    address offerer;
     Signature sig;
     address permitPost;
     bytes32 orderHash;

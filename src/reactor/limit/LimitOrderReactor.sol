@@ -24,7 +24,6 @@ contract LimitOrderReactor is OrderValidator {
         validate(execution.order);
         resolve(execution.order).fill(
             OrderFill({
-                offerer: execution.order.info.offerer,
                 sig: execution.sig,
                 permitPost: permitPost,
                 // TODO: use eip 712 typed msg hashing

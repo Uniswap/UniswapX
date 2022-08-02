@@ -23,7 +23,7 @@ library OrderFiller {
                 maxAmount: order.input.amount,
                 deadline: order.info.deadline
             }),
-            orderFill.offerer,
+            order.info.offerer,
             orderFill.fillContract,
             order.input.amount,
             orderFill.orderHash,
