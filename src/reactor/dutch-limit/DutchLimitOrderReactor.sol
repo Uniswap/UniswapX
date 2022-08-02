@@ -37,7 +37,7 @@ contract DutchLimitOrderReactor is OrderValidator {
                 sig: execution.sig,
                 permitPost: permitPost,
                 // TODO: use eip 712 typed msg hashing
-                orderHash: keccak256(abi.encode(execution)),
+                orderHash: keccak256(abi.encode(execution.order)),
                 fillContract: execution.fillContract,
                 fillData: execution.fillData
             })
