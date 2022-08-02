@@ -11,7 +11,7 @@ contract OrderValidator {
 
     /// @notice Validates an order, reverting if invalid
     /// @param order The order to validate
-    function validateOrder(OrderInfo memory order) public view {
+    function validateOrderInfo(OrderInfo memory order) public view {
         if (address(this) != order.reactor) {
             revert InvalidReactor();
         }
