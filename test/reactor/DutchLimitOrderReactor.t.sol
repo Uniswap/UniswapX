@@ -2,19 +2,26 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, ResolvedOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
-import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
+import {PermitPost} from "permitpost/PermitPost.sol";
+import {
+    DutchLimitOrderReactor,
+    DutchLimitOrder,
+    ResolvedOrder
+} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchOutput} from
+    "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import "forge-std/console.sol";
 
 contract DutchLimitOrderReactorTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
+    PermitPost permitPost;
 
     function setUp() public {
-        reactor = new DutchLimitOrderReactor();
+        permitPost = new PermitPost();
+        reactor = new DutchLimitOrderReactor(address(permitPost));
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
@@ -38,7 +45,7 @@ contract DutchLimitOrderReactorTest is Test {
 
     // Test that resolved amount = endAmount if end time is before now
     function testResolveEndTimeBeforeNow() public {
-        uint mockNow = 1659100541;
+        uint256 mockNow = 1659100541;
         vm.warp(mockNow);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
@@ -131,10 +138,10 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validateDutchLimitOrder(dlo);
+        reactor.validate(dlo);
     }
 
-    function testValidateDutchEndTimeAfterStart() public {
+    function testValidateDutchEndTimeAfterStart() public view {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -144,7 +151,7 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validateDutchLimitOrder(dlo);
+        reactor.validate(dlo);
     }
 
     function testValidateDutchDeadlineBeforeEndTime() public {
@@ -158,10 +165,10 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validateDutchLimitOrder(dlo);
+        reactor.validate(dlo);
     }
 
-    function testValidateDutchDeadlineAfterEndTime() public {
+    function testValidateDutchDeadlineAfterEndTime() public view {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -171,6 +178,6 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validateDutchLimitOrder(dlo);
+        reactor.validate(dlo);
     }
 }

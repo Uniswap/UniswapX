@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-struct Signature {
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-}
+import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 
 struct TokenAmount {
     address token;
@@ -29,6 +25,16 @@ struct Output {
 }
 
 struct ResolvedOrder {
+    OrderInfo info;
     TokenAmount input;
     Output[] outputs;
+}
+
+struct OrderFill {
+    address offerer;
+    Signature sig;
+    address permitPost;
+    bytes32 orderHash;
+    address fillContract;
+    bytes fillData;
 }
