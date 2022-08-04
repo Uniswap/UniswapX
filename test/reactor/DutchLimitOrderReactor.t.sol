@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
 import {
     DutchLimitOrderReactor,
@@ -13,7 +14,7 @@ import {DutchOutput} from
 import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
-contract DutchLimitOrderReactorTest is Test {
+contract DutchLimitOrderReactorTest is Test, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
@@ -36,7 +37,9 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
+        snapStart("dutchLimitOrderReactorResolve");
         ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        snapEnd();
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -168,7 +171,7 @@ contract DutchLimitOrderReactorTest is Test {
         reactor.validate(dlo);
     }
 
-    function testValidateDutchDeadlineAfterEndTime() public view {
+    function testValidateDutchDeadlineAfterEndTime() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -178,6 +181,8 @@ contract DutchLimitOrderReactorTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
+        snapStart("dutchLimitOrderReactorValidate");
         reactor.validate(dlo);
+        snapEnd();
     }
 }

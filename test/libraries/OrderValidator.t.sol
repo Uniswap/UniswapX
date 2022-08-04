@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
 import {MockValidationContract} from "../../src/test/MockValidationContract.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
-contract OrderValidatorTest is Test {
+contract OrderValidatorTest is Test, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     OrderValidator validator;
@@ -40,8 +41,10 @@ contract OrderValidatorTest is Test {
         );
     }
 
-    function testValid() public view {
+    function testValid() public {
+        snapStart("validate");
         validator.validateOrderInfo(OrderInfoBuilder.init(address(validator)));
+        snapEnd();
     }
 
     function testValidationContractValid() public {

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 import {
@@ -23,7 +24,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature {
+contract LimitOrderReactorTest is Test, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
@@ -82,7 +83,9 @@ contract LimitOrderReactorTest is Test, PermitSignature {
         uint256 fillContractOutputBalanceStart =
             tokenOut.balanceOf(address(fillContract));
 
+        snapStart("limitOrderReactorExecute");
         reactor.execute(execution);
+        snapEnd();
 
         assertEq(
             tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE
@@ -199,7 +202,9 @@ contract LimitOrderReactorTest is Test, PermitSignature {
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
+        snapStart("limitOrderReactorResolve");
         ResolvedOrder memory resolved = reactor.resolve(order);
+        snapEnd();
         assertEq(resolved.input.amount, ONE);
         assertEq(resolved.input.token, address(tokenIn));
         assertEq(resolved.outputs.length, 1);
