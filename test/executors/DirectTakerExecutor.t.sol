@@ -32,5 +32,7 @@ contract DirectTakerExecutorTest is Test {
         outputs[0].amount = ONE;
         bytes memory fillData = abi.encode(taker, tokenIn, ONE);
         directTakerExecutor.reactorCallback(outputs, fillData);
+        assertEq(tokenIn.balanceOf(taker), ONE);
+        assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE);
     }
 }
