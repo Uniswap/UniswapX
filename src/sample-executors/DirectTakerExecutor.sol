@@ -10,11 +10,18 @@ contract DirectTakerExecutor is IReactorCallback {
         Output[] memory outputs,
         bytes memory fillData
     ) external {
-        address taker = abi.decode(fillData, (address));
-        // transfer output tokens from taker to this fillContract
+        address taker;
+        address inputToken;
+        uint256 inputAmount;
+        (taker, inputToken, inputAmount) = abi.decode(
+            fillData, (address, address, uint256)
+        );
+        // transfer output tokens from taker to this
         for (uint256 i = 0; i < outputs.length; i++) {
             Output memory output = outputs[i];
             ERC20(output.token).transferFrom(taker, address(this), output.amount);
         }
+        // transfer input tokens from this to taker
+        ERC20(inputToken).transfer(taker, inputAmount);
     }
 }
