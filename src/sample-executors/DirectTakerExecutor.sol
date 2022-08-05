@@ -7,8 +7,8 @@ import {Output} from "../interfaces/ReactorStructs.sol";
 
 contract DirectTakerExecutor is IReactorCallback {
     function reactorCallback(
-        Output[] memory outputs,
-        bytes memory fillData
+        Output[] calldata outputs,
+        bytes calldata fillData
     ) external {
         address taker;
         address inputToken;
