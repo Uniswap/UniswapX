@@ -31,5 +31,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          FORGE_SNAPSHOT_CHECK=true forge test -vvv
         id: test
