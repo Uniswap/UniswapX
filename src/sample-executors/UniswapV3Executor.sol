@@ -7,13 +7,13 @@ import {Output} from "../interfaces/ReactorStructs.sol";
 
 interface ISwapRouter02 {
     struct ExactOutputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 amountOut;
-        uint256 amountInMaximum;
-        uint160 sqrtPriceLimitX96;
+        address tokenIn; // from fillData
+        address tokenOut; // from <outputs>
+        uint24 fee; // from fillData
+        address recipient; // fillContract (this)
+        uint256 amountOut; // from <outputs>
+        uint256 amountInMaximum; // from fillData
+        uint160 sqrtPriceLimitX96; // 0
     }
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);
@@ -28,12 +28,21 @@ contract UniswapV3Executor is IReactorCallback {
         bytes calldata fillData
     ) external {
         address inputToken;
+        uint24 fee;
         uint256 inputAmount;
-        uint256 deadline;
-        bytes memory routerData;
 
-        (inputToken, inputAmount, deadline, routerData) = abi.decode(
-            fillData, (address, uint256, uint256, bytes)
+        (inputToken, fee, inputAmount) = abi.decode(
+            fillData, (address, uint24, uint256)
         );
+
+        ISwapRouter02(SWAPROUTER02).exactOutputSingle(ISwapRouter02.ExactOutputSingleParams(
+            inputToken,
+            outputs[0].token,
+            fee,
+            address(this),
+            outputs[0].amount,
+            inputAmount,
+            0
+        ));
     }
 }
