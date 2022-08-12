@@ -14,7 +14,7 @@ contract UniswapV3ExecutorTest is Test {
     uint256 constant ONE = 10 ** 18;
 
     function setUp() public {
-        // vm.createSelectFork("https://mainnet.infura.io/v3/6e758ef5d39a4fdeba50de7d10d08448", 15327550);
+        vm.createSelectFork("https://mainnet.infura.io/v3/6e758ef5d39a4fdeba50de7d10d08448", 15327550);
         takerPrivateKey = 0x12341234;
         taker = vm.addr(takerPrivateKey);
         uniswapV3Executor = new UniswapV3Executor();
