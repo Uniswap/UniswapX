@@ -30,7 +30,7 @@ contract DirectTakerExecutorTest is Test {
         Output[] memory outputs = new Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
-        bytes memory fillData = abi.encode(taker, tokenIn, ONE);
+        bytes memory fillData = abi.encode(taker, tokenIn, ONE, address(0));
         directTakerExecutor.reactorCallback(outputs, fillData);
         assertEq(tokenIn.balanceOf(taker), ONE);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE);
@@ -44,7 +44,7 @@ contract DirectTakerExecutorTest is Test {
         outputs[0].amount = ONE;
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
-        bytes memory fillData = abi.encode(taker, tokenIn, ONE);
+        bytes memory fillData = abi.encode(taker, tokenIn, ONE, address(0));
         directTakerExecutor.reactorCallback(outputs, fillData);
         assertEq(tokenIn.balanceOf(taker), ONE);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
