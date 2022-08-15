@@ -19,7 +19,6 @@ import {
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
-    using OrderFiller for OrderFill;
     using OrderValidator for OrderInfo;
 
     error EndTimeBeforeStart();
