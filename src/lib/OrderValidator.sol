@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo} from "../interfaces/ReactorStructs.sol";
+import {
+    OrderStatus, OrderFill, OrderInfo
+} from "../interfaces/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
-contract OrderValidator {
+library OrderValidator {
     error InvalidReactor();
     error DeadlinePassed();
     error InvalidOrder();
+    error OrderCancelled();
+    error OrderAlreadyFilled();
 
     /// @notice Validates an order, reverting if invalid
     /// @param order The order to validate
-    function validateOrderInfo(OrderInfo memory order) public view {
+    function validate(OrderInfo memory order) internal view {
         if (address(this) != order.reactor) {
             revert InvalidReactor();
         }
@@ -20,13 +24,49 @@ contract OrderValidator {
             revert DeadlinePassed();
         }
 
-        // TODO: maybe bubble up error
-        // TODO: maybe needs to not be view
         if (
             order.validationContract != address(0)
                 && !IValidationCallback(order.validationContract).validate(order)
         ) {
             revert InvalidOrder();
         }
+    }
+
+    /// @notice marks an order as filled
+    function updateFilled(
+        mapping(bytes32 => OrderStatus) storage orderStatus,
+        bytes32 orderHash
+    )
+        internal
+    {
+        OrderStatus memory _orderStatus = orderStatus[orderHash];
+        if (_orderStatus.isCancelled) {
+            revert OrderCancelled();
+        }
+
+        if (_orderStatus.isFilled) {
+            revert OrderAlreadyFilled();
+        }
+
+        orderStatus[orderHash].isFilled = true;
+    }
+
+    /// @notice marks an order as canceled
+    function updateCancelled(
+        mapping(bytes32 => OrderStatus) storage orderStatus,
+        bytes32 orderHash
+    )
+        internal
+    {
+        OrderStatus memory _orderStatus = orderStatus[orderHash];
+        if (_orderStatus.isCancelled) {
+            revert OrderCancelled();
+        }
+
+        if (_orderStatus.isFilled) {
+            revert OrderAlreadyFilled();
+        }
+
+        orderStatus[orderHash].isCancelled = true;
     }
 }

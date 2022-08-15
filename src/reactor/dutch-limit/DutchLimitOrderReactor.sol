@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {OrderFiller} from "../../lib/OrderFiller.sol";
 import {OrderValidator} from "../../lib/OrderValidator.sol";
+import {BaseReactor} from "../BaseReactor.sol";
 import {
     DutchLimitOrder,
     DutchLimitOrderExecution,
@@ -11,31 +12,35 @@ import {
 import {
     ResolvedOrder,
     TokenAmount,
+    OrderInfo,
     OrderFill,
     Output
 } from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
-contract DutchLimitOrderReactor is OrderValidator {
-    using OrderFiller for ResolvedOrder;
-
-    address public immutable permitPost;
+contract DutchLimitOrderReactor is BaseReactor {
+    using OrderFiller for OrderFill;
+    using OrderValidator for OrderInfo;
 
     error EndTimeBeforeStart();
     error DeadlineBeforeEndTime();
 
-    constructor(address _permitPost) {
-        permitPost = _permitPost;
-    }
+    constructor(address _permitPost) BaseReactor(_permitPost) {}
 
+    /// @notice Execute the given order execution
+    /// @dev Resolves the order inputs and outputs,
+    ///     validates the order, and fills it if valid.
+    ///     - User funds must be supplied through the permit post
+    ///     and fetched through a valid permit signature
+    ///     - Order execution through the fillContract must
+    ///     properly return all user outputs
     function execute(DutchLimitOrderExecution calldata execution) external {
-        validate(execution.order);
-        ResolvedOrder memory order = resolve(execution.order);
-        order.fill(
+        _validateDutchOrder(execution.order);
+        fill(
             OrderFill({
+                order: resolve(execution.order),
                 sig: execution.sig,
                 permitPost: permitPost,
-                // TODO: use eip 712 typed msg hashing
                 orderHash: keccak256(abi.encode(execution.order)),
                 fillContract: execution.fillContract,
                 fillData: execution.fillData
@@ -43,6 +48,8 @@ contract DutchLimitOrderReactor is OrderValidator {
         );
     }
 
+    /// @notice Resolve a DutchLimitOrder into a generic order
+    /// @dev applies dutch decay to order outputs
     function resolve(DutchLimitOrder calldata dutchLimitOrder)
         public
         view
@@ -67,13 +74,24 @@ contract DutchLimitOrderReactor is OrderValidator {
             ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
     }
 
-    function validate(DutchLimitOrder calldata dutchLimitOrder) public view {
+    /// @notice validate an order
+    /// @dev Throws if the order is invalid
+    function validate(DutchLimitOrder calldata order) external view {
+        order.info.validate();
+        _validateDutchOrder(order);
+    }
+
+    /// @notice validate the dutch order fields
+    /// @dev Throws if the order is invalid
+    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder)
+        internal
+        pure
+    {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
         if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
             revert DeadlineBeforeEndTime();
         }
-        validateOrderInfo(dutchLimitOrder.info);
     }
 }

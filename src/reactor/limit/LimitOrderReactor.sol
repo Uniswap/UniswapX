@@ -3,30 +3,35 @@ pragma solidity ^0.8.0;
 
 import {OrderFiller} from "../../lib/OrderFiller.sol";
 import {OrderValidator} from "../../lib/OrderValidator.sol";
+import {BaseReactor} from "../BaseReactor.sol";
 import {LimitOrder, LimitOrderExecution} from "./LimitOrderStructs.sol";
 import {
     ResolvedOrder,
     OrderFill,
+    OrderInfo,
     TokenAmount
 } from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract LimitOrderReactor is OrderValidator {
-    using OrderFiller for ResolvedOrder;
+contract LimitOrderReactor is BaseReactor {
+    using OrderFiller for OrderFill;
+    using OrderValidator for OrderInfo;
 
-    address public immutable permitPost;
+    constructor(address _permitPost) BaseReactor(_permitPost) {}
 
-    constructor(address _permitPost) {
-        permitPost = _permitPost;
-    }
-
+    /// @notice Execute the given order execution
+    /// @dev Resolves the order inputs and outputs,
+    ///     validates the order, and fills it if valid.
+    ///     - User funds must be supplied through the permit post
+    ///     and fetched through a valid permit signature
+    ///     - Order execution through the fillContract must
+    ///     properly return all user outputs
     function execute(LimitOrderExecution calldata execution) external {
-        validate(execution.order);
-        resolve(execution.order).fill(
+        fill(
             OrderFill({
+                order: resolve(execution.order),
                 sig: execution.sig,
                 permitPost: permitPost,
-                // TODO: use eip 712 typed msg hashing
                 orderHash: keccak256(abi.encode(execution.order)),
                 fillContract: execution.fillContract,
                 fillData: execution.fillData
@@ -34,6 +39,8 @@ contract LimitOrderReactor is OrderValidator {
         );
     }
 
+    /// @notice Resolve a LimitOrder into a generic order
+    /// @dev limit order inputs and outputs are directly specified
     function resolve(LimitOrder calldata order)
         public
         pure
@@ -42,7 +49,9 @@ contract LimitOrderReactor is OrderValidator {
         resolvedOrder = ResolvedOrder(order.info, order.input, order.outputs);
     }
 
-    function validate(LimitOrder calldata order) public view {
-        validateOrderInfo(order.info);
+    /// @notice validate an order
+    /// @dev Throws if the order is invalid
+    function validate(LimitOrder calldata order) external view {
+        order.info.validate();
     }
 }
