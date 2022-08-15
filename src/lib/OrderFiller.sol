@@ -13,30 +13,28 @@ import {
 
 library OrderFiller {
     /// @notice fill an order
-    function fill(ResolvedOrder memory order, OrderFill memory orderFill)
-        internal
-    {
+    function fill(OrderFill memory orderFill) internal {
         IPermitPost(orderFill.permitPost).saltTransferFrom(
             Permit({
-                token: order.input.token,
+                token: orderFill.order.input.token,
                 spender: address(this),
-                maxAmount: order.input.amount,
-                deadline: order.info.deadline
+                maxAmount: orderFill.order.input.amount,
+                deadline: orderFill.order.info.deadline
             }),
-            order.info.offerer,
+            orderFill.order.info.offerer,
             orderFill.fillContract,
-            order.input.amount,
+            orderFill.order.input.amount,
             orderFill.orderHash,
             orderFill.sig
         );
 
         IReactorCallback(orderFill.fillContract).reactorCallback(
-            order.outputs, orderFill.fillData
+            orderFill.order.outputs, orderFill.fillData
         );
 
         // transfer output tokens to their respective recipients
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            Output memory output = order.outputs[i];
+        for (uint256 i = 0; i < orderFill.order.outputs.length; i++) {
+            Output memory output = orderFill.order.outputs[i];
             ERC20(output.token).transferFrom(
                 orderFill.fillContract, output.recipient, output.amount
             );
