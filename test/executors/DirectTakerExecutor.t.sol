@@ -45,8 +45,6 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         dloReactor = new DutchLimitOrderReactor(address(permitPost));
 
         // Do appropriate max approvals
-        tokenIn.mint(address(directTakerExecutor), ONE);
-        tokenOut.mint(taker, ONE);
         tokenOut.forceApprove(taker, address(directTakerExecutor), type(uint256).max);
         tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
     }
@@ -57,6 +55,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[0].amount = ONE;
         bytes memory fillData = abi.encode(taker, tokenIn, ONE, dloReactor);
         tokenIn.mint(address(directTakerExecutor), ONE);
+        tokenOut.mint(taker, ONE);
         directTakerExecutor.reactorCallback(outputs, fillData);
         assertEq(tokenIn.balanceOf(taker), ONE);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE);
@@ -64,12 +63,13 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
     function testReactorCallback2Outputs() public {
         Output[] memory outputs = new Output[](2);
-        tokenOut.mint(taker, ONE * 2);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
         bytes memory fillData = abi.encode(taker, tokenIn, ONE, dloReactor);
+        tokenOut.mint(taker, ONE * 3);
+        tokenIn.mint(address(directTakerExecutor), ONE);
         directTakerExecutor.reactorCallback(outputs, fillData);
         assertEq(tokenIn.balanceOf(taker), ONE);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
@@ -104,6 +104,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         });
 
         tokenIn.mint(maker, ONE);
+        tokenOut.mint(taker, ONE * 2);
         dloReactor.execute(execution);
     }
 }
