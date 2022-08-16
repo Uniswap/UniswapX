@@ -81,6 +81,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), ONE),
+            // The total outputs will resolve to 1.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -105,6 +106,11 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         tokenIn.mint(maker, ONE);
         tokenOut.mint(taker, ONE * 2);
+
         dloReactor.execute(execution);
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(taker), ONE);
+        assertEq(tokenOut.balanceOf(maker), 1500000000000000000);
+        assertEq(tokenOut.balanceOf(taker), 500000000000000000);
     }
 }
