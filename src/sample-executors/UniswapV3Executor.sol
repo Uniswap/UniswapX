@@ -14,7 +14,7 @@ contract UniswapV3Executor is IReactorCallback {
         swapRouter = _swapRouter;
     }
 
-    // Only handle 1 output
+    /// @dev Only can handle single output
     function reactorCallback(
         Output[] calldata outputs,
         bytes calldata fillData

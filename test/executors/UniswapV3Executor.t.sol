@@ -46,9 +46,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
         uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter));
-
-        // Do appropriate max approvals
-        tokenIn.forceApprove(address(uniswapV3Executor), address(permitPost), type(uint256).max);
     }
 
     function testReactorCallback() public {
@@ -61,5 +58,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         uniswapV3Executor.reactorCallback(outputs, fillData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE);
+    }
+
+    function testExecute() public {
+
     }
 }
