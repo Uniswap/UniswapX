@@ -24,9 +24,10 @@ contract UniswapV3Executor is IReactorCallback {
         address inputToken;
         uint24 fee;
         uint256 inputAmount;
+        address reactor;
 
-        (inputToken, fee, inputAmount) = abi.decode(
-            fillData, (address, uint24, uint256)
+        (inputToken, fee, inputAmount, reactor) = abi.decode(
+            fillData, (address, uint24, uint256, address)
         );
 
         // SwapRouter has to take out inputToken from executor
@@ -41,6 +42,6 @@ contract UniswapV3Executor is IReactorCallback {
             0
         ));
         // Reactor has to take out outputToken from executor (and send to recipient)
-        ERC20(outputs[0].token).approve(msg.sender, outputs[0].amount);
+        ERC20(outputs[0].token).approve(reactor, outputs[0].amount);
     }
 }

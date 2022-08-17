@@ -57,7 +57,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         Output[] memory outputs = new Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
-        bytes memory fillData = abi.encode(tokenIn, FEE, ONE);
+        bytes memory fillData = abi.encode(tokenIn, FEE, ONE, dloReactor);
         tokenIn.mint(address(uniswapV3Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         uniswapV3Executor.reactorCallback(outputs, fillData);
@@ -91,7 +91,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             fillContract: address(uniswapV3Executor),
-            fillData: abi.encode(tokenIn, FEE, ONE)
+            fillData: abi.encode(tokenIn, FEE, ONE, dloReactor)
         });
 
         tokenIn.mint(maker, ONE);
