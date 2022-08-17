@@ -4,24 +4,15 @@ pragma solidity ^0.8.0;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {Output} from "../interfaces/ReactorStructs.sol";
-
-interface ISwapRouter02 {
-    struct ExactOutputSingleParams {
-        address tokenIn; // from fillData
-        address tokenOut; // from <outputs>
-        uint24 fee; // from fillData
-        address recipient; // fillContract (this)
-        uint256 amountOut; // from <outputs>
-        uint256 amountInMaximum; // from fillData
-        uint160 sqrtPriceLimitX96; // 0
-    }
-
-    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);
-}
+import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback {
 
-    address constant SWAPROUTER02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public immutable swapRouter;
+
+    constructor(address _swapRouter) {
+        swapRouter = _swapRouter;
+    }
 
     function reactorCallback(
         Output[] calldata outputs,
@@ -35,7 +26,7 @@ contract UniswapV3Executor is IReactorCallback {
             fillData, (address, uint24, uint256)
         );
 
-        ISwapRouter02(SWAPROUTER02).exactOutputSingle(ISwapRouter02.ExactOutputSingleParams(
+        IUniV3SwapRouter(swapRouter).exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams(
             inputToken,
             outputs[0].token,
             fee,
