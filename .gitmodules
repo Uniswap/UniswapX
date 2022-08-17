@@ -7,6 +7,3 @@
 [submodule "lib/permitpost"]
 	path = lib/permitpost
 	url = git@github.com:Uniswap/permitpost.git
-[submodule "lib/swap-router-contracts"]
-	path = lib/swap-router-contracts
-	url = https://github.com/uniswap/swap-router-contracts
