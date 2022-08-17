@@ -46,6 +46,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
         uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter));
+        permitPost = new PermitPost();
+        dloReactor = new DutchLimitOrderReactor(address(permitPost));
+
+        // Do appropriate max approvals
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
     }
 
     function testReactorCallback() public {
@@ -61,6 +66,42 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 
     function testExecute() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), ONE),
+            // The output will resolve to 0.5
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(dloReactor),
+                    maxAmount: ONE,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(tokenIn, FEE, ONE)
+        });
 
+        tokenIn.mint(maker, ONE);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        dloReactor.execute(execution);
+
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 500000000000000000);
+        assertEq(tokenOut.balanceOf(maker), 500000000000000000);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
     }
 }
