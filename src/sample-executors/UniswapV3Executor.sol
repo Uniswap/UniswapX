@@ -14,10 +14,13 @@ contract UniswapV3Executor is IReactorCallback {
         swapRouter = _swapRouter;
     }
 
+    // Only handle 1 output
     function reactorCallback(
         Output[] calldata outputs,
         bytes calldata fillData
     ) external {
+        require(outputs.length == 1, "output.length !=1");
+
         address inputToken;
         uint24 fee;
         uint256 inputAmount;
@@ -26,6 +29,7 @@ contract UniswapV3Executor is IReactorCallback {
             fillData, (address, uint24, uint256)
         );
 
+        ERC20(inputToken).approve(swapRouter, outputs[0].amount);
         IUniV3SwapRouter(swapRouter).exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams(
             inputToken,
             outputs[0].token,

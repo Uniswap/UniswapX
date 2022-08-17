@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 interface IUniV3SwapRouter {
     struct ExactOutputSingleParams {
-        address tokenIn; // from fillData
-        address tokenOut; // from <outputs>
-        uint24 fee; // from fillData
-        address recipient; // fillContract (this)
-        uint256 amountOut; // from <outputs>
-        uint256 amountInMaximum; // from fillData
-        uint160 sqrtPriceLimitX96; // 0
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint160 sqrtPriceLimitX96;
     }
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);
