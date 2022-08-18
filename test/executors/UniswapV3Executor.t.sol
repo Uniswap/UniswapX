@@ -65,6 +65,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE);
     }
 
+    // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
+    // There will be 0.5 input token remaining in UniswapV3Executor.
     function testExecute() public {
         uint inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -72,7 +74,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
-            // The output will resolve to 0.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -106,7 +107,42 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
     }
 
+    // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
+    // be insufficient input.
     function testExecuteInsufficientOutput() public {
+        uint inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            // The output will resolve to 2
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+        order: order,
+        sig: getPermitSignature(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            Permit({
+                token: address(tokenIn),
+                spender: address(dloReactor),
+                maxAmount: inputAmount,
+                deadline: order.info.deadline
+            }),
+            0,
+            uint256(orderHash)
+        ),
+        fillContract: address(uniswapV3Executor),
+        fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
+        });
 
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE * 2);
+
+        vm.expectRevert("Too much requested");
+        dloReactor.execute(execution);
     }
 }
