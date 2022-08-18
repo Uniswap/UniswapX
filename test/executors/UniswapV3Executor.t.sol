@@ -66,11 +66,12 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 
     function testExecute() public {
+        uint inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: TokenAmount(address(tokenIn), inputAmount),
             // The output will resolve to 0.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
@@ -84,17 +85,17 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 Permit({
                     token: address(tokenIn),
                     spender: address(dloReactor),
-                    maxAmount: ONE,
+                    maxAmount: inputAmount,
                     deadline: order.info.deadline
                 }),
                 0,
                 uint256(orderHash)
             ),
             fillContract: address(uniswapV3Executor),
-            fillData: abi.encode(tokenIn, FEE, ONE, dloReactor)
+            fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
         });
 
-        tokenIn.mint(maker, ONE);
+        tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         dloReactor.execute(execution);
@@ -103,5 +104,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 500000000000000000);
         assertEq(tokenOut.balanceOf(maker), 500000000000000000);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+    }
+
+    function testExecuteInsufficientOutput() public {
+
     }
 }
