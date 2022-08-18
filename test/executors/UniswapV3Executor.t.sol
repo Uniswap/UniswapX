@@ -145,4 +145,42 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         vm.expectRevert("Too much requested");
         dloReactor.execute(execution);
     }
+
+    // Encode the wrong inputToken in fillData. This code will error in the transferFrom()
+    // in MockSwapRouter, resulting in "Arithmetic over/underflow", which is 0x11 error
+    function testExecuteWrongFillDataToken() public {
+        uint inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+        startTime: block.timestamp - 100,
+        endTime: block.timestamp + 100,
+        input: TokenAmount(address(tokenIn), inputAmount),
+        outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+                ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(tokenOut, FEE, inputAmount, dloReactor)
+        });
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        dloReactor.execute(execution);
+    }
 }
