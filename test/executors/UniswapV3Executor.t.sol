@@ -11,6 +11,7 @@ import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import "forge-std/console.sol";
 
 contract UniswapV3ExecutorTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -221,5 +222,16 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(execution);
+    }
+}
+
+contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
+    function setUp() public {
+
+    }
+
+    function testFork() public {
+        vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
+        console.log(block.number);
     }
 }
