@@ -228,21 +228,28 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 }
 
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
+    using OrderInfoBuilder for OrderInfo;
+
     address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address maker = 0xaaC27a7e079Ea4949D558Fd1748956EB1B86f70B;
+    UniswapV3Executor uniswapV3Executor;
+    PermitPost permitPost;
+    DutchLimitOrderReactor dloReactor;
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
+        uniswapV3Executor = new UniswapV3Executor(swapRouter02);
+        permitPost = new PermitPost();
+        dloReactor = new DutchLimitOrderReactor(address(permitPost));
         vm.prank(maker);
         ERC20(weth).approve(swapRouter02, type(uint256).max);
+        vm.prank(maker);
+        ERC20(weth).approve(address(permitPost), type(uint256).max);
     }
 
     function testFork() public {
-        console.log(ERC20(weth).balanceOf(maker));
-        console.log(ERC20(usdc).balanceOf(maker));
-
         vm.prank(maker);
         IUniV3SwapRouter(swapRouter02).exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams(
             weth,
@@ -253,8 +260,47 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             20000000000000000,
             0
         ));
+    }
 
-        console.log(ERC20(weth).balanceOf(maker));
-        console.log(ERC20(usdc).balanceOf(maker));
+    function testExecute() public {
+        uint inputAmount = 20000000000000000;
+        uint24 fee = 3000;
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(weth), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                uint256(vm.envUint("PRIVATE_KEY")),
+                address(permitPost),
+                Permit({
+                    token: address(weth),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(weth, fee, inputAmount, dloReactor)
+        });
+
+        assertEq(ERC20(weth).balanceOf(maker), 21057045549975364);
+        assertEq(ERC20(usdc).balanceOf(maker), 9100000);
+        assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
+        dloReactor.execute(execution);
+        assertEq(ERC20(weth).balanceOf(maker), 1057045549975364);
+        assertEq(ERC20(usdc).balanceOf(maker), 39100000);
+        assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 4025725858800932);
+        assertEq(ERC20(usdc).balanceOf(address(uniswapV3Executor)), 0);
     }
 }
