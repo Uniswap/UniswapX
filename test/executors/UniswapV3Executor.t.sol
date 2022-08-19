@@ -233,7 +233,8 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-    address maker = 0xaaC27a7e079Ea4949D558Fd1748956EB1B86f70B;
+    // .env's PRIVATE_KEY corresponds to this address
+    address maker = 0x3580F45Cd5DB00221A999ae2925122ACcccDf254;
     UniswapV3Executor uniswapV3Executor;
     PermitPost permitPost;
     DutchLimitOrderReactor dloReactor;
@@ -243,25 +244,18 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         uniswapV3Executor = new UniswapV3Executor(swapRouter02);
         permitPost = new PermitPost();
         dloReactor = new DutchLimitOrderReactor(address(permitPost));
-        vm.prank(maker);
-        ERC20(weth).approve(swapRouter02, type(uint256).max);
+
+        // Maker max approves permit post
         vm.prank(maker);
         ERC20(weth).approve(address(permitPost), type(uint256).max);
+
+        // Transfer 0.02 WETH to maker
+        vm.prank(0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E);
+        ERC20(weth).transfer(maker, 20000000000000000);
     }
 
-    function testFork() public {
-        vm.prank(maker);
-        IUniV3SwapRouter(swapRouter02).exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams(
-            weth,
-            usdc,
-            3000,
-            maker,
-            30000000,
-            20000000000000000,
-            0
-        ));
-    }
-
+    // Maker's order consists of input = 0.02WETH & output = 30 USDC. There will be 4025725858800932
+    // excess wei of USDC in uniswapV3Executor
     function testExecute() public {
         uint inputAmount = 20000000000000000;
         uint24 fee = 3000;
@@ -293,14 +287,12 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             fillData: abi.encode(weth, fee, inputAmount, dloReactor)
         });
 
-        assertEq(ERC20(weth).balanceOf(maker), 21057045549975364);
-        assertEq(ERC20(usdc).balanceOf(maker), 9100000);
-        assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(ERC20(weth).balanceOf(maker), 20000000000000000);
+        assertEq(ERC20(usdc).balanceOf(maker), 0);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
         dloReactor.execute(execution);
-        assertEq(ERC20(weth).balanceOf(maker), 1057045549975364);
-        assertEq(ERC20(usdc).balanceOf(maker), 39100000);
+        assertEq(ERC20(weth).balanceOf(maker), 0);
+        assertEq(ERC20(usdc).balanceOf(maker), 30000000);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 4025725858800932);
-        assertEq(ERC20(usdc).balanceOf(address(uniswapV3Executor)), 0);
     }
 }
