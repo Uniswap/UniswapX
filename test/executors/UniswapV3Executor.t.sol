@@ -5,8 +5,10 @@ import {Test} from "forge-std/Test.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../../src/test/MockERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../../src/test/MockSwapRouter.sol";
 import {Output, TokenAmount, OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
+import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -226,12 +228,33 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 }
 
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
+    address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address maker = 0xaaC27a7e079Ea4949D558Fd1748956EB1B86f70B;
+
     function setUp() public {
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
-        console.log(block.number);
+        vm.prank(maker);
+        ERC20(weth).approve(swapRouter02, type(uint256).max);
     }
 
     function testFork() public {
+        console.log(ERC20(weth).balanceOf(maker));
+        console.log(ERC20(usdc).balanceOf(maker));
 
+        vm.prank(maker);
+        IUniV3SwapRouter(swapRouter02).exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams(
+            weth,
+            usdc,
+            3000,
+            maker,
+            30000000,
+            20000000000000000,
+            0
+        ));
+
+        console.log(ERC20(weth).balanceOf(maker));
+        console.log(ERC20(usdc).balanceOf(maker));
     }
 }
