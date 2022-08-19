@@ -183,4 +183,43 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(execution);
     }
+
+    // Encode the wrong reactor in fillData. Will error in the reactor's code to
+    // transfer output tokens to recipients because executor has approved the incorrect
+    // reactor.
+    function testExecuteWrongFillDataReactor() public {
+        uint inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+        startTime: block.timestamp - 100,
+        endTime: block.timestamp + 100,
+        input: TokenAmount(address(tokenIn), inputAmount),
+        outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                    0,
+                    uint256(orderHash)
+                ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(tokenIn, FEE, inputAmount, address(0))
+        });
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        dloReactor.execute(execution);
+    }
 }
