@@ -21,12 +21,7 @@ contract UniswapV3Executor is IReactorCallback {
     ) external {
         require(outputs.length == 1, "output.length !=1");
 
-        address inputToken;
-        uint24 fee;
-        uint256 inputAmount;
-        address reactor;
-
-        (inputToken, fee, inputAmount, reactor) = abi.decode(
+        (address inputToken, uint24 fee, uint256 inputAmount, address reactor) = abi.decode(
             fillData, (address, uint24, uint256, address)
         );
 

@@ -227,11 +227,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     function setUp() public {
-
+        vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
+        console.log(block.number);
     }
 
     function testFork() public {
-        vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
-        console.log(block.number);
+
     }
 }
