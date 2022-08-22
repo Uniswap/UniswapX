@@ -272,7 +272,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             order: order,
             sig: getPermitSignature(
                 vm,
-                uint256(vm.envUint("PRIVATE_KEY")),
+                vm.envUint("PRIVATE_KEY"),
                 address(permitPost),
                 Permit({
                     token: address(weth),
