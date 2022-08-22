@@ -295,4 +295,42 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 4025725858800932);
     }
+
+    // Maker's order consists of input = 0.02WETH & output = 40 USDC. This is too much output, and
+    // would require 21299032581776638 wei of WETH. The test will fail when router attempts
+    // to transfer this amount of WETH from executor to the USDC/WETH pool.
+    function testExecuteTooMuchOutput() public {
+        uint inputAmount = 20000000000000000;
+        uint24 fee = 3000;
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(weth), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                vm.envUint("PRIVATE_KEY"),
+                address(permitPost),
+                Permit({
+                    token: address(weth),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(weth, fee, inputAmount, dloReactor)
+        });
+
+        vm.expectRevert(bytes("STF"));
+        dloReactor.execute(execution);
+    }
 }
