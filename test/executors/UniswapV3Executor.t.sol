@@ -13,8 +13,8 @@ import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import "forge-std/console.sol";
 
+// This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract UniswapV3ExecutorTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
@@ -124,22 +124,22 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-        order: order,
-        sig: getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(dloReactor),
-                maxAmount: inputAmount,
-                deadline: order.info.deadline
-            }),
-            0,
-            uint256(orderHash)
-        ),
-        fillContract: address(uniswapV3Executor),
-        fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
+            order: order,
+            sig: getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            fillContract: address(uniswapV3Executor),
+            fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
         });
 
         tokenIn.mint(maker, inputAmount);
@@ -175,7 +175,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 }),
                 0,
                 uint256(orderHash)
-                ),
+            ),
             fillContract: address(uniswapV3Executor),
             fillData: abi.encode(tokenOut, FEE, inputAmount, dloReactor)
         });
@@ -212,9 +212,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                     maxAmount: inputAmount,
                     deadline: order.info.deadline
                 }),
-                    0,
-                    uint256(orderHash)
-                ),
+                0,
+                uint256(orderHash)
+            ),
             fillContract: address(uniswapV3Executor),
             fillData: abi.encode(tokenIn, FEE, inputAmount, address(0))
         });
@@ -227,6 +227,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 }
 
+// This set of tests will use a mainnet fork to test integration.
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
