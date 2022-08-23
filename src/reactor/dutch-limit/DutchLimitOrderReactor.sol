@@ -14,7 +14,8 @@ import {
     TokenAmount,
     OrderInfo,
     OrderFill,
-    Output
+    Output,
+    Signature
 } from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
@@ -45,6 +46,22 @@ contract DutchLimitOrderReactor is BaseReactor {
                 fillData: execution.fillData
             })
         );
+    }
+
+    function executeBatch(
+        DutchLimitOrder[] calldata orders,
+        Signature[] calldata signatures,
+        address fillContract,
+        bytes calldata fillData
+    ) public {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+        for (uint i = 0; i < orders.length; i++) {
+            _validateDutchOrder(orders[i]);
+            resolvedOrders[i] = resolve(orders[i]);
+            orderHashes[i] = keccak256(abi.encode(orders[i]));
+        }
+        fillBatch(resolvedOrders, signatures, orderHashes, fillContract, fillData);
     }
 
     /// @notice Resolve a DutchLimitOrder into a generic order

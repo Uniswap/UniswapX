@@ -8,7 +8,8 @@ import {
     OrderFill,
     OrderInfo,
     OrderStatus,
-    TokenAmount
+    TokenAmount,
+    Signature
 } from "../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
@@ -30,5 +31,15 @@ contract BaseReactor {
         orderFill.order.info.validate();
         orderStatus.updateFilled(orderFill.orderHash);
         orderFill.fill();
+    }
+
+    function fillBatch(
+        ResolvedOrder[] memory orders,
+        Signature[] memory signatures,
+        bytes32[] memory orderHashes,
+        address fillContract,
+        bytes calldata fillData
+    ) internal {
+
     }
 }
