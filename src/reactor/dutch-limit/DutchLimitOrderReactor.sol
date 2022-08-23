@@ -51,6 +51,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     function executeBatch(
         DutchLimitOrder[] calldata orders,
         Signature[] calldata signatures,
+        address[] calldata outputTokens,
         address fillContract,
         bytes calldata fillData
     ) public {
@@ -61,7 +62,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             resolvedOrders[i] = resolve(orders[i]);
             orderHashes[i] = keccak256(abi.encode(orders[i]));
         }
-        fillBatch(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+        fillBatch(resolvedOrders, signatures, orderHashes, outputTokens, fillContract, fillData);
     }
 
     /// @notice Resolve a DutchLimitOrder into a generic order
