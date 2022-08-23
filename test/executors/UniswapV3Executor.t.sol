@@ -234,13 +234,15 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
-    // .env's PRIVATE_KEY corresponds to this address
-    address maker = 0x3580F45Cd5DB00221A999ae2925122ACcccDf254;
+    address maker;
+    uint256 makerPrivateKey;
     UniswapV3Executor uniswapV3Executor;
     PermitPost permitPost;
     DutchLimitOrderReactor dloReactor;
 
     function setUp() public {
+        makerPrivateKey = 0x12341234;
+        maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
         uniswapV3Executor = new UniswapV3Executor(swapRouter02);
         permitPost = new PermitPost();
@@ -273,7 +275,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             order: order,
             sig: getPermitSignature(
                 vm,
-                vm.envUint("PRIVATE_KEY"),
+                makerPrivateKey,
                 address(permitPost),
                 Permit({
                     token: address(weth),
@@ -316,7 +318,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             order: order,
             sig: getPermitSignature(
                 vm,
-                vm.envUint("PRIVATE_KEY"),
+                makerPrivateKey,
                 address(permitPost),
                 Permit({
                     token: address(weth),
