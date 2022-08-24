@@ -13,6 +13,9 @@ on:
     # - remappings.txt
     # - .github/workflows/foundry-gas-diff.yml
 
+env:
+  FOUNDRY_RPC_URL: https://mainnet.infura.io/v3/6e758ef5d39a4fdeba50de7d10d08448
+
 jobs:
   compare_gas_reports:
     runs-on: ubuntu-latest
@@ -29,7 +32,7 @@ jobs:
 
       # Add any step generating a gas report to a temporary file named gasreport.ansi (can be changed)
       # For example:
-      - run: forge test --no-match-path test/integration --gas-report
+      - run: forge test --no-match-path test/integration --gas-report > gasreport.ansi
 
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@v3.7
