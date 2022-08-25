@@ -64,7 +64,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             outputs
         );
         resolvedOrders[0] = resolvedOrder;
-        bytes memory fillData = abi.encode(taker, tokenIn, inputAmount, dloReactor);
+        bytes memory fillData = abi.encode(taker, dloReactor);
         tokenIn.mint(address(directTakerExecutor), inputAmount);
         tokenOut.mint(taker, outputAmount);
         directTakerExecutor.reactorCallback(resolvedOrders, fillData);

@@ -13,9 +13,7 @@ contract DirectTakerExecutor is IReactorCallback {
         // Only handle 1 resolved order
         require(resolvedOrders.length == 1, "resolvedOrders.length != 1");
 
-        (address taker, address inputToken, uint256 inputAmount, address reactor) = abi.decode(
-            fillData, (address, address, uint256, address)
-        );
+        (address taker, address reactor) = abi.decode(fillData, (address, address));
         uint256 totalOutputAmount;
         // transfer output tokens from taker to this
         for (uint256 i = 0; i < resolvedOrders[0].outputs.length; i++) {
@@ -26,6 +24,6 @@ contract DirectTakerExecutor is IReactorCallback {
         // Assumed that all outputs are of the same token
         ERC20(resolvedOrders[0].outputs[0].token).approve(reactor, totalOutputAmount);
         // transfer input tokens from this to taker
-        ERC20(inputToken).transfer(taker, inputAmount);
+        ERC20(resolvedOrders[0].input.token).transfer(taker, resolvedOrders[0].input.amount);
     }
 }
