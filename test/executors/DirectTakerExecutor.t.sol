@@ -95,41 +95,41 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
     }
 
-//    function testExecute() public {
-//        DutchLimitOrder memory order = DutchLimitOrder({
-//            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-//            startTime: block.timestamp - 100,
-//            endTime: block.timestamp + 100,
-//            input: TokenAmount(address(tokenIn), ONE),
-//            // The total outputs will resolve to 1.5
-//            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
-//        });
-//        bytes32 orderHash = keccak256(abi.encode(order));
-//
-//        tokenIn.mint(maker, ONE);
-//        tokenOut.mint(taker, ONE * 2);
-//
-//        dloReactor.execute(
-//            order,
-//            getPermitSignature(
-//                vm,
-//                makerPrivateKey,
-//                address(permitPost),
-//                Permit({
-//                    token: address(tokenIn),
-//                    spender: address(dloReactor),
-//                    maxAmount: ONE,
-//                    deadline: order.info.deadline
-//                }),
-//                0,
-//                uint256(orderHash)
-//            ),
-//            address(directTakerExecutor),
-//            abi.encode(taker, tokenIn, ONE, dloReactor)
-//        );
-//        assertEq(tokenIn.balanceOf(maker), 0);
-//        assertEq(tokenIn.balanceOf(taker), ONE);
-//        assertEq(tokenOut.balanceOf(maker), 1500000000000000000);
-//        assertEq(tokenOut.balanceOf(taker), 500000000000000000);
-//    }
+    function testExecute() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), ONE),
+            // The total outputs will resolve to 1.5
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, ONE);
+        tokenOut.mint(taker, ONE * 2);
+
+        dloReactor.execute(
+            order,
+            getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(dloReactor),
+                    maxAmount: ONE,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            address(directTakerExecutor),
+            abi.encode(taker, dloReactor)
+        );
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(taker), ONE);
+        assertEq(tokenOut.balanceOf(maker), 1500000000000000000);
+        assertEq(tokenOut.balanceOf(taker), 500000000000000000);
+    }
 }
