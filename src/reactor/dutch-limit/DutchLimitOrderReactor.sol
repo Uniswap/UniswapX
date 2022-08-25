@@ -41,14 +41,11 @@ contract DutchLimitOrderReactor is BaseReactor {
     ) external {
         _validateDutchOrder(order);
         fill(
-            OrderFill({
-                order: resolve(order),
-                sig: sig,
-                permitPost: permitPost,
-                orderHash: keccak256(abi.encode(order)),
-                fillContract: fillContract,
-                fillData: fillData
-            })
+            resolve(order),
+            sig,
+            keccak256(abi.encode(order)),
+            fillContract,
+            fillData
         );
     }
 

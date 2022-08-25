@@ -28,14 +28,11 @@ contract LimitOrderReactor is BaseReactor {
     ///     properly return all user outputs
     function execute(LimitOrderExecution calldata execution) external {
         fill(
-            OrderFill({
-                order: resolve(execution.order),
-                sig: execution.sig,
-                permitPost: permitPost,
-                orderHash: keccak256(abi.encode(execution.order)),
-                fillContract: execution.fillContract,
-                fillData: execution.fillData
-            })
+            resolve(execution.order),
+            execution.sig,
+            keccak256(abi.encode(execution.order)),
+            execution.fillContract,
+            execution.fillData
         );
     }
 
