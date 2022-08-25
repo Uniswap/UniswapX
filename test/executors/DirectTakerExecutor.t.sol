@@ -51,22 +51,25 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     }
 
     function testReactorCallback() public {
+        uint inputAmount = ONE;
+        uint outputAmount = ONE;
+
         Output[] memory outputs = new Output[](1);
         outputs[0].token = address(tokenOut);
-        outputs[0].amount = ONE;
+        outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
-            TokenAmount(address(tokenIn), ONE),
+            TokenAmount(address(tokenIn), inputAmount),
             outputs
         );
         resolvedOrders[0] = resolvedOrder;
-        bytes memory fillData = abi.encode(taker, tokenIn, ONE, dloReactor);
-        tokenIn.mint(address(directTakerExecutor), ONE);
-        tokenOut.mint(taker, ONE);
+        bytes memory fillData = abi.encode(taker, tokenIn, inputAmount, dloReactor);
+        tokenIn.mint(address(directTakerExecutor), inputAmount);
+        tokenOut.mint(taker, outputAmount);
         directTakerExecutor.reactorCallback(resolvedOrders, fillData);
-        assertEq(tokenIn.balanceOf(taker), ONE);
-        assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE);
+        assertEq(tokenIn.balanceOf(taker), inputAmount);
+        assertEq(tokenOut.balanceOf(address(directTakerExecutor)), outputAmount);
     }
 
 //    function testReactorCallback2Outputs() public {
