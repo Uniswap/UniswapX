@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {MockERC20} from "../../src/test/MockERC20.sol";
 import {Output, TokenAmount, OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
@@ -85,9 +86,13 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-            order: order,
-            sig: getPermitSignature(
+
+        tokenIn.mint(maker, ONE);
+        tokenOut.mint(taker, ONE * 2);
+
+        dloReactor.execute(
+            order,
+            getPermitSignature(
                 vm,
                 makerPrivateKey,
                 address(permitPost),
@@ -100,14 +105,9 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
                 0,
                 uint256(orderHash)
             ),
-            fillContract: address(directTakerExecutor),
-            fillData: abi.encode(taker, tokenIn, ONE, dloReactor)
-        });
-
-        tokenIn.mint(maker, ONE);
-        tokenOut.mint(taker, ONE * 2);
-
-        dloReactor.execute(execution);
+            address(directTakerExecutor),
+            abi.encode(taker, tokenIn, ONE, dloReactor)
+        );
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(taker), ONE);
         assertEq(tokenOut.balanceOf(maker), 1500000000000000000);

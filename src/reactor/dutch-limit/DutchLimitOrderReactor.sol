@@ -6,7 +6,6 @@ import {OrderValidator} from "../../lib/OrderValidator.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 import {
     DutchLimitOrder,
-    DutchLimitOrderExecution,
     DutchOutput
 } from "./DutchLimitOrderStructs.sol";
 import {
@@ -14,7 +13,8 @@ import {
     TokenAmount,
     OrderInfo,
     OrderFill,
-    Output
+    Output,
+    Signature
 } from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
@@ -33,16 +33,21 @@ contract DutchLimitOrderReactor is BaseReactor {
     ///     and fetched through a valid permit signature
     ///     - Order execution through the fillContract must
     ///     properly return all user outputs
-    function execute(DutchLimitOrderExecution calldata execution) external {
-        _validateDutchOrder(execution.order);
+    function execute(
+        DutchLimitOrder calldata order,
+        Signature calldata sig,
+        address fillContract,
+        bytes calldata fillData
+    ) external {
+        _validateDutchOrder(order);
         fill(
             OrderFill({
-                order: resolve(execution.order),
-                sig: execution.sig,
+                order: resolve(order),
+                sig: sig,
                 permitPost: permitPost,
-                orderHash: keccak256(abi.encode(execution.order)),
-                fillContract: execution.fillContract,
-                fillData: execution.fillData
+                orderHash: keccak256(abi.encode(order)),
+                fillContract: fillContract,
+                fillData: fillData
             })
         );
     }
