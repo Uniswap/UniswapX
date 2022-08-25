@@ -51,9 +51,9 @@ contract BaseReactor {
             sig
         );
 
-        IReactorCallback(fillContract).reactorCallback(
-            order.outputs, fillData
-        );
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        resolvedOrders[0] = order;
+        IReactorCallback(fillContract).reactorCallback(resolvedOrders, fillData);
 
         // transfer output tokens to their respective recipients
         for (uint256 i = 0; i < order.outputs.length; i++) {
