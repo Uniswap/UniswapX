@@ -72,20 +72,29 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), outputAmount);
     }
 
-//    function testReactorCallback2Outputs() public {
-//        Output[] memory outputs = new Output[](2);
-//        outputs[0].token = address(tokenOut);
-//        outputs[0].amount = ONE;
-//        outputs[1].token = address(tokenOut);
-//        outputs[1].amount = ONE * 2;
-//        bytes memory fillData = abi.encode(taker, tokenIn, ONE, dloReactor);
-//        tokenOut.mint(taker, ONE * 3);
-//        tokenIn.mint(address(directTakerExecutor), ONE);
-//        directTakerExecutor.reactorCallback(outputs, fillData);
-//        assertEq(tokenIn.balanceOf(taker), ONE);
-//        assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
-//    }
-//
+    function testReactorCallback2Outputs() public {
+        uint inputAmount = ONE;
+
+        Output[] memory outputs = new Output[](2);
+        outputs[0].token = address(tokenOut);
+        outputs[0].amount = ONE;
+        outputs[1].token = address(tokenOut);
+        outputs[1].amount = ONE * 2;
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        ResolvedOrder memory resolvedOrder = ResolvedOrder(
+            OrderInfoBuilder.init(address(dloReactor)),
+            TokenAmount(address(tokenIn), inputAmount),
+            outputs
+        );
+        resolvedOrders[0] = resolvedOrder;
+        bytes memory fillData = abi.encode(taker, dloReactor);
+        tokenOut.mint(taker, ONE * 3);
+        tokenIn.mint(address(directTakerExecutor), inputAmount);
+        directTakerExecutor.reactorCallback(resolvedOrders, fillData);
+        assertEq(tokenIn.balanceOf(taker), inputAmount);
+        assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
+    }
+
 //    function testExecute() public {
 //        DutchLimitOrder memory order = DutchLimitOrder({
 //            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
