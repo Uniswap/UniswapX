@@ -12,8 +12,12 @@ import {DutchOutput} from
     "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {MockERC20} from "../../src/test/MockERC20.sol";
+import {OutputsBuilder} from "../util/OutputsBuilder.sol";
+import {MockFillContract} from "../../src/test/MockFillContract.sol";
 
-contract DutchLimitOrderReactorTest is Test {
+// This suite of tests test validation and resolves.
+contract DutchLimitOrderReactorValidationTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
@@ -179,5 +183,40 @@ contract DutchLimitOrderReactorTest is Test {
             dutchOutputs
         );
         reactor.validate(dlo);
+    }
+}
+
+// This suite of tests test execution with a mock fill contract.
+contract DutchLimitOrderReactorExecuteTest is Test {
+    using OrderInfoBuilder for OrderInfo;
+
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+    uint256 makerPrivateKey;
+    address maker;
+    DutchLimitOrderReactor reactor;
+    PermitPost permitPost;
+
+    function setUp() public {
+        tokenIn = new MockERC20("Input", "IN", 18);
+        tokenOut = new MockERC20("Output", "OUT", 18);
+        makerPrivateKey = 0x12341234;
+        maker = vm.addr(makerPrivateKey);
+        permitPost = new PermitPost();
+        reactor = new DutchLimitOrderReactor(address(permitPost));
+    }
+
+    function testExecute() public {
+        uint inputAmount = 10 ** 18;
+        uint outputAmount = 2 * inputAmount;
+
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
     }
 }
