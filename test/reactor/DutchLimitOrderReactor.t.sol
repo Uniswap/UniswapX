@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {PermitPost} from "permitpost/PermitPost.sol";
+import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
@@ -15,6 +15,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../../src/test/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../../src/test/MockFillContract.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test {
@@ -187,9 +188,10 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
+    MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     uint256 makerPrivateKey;
@@ -198,6 +200,7 @@ contract DutchLimitOrderReactorExecuteTest is Test {
     PermitPost permitPost;
 
     function setUp() public {
+        fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
@@ -210,13 +213,35 @@ contract DutchLimitOrderReactorExecuteTest is Test {
         uint inputAmount = 10 ** 18;
         uint outputAmount = 2 * inputAmount;
 
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
+
+        reactor.execute(
+            order,
+            getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(tokenIn),
+                    spender: address(reactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(keccak256(abi.encode(order)))
+            ),
+            address(fillContract),
+            bytes("")
+        );
     }
 }
