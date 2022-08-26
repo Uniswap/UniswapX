@@ -65,4 +65,44 @@ contract BaseReactor {
             );
         }
     }
+
+    function fillBatch(
+        ResolvedOrder[] memory orders,
+        Signature[] memory signatures,
+        bytes32[] memory orderHashes,
+        address fillContract,
+        bytes calldata fillData
+    ) internal {
+        for (uint i = 0; i < orders.length; i++) {
+            orders[i].info.validate();
+            orderStatus.updateFilled(orderHashes[i]);
+            IPermitPost(permitPost).saltTransferFrom(
+                Permit({
+                    token: orders[i].input.token,
+                    spender: address(this),
+                    maxAmount: orders[i].input.amount,
+                    deadline: orders[i].info.deadline
+                }),
+                orders[i].info.offerer,
+                fillContract,
+                orders[i].input.amount,
+                orderHashes[i],
+                signatures[i]
+            );
+        }
+
+        IReactorCallback(fillContract).reactorCallback(orders, fillData);
+
+        // transfer output tokens to their respective recipients
+        for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 j = 0; j < orders[i].outputs.length; j++) {
+                Output memory output = orders[i].outputs[j];
+                ERC20(output.token).transferFrom(
+                    fillContract,
+                    output.recipient,
+                    output.amount
+                );
+            }
+        }
+    }
 }
