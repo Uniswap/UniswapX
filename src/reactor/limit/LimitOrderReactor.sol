@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderFiller} from "../../lib/OrderFiller.sol";
 import {OrderValidator} from "../../lib/OrderValidator.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 import {LimitOrder, LimitOrderExecution} from "./LimitOrderStructs.sol";
 import {
     ResolvedOrder,
-    OrderFill,
     OrderInfo,
     TokenAmount
 } from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
-    using OrderFiller for OrderFill;
     using OrderValidator for OrderInfo;
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
@@ -28,14 +25,11 @@ contract LimitOrderReactor is BaseReactor {
     ///     properly return all user outputs
     function execute(LimitOrderExecution calldata execution) external {
         fill(
-            OrderFill({
-                order: resolve(execution.order),
-                sig: execution.sig,
-                permitPost: permitPost,
-                orderHash: keccak256(abi.encode(execution.order)),
-                fillContract: execution.fillContract,
-                fillData: execution.fillData
-            })
+            resolve(execution.order),
+            execution.sig,
+            keccak256(abi.encode(execution.order)),
+            execution.fillContract,
+            execution.fillData
         );
     }
 
