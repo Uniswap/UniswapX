@@ -30,15 +30,6 @@ struct ResolvedOrder {
     Output[] outputs;
 }
 
-struct OrderFill {
-    ResolvedOrder order;
-    Signature sig;
-    address permitPost;
-    bytes32 orderHash;
-    address fillContract;
-    bytes fillData;
-}
-
 struct OrderStatus {
     bool isCancelled;
     // TODO: use numerator/denominator for partial fills
