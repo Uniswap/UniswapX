@@ -2,15 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Vm} from "forge-std/Vm.sol";
-import {EIP712} from
-    "openzeppelin-contracts/contracts/utils/cryptography/draft-EIP712.sol";
-import {ECDSA} from
-    "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
-import {
-    Signature,
-    Permit,
-    IPermitPost
-} from "permitpost/interfaces/IPermitPost.sol";
+import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/draft-EIP712.sol";
+import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
+import {Signature, Permit, IPermitPost} from "permitpost/interfaces/IPermitPost.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
 
 contract PermitSignature {
@@ -19,9 +13,8 @@ contract PermitSignature {
     );
     bytes32 public constant NAME_HASH = keccak256("PermitPost");
     bytes32 public constant VERSION_HASH = keccak256("1");
-    bytes32 public constant TYPE_HASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
+    bytes32 public constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     function getPermitSignature(
         Vm vm,
@@ -36,17 +29,7 @@ contract PermitSignature {
     {
         bytes32 msgHash = ECDSA.toTypedDataHash(
             _domainSeparatorV4(post),
-            keccak256(
-                abi.encode(
-                    _PERMIT_TYPEHASH,
-                    sigType,
-                    permit.token,
-                    permit.spender,
-                    permit.maxAmount,
-                    permit.deadline,
-                    nonce
-                )
-            )
+            keccak256(abi.encode(_PERMIT_TYPEHASH, sigType, permit.token, permit.spender, permit.maxAmount, permit.deadline, nonce))
         );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
@@ -54,8 +37,6 @@ contract PermitSignature {
     }
 
     function _domainSeparatorV4(address post) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(TYPE_HASH, NAME_HASH, VERSION_HASH, block.chainid, post)
-        );
+        return keccak256(abi.encode(TYPE_HASH, NAME_HASH, VERSION_HASH, block.chainid, post));
     }
 }
