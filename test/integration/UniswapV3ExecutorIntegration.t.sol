@@ -7,7 +7,7 @@ import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.so
 import {Output, TokenAmount, OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 
 // This set of tests will use a mainnet fork to test integration.
@@ -47,36 +47,35 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
-        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-        startTime: block.timestamp - 100,
-        endTime: block.timestamp + 100,
-        input: TokenAmount(address(weth), inputAmount),
-        outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(weth), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-        order: order,
-        sig: getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({
-            token: address(weth),
-            spender: address(dloReactor),
-            maxAmount: inputAmount,
-            deadline: order.info.deadline
-            }),
-                0,
-                uint256(orderHash)
-            ),
-        fillContract: address(uniswapV3Executor),
-        fillData: abi.encode(weth, fee, inputAmount, dloReactor)
-        });
 
         assertEq(ERC20(weth).balanceOf(maker), 20000000000000000);
         assertEq(ERC20(usdc).balanceOf(maker), 0);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
-        dloReactor.execute(execution);
+        dloReactor.execute(
+            order,
+            getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+                    token: address(weth),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
+                0,
+                uint256(orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encode(weth, fee, inputAmount, dloReactor)
+        );
         assertEq(ERC20(weth).balanceOf(maker), 0);
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 4025725858800932);
@@ -97,26 +96,25 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-        order: order,
-        sig: getPermitSignature(
+
+        vm.expectRevert(bytes("STF"));
+        dloReactor.execute(
+            order,
+            getPermitSignature(
                 vm,
                 makerPrivateKey,
                 address(permitPost),
                 Permit({
-            token: address(weth),
-            spender: address(dloReactor),
-            maxAmount: inputAmount,
-            deadline: order.info.deadline
-            }),
+                    token: address(weth),
+                    spender: address(dloReactor),
+                    maxAmount: inputAmount,
+                    deadline: order.info.deadline
+                }),
                 0,
                 uint256(orderHash)
             ),
-        fillContract: address(uniswapV3Executor),
-        fillData: abi.encode(weth, fee, inputAmount, dloReactor)
-        });
-
-        vm.expectRevert(bytes("STF"));
-        dloReactor.execute(execution);
+            address(uniswapV3Executor),
+            abi.encode(weth, fee, inputAmount, dloReactor)
+        );
     }
 }
