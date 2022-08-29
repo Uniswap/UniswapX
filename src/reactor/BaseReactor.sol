@@ -4,11 +4,12 @@ pragma solidity ^0.8.0;
 import {IPermitPost, Permit} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
+import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder, OrderInfo, OrderStatus, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract BaseReactor is OrderValidator {
+contract BaseReactor is OrderValidator, ReactorEvents {
     address public immutable permitPost;
 
     constructor(address _permitPost) {
@@ -45,5 +46,7 @@ contract BaseReactor is OrderValidator {
             Output memory output = order.outputs[i];
             ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
         }
+
+        emit Fill(orderHash, msg.sender);
     }
 }
