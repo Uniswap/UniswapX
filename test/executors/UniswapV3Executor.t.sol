@@ -60,7 +60,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         Output[] memory outputs = new Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
-        bytes memory fillData = abi.encode(tokenIn, FEE, ONE, dloReactor);
+        bytes memory fillData = abi.encode(FEE, dloReactor);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
@@ -86,24 +86,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-//        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-//            order: order,
-//            sig: getPermitSignature(
-//                vm,
-//                makerPrivateKey,
-//                address(permitPost),
-//                Permit({
-//                    token: address(tokenIn),
-//                    spender: address(dloReactor),
-//                    maxAmount: inputAmount,
-//                    deadline: order.info.deadline
-//                }),
-//                0,
-//                uint256(orderHash)
-//            ),
-//            fillContract: address(uniswapV3Executor),
-//            fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
-//        });
 
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE);
@@ -124,7 +106,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(tokenIn, FEE, inputAmount, dloReactor)
+            abi.encode(FEE, dloReactor)
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
@@ -146,24 +128,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-//        DutchLimitOrderExecution memory execution = DutchLimitOrderExecution({
-//            order: order,
-//            sig: getPermitSignature(
-//                vm,
-//                makerPrivateKey,
-//                address(permitPost),
-//                Permit({
-//                    token: address(tokenIn),
-//                    spender: address(dloReactor),
-//                    maxAmount: inputAmount,
-//                    deadline: order.info.deadline
-//                }),
-//                0,
-//                uint256(orderHash)
-//            ),
-//            fillContract: address(uniswapV3Executor),
-//            fillData: abi.encode(tokenIn, FEE, inputAmount, dloReactor)
-//        });
 
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
@@ -185,44 +149,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(tokenIn, FEE, inputAmount, dloReactor)
-        );
-    }
-
-    // Encode the wrong inputToken in fillData. This code will error in the transferFrom()
-    // in MockSwapRouter, resulting in "Arithmetic over/underflow", which is 0x11 error
-    function testExecuteWrongFillDataToken() public {
-        uint inputAmount = ONE;
-        DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
-        });
-        bytes32 orderHash = keccak256(abi.encode(order));
-
-        tokenIn.mint(maker, inputAmount);
-        tokenOut.mint(address(mockSwapRouter), ONE);
-
-        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
-        dloReactor.execute(
-            order,
-            getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
-                0,
-                uint256(orderHash)
-            ),
-            address(uniswapV3Executor),
-            abi.encode(tokenOut, FEE, inputAmount, dloReactor)
+            abi.encode(FEE, dloReactor)
         );
     }
 
@@ -260,7 +187,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(tokenIn, FEE, inputAmount, address(0))
+            abi.encode(FEE, address(0))
         );
     }
 }

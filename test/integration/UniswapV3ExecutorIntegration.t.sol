@@ -74,7 +74,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(weth, fee, inputAmount, dloReactor)
+            abi.encode(fee, dloReactor)
         );
         assertEq(ERC20(weth).balanceOf(maker), 0);
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
@@ -89,11 +89,11 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
-        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-        startTime: block.timestamp - 100,
-        endTime: block.timestamp + 100,
-        input: TokenAmount(address(weth), inputAmount),
-        outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(weth), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
@@ -114,7 +114,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(weth, fee, inputAmount, dloReactor)
+            abi.encode(fee, dloReactor)
         );
     }
 }
