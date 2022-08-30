@@ -191,7 +191,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         );
     }
 
-    // Requested outputs = 2 & 1 (for a total output of 3), input = 3.
+    // Requested outputs = 2 & 1 (for a total output of 3), input = 3. With
+    // swap rate at 1 to 1, at the end of the test there will be 3 tokenIn
+    // in mockSwapRouter and 3 tokenOut in maker.
     function testExecuteMultipleOutputs() public {
         uint256 inputAmount = ONE * 3;
         uint256[] memory startAmounts = new uint256[](2);
@@ -230,8 +232,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             address(uniswapV3Executor),
             abi.encode(FEE, dloReactor)
         );
+
         assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), ONE * 3);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE * 3);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
         assertEq(tokenOut.balanceOf(maker), ONE * 3);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
     }
