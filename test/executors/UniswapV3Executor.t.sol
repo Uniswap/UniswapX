@@ -239,4 +239,47 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(maker), ONE * 3);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
     }
+
+    // Requested outputs = 2 & 1 (for a total output of 3), input = 2. With
+    // swap rate at 1 to 1, there is insufficient input.
+    function testExecuteMultipleOutputsInsufficientInput() public {
+        uint256 inputAmount = ONE * 2;
+        uint256[] memory startAmounts = new uint256[](2);
+        startAmounts[0] = ONE * 2;
+        startAmounts[1] = ONE;
+        uint256[] memory endAmounts = new uint256[](2);
+        endAmounts[0] = startAmounts[0];
+        endAmounts[1] = startAmounts[1];
+        DutchLimitOrder memory order = DutchLimitOrder({
+        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+        startTime: block.timestamp - 100,
+        endTime: block.timestamp + 100,
+        input: TokenAmount(address(tokenIn), inputAmount),
+        outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE * 3);
+
+        vm.expectRevert("Too much requested");
+        dloReactor.execute(
+            order,
+            getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({
+            token: address(tokenIn),
+            spender: address(dloReactor),
+            maxAmount: inputAmount,
+            deadline: order.info.deadline
+            }),
+                0,
+                uint256(orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encode(FEE, dloReactor)
+        );
+    }
 }
