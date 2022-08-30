@@ -24,4 +24,19 @@ library OutputsBuilder {
         result[0] = DutchOutput(token, startAmount, endAmount, recipient);
         return result;
     }
+
+    // Returns array of dutch outputs. <startAmounts> and <endAmounts> have same length.
+    // All dutch outputs will be of the same <token> and have the same <recipient>.
+    function multipleDutch(
+        address token,
+        uint256[] memory startAmounts,
+        uint256[] memory endAmounts,
+        address recipient
+    ) internal pure returns (DutchOutput[] memory) {
+        DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
+        for (uint i = 0; i < startAmounts.length; i++) {
+            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient);
+        }
+        return result;
+    }
 }
