@@ -243,5 +243,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             address(fillContract),
             bytes("")
         );
+        assertEq(tokenOut.balanceOf(maker), 2000000000000000000);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 1000000000000000000);
     }
 }
