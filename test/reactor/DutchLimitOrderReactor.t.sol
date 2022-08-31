@@ -16,6 +16,7 @@ import {MockERC20} from "../../src/test/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../../src/test/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import "forge-std/console.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test {
