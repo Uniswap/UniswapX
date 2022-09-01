@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
-import {TokenAmount, OrderInfo} from "../../interfaces/ReactorStructs.sol";
+import {TokenAmount, OrderInfo} from "../../lib/ReactorStructs.sol";
 
 struct DutchOutput {
     address token;

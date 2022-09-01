@@ -11,8 +11,6 @@ struct TokenAmount {
 struct OrderInfo {
     address reactor;
     address offerer;
-    address validationContract;
-    bytes validationData;
     uint256 counter;
     uint256 deadline;
 }

@@ -2,10 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo} from "../../src/interfaces/ReactorStructs.sol";
+import {OrderInfo} from "../../src/lib/ReactorStructs.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
-import {MockValidationContract} from "../../src/test/MockValidationContract.sol";
-import {MockOrderValidator} from "../../src/test/MockOrderValidator.sol";
+import {MockOrderValidator} from "../util/mock/MockOrderValidator.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 contract OrderValidatorTest is Test {
@@ -26,33 +25,11 @@ contract OrderValidatorTest is Test {
         vm.expectRevert(OrderValidator.DeadlinePassed.selector);
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
-        validator.validate(
-            OrderInfoBuilder.init(address(validator)).withDeadline(block.timestamp - 1)
-        );
-    }
-
-    function testValidationContractInvalid() public {
-        MockValidationContract validationContract = new MockValidationContract();
-        validationContract.setValid(false);
-        vm.expectRevert(OrderValidator.InvalidOrder.selector);
-        validator.validate(
-            OrderInfoBuilder.init(address(validator)).withDeadline(block.timestamp)
-                .withValidationContract(address(validationContract))
-        );
+        validator.validate(OrderInfoBuilder.init(address(validator)).withDeadline(block.timestamp - 1));
     }
 
     function testValid() public view {
         validator.validate(OrderInfoBuilder.init(address(validator)));
-    }
-
-    function testValidationContractValid() public {
-        MockValidationContract validationContract = new MockValidationContract();
-        validationContract.setValid(true);
-        validator.validate(
-            OrderInfoBuilder.init(address(validator)).withValidationContract(
-                address(validationContract)
-            )
-        );
     }
 
     function testUpdateFilled() public {
