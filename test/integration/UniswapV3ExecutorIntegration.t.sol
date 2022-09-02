@@ -9,6 +9,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
+import "forge-std/console.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
@@ -40,8 +41,8 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         ERC20(weth).transfer(maker, 20000000000000000);
     }
 
-    // Maker's order consists of input = 0.02WETH & output = 30 USDC. There will be 4025725858800932
-    // excess wei of USDC in uniswapV3Executor
+    // Maker's order consists of input = 0.02WETH & output = 30 USDC. There will be 7560391
+    // excess wei of USDC in uniswapV3Executor.
     function testExecute() public {
         uint256 inputAmount = 20000000000000000;
         uint24 fee = 3000;
@@ -73,12 +74,12 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         );
         assertEq(ERC20(weth).balanceOf(maker), 0);
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
-        assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 4025725858800932);
+        assertEq(ERC20(usdc).balanceOf(address(uniswapV3Executor)), 7560391);
     }
 
     // Maker's order consists of input = 0.02WETH & output = 40 USDC. This is too much output, and
-    // would require 21299032581776638 wei of WETH. The test will fail when router attempts
-    // to transfer this amount of WETH from executor to the USDC/WETH pool.
+    // would require 21299032581776638 wei of WETH. The test will fail when reactor attempts
+    // to transfer 40 USDC from executor to the maker pool.
     function testExecuteTooMuchOutput() public {
         uint256 inputAmount = 20000000000000000;
         uint24 fee = 3000;
@@ -92,7 +93,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
-        vm.expectRevert(bytes("STF"));
+        vm.expectRevert("ERC20: transfer amount exceeds allowance");
         dloReactor.execute(
             order,
             getPermitSignature(
