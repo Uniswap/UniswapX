@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {Output, ResolvedOrder} from "../interfaces/ReactorStructs.sol";
+import {Output, ResolvedOrder} from "../lib/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback {
