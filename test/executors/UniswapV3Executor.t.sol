@@ -111,7 +111,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
-    // be insufficient input.
+    // there will be an overflow error when reactor tries to transfer 2 outputToken out of fill contract.
     function testExecuteInsufficientOutput() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -127,7 +127,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
-        vm.expectRevert("Too much requested");
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(
             order,
             getPermitSignature(
@@ -188,7 +188,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 
     // Requested outputs = 2 & 1 (for a total output of 3), input = 2. With
-    // swap rate at 1 to 1, there is insufficient input.
+    // swap rate at 1 to 1, there is insufficient input. The code will overflow error when reactor
+    // tries to withdraw the second output of 1 from the fill contract.
     function testExecuteMultipleOutputsInsufficientInput() public {
         uint256 inputAmount = ONE * 2;
         uint256[] memory startAmounts = new uint256[](2);
@@ -209,7 +210,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
-        vm.expectRevert("Too much requested");
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(
             order,
             getPermitSignature(
