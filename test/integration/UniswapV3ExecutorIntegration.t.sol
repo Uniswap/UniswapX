@@ -43,7 +43,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     // Maker's order consists of input = 0.02WETH & output = 30 USDC. There will be 4025725858800932
     // excess wei of USDC in uniswapV3Executor
     function testExecute() public {
-        uint inputAmount = 20000000000000000;
+        uint256 inputAmount = 20000000000000000;
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -64,12 +64,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(weth),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(weth), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),
@@ -85,7 +80,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     // would require 21299032581776638 wei of WETH. The test will fail when router attempts
     // to transfer this amount of WETH from executor to the USDC/WETH pool.
     function testExecuteTooMuchOutput() public {
-        uint inputAmount = 20000000000000000;
+        uint256 inputAmount = 20000000000000000;
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -104,12 +99,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(weth),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(weth), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),

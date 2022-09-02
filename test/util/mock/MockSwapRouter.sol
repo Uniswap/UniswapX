@@ -11,9 +11,12 @@ contract MockSwapRouter {
         swapRate = newRate;
     }
 
-    function exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams calldata params) external returns (uint256 amountIn) {
+    function exactOutputSingle(IUniV3SwapRouter.ExactOutputSingleParams calldata params)
+        external
+        returns (uint256 amountIn)
+    {
         amountIn = (params.amountOut * swapRate) / SWAP_RATE_GRANULARITY;
-        require(amountIn <= params.amountInMaximum, 'Too much requested');
+        require(amountIn <= params.amountInMaximum, "Too much requested");
         ERC20(params.tokenIn).transferFrom(msg.sender, address(this), amountIn);
         ERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
     }

@@ -77,7 +77,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
     // There will be 0.5 input token remaining in UniswapV3Executor.
     function testExecute() public {
-        uint inputAmount = ONE;
+        uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
@@ -96,12 +96,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),
@@ -118,7 +113,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
     // be insufficient input.
     function testExecuteInsufficientOutput() public {
-        uint inputAmount = ONE;
+        uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
@@ -139,12 +134,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),
@@ -182,12 +172,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(dloReactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),
@@ -213,11 +198,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         endAmounts[0] = startAmounts[0];
         endAmounts[1] = startAmounts[1];
         DutchLimitOrder memory order = DutchLimitOrder({
-        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-        startTime: block.timestamp - 100,
-        endTime: block.timestamp + 100,
-        input: TokenAmount(address(tokenIn), inputAmount),
-        outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
@@ -231,12 +216,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-            token: address(tokenIn),
-            spender: address(dloReactor),
-            maxAmount: inputAmount,
-            deadline: order.info.deadline
-            }),
+                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
             ),
