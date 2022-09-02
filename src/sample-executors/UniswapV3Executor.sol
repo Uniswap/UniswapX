@@ -25,7 +25,9 @@ contract UniswapV3Executor is IReactorCallback {
         }
 
         // SwapRouter has to take out inputToken from executor
-        ERC20(resolvedOrder.input.token).approve(swapRouter, resolvedOrder.input.amount);
+        if (ERC20(resolvedOrder.input.token).allowance(address(this), swapRouter) < resolvedOrder.input.amount) {
+            ERC20(resolvedOrder.input.token).approve(swapRouter, resolvedOrder.input.amount);
+        }
         IUniV3SwapRouter(swapRouter).exactOutputSingle(
             IUniV3SwapRouter.ExactOutputSingleParams(
                 resolvedOrder.input.token,
