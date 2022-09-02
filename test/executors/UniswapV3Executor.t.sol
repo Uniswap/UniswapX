@@ -75,7 +75,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     }
 
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
-    // There will be 0.5 input token remaining in UniswapV3Executor.
+    // There will be 0.5 output token remaining in UniswapV3Executor.
     function testExecute() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -105,9 +105,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 500000000000000000);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
         assertEq(tokenOut.balanceOf(maker), 500000000000000000);
-        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 500000000000000000);
     }
 
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will

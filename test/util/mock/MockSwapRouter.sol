@@ -20,4 +20,14 @@ contract MockSwapRouter {
         ERC20(params.tokenIn).transferFrom(msg.sender, address(this), amountIn);
         ERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
     }
+
+    function exactInputSingle(IUniV3SwapRouter.ExactInputSingleParams calldata params)
+        external
+        returns (uint256 amountOut)
+    {
+        amountOut = (params.amountIn * swapRate) / SWAP_RATE_GRANULARITY;
+        require(amountOut >= params.amountOutMinimum, "Too little received");
+        ERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
+        ERC20(params.tokenOut).transfer(params.recipient, amountOut);
+    }
 }
