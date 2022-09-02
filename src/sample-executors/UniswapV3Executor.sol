@@ -22,7 +22,7 @@ contract UniswapV3Executor is IReactorCallback {
         require(resolvedOrders.length == 1, "resolvedOrders.length !=1");
         ResolvedOrder memory resolvedOrder = resolvedOrders[0];
 
-        (uint24 fee, address reactor) = abi.decode(fillData, (uint24, address));
+        uint24 fee = abi.decode(fillData, (uint24));
         uint256 totalOutputAmount;
         for (uint i = 0; i < resolvedOrder.outputs.length; i++) {
             totalOutputAmount += resolvedOrder.outputs[i].amount;
@@ -40,6 +40,6 @@ contract UniswapV3Executor is IReactorCallback {
             0
         ));
         // Reactor has to take out outputToken from executor (and send to recipient)
-        ERC20(resolvedOrder.outputs[0].token).approve(reactor, totalOutputAmount);
+        ERC20(resolvedOrder.outputs[0].token).approve(msg.sender, totalOutputAmount);
     }
 }

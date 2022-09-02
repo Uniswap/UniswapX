@@ -74,7 +74,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(fee, dloReactor)
+            abi.encode(fee)
         );
         assertEq(ERC20(weth).balanceOf(maker), 0);
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
@@ -114,7 +114,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 uint256(orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(fee, dloReactor)
+            abi.encode(fee)
         );
     }
 }
