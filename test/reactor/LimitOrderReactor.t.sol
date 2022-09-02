@@ -4,26 +4,19 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
-import {
-    OrderInfo,
-    Output,
-    TokenAmount,
-    ResolvedOrder
-} from "../../src/interfaces/ReactorStructs.sol";
+import {OrderInfo, Output, TokenAmount, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
-import {MockERC20} from "../../src/test/MockERC20.sol";
-import {MockMaker} from "../../src/test/users/MockMaker.sol";
-import {MockFillContract} from "../../src/test/MockFillContract.sol";
-import {
-    LimitOrder,
-    LimitOrderExecution
-} from "../../src/reactor/limit/LimitOrderStructs.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {MockMaker} from "../util/mock/users/MockMaker.sol";
+import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {LimitOrder, LimitOrderExecution} from "../../src/reactor/limit/LimitOrderStructs.sol";
 import {LimitOrderReactor} from "../../src/reactor/limit/LimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature {
+contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
@@ -62,12 +55,7 @@ contract LimitOrderReactorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(reactor),
-                    maxAmount: ONE,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: ONE, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
                 ),
@@ -76,28 +64,19 @@ contract LimitOrderReactorTest is Test, PermitSignature {
         });
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
-        uint256 fillContractInputBalanceStart =
-            tokenIn.balanceOf(address(fillContract));
+        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
         uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
-        uint256 fillContractOutputBalanceStart =
-            tokenOut.balanceOf(address(fillContract));
+        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this));
 
         reactor.execute(execution);
 
-        assertEq(
-            tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE
-        );
-        assertEq(
-            tokenIn.balanceOf(address(fillContract)),
-            fillContractInputBalanceStart + ONE
-        );
-        assertEq(
-            tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE
-        );
-        assertEq(
-            tokenOut.balanceOf(address(fillContract)),
-            fillContractOutputBalanceStart - ONE
-        );
+        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
     }
 
     function testExecuteInsufficientPermit() public {
@@ -114,12 +93,7 @@ contract LimitOrderReactorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(reactor),
-                    maxAmount: ONE / 2,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: ONE / 2, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
                 ),
@@ -145,12 +119,7 @@ contract LimitOrderReactorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(this),
-                    maxAmount: ONE,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(this), maxAmount: ONE, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
                 ),
@@ -176,12 +145,7 @@ contract LimitOrderReactorTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenOut),
-                    spender: address(reactor),
-                    maxAmount: ONE,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenOut), spender: address(reactor), maxAmount: ONE, deadline: order.info.deadline}),
                 0,
                 uint256(orderHash)
                 ),
@@ -222,8 +186,7 @@ contract LimitOrderReactorTest is Test, PermitSignature {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker))
-                .withDeadline(block.timestamp - 1),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withDeadline(block.timestamp - 1),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
