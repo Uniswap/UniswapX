@@ -1,26 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderValidator} from "../../lib/OrderValidator.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "../BaseReactor.sol";
-import {
-    DutchLimitOrder,
-    DutchOutput
-} from "./DutchLimitOrderStructs.sol";
-import {
-    ResolvedOrder,
-    TokenAmount,
-    OrderInfo,
-    Output,
-    Signature
-} from "../../interfaces/ReactorStructs.sol";
+import {DutchLimitOrder, DutchOutput} from "./DutchLimitOrderStructs.sol";
+import {ResolvedOrder, TokenAmount, OrderInfo, Output, Signature} from "../../lib/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
-    using OrderValidator for OrderInfo;
+    using FixedPointMathLib for uint256;
 
     error EndTimeBeforeStart();
     error DeadlineBeforeEndTime();
+    error NotStarted();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -36,15 +28,11 @@ contract DutchLimitOrderReactor is BaseReactor {
         Signature calldata sig,
         address fillContract,
         bytes calldata fillData
-    ) external {
+    )
+        external
+    {
         _validateDutchOrder(order);
-        fill(
-            resolve(order),
-            sig,
-            keccak256(abi.encode(order)),
-            fillContract,
-            fillData
-        );
+        _fill(resolve(order), sig, keccak256(abi.encode(order)), fillContract, fillData);
     }
 
     function executeBatch(
@@ -72,39 +60,40 @@ contract DutchLimitOrderReactor is BaseReactor {
     {
         Output[] memory outputs = new Output[](dutchLimitOrder.outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
-            DutchOutput calldata dutchOutput_i = dutchLimitOrder.outputs[i];
+            DutchOutput calldata output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
-            if (dutchLimitOrder.endTime < block.timestamp) {
-                decayedAmount = dutchOutput_i.endAmount;
+
+            if (dutchLimitOrder.endTime <= block.timestamp || output.startAmount == output.endAmount) {
+                decayedAmount = output.endAmount;
+            } else if (dutchLimitOrder.startTime >= block.timestamp) {
+                decayedAmount = output.startAmount;
             } else {
-                decayedAmount = dutchOutput_i.startAmount
-                    - (dutchOutput_i.startAmount - dutchOutput_i.endAmount)
-                        * (block.timestamp - dutchLimitOrder.startTime)
-                        / (dutchLimitOrder.endTime - dutchLimitOrder.startTime);
+                // TODO: maybe handle case where startAmount < endAmount
+                // i.e. for exactOutput case
+                uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
+                uint256 duration = dutchLimitOrder.endTime - dutchLimitOrder.startTime;
+                uint256 decayAmount = output.startAmount - output.endAmount;
+                decayedAmount = output.startAmount - decayAmount.mulDivDown(elapsed, duration);
             }
-            outputs[i] =
-                Output(dutchOutput_i.token, decayedAmount, dutchOutput_i.recipient);
+            outputs[i] = Output(output.token, decayedAmount, output.recipient);
         }
-        resolvedOrder =
-            ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
+        resolvedOrder = ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
     }
 
     /// @notice validate an order
     /// @dev Throws if the order is invalid
     function validate(DutchLimitOrder calldata order) external view {
-        order.info.validate();
+        _validate(order.info);
         _validateDutchOrder(order);
     }
 
     /// @notice validate the dutch order fields
     /// @dev Throws if the order is invalid
-    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder)
-        internal
-        pure
-    {
+    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder) internal pure {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
+
         if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
             revert DeadlineBeforeEndTime();
         }

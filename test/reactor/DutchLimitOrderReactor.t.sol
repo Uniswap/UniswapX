@@ -8,9 +8,8 @@ import {
     DutchLimitOrder,
     ResolvedOrder
 } from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
-import {DutchOutput} from
-    "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
-import {OrderInfo, TokenAmount} from "../../src/interfaces/ReactorStructs.sol";
+import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
+import {OrderInfo, TokenAmount} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../../src/test/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
