@@ -56,8 +56,10 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         bytes32[] memory orderHashes,
         address fillContract,
         bytes calldata fillData
-    ) internal {
-        for (uint i = 0; i < orders.length; i++) {
+    )
+        internal
+    {
+        for (uint256 i = 0; i < orders.length; i++) {
             _validate(orders[i].info);
             _updateFilled(orderHashes[i]);
             IPermitPost(permitPost).saltTransferFrom(
@@ -81,11 +83,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         for (uint256 i = 0; i < orders.length; i++) {
             for (uint256 j = 0; j < orders[i].outputs.length; j++) {
                 Output memory output = orders[i].outputs[j];
-                ERC20(output.token).transferFrom(
-                    fillContract,
-                    output.recipient,
-                    output.amount
-                );
+                ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
             }
         }
     }

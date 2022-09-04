@@ -210,8 +210,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
     }
 
     function testExecute() public {
-        uint inputAmount = 10 ** 18;
-        uint outputAmount = 2 * inputAmount;
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(maker), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
@@ -231,12 +231,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({
-                    token: address(tokenIn),
-                    spender: address(reactor),
-                    maxAmount: inputAmount,
-                    deadline: order.info.deadline
-                }),
+                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: inputAmount, deadline: order.info.deadline}),
                 0,
                 uint256(keccak256(abi.encode(order)))
             ),

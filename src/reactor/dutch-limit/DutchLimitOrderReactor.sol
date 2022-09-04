@@ -40,10 +40,12 @@ contract DutchLimitOrderReactor is BaseReactor {
         Signature[] calldata signatures,
         address fillContract,
         bytes calldata fillData
-    ) public {
+    )
+        public
+    {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
         bytes32[] memory orderHashes = new bytes32[](orders.length);
-        for (uint i = 0; i < orders.length; i++) {
+        for (uint256 i = 0; i < orders.length; i++) {
             _validateDutchOrder(orders[i]);
             resolvedOrders[i] = resolve(orders[i]);
             orderHashes[i] = keccak256(abi.encode(orders[i]));
