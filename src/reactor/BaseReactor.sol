@@ -58,8 +58,8 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         bytes calldata fillData
     ) internal {
         for (uint i = 0; i < orders.length; i++) {
-            orders[i].info.validate();
-            orderStatus.updateFilled(orderHashes[i]);
+            _validate(orders[i].info);
+            _updateFilled(orderHashes[i]);
             IPermitPost(permitPost).saltTransferFrom(
                 Permit({
                     token: orders[i].input.token,
