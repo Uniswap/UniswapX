@@ -11,7 +11,7 @@ contract MockFillContract is IReactorCallback {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             for(uint j = 0; j < resolvedOrders[i].outputs.length; j++) {
                 ERC20 token = ERC20(resolvedOrders[i].outputs[j].token);
-                token.approve(msg.sender, resolvedOrders[i].outputs[j].amount);
+                token.approve(msg.sender, type(uint256).max);
             }
         }
     }
