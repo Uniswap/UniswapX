@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 env:
   FOUNDRY_PROFILE: ci
+  FOUNDRY_RPC_URL: https://mainnet.infura.io/v3/6e758ef5d39a4fdeba50de7d10d08448
 
 jobs:
   check:
