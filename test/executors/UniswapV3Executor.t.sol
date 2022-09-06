@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -90,6 +91,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE);
 
+        vm.recordLogs();
         dloReactor.execute(
             order,
             getPermitSignature(
@@ -103,6 +105,48 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        // There will be 7 events in the following order: Transfer, Approval, Transfer,
+        // Transfer, Approval, Transfer, Fill
+        assertEq(entries.length, 7);
+
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(maker), 500000000000000000);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 500000000000000000);
+    }
+
+    function testExecutePreApprovals() public {
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+        tokenIn.forceApprove(address(uniswapV3Executor), address(mockSwapRouter), type(uint256).max);
+        tokenOut.forceApprove(address(uniswapV3Executor), address(dloReactor), type(uint256).max);
+
+        vm.recordLogs();
+        dloReactor.execute(
+            order,
+            getPermitSignature(
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: order.info.deadline}),
+                0,
+                uint256(orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encode(FEE)
+        );
+        Vm.Log[] memory entries = vm.getRecordedLogs();
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
