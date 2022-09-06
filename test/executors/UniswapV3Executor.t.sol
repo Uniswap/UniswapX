@@ -33,6 +33,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
     uint24 constant FEE = 3000;
+    bytes32 constant TRANSFER_EVENT_SIG = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+    bytes32 constant APPROVAL_EVENT_SIG = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
+    bytes32 constant FILL_EVENT_SIG = 0xba7599121d7877246723714eb403e13928cdbebe980abf7c630c0f9bef83fce1;
 
     function setUp() public {
         vm.warp(1660671678);
@@ -109,6 +112,13 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         // There will be 7 events in the following order: Transfer, Approval, Transfer,
         // Transfer, Approval, Transfer, Fill
         assertEq(entries.length, 7);
+        assertEq(entries[0].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[1].topics[0], APPROVAL_EVENT_SIG);
+        assertEq(entries[2].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[3].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[4].topics[0], APPROVAL_EVENT_SIG);
+        assertEq(entries[5].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[6].topics[0], FILL_EVENT_SIG);
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
@@ -116,6 +126,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 500000000000000000);
     }
 
+    // The exact same as `testExecute`, however there will be 2 less approval events
+    // because we have pre approved input and output token to appropriate spenders.
     function testExecutePreApprovals() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -129,6 +141,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE);
+        // Do pre approvals
         tokenIn.forceApprove(address(uniswapV3Executor), address(mockSwapRouter), type(uint256).max);
         tokenOut.forceApprove(address(uniswapV3Executor), address(dloReactor), type(uint256).max);
 
@@ -147,6 +160,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             abi.encode(FEE)
         );
         Vm.Log[] memory entries = vm.getRecordedLogs();
+        // There will be 5 events in the following order: Transfer, Transfer,
+        // Transfer, Transfer, Fill
+        assertEq(entries.length, 5);
+        assertEq(entries[0].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[1].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[2].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[3].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[4].topics[0], FILL_EVENT_SIG);
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
