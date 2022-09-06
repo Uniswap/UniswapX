@@ -209,6 +209,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         reactor = new DutchLimitOrderReactor(address(permitPost));
     }
 
+    // Execute a single order, input = 1 and outputs = [2].
     function testExecute() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
