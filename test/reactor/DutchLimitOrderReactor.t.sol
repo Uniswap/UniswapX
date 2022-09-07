@@ -295,4 +295,99 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
         assertEq(tokenIn.balanceOf(address(fillContract)), 3000000000000000000);
     }
+
+    // Execute 3 dutch limit orders. Have the 3rd one signed by a different maker.
+    // Order 1: Input = 1, outputs = [2, 1]
+    // Order 2: Input = 2, outputs = [3]
+    // Order 3: Input = 3, outputs = [3,4,5]
+    function testExecuteBatchMultipleOutputs() public {
+        uint256 makerPrivateKey2 = 0x12341234;
+        address maker2 = vm.addr(makerPrivateKey);
+
+        tokenIn.mint(address(maker), 3 * 10 ** 18);
+        tokenIn.mint(address(maker2), 3 * 10 ** 18);
+        tokenOut.mint(address(fillContract), 18 * 10 ** 18);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker2, address(permitPost), type(uint256).max);
+
+        // Build the 3 orders
+        DutchLimitOrder[] memory orders = new DutchLimitOrder[](3);
+
+        uint256[] memory startAmounts0 = new uint256[](2);
+        startAmounts0[0] = 2 * 10 ** 18;
+        startAmounts0[1] = 10 ** 18;
+        uint256[] memory endAmounts0 = new uint256[](2);
+        endAmounts0[0] = startAmounts0[0];
+        endAmounts0[1] = startAmounts0[1];
+        orders[0] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 10 ** 18),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
+        });
+
+        orders[1] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 2 * 10 ** 18),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
+        });
+
+        uint256[] memory startAmounts2 = new uint256[](3);
+        startAmounts2[0] = 3 * 10 ** 18;
+        startAmounts2[1] = 4 * 10 ** 18;
+        startAmounts2[1] = 5 * 10 ** 18;
+        uint256[] memory endAmounts2 = new uint256[](3);
+        endAmounts2[0] = startAmounts2[0];
+        endAmounts2[1] = startAmounts2[1];
+        endAmounts2[2] = startAmounts2[2];
+        orders[2] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 3 * 10 ** 18),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
+        });
+
+        // Build the 3 signatures
+        Signature[] memory signatures = new Signature[](3);
+        signatures[0] = getPermitSignature(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 10 ** 18, deadline: orders[0].info.deadline}),
+            0,
+            uint256(keccak256(abi.encode(orders[0])))
+        );
+        signatures[1] = getPermitSignature(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            Permit({
+                token: address(tokenIn),
+                spender: address(reactor),
+                maxAmount: 2 * 10 ** 18,
+                deadline: orders[1].info.deadline
+            }),
+            0,
+            uint256(keccak256(abi.encode(orders[1])))
+        );
+        signatures[2] = getPermitSignature(
+            vm,
+            makerPrivateKey2,
+            address(permitPost),
+            Permit({
+                token: address(tokenIn),
+                spender: address(reactor),
+                maxAmount: 3 * 10 ** 18,
+                deadline: orders[2].info.deadline
+            }),
+            0,
+            uint256(keccak256(abi.encode(orders[2])))
+        );
+
+        reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
+    }
 }
