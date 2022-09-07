@@ -8,6 +8,7 @@ import {DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimit
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {Output, TokenAmount, OrderInfo, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
+import {SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -105,14 +106,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         dloReactor.execute(
             order,
-            getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: ONE, deadline: order.info.deadline}),
-                0,
-                uint256(orderHash)
-            ),
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
             address(directTakerExecutor),
             abi.encode(taker, dloReactor)
         );
