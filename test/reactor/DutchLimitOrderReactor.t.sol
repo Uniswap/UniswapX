@@ -365,12 +365,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             vm,
             makerPrivateKey,
             address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(reactor),
-                maxAmount: 2 * 10 ** 18,
-                deadline: orders[1].info.deadline
-            }),
+            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 2 * 10 ** 18, deadline: orders[1].info.deadline}),
             0,
             uint256(keccak256(abi.encode(orders[1])))
         );
@@ -378,12 +373,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             vm,
             makerPrivateKey2,
             address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(reactor),
-                maxAmount: 3 * 10 ** 18,
-                deadline: orders[2].info.deadline
-            }),
+            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 3 * 10 ** 18, deadline: orders[2].info.deadline}),
             0,
             uint256(keccak256(abi.encode(orders[2])))
         );
