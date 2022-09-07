@@ -398,18 +398,18 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-        info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-        startTime: block.timestamp,
-        endTime: block.timestamp + 100,
-        input: TokenAmount(address(tokenIn), inputAmount),
-        outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-        info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-        startTime: block.timestamp,
-        endTime: block.timestamp + 100,
-        input: TokenAmount(address(tokenIn), inputAmount * 2),
-        outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount * 2),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature[] memory signatures = new Signature[](2);
         signatures[0] = getPermitSignature(
@@ -425,11 +425,11 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             makerPrivateKey,
             address(permitPost),
             Permit({
-        token: address(tokenIn),
-        spender: address(reactor),
-        maxAmount: inputAmount * 2,
-        deadline: orders[0].info.deadline
-        }),
+                token: address(tokenIn),
+                spender: address(reactor),
+                maxAmount: inputAmount * 2,
+                deadline: orders[0].info.deadline
+            }),
             0,
             uint256(keccak256(abi.encode(orders[1])))
         );
