@@ -301,8 +301,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
     // Order 2: Input = 2, outputs = [3]
     // Order 3: Input = 3, outputs = [3,4,5]
     function testExecuteBatchMultipleOutputs() public {
-        uint256 makerPrivateKey2 = 0x12341234;
-        address maker2 = vm.addr(makerPrivateKey);
+        uint256 makerPrivateKey2 = 0x12341235;
+        address maker2 = vm.addr(makerPrivateKey2);
 
         tokenIn.mint(address(maker), 3 * 10 ** 18);
         tokenIn.mint(address(maker2), 3 * 10 ** 18);
@@ -338,7 +338,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         uint256[] memory startAmounts2 = new uint256[](3);
         startAmounts2[0] = 3 * 10 ** 18;
         startAmounts2[1] = 4 * 10 ** 18;
-        startAmounts2[1] = 5 * 10 ** 18;
+        startAmounts2[2] = 5 * 10 ** 18;
         uint256[] memory endAmounts2 = new uint256[](3);
         endAmounts2[0] = startAmounts2[0];
         endAmounts2[1] = startAmounts2[1];
@@ -379,5 +379,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         );
 
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
     }
 }
