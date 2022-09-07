@@ -250,7 +250,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(maker), inputAmount * 3);
-        tokenOut.mint(address(fillContract), outputAmount * 6);
+        tokenOut.mint(address(fillContract), 6 * 10 ** 18);
         tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
@@ -382,5 +382,11 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
+    }
+
+    // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
+    // has input = 2, outputs = [4]. However, only mint 5 output to fillContract.
+    function testExecuteBatchInsufficientOutput() public {
+
     }
 }
