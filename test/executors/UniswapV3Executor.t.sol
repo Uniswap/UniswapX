@@ -8,7 +8,7 @@ import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-l
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
-import {Output, TokenAmount, OrderInfo, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {Signature, Output, TokenAmount, OrderInfo, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -289,5 +289,64 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
+    }
+
+    // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3
+    // and outputs = [2]. Mint maker 10 input and mint mockSwapRouter 10 output. After
+    // the execution, maker should have 6 input / 3 output, mockSwapRouter should have
+    // 4 input / 6 output, and uniswapV3Executor should have 0 input / 1 output.
+    function testExecuteBatch() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount * 10);
+        tokenOut.mint(address(mockSwapRouter), outputAmount * 10);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+
+        DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
+        orders[0] = DutchLimitOrder({
+        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+        startTime: block.timestamp,
+        endTime: block.timestamp + 100,
+        input: TokenAmount(address(tokenIn), inputAmount),
+        outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+        orders[1] = DutchLimitOrder({
+        info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+        startTime: block.timestamp,
+        endTime: block.timestamp + 100,
+        input: TokenAmount(address(tokenIn), inputAmount * 3),
+        outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+        });
+        Signature[] memory signatures = new Signature[](2);
+        signatures[0] = getPermitSignature(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            Permit({token: address(tokenIn), spender: address(dloReactor), maxAmount: inputAmount, deadline: orders[0].info.deadline}),
+            0,
+            uint256(keccak256(abi.encode(orders[0])))
+        );
+        signatures[1] = getPermitSignature(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            Permit({
+        token: address(tokenIn),
+        spender: address(dloReactor),
+        maxAmount: inputAmount * 3,
+        deadline: orders[0].info.deadline
+        }),
+            0,
+            uint256(keccak256(abi.encode(orders[1])))
+        );
+
+        dloReactor.executeBatch(orders, signatures, address(uniswapV3Executor), abi.encode(FEE));
+        assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 1 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
     }
 }
