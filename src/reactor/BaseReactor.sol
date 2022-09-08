@@ -6,14 +6,33 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder, OrderInfo, OrderStatus, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
+import {
+    SignedOrder,
+    ResolvedOrder,
+    OrderInfo,
+    OrderStatus,
+    TokenAmount,
+    Signature,
+    Output
+} from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract BaseReactor is OrderValidator, ReactorEvents {
+abstract contract BaseReactor is OrderValidator, ReactorEvents {
     address public immutable permitPost;
 
     constructor(address _permitPost) {
         permitPost = _permitPost;
+    }
+
+    /// @notice Execute the given order execution
+    /// @dev Resolves the order inputs and outputs,
+    ///     validates the order, and fills it if valid.
+    ///     - User funds must be supplied through the permit post
+    ///     and fetched through a valid permit signature
+    ///     - Order execution through the fillContract must
+    ///     properly return all user outputs
+    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external {
+        _fill(resolve(order.order), order.sig, keccak256(order.order), fillContract, fillData);
     }
 
     /// @notice validates and fills an order, marking it as filled
@@ -26,7 +45,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
     )
         internal
     {
-        _validate(order.info);
+        _validateOrderInfo(order.info);
         _updateFilled(orderHash);
 
         _transferTokens(order, orderHash, fillContract, sig);
@@ -100,4 +119,8 @@ contract BaseReactor is OrderValidator, ReactorEvents {
             }
         }
     }
+
+    /// @notice Resolve an order-type specific order into a generic order
+    /// @dev should revert on any order-type-specific validation errors
+    function resolve(bytes calldata order) public view virtual returns (ResolvedOrder memory resolvedOrder);
 }

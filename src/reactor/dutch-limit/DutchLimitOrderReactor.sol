@@ -12,7 +12,6 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     error EndTimeBeforeStart();
     error DeadlineBeforeEndTime();
-    error NotStarted();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -56,14 +55,13 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     /// @notice Resolve a DutchLimitOrder into a generic order
     /// @dev applies dutch decay to order outputs
-    function resolve(DutchLimitOrder calldata dutchLimitOrder)
-        public
-        view
-        returns (ResolvedOrder memory resolvedOrder)
-    {
+    function resolve(bytes calldata order) public view override returns (ResolvedOrder memory resolvedOrder) {
+        DutchLimitOrder memory dutchLimitOrder = abi.decode(order, (DutchLimitOrder));
+        _validateOrder(dutchLimitOrder);
+
         Output[] memory outputs = new Output[](dutchLimitOrder.outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
-            DutchOutput calldata output = dutchLimitOrder.outputs[i];
+            DutchOutput memory output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
 
             if (dutchLimitOrder.endTime <= block.timestamp || output.startAmount == output.endAmount) {
@@ -83,16 +81,9 @@ contract DutchLimitOrderReactor is BaseReactor {
         resolvedOrder = ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
     }
 
-    /// @notice validate an order
-    /// @dev Throws if the order is invalid
-    function validate(DutchLimitOrder calldata order) external view {
-        _validate(order.info);
-        _validateDutchOrder(order);
-    }
-
     /// @notice validate the dutch order fields
     /// @dev Throws if the order is invalid
-    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder) internal pure {
+    function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }

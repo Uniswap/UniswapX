@@ -33,3 +33,8 @@ struct OrderStatus {
     // TODO: use numerator/denominator for partial fills
     bool isFilled;
 }
+
+struct SignedOrder {
+    bytes order;
+    Signature sig;
+}

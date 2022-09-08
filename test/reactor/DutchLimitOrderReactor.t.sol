@@ -42,7 +42,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -62,7 +62,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs[0].amount, 900);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -84,7 +84,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs.length, 3);
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs[1].amount, 9429);
@@ -105,7 +105,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -125,11 +125,11 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
 
         vm.warp(1659030748);
-        resolvedOrder = reactor.resolve(dlo);
+        resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertEq(resolvedOrder.outputs[0].amount, 999);
     }
 
@@ -144,7 +144,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validate(dlo);
+        reactor.resolve(abi.encode(dlo));
     }
 
     function testValidateDutchEndTimeAfterStart() public view {
@@ -157,7 +157,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validate(dlo);
+        reactor.resolve(abi.encode(dlo));
     }
 
     function testValidateDutchDeadlineBeforeEndTime() public {
@@ -171,7 +171,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validate(dlo);
+        reactor.resolve(abi.encode(dlo));
     }
 
     function testValidateDutchDeadlineAfterEndTime() public view {
@@ -184,7 +184,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        reactor.validate(dlo);
+        reactor.resolve(abi.encode(dlo));
     }
 }
 

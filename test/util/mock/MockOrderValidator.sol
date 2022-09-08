@@ -6,7 +6,7 @@ import {OrderInfo, OrderStatus} from "../../../src/lib/ReactorStructs.sol";
 
 contract MockOrderValidator is OrderValidator {
     function validate(OrderInfo memory info) external view {
-        _validate(info);
+        _validateOrderInfo(info);
     }
 
     function updateFilled(bytes32 orderHash) external {

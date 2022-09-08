@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
-import {OrderInfo, Output, TokenAmount, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, Output, TokenAmount, ResolvedOrder, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {LimitOrder, LimitOrderExecution} from "../../src/reactor/limit/LimitOrderStructs.sol";
+import {LimitOrder} from "../../src/reactor/limit/LimitOrderStructs.sol";
 import {LimitOrderReactor} from "../../src/reactor/limit/LimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -49,12 +49,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution = LimitOrderExecution({
-            order: order,
-            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
+        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -64,7 +59,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this));
 
-        reactor.execute(execution);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -81,13 +76,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution = LimitOrderExecution({
-            order: order,
-            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
-        reactor.execute(execution);
+        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 
         tokenIn.mint(address(maker), ONE * 2);
         tokenOut.mint(address(fillContract), ONE * 2);
@@ -98,14 +88,10 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
         });
         bytes32 orderHash2 = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution2 = LimitOrderExecution({
-            order: order2,
-            sig: signOrder(vm, makerPrivateKey, address(permitPost), order2.info, order2.input, orderHash2),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
+        Signature memory sig2 =
+            signOrder(vm, makerPrivateKey, address(permitPost), order2.info, order2.input, orderHash2);
         vm.expectRevert(PermitPost.NonceUsed.selector);
-        reactor.execute(execution2);
+        reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
     function testExecuteInsufficientPermit() public {
@@ -116,17 +102,12 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution = LimitOrderExecution({
-            order: order,
-            sig: signOrder(
-                vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenIn), ONE / 2), orderHash
-                ),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
+        Signature memory sig = signOrder(
+            vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenIn), ONE / 2), orderHash
+        );
 
         vm.expectRevert(PermitPost.InvalidSignature.selector);
-        reactor.execute(execution);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteIncorrectSpender() public {
@@ -137,22 +118,17 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution = LimitOrderExecution({
-            order: order,
-            sig: signOrder(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                OrderInfoBuilder.init(address(this)).withOfferer(address(maker)),
-                order.input,
-                orderHash
-                ),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            OrderInfoBuilder.init(address(this)).withOfferer(address(maker)),
+            order.input,
+            orderHash
+        );
 
         vm.expectRevert(PermitPost.InvalidSignature.selector);
-        reactor.execute(execution);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteIncorrectToken() public {
@@ -163,17 +139,11 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        LimitOrderExecution memory execution = LimitOrderExecution({
-            order: order,
-            sig: signOrder(
-                vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
-                ),
-            fillContract: address(fillContract),
-            fillData: bytes("")
-        });
 
+        Signature memory sig =
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash);
         vm.expectRevert(PermitPost.InvalidSignature.selector);
-        reactor.execute(execution);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testResolve() public {
@@ -182,34 +152,12 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        ResolvedOrder memory resolved = reactor.resolve(order);
+        ResolvedOrder memory resolved = reactor.resolve(abi.encode(order));
         assertEq(resolved.input.amount, ONE);
         assertEq(resolved.input.token, address(tokenIn));
         assertEq(resolved.outputs.length, 1);
         assertEq(resolved.outputs[0].token, address(tokenOut));
         assertEq(resolved.outputs[0].amount, ONE);
         assertEq(resolved.outputs[0].recipient, address(maker));
-    }
-
-    function testValidateInvalidReactor() public {
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(0)).withOfferer(address(maker)),
-            input: TokenAmount(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        vm.expectRevert(OrderValidator.InvalidReactor.selector);
-        reactor.validate(order);
-    }
-
-    function testValidateDeadlinePassed() public {
-        uint256 timestamp = block.timestamp;
-        vm.warp(timestamp + 100);
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withDeadline(block.timestamp - 1),
-            input: TokenAmount(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        vm.expectRevert(OrderValidator.DeadlinePassed.selector);
-        reactor.validate(order);
     }
 }
