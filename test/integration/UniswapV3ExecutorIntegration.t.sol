@@ -48,7 +48,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(weth), inputAmount),
@@ -80,7 +80,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         uint24 fee = 3000;
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(weth), inputAmount),

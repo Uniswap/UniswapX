@@ -5,12 +5,7 @@ import {Output, OrderInfo} from "../../src/lib/ReactorStructs.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
-        return OrderInfo({reactor: reactor, offerer: address(0), nonce: 0, deadline: block.timestamp + 100});
-    }
-
-    function withOfferer(OrderInfo memory info, address _offerer) internal pure returns (OrderInfo memory) {
-        info.offerer = _offerer;
-        return info;
+        return OrderInfo({reactor: reactor, nonce: 0, deadline: block.timestamp + 100});
     }
 
     function withNonce(OrderInfo memory info, uint256 _nonce) internal pure returns (OrderInfo memory) {

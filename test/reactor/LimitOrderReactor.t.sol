@@ -44,7 +44,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
     function testExecute() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(reactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -71,7 +71,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         uint256 nonce = 1234;
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
+            info: OrderInfoBuilder.init(address(reactor)).withNonce(nonce),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -83,21 +83,23 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenOut.mint(address(fillContract), ONE * 2);
         tokenIn.forceApprove(maker, address(permitPost), ONE * 2);
         LimitOrder memory order2 = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
+            info: OrderInfoBuilder.init(address(reactor)).withNonce(nonce),
             input: TokenAmount(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
         });
         bytes32 orderHash2 = keccak256(abi.encode(order));
         Signature memory sig2 =
             signOrder(vm, makerPrivateKey, address(permitPost), order2.info, order2.input, orderHash2);
-        vm.expectRevert(PermitPost.NonceUsed.selector);
+
+        // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
     function testExecuteInsufficientPermit() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(reactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -106,14 +108,15 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenIn), ONE / 2), orderHash
         );
 
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteIncorrectSpender() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(reactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -122,34 +125,34 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             vm,
             makerPrivateKey,
             address(permitPost),
-            OrderInfoBuilder.init(address(this)).withOfferer(address(maker)),
+            OrderInfoBuilder.init(address(this)),
             order.input,
             orderHash
         );
 
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteIncorrectToken() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(reactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-
-        Signature memory sig = signOrder(
-            vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
-        );
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        Signature memory sig =
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash);
+        // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testResolve() public {
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(reactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });

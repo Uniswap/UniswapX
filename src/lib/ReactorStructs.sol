@@ -10,7 +10,6 @@ struct TokenAmount {
 
 struct OrderInfo {
     address reactor;
-    address offerer;
     uint256 nonce;
     uint256 deadline;
 }

@@ -93,7 +93,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
     function testExecute() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), ONE),

@@ -67,7 +67,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         bytes memory fillData = abi.encode(FEE);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             TokenAmount(address(tokenIn), ONE),
             outputs
         );
@@ -83,7 +83,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     function testExecute() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -126,7 +126,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     function testExecutePreApprovals() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -170,7 +170,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
     function testExecuteInsufficientOutput() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -205,7 +205,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         endAmounts[0] = startAmounts[0];
         endAmounts[1] = startAmounts[1];
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -244,7 +244,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         endAmounts[0] = startAmounts[0];
         endAmounts[1] = startAmounts[1];
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),

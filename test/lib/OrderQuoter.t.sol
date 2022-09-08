@@ -48,7 +48,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     function testQuoteLimitOrder() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(limitOrderReactor)),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -66,7 +66,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(dutchOrderReactor)),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), ONE),
@@ -109,7 +109,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         vm.warp(timestamp + 100);
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
+            info: OrderInfoBuilder.init(address(limitOrderReactor)).withDeadline(
                 block.timestamp - 1
                 ),
             input: TokenAmount(address(tokenIn), ONE),
@@ -124,7 +124,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     function testQuoteLimitOrderInsufficientBalance() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(limitOrderReactor)),
             input: TokenAmount(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
@@ -139,7 +139,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(dutchOrderReactor)),
             startTime: block.timestamp + 1000,
             endTime: block.timestamp,
             input: TokenAmount(address(tokenIn), ONE),
