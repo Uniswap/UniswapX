@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {Signature} from "permitpost/interfaces/IPermitPost.sol";
+import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, Output, TokenAmount, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
@@ -51,14 +51,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash = keccak256(abi.encode(order));
         LimitOrderExecution memory execution = LimitOrderExecution({
             order: order,
-            sig: getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: ONE, deadline: order.info.deadline}),
-                0,
-                uint256(orderHash)
-                ),
+            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
             fillContract: address(fillContract),
             fillData: bytes("")
         });
@@ -79,6 +72,42 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
     }
 
+    function testExecuteNonceReuse() public {
+        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        uint256 nonce = 1234;
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
+            input: TokenAmount(address(tokenIn), ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        LimitOrderExecution memory execution = LimitOrderExecution({
+            order: order,
+            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
+            fillContract: address(fillContract),
+            fillData: bytes("")
+        });
+        reactor.execute(execution);
+
+        tokenIn.mint(address(maker), ONE * 2);
+        tokenOut.mint(address(fillContract), ONE * 2);
+        tokenIn.forceApprove(maker, address(permitPost), ONE * 2);
+        LimitOrder memory order2 = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
+            input: TokenAmount(address(tokenIn), ONE * 2),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
+        });
+        bytes32 orderHash2 = keccak256(abi.encode(order));
+        LimitOrderExecution memory execution2 = LimitOrderExecution({
+            order: order2,
+            sig: signOrder(vm, makerPrivateKey, address(permitPost), order2.info, order2.input, orderHash2),
+            fillContract: address(fillContract),
+            fillData: bytes("")
+        });
+        vm.expectRevert(PermitPost.NonceUsed.selector);
+        reactor.execute(execution2);
+    }
+
     function testExecuteInsufficientPermit() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
@@ -89,13 +118,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash = keccak256(abi.encode(order));
         LimitOrderExecution memory execution = LimitOrderExecution({
             order: order,
-            sig: getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: ONE / 2, deadline: order.info.deadline}),
-                0,
-                uint256(orderHash)
+            sig: signOrder(
+                vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenIn), ONE / 2), orderHash
                 ),
             fillContract: address(fillContract),
             fillData: bytes("")
@@ -115,13 +139,13 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash = keccak256(abi.encode(order));
         LimitOrderExecution memory execution = LimitOrderExecution({
             order: order,
-            sig: getPermitSignature(
+            sig: signOrder(
                 vm,
                 makerPrivateKey,
                 address(permitPost),
-                Permit({token: address(tokenIn), spender: address(this), maxAmount: ONE, deadline: order.info.deadline}),
-                0,
-                uint256(orderHash)
+                OrderInfoBuilder.init(address(this)).withOfferer(address(maker)),
+                order.input,
+                orderHash
                 ),
             fillContract: address(fillContract),
             fillData: bytes("")
@@ -141,14 +165,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash = keccak256(abi.encode(order));
         LimitOrderExecution memory execution = LimitOrderExecution({
             order: order,
-            sig: getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({token: address(tokenOut), spender: address(reactor), maxAmount: ONE, deadline: order.info.deadline}),
-                0,
-                uint256(orderHash)
-                ),
+            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash),
             fillContract: address(fillContract),
             fillData: bytes("")
         });
