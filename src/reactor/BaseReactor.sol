@@ -81,18 +81,18 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         address fillContract,
         bytes calldata fillData
     )
-    internal
+        internal
     {
         for (uint256 i = 0; i < orders.length; i++) {
             _validate(orders[i].info);
             _updateFilled(orderHashes[i]);
             IPermitPost(permitPost).saltTransferFrom(
                 Permit({
-            token: orders[i].input.token,
-            spender: address(this),
-            maxAmount: orders[i].input.amount,
-            deadline: orders[i].info.deadline
-            }),
+                    token: orders[i].input.token,
+                    spender: address(this),
+                    maxAmount: orders[i].input.amount,
+                    deadline: orders[i].info.deadline
+                }),
                 orders[i].info.offerer,
                 fillContract,
                 orders[i].input.amount,
