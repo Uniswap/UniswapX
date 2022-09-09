@@ -284,8 +284,12 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature[] memory signatures = new Signature[](2);
-        signatures[0] = signOrder(vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0])));
-        signatures[1] = signOrder(vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1])));
+        signatures[0] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0]))
+        );
+        signatures[1] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
+        );
 
         dloReactor.executeBatch(orders, signatures, address(uniswapV3Executor), abi.encode(FEE));
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
