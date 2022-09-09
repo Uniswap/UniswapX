@@ -277,39 +277,15 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature[] memory signatures = new Signature[](2);
-        signatures[0] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(dloReactor),
-                maxAmount: inputAmount,
-                deadline: orders[0].info.deadline
-            }),
-            0,
-            uint256(keccak256(abi.encode(orders[0])))
-        );
-        signatures[1] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(dloReactor),
-                maxAmount: inputAmount * 3,
-                deadline: orders[0].info.deadline
-            }),
-            0,
-            uint256(keccak256(abi.encode(orders[1])))
-        );
+        signatures[0] = signOrder(vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0])));
+        signatures[1] = signOrder(vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1])));
 
         dloReactor.executeBatch(orders, signatures, address(uniswapV3Executor), abi.encode(FEE));
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);

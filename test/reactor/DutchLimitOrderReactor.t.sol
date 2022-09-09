@@ -228,14 +228,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
 
         reactor.execute(
             order,
-            getPermitSignature(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                Permit({token: address(tokenIn), spender: address(reactor), maxAmount: inputAmount, deadline: order.info.deadline}),
-                0,
-                uint256(keccak256(abi.encode(order)))
-            ),
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))),
             address(fillContract),
             bytes("")
         );
@@ -262,34 +255,15 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature[] memory signatures = new Signature[](2);
-        signatures[0] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: inputAmount, deadline: orders[0].info.deadline}),
-            0,
-            uint256(keccak256(abi.encode(orders[0])))
-        );
-        signatures[1] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(reactor),
-                maxAmount: inputAmount * 2,
-                deadline: orders[0].info.deadline
-            }),
-            0,
-            uint256(keccak256(abi.encode(orders[1])))
-        );
+        signatures[0] = signOrder(vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0])));
+        signatures[1] = signOrder(vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1])));
 
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
@@ -328,7 +302,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         });
 
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 2 * 10 ** 18),
@@ -344,7 +318,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 3 * 10 ** 18),
@@ -353,30 +327,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
 
         // Build the 3 signatures
         Signature[] memory signatures = new Signature[](3);
-        signatures[0] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 10 ** 18, deadline: orders[0].info.deadline}),
-            0,
-            uint256(keccak256(abi.encode(orders[0])))
-        );
-        signatures[1] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 2 * 10 ** 18, deadline: orders[1].info.deadline}),
-            0,
-            uint256(keccak256(abi.encode(orders[1])))
-        );
-        signatures[2] = getPermitSignature(
-            vm,
-            makerPrivateKey2,
-            address(permitPost),
-            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: 3 * 10 ** 18, deadline: orders[2].info.deadline}),
-            0,
-            uint256(keccak256(abi.encode(orders[2])))
-        );
+        signatures[0] = signOrder(vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0])));
+        signatures[1] = signOrder(vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1])));
+        signatures[2] = signOrder(vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2])));
 
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
@@ -405,34 +358,15 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature[] memory signatures = new Signature[](2);
-        signatures[0] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({token: address(tokenIn), spender: address(reactor), maxAmount: inputAmount, deadline: orders[0].info.deadline}),
-            0,
-            uint256(keccak256(abi.encode(orders[0])))
-        );
-        signatures[1] = getPermitSignature(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            Permit({
-                token: address(tokenIn),
-                spender: address(reactor),
-                maxAmount: inputAmount * 2,
-                deadline: orders[0].info.deadline
-            }),
-            0,
-            uint256(keccak256(abi.encode(orders[1])))
-        );
+        signatures[0] = signOrder(vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0])));
+        signatures[1] = signOrder(vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1])));
 
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));

@@ -76,7 +76,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
 
     function fillBatch(
         ResolvedOrder[] memory orders,
-        Signature[] memory signatures,
+        Signature[] calldata signatures,
         bytes32[] memory orderHashes,
         address fillContract,
         bytes calldata fillData
@@ -86,19 +86,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         for (uint256 i = 0; i < orders.length; i++) {
             _validate(orders[i].info);
             _updateFilled(orderHashes[i]);
-            IPermitPost(permitPost).saltTransferFrom(
-                Permit({
-                    token: orders[i].input.token,
-                    spender: address(this),
-                    maxAmount: orders[i].input.amount,
-                    deadline: orders[i].info.deadline
-                }),
-                orders[i].info.offerer,
-                fillContract,
-                orders[i].input.amount,
-                orderHashes[i],
-                signatures[i]
-            );
+            _transferTokens(orders[i], orderHashes[i], fillContract, signatures[i]);
         }
 
         IReactorCallback(fillContract).reactorCallback(orders, fillData);
