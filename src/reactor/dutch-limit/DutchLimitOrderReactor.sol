@@ -50,7 +50,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             resolvedOrders[i] = resolve(orders[i]);
             orderHashes[i] = keccak256(abi.encode(orders[i]));
         }
-        fillBatch(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+        _fillBatch(resolvedOrders, signatures, orderHashes, fillContract, fillData);
     }
 
     /// @notice Resolve a DutchLimitOrder into a generic order

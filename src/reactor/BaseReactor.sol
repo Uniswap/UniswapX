@@ -74,7 +74,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }
 
-    function fillBatch(
+    function _fillBatch(
         ResolvedOrder[] memory orders,
         Signature[] calldata signatures,
         bytes32[] memory orderHashes,
