@@ -59,8 +59,9 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[0].token = address(tokenOut);
         outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        ResolvedOrder memory resolvedOrder =
-            ResolvedOrder(OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs);
+        ResolvedOrder memory resolvedOrder = ResolvedOrder(
+            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
+        );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);
         tokenIn.mint(address(directTakerExecutor), inputAmount);
@@ -79,8 +80,9 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        ResolvedOrder memory resolvedOrder =
-            ResolvedOrder(OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs);
+        ResolvedOrder memory resolvedOrder = ResolvedOrder(
+            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
+        );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);
         tokenOut.mint(taker, ONE * 3);

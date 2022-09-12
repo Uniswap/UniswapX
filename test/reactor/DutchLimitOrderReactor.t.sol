@@ -258,7 +258,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),
@@ -313,7 +315,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 2 * 10 ** 18),
@@ -329,7 +333,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(2),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
+                2
+                ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 3 * 10 ** 18),
@@ -381,7 +387,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),
