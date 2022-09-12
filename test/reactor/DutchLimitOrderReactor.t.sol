@@ -15,6 +15,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import "forge-std/console.sol";
 
 // This suite of tests test validation and resolves.
@@ -188,7 +189,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents {
     using OrderInfoBuilder for OrderInfo;
 
     MockFillContract fillContract;
@@ -226,6 +227,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
         reactor.execute(
             order,
             signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))),
@@ -269,6 +272,10 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
         );
 
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[0])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[1])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
         assertEq(tokenIn.balanceOf(address(fillContract)), 3000000000000000000);
@@ -341,6 +348,12 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature {
             vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
         );
 
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[0])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[1])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[2])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
         reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);

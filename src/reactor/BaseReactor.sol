@@ -87,6 +87,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
             _validate(orders[i].info);
             _updateFilled(orderHashes[i]);
             _transferTokens(orders[i], orderHashes[i], fillContract, signatures[i]);
+            emit Fill(orderHashes[i], msg.sender);
         }
 
         IReactorCallback(fillContract).reactorCallback(orders, fillData);
