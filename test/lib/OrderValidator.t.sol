@@ -31,46 +31,4 @@ contract OrderValidatorTest is Test {
     function testValid() public view {
         validator.validate(OrderInfoBuilder.init(address(validator)));
     }
-
-    function testUpdateFilled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateFilled(orderHash);
-        assertTrue(validator.getOrderStatus(orderHash).isFilled);
-        assertFalse(validator.getOrderStatus(orderHash).isCancelled);
-    }
-
-    function testUpdateFilledWhenCancelled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateCancelled(orderHash);
-        vm.expectRevert(OrderValidator.OrderCancelled.selector);
-        validator.updateFilled(orderHash);
-    }
-
-    function testUpdateFilledWhenAlreadyFilled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateFilled(orderHash);
-        vm.expectRevert(OrderValidator.OrderAlreadyFilled.selector);
-        validator.updateFilled(orderHash);
-    }
-
-    function testUpdateCancelled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateCancelled(orderHash);
-        assertFalse(validator.getOrderStatus(orderHash).isFilled);
-        assertTrue(validator.getOrderStatus(orderHash).isCancelled);
-    }
-
-    function testUpdateCancelledWhenAlreadyCancelled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateCancelled(orderHash);
-        vm.expectRevert(OrderValidator.OrderCancelled.selector);
-        validator.updateCancelled(orderHash);
-    }
-
-    function testUpdateCancelledWhenAlreadyFilled() public {
-        bytes32 orderHash = keccak256("test");
-        validator.updateFilled(orderHash);
-        vm.expectRevert(OrderValidator.OrderAlreadyFilled.selector);
-        validator.updateCancelled(orderHash);
-    }
 }

@@ -8,16 +8,4 @@ contract MockOrderValidator is OrderValidator {
     function validate(OrderInfo memory info) external view {
         _validate(info);
     }
-
-    function updateFilled(bytes32 orderHash) external {
-        _updateFilled(orderHash);
-    }
-
-    function updateCancelled(bytes32 orderHash) external {
-        _updateCancelled(orderHash);
-    }
-
-    function getOrderStatus(bytes32 orderHash) external view returns (OrderStatus memory status) {
-        status = orderStatus[orderHash];
-    }
 }

@@ -27,7 +27,6 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         internal
     {
         _validate(order.info);
-        _updateFilled(orderHash);
 
         _transferTokens(order, orderHash, fillContract, sig);
 
