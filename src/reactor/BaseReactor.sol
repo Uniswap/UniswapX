@@ -104,9 +104,7 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = order.input.amount;
 
-        IPermitPost(permitPost).unorderedTransferFrom(
-            permit, to, ids, amounts, order.info.nonce, sig
-        );
+        IPermitPost(permitPost).unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, sig);
     }
 
     /// @notice returns a TokenDetails array of length 1 with the given order input

@@ -185,7 +185,6 @@ contract DutchLimitOrderReactorValidationTest is Test {
             dutchOutputs
         );
         reactor.resolve(abi.encode(dlo));
-<<<<<<< HEAD
     }
 }
 
@@ -404,7 +403,5 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             );
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
-=======
->>>>>>> 9ef44a2 (feat: refactor to use generic reactor interface)
     }
 }

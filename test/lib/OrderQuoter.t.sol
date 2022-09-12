@@ -109,9 +109,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         vm.warp(timestamp + 100);
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withDeadline(
-                block.timestamp - 1
-                ),
+            info: OrderInfoBuilder.init(address(limitOrderReactor)).withDeadline(block.timestamp - 1),
             input: TokenAmount(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });

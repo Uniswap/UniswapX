@@ -122,12 +122,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(
-            vm,
-            makerPrivateKey,
-            address(permitPost),
-            OrderInfoBuilder.init(address(this)),
-            order.input,
-            orderHash
+            vm, makerPrivateKey, address(permitPost), OrderInfoBuilder.init(address(this)), order.input, orderHash
         );
 
         // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
@@ -143,8 +138,9 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig =
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash);
+        Signature memory sig = signOrder(
+            vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
+        );
         // permit post attempts to transfer from the ecrecovered address, which is a garbage address with invalid params
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
