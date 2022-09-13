@@ -49,13 +49,7 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
     ///     and fetched through a valid permit signature
     ///     - Order execution through the fillContract must
     ///     properly return all user outputs for all orders
-    function executeBatch(
-        SignedOrder[] calldata orders,
-        address fillContract,
-        bytes calldata fillData
-    )
-        external
-    {
+    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) external {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
         bytes32[] memory orderHashes = new bytes32[](orders.length);
         Signature[] memory signatures = new Signature[](orders.length);
@@ -97,12 +91,7 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
     }
 
     /// @notice Transfers tokens to the fillContract using permitPost
-    function _transferTokens(
-        ResolvedOrder memory order,
-        Signature memory sig,
-        bytes32 orderHash,
-        address fillContract
-    )
+    function _transferTokens(ResolvedOrder memory order, Signature memory sig, bytes32 orderHash, address fillContract)
         private
     {
         Permit memory permit = Permit(_tokenDetails(order.input), address(this), order.info.deadline, orderHash);
@@ -115,9 +104,7 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = order.input.amount;
 
-        permitPost.unorderedTransferFrom(
-            permit, order.info.offerer, to, ids, amounts, order.info.nonce, sig
-        );
+        permitPost.unorderedTransferFrom(permit, order.info.offerer, to, ids, amounts, order.info.nonce, sig);
     }
 
     /// @notice returns a TokenDetails array of length 1 with the given order input

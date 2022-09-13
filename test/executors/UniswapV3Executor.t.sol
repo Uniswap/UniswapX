@@ -96,7 +96,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         vm.recordLogs();
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
@@ -139,7 +142,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         vm.recordLogs();
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
@@ -178,7 +184,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
@@ -208,7 +217,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
@@ -245,7 +257,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(FEE)
         );

@@ -230,8 +230,12 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         vm.expectEmit(false, false, false, true);
         emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
         reactor.execute(
-            SignedOrder(abi.encode(order), 
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order)))),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(
+                    vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))
+                )
+            ),
             address(fillContract),
             bytes("")
         );
@@ -337,8 +341,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
         // different maker
         signedOrders[2].sig = signOrder(
-                vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
-                );
+            vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
+        );
 
         vm.expectEmit(false, false, false, true);
         emit Fill(keccak256(abi.encode(orders[0])), address(this));
@@ -390,8 +394,13 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             Signature memory sig = signOrder(
-                    vm, makerPrivateKey, address(permitPost), orders[i].info, orders[i].input, keccak256(abi.encode(orders[i]))
-                    );
+                vm,
+                makerPrivateKey,
+                address(permitPost),
+                orders[i].info,
+                orders[i].input,
+                keccak256(abi.encode(orders[i]))
+            );
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
     }

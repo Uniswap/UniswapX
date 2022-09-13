@@ -106,7 +106,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         tokenOut.mint(taker, ONE * 2);
 
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(directTakerExecutor),
             abi.encode(taker, dloReactor)
         );

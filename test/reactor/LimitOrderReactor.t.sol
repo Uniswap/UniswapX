@@ -140,8 +140,9 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
-        Signature memory sig =
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash);
+        Signature memory sig = signOrder(
+            vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
+        );
         vm.expectRevert(PermitPost.InvalidSignature.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
