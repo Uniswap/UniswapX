@@ -6,7 +6,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder, OrderInfo, OrderStatus, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract BaseReactor is OrderValidator, ReactorEvents {

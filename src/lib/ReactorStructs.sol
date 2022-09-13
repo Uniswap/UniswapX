@@ -27,9 +27,3 @@ struct ResolvedOrder {
     TokenAmount input;
     Output[] outputs;
 }
-
-struct OrderStatus {
-    bool isCancelled;
-    // TODO: use numerator/denominator for partial fills
-    bool isFilled;
-}
