@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {
@@ -208,7 +209,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     MockFillContract fillContract;
@@ -248,6 +249,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         vm.expectEmit(false, false, false, true);
         emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        snapStart("DutchExecuteSingle");
         reactor.execute(
             SignedOrder(
                 abi.encode(order),
@@ -258,6 +260,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             address(fillContract),
             bytes("")
         );
+        snapEnd();
         assertEq(tokenOut.balanceOf(maker), 2000000000000000000);
         assertEq(tokenIn.balanceOf(address(fillContract)), 1000000000000000000);
     }
@@ -294,7 +297,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         emit Fill(keccak256(abi.encode(orders[0])), address(this));
         vm.expectEmit(false, false, false, true);
         emit Fill(keccak256(abi.encode(orders[1])), address(this));
+        snapStart("DutchExecuteBatch");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        snapEnd();
         assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
         assertEq(tokenIn.balanceOf(address(fillContract)), 3000000000000000000);
     }
