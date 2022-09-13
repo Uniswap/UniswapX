@@ -82,6 +82,28 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         assertEq(quote.outputs[0].amount, ONE);
     }
 
+    function testQuoteDutchOrderAfterDecay() public {
+        vm.warp(block.timestamp + 100);
+        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), ONE),
+            outputs: dutchOutputs
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
+
+        assertEq(quote.input.token, address(tokenIn));
+        assertEq(quote.input.amount, ONE);
+        assertEq(quote.outputs[0].token, address(tokenOut));
+        assertEq(quote.outputs[0].amount, ONE * 95 / 100);
+    }
+
     function testQuoteLimitOrderDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
