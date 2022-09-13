@@ -2,17 +2,24 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {PermitPost} from "permitpost/PermitPost.sol";
+import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
     ResolvedOrder
 } from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
-import {OrderInfo, TokenAmount} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, TokenAmount, Signature} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {OutputsBuilder} from "../util/OutputsBuilder.sol";
+import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
+import "forge-std/console.sol";
 
-contract DutchLimitOrderReactorTest is Test {
+// This suite of tests test validation and resolves.
+contract DutchLimitOrderReactorValidationTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     DutchLimitOrderReactor reactor;
@@ -178,5 +185,225 @@ contract DutchLimitOrderReactorTest is Test {
             dutchOutputs
         );
         reactor.validate(dlo);
+    }
+}
+
+// This suite of tests test execution with a mock fill contract.
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents {
+    using OrderInfoBuilder for OrderInfo;
+
+    MockFillContract fillContract;
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+    uint256 makerPrivateKey;
+    address maker;
+    DutchLimitOrderReactor reactor;
+    PermitPost permitPost;
+
+    function setUp() public {
+        fillContract = new MockFillContract();
+        tokenIn = new MockERC20("Input", "IN", 18);
+        tokenOut = new MockERC20("Output", "OUT", 18);
+        makerPrivateKey = 0x12341234;
+        maker = vm.addr(makerPrivateKey);
+        permitPost = new PermitPost();
+        reactor = new DutchLimitOrderReactor(address(permitPost));
+    }
+
+    // Execute a single order, input = 1 and outputs = [2].
+    function testExecute() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        reactor.execute(
+            order,
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), 2000000000000000000);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 1000000000000000000);
+    }
+
+    // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
+    // has input = 2, outputs = [4].
+    function testExecuteBatch() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount * 3);
+        tokenOut.mint(address(fillContract), 6 * 10 ** 18);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+
+        DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
+        orders[0] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+        orders[1] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount * 2),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+        });
+        Signature[] memory signatures = new Signature[](2);
+        signatures[0] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0]))
+        );
+        signatures[1] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
+        );
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[0])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[1])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 3000000000000000000);
+    }
+
+    // Execute 3 dutch limit orders. Have the 3rd one signed by a different maker.
+    // Order 1: Input = 1, outputs = [2, 1]
+    // Order 2: Input = 2, outputs = [3]
+    // Order 3: Input = 3, outputs = [3,4,5]
+    function testExecuteBatchMultipleOutputs() public {
+        uint256 makerPrivateKey2 = 0x12341235;
+        address maker2 = vm.addr(makerPrivateKey2);
+
+        tokenIn.mint(address(maker), 3 * 10 ** 18);
+        tokenIn.mint(address(maker2), 3 * 10 ** 18);
+        tokenOut.mint(address(fillContract), 18 * 10 ** 18);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker2, address(permitPost), type(uint256).max);
+
+        // Build the 3 orders
+        DutchLimitOrder[] memory orders = new DutchLimitOrder[](3);
+
+        uint256[] memory startAmounts0 = new uint256[](2);
+        startAmounts0[0] = 2 * 10 ** 18;
+        startAmounts0[1] = 10 ** 18;
+        uint256[] memory endAmounts0 = new uint256[](2);
+        endAmounts0[0] = startAmounts0[0];
+        endAmounts0[1] = startAmounts0[1];
+        orders[0] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 10 ** 18),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
+        });
+
+        orders[1] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 2 * 10 ** 18),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
+        });
+
+        uint256[] memory startAmounts2 = new uint256[](3);
+        startAmounts2[0] = 3 * 10 ** 18;
+        startAmounts2[1] = 4 * 10 ** 18;
+        startAmounts2[2] = 5 * 10 ** 18;
+        uint256[] memory endAmounts2 = new uint256[](3);
+        endAmounts2[0] = startAmounts2[0];
+        endAmounts2[1] = startAmounts2[1];
+        endAmounts2[2] = startAmounts2[2];
+        orders[2] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
+                2
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), 3 * 10 ** 18),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
+        });
+
+        // Build the 3 signatures
+        Signature[] memory signatures = new Signature[](3);
+        signatures[0] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0]))
+        );
+        signatures[1] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
+        );
+        signatures[2] = signOrder(
+            vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
+        );
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[0])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[1])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(keccak256(abi.encode(orders[2])), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
+    }
+
+    // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
+    // has input = 2, outputs = [4]. However, only mint 5 output to fillContract, so there
+    // will be an overflow error when reactor tries to transfer out 4 output out of the
+    // fillContract for the second order.
+    function testExecuteBatchInsufficientOutput() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount * 3);
+        tokenOut.mint(address(fillContract), 5 * 10 ** 18);
+        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+
+        DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
+        orders[0] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+        orders[1] = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: TokenAmount(address(tokenIn), inputAmount * 2),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+        });
+        Signature[] memory signatures = new Signature[](2);
+        signatures[0] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0]))
+        );
+        signatures[1] = signOrder(
+            vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
+        );
+
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        reactor.executeBatch(orders, signatures, address(fillContract), bytes(""));
     }
 }

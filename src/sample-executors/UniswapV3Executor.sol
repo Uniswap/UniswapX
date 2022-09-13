@@ -25,7 +25,9 @@ contract UniswapV3Executor is IReactorCallback {
             ERC20(inputToken).approve(swapRouter, inputTokenBalance);
         }
         uint256 amountOut = IUniV3SwapRouter(swapRouter).exactInputSingle(
-            IUniV3SwapRouter.ExactInputSingleParams(inputToken, outputToken, fee, address(this), inputTokenBalance, 0, 0)
+            IUniV3SwapRouter.ExactInputSingleParams(
+                inputToken, outputToken, fee, address(this), inputTokenBalance, 0, 0
+            )
         );
         // Reactor has to take out outputToken from executor (and send to recipient)
         if (ERC20(outputToken).allowance(address(this), msg.sender) < amountOut) {

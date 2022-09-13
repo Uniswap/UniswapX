@@ -165,7 +165,9 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash = keccak256(abi.encode(order));
         LimitOrderExecution memory execution = LimitOrderExecution({
             order: order,
-            sig: signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash),
+            sig: signOrder(
+                vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
+                ),
             fillContract: address(fillContract),
             fillData: bytes("")
         });

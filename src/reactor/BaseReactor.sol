@@ -73,4 +73,31 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         result = new TokenDetails[](1);
         result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }
+
+    function _fillBatch(
+        ResolvedOrder[] memory orders,
+        Signature[] calldata signatures,
+        bytes32[] memory orderHashes,
+        address fillContract,
+        bytes calldata fillData
+    )
+        internal
+    {
+        for (uint256 i = 0; i < orders.length; i++) {
+            _validate(orders[i].info);
+            _updateFilled(orderHashes[i]);
+            _transferTokens(orders[i], orderHashes[i], fillContract, signatures[i]);
+            emit Fill(orderHashes[i], msg.sender);
+        }
+
+        IReactorCallback(fillContract).reactorCallback(orders, fillData);
+
+        // transfer output tokens to their respective recipients
+        for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 j = 0; j < orders[i].outputs.length; j++) {
+                Output memory output = orders[i].outputs[j];
+                ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
+            }
+        }
+    }
 }

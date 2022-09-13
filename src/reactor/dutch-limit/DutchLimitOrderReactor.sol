@@ -35,6 +35,25 @@ contract DutchLimitOrderReactor is BaseReactor {
         _fill(resolve(order), sig, keccak256(abi.encode(order)), fillContract, fillData);
     }
 
+    /// @notice Execute given orders
+    function executeBatch(
+        DutchLimitOrder[] calldata orders,
+        Signature[] calldata signatures,
+        address fillContract,
+        bytes calldata fillData
+    )
+        external
+    {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            _validateDutchOrder(orders[i]);
+            resolvedOrders[i] = resolve(orders[i]);
+            orderHashes[i] = keccak256(abi.encode(orders[i]));
+        }
+        _fillBatch(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+    }
+
     /// @notice Resolve a DutchLimitOrder into a generic order
     /// @dev applies dutch decay to order outputs
     function resolve(DutchLimitOrder calldata dutchLimitOrder)
