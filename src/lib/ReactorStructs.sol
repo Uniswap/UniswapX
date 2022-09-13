@@ -15,7 +15,6 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-// internal structs
 struct Output {
     address token;
     uint256 amount;

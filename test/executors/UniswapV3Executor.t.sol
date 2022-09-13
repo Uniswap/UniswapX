@@ -263,15 +263,20 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenOut.mint(address(mockSwapRouter), outputAmount * 10);
         tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
 
-        DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
-        orders[0] = DutchLimitOrder({
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
-        orders[1] = DutchLimitOrder({
+        Signature memory sig1 = signOrder(
+            vm, makerPrivateKey, address(permitPost), order1.info, order1.input, keccak256(abi.encode(order1))
+        );
+        signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
+
+        DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -279,15 +284,12 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             input: TokenAmount(address(tokenIn), inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
-        Signature[] memory signatures = new Signature[](2);
-        signatures[0] = signOrder(
-            vm, makerPrivateKey, address(permitPost), orders[0].info, orders[0].input, keccak256(abi.encode(orders[0]))
+        Signature memory sig2 = signOrder(
+            vm, makerPrivateKey, address(permitPost), order2.info, order2.input, keccak256(abi.encode(order2))
         );
-        signatures[1] = signOrder(
-            vm, makerPrivateKey, address(permitPost), orders[1].info, orders[1].input, keccak256(abi.encode(orders[1]))
-        );
+        signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
-        dloReactor.executeBatch(orders, signatures, address(uniswapV3Executor), abi.encode(FEE));
+        dloReactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encode(FEE));
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
