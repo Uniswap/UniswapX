@@ -23,10 +23,7 @@ contract MockOrderValidator {
         orderStatus.updateCancelled(orderHash);
     }
 
-    function getOrderStatus(bytes32 orderHash)
-        external
-        returns (OrderStatus memory)
-    {
+    function getOrderStatus(bytes32 orderHash) external returns (OrderStatus memory) {
         return orderStatus[orderHash];
     }
 }

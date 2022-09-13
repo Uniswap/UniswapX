@@ -22,21 +22,13 @@ library OrderValidator {
             revert DeadlinePassed();
         }
 
-        if (
-            order.validationContract != address(0)
-                && !IValidationCallback(order.validationContract).validate(order)
-        ) {
+        if (order.validationContract != address(0) && !IValidationCallback(order.validationContract).validate(order)) {
             revert InvalidOrder();
         }
     }
 
     /// @notice marks an order as filled
-    function updateFilled(
-        mapping(bytes32 => OrderStatus) storage orderStatus,
-        bytes32 orderHash
-    )
-        internal
-    {
+    function updateFilled(mapping(bytes32 => OrderStatus) storage orderStatus, bytes32 orderHash) internal {
         OrderStatus memory _orderStatus = orderStatus[orderHash];
         if (_orderStatus.isCancelled) {
             revert OrderCancelled();
@@ -50,12 +42,7 @@ library OrderValidator {
     }
 
     /// @notice marks an order as canceled
-    function updateCancelled(
-        mapping(bytes32 => OrderStatus) storage orderStatus,
-        bytes32 orderHash
-    )
-        internal
-    {
+    function updateCancelled(mapping(bytes32 => OrderStatus) storage orderStatus, bytes32 orderHash) internal {
         OrderStatus memory _orderStatus = orderStatus[orderHash];
         if (_orderStatus.isCancelled) {
             revert OrderCancelled();

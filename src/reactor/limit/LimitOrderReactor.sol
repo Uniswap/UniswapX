@@ -4,11 +4,7 @@ pragma solidity ^0.8.0;
 import {OrderValidator} from "../../lib/OrderValidator.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 import {LimitOrder, LimitOrderExecution} from "./LimitOrderStructs.sol";
-import {
-    ResolvedOrder,
-    OrderInfo,
-    TokenAmount
-} from "../../interfaces/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, TokenAmount} from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
@@ -35,11 +31,7 @@ contract LimitOrderReactor is BaseReactor {
 
     /// @notice Resolve a LimitOrder into a generic order
     /// @dev limit order inputs and outputs are directly specified
-    function resolve(LimitOrder calldata order)
-        public
-        pure
-        returns (ResolvedOrder memory resolvedOrder)
-    {
+    function resolve(LimitOrder calldata order) public pure returns (ResolvedOrder memory resolvedOrder) {
         resolvedOrder = ResolvedOrder(order.info, order.input, order.outputs);
     }
 

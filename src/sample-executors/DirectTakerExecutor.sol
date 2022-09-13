@@ -6,10 +6,7 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {Output, ResolvedOrder} from "../interfaces/ReactorStructs.sol";
 
 contract DirectTakerExecutor is IReactorCallback {
-    function reactorCallback(
-        ResolvedOrder[] calldata resolvedOrders,
-        bytes calldata fillData
-    ) external {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
         // Only handle 1 resolved order
         require(resolvedOrders.length == 1, "resolvedOrders.length != 1");
 

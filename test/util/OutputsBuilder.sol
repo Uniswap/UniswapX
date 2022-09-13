@@ -5,11 +5,7 @@ import {Output} from "../../src/interfaces/ReactorStructs.sol";
 import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 
 library OutputsBuilder {
-    function single(address token, uint256 amount, address recipient)
-        internal
-        pure
-        returns (Output[] memory)
-    {
+    function single(address token, uint256 amount, address recipient) internal pure returns (Output[] memory) {
         Output[] memory result = new Output[](1);
         result[0] = Output(token, amount, recipient);
         return result;

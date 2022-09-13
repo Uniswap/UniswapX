@@ -5,14 +5,7 @@ import {IPermitPost, Permit} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {
-    ResolvedOrder,
-    OrderInfo,
-    OrderStatus,
-    TokenAmount,
-    Signature,
-    Output
-} from "../interfaces/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, OrderStatus, TokenAmount, Signature, Output} from "../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract BaseReactor {
@@ -34,7 +27,9 @@ contract BaseReactor {
         bytes32 orderHash,
         address fillContract,
         bytes calldata fillData
-    ) internal {
+    )
+        internal
+    {
         order.info.validate();
         orderStatus.updateFilled(orderHash);
         IPermitPost(permitPost).saltTransferFrom(
@@ -58,11 +53,7 @@ contract BaseReactor {
         // transfer output tokens to their respective recipients
         for (uint256 i = 0; i < order.outputs.length; i++) {
             Output memory output = order.outputs[i];
-            ERC20(output.token).transferFrom(
-                fillContract,
-                output.recipient,
-                output.amount
-            );
+            ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
         }
     }
 }

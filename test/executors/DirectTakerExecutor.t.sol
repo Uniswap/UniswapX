@@ -51,17 +51,15 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     }
 
     function testReactorCallback() public {
-        uint inputAmount = ONE;
-        uint outputAmount = ONE;
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = ONE;
 
         Output[] memory outputs = new Output[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)),
-            TokenAmount(address(tokenIn), inputAmount),
-            outputs
+            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);
@@ -73,7 +71,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     }
 
     function testReactorCallback2Outputs() public {
-        uint inputAmount = ONE;
+        uint256 inputAmount = ONE;
 
         Output[] memory outputs = new Output[](2);
         outputs[0].token = address(tokenOut);
@@ -82,9 +80,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[1].amount = ONE * 2;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)),
-            TokenAmount(address(tokenIn), inputAmount),
-            outputs
+            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);

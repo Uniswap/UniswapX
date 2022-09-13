@@ -3,17 +3,8 @@ pragma solidity ^0.8.0;
 
 import {OrderValidator} from "../../lib/OrderValidator.sol";
 import {BaseReactor} from "../BaseReactor.sol";
-import {
-    DutchLimitOrder,
-    DutchOutput
-} from "./DutchLimitOrderStructs.sol";
-import {
-    ResolvedOrder,
-    TokenAmount,
-    OrderInfo,
-    Output,
-    Signature
-} from "../../interfaces/ReactorStructs.sol";
+import {DutchLimitOrder, DutchOutput} from "./DutchLimitOrderStructs.sol";
+import {ResolvedOrder, TokenAmount, OrderInfo, Output, Signature} from "../../interfaces/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
@@ -36,15 +27,11 @@ contract DutchLimitOrderReactor is BaseReactor {
         Signature calldata sig,
         address fillContract,
         bytes calldata fillData
-    ) external {
+    )
+        external
+    {
         _validateDutchOrder(order);
-        fill(
-            resolve(order),
-            sig,
-            keccak256(abi.encode(order)),
-            fillContract,
-            fillData
-        );
+        fill(resolve(order), sig, keccak256(abi.encode(order)), fillContract, fillData);
     }
 
     /// @notice Resolve a DutchLimitOrder into a generic order
@@ -62,15 +49,12 @@ contract DutchLimitOrderReactor is BaseReactor {
                 decayedAmount = dutchOutput_i.endAmount;
             } else {
                 decayedAmount = dutchOutput_i.startAmount
-                    - (dutchOutput_i.startAmount - dutchOutput_i.endAmount)
-                        * (block.timestamp - dutchLimitOrder.startTime)
+                    - (dutchOutput_i.startAmount - dutchOutput_i.endAmount) * (block.timestamp - dutchLimitOrder.startTime)
                         / (dutchLimitOrder.endTime - dutchLimitOrder.startTime);
             }
-            outputs[i] =
-                Output(dutchOutput_i.token, decayedAmount, dutchOutput_i.recipient);
+            outputs[i] = Output(dutchOutput_i.token, decayedAmount, dutchOutput_i.recipient);
         }
-        resolvedOrder =
-            ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
+        resolvedOrder = ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
     }
 
     /// @notice validate an order
@@ -82,10 +66,7 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     /// @notice validate the dutch order fields
     /// @dev Throws if the order is invalid
-    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder)
-        internal
-        pure
-    {
+    function _validateDutchOrder(DutchLimitOrder calldata dutchLimitOrder) internal pure {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }

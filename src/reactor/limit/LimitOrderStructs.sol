@@ -2,9 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
-import {
-    TokenAmount, Output, OrderInfo
-} from "../../interfaces/ReactorStructs.sol";
+import {TokenAmount, Output, OrderInfo} from "../../interfaces/ReactorStructs.sol";
 
 struct LimitOrder {
     OrderInfo info;
