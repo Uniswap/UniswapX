@@ -220,7 +220,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -255,16 +255,14 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
-                1
-                ),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),
@@ -304,7 +302,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         endAmounts0[0] = startAmounts0[0];
         endAmounts0[1] = startAmounts0[1];
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 10 ** 18),
@@ -312,9 +310,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
-                1
-                ),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 2 * 10 ** 18),
@@ -330,9 +326,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
-                2
-                ),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100).withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), 3 * 10 ** 18),
@@ -370,16 +364,14 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
-                1
-                ),
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 2),

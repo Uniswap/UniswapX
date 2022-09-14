@@ -280,7 +280,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
 
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
         DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount),
@@ -292,8 +292,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
         DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withNonce(1),
+            info: OrderInfoBuilder.init(address(dloReactor)).withDeadline(block.timestamp + 100).withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: TokenAmount(address(tokenIn), inputAmount * 3),
