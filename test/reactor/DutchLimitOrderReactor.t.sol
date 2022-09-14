@@ -186,6 +186,25 @@ contract DutchLimitOrderReactorValidationTest is Test {
         );
         reactor.resolve(abi.encode(dlo));
     }
+
+    function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
+        public
+    {
+        vm.assume(startTime < endTime);
+        vm.assume(startAmount > endAmount);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), startAmount, endAmount, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
+            startTime,
+            endTime,
+            TokenAmount(address(0), 0),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        assertLe(resolvedOrder.outputs[0].amount, startAmount);
+        assertGe(resolvedOrder.outputs[0].amount, endAmount);
+    }
 }
 
 // This suite of tests test execution with a mock fill contract.
