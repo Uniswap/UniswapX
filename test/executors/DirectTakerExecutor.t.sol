@@ -4,9 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
-import {DutchLimitOrderExecution} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {Output, TokenAmount, OrderInfo, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {Output, TokenAmount, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -107,8 +106,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         tokenOut.mint(taker, ONE * 2);
 
         dloReactor.execute(
-            order,
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(directTakerExecutor),
             abi.encode(taker, dloReactor)
         );

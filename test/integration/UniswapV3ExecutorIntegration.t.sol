@@ -4,7 +4,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
-import {Output, TokenAmount, OrderInfo} from "../../src/lib/ReactorStructs.sol";
+import {Output, TokenAmount, OrderInfo, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
@@ -60,8 +60,10 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         assertEq(ERC20(usdc).balanceOf(maker), 0);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
         dloReactor.execute(
-            order,
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(fee)
         );
@@ -88,8 +90,10 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
 
         vm.expectRevert("ERC20: transfer amount exceeds allowance");
         dloReactor.execute(
-            order,
-            signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash),
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
             address(uniswapV3Executor),
             abi.encode(fee)
         );

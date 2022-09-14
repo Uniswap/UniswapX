@@ -6,51 +6,92 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder, OrderInfo, OrderStatus, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
+import {
+    SignedOrder,
+    ResolvedOrder,
+    OrderInfo,
+    OrderStatus,
+    TokenAmount,
+    Signature,
+    Output
+} from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract BaseReactor is OrderValidator, ReactorEvents {
-    address public immutable permitPost;
+abstract contract BaseReactor is OrderValidator, ReactorEvents {
+    IPermitPost public immutable permitPost;
 
     constructor(address _permitPost) {
-        permitPost = _permitPost;
+        permitPost = IPermitPost(_permitPost);
     }
 
-    /// @notice validates and fills an order, marking it as filled
+    /// @notice Execute the given order with the specified fillContract
+    /// @dev Resolves the order inputs and outputs,
+    ///     validates the order, and fills it if valid.
+    ///     - User funds must be supplied through the permit post
+    ///     and fetched through a valid permit signature
+    ///     - Order execution through the fillContract must
+    ///     properly return all user outputs
+    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        resolvedOrders[0] = resolve(order.order);
+        bytes32[] memory orderHashes = new bytes32[](1);
+        orderHashes[0] = keccak256(order.order);
+        Signature[] memory signatures = new Signature[](1);
+        signatures[0] = order.sig;
+
+        _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+    }
+
+    /// @notice Execute the given orders with the specified fillContract
+    /// @dev Resolves the order inputs and outputs,
+    ///     validates the order, and fills it if valid.
+    ///     - User funds must be supplied through the permit post
+    ///     and fetched through a valid permit signature
+    ///     - Order execution through the fillContract must
+    ///     properly return all user outputs for all orders
+    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) external {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+        Signature[] memory signatures = new Signature[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            resolvedOrders[i] = resolve(orders[i].order);
+            orderHashes[i] = keccak256(orders[i].order);
+            signatures[i] = orders[i].sig;
+        }
+        _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+    }
+
+    /// @notice validates and fills a list of orders, marking it as filled
     function _fill(
-        ResolvedOrder memory order,
-        Signature calldata sig,
-        bytes32 orderHash,
+        ResolvedOrder[] memory orders,
+        Signature[] memory signatures,
+        bytes32[] memory orderHashes,
         address fillContract,
         bytes calldata fillData
     )
         internal
     {
-        _validate(order.info);
-        _updateFilled(orderHash);
-
-        _transferTokens(order, orderHash, fillContract, sig);
-
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        resolvedOrders[0] = order;
-        IReactorCallback(fillContract).reactorCallback(resolvedOrders, fillData);
-
-        // transfer output tokens to their respective recipients
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            Output memory output = order.outputs[i];
-            ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
+        for (uint256 i = 0; i < orders.length; i++) {
+            _validateOrderInfo(orders[i].info);
+            _updateFilled(orderHashes[i]);
+            _transferTokens(orders[i], signatures[i], orderHashes[i], fillContract);
         }
 
-        emit Fill(orderHash, msg.sender);
+        IReactorCallback(fillContract).reactorCallback(orders, fillData);
+
+        // transfer output tokens to their respective recipients
+        for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 j = 0; j < orders[i].outputs.length; j++) {
+                Output memory output = orders[i].outputs[j];
+                ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
+            }
+
+            emit Fill(orderHashes[i], msg.sender);
+        }
     }
 
     /// @notice Transfers tokens to the fillContract using permitPost
-    function _transferTokens(
-        ResolvedOrder memory order,
-        bytes32 orderHash,
-        address fillContract,
-        Signature calldata sig
-    )
+    function _transferTokens(ResolvedOrder memory order, Signature memory sig, bytes32 orderHash, address fillContract)
         private
     {
         Permit memory permit = Permit(_tokenDetails(order.input), address(this), order.info.deadline, orderHash);
@@ -63,9 +104,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = order.input.amount;
 
-        IPermitPost(permitPost).unorderedTransferFrom(
-            permit, order.info.offerer, to, ids, amounts, order.info.nonce, sig
-        );
+        permitPost.unorderedTransferFrom(permit, order.info.offerer, to, ids, amounts, order.info.nonce, sig);
     }
 
     /// @notice returns a TokenDetails array of length 1 with the given order input
@@ -74,30 +113,7 @@ contract BaseReactor is OrderValidator, ReactorEvents {
         result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }
 
-    function _fillBatch(
-        ResolvedOrder[] memory orders,
-        Signature[] calldata signatures,
-        bytes32[] memory orderHashes,
-        address fillContract,
-        bytes calldata fillData
-    )
-        internal
-    {
-        for (uint256 i = 0; i < orders.length; i++) {
-            _validate(orders[i].info);
-            _updateFilled(orderHashes[i]);
-            _transferTokens(orders[i], orderHashes[i], fillContract, signatures[i]);
-            emit Fill(orderHashes[i], msg.sender);
-        }
-
-        IReactorCallback(fillContract).reactorCallback(orders, fillData);
-
-        // transfer output tokens to their respective recipients
-        for (uint256 i = 0; i < orders.length; i++) {
-            for (uint256 j = 0; j < orders[i].outputs.length; j++) {
-                Output memory output = orders[i].outputs[j];
-                ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
-            }
-        }
-    }
+    /// @notice Resolve an order-type specific order into a generic order
+    /// @dev should revert on any order-type-specific validation errors
+    function resolve(bytes calldata order) public view virtual returns (ResolvedOrder memory resolvedOrder);
 }

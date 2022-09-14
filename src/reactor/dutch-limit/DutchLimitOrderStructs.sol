@@ -18,10 +18,3 @@ struct DutchLimitOrder {
     TokenAmount input;
     DutchOutput[] outputs;
 }
-
-struct DutchLimitOrderExecution {
-    DutchLimitOrder order;
-    Signature sig;
-    address fillContract;
-    bytes fillData;
-}

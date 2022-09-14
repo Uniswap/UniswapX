@@ -13,7 +13,7 @@ contract OrderValidator {
 
     /// @notice Validates an order, reverting if invalid
     /// @param info The order to validate
-    function _validate(OrderInfo memory info) internal view {
+    function _validateOrderInfo(OrderInfo memory info) internal view {
         if (address(this) != info.reactor) {
             revert InvalidReactor();
         }

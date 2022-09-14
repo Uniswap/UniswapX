@@ -15,7 +15,6 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-// internal structs
 struct Output {
     address token;
     uint256 amount;
@@ -32,4 +31,9 @@ struct OrderStatus {
     bool isCancelled;
     // TODO: use numerator/denominator for partial fills
     bool isFilled;
+}
+
+struct SignedOrder {
+    bytes order;
+    Signature sig;
 }

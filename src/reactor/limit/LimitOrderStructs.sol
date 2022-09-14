@@ -9,10 +9,3 @@ struct LimitOrder {
     TokenAmount input;
     Output[] outputs;
 }
-
-struct LimitOrderExecution {
-    LimitOrder order;
-    Signature sig;
-    address fillContract;
-    bytes fillData;
-}
