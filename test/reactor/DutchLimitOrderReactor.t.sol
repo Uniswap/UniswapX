@@ -201,7 +201,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             TokenAmount(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolve(dlo);
+        ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
         assertLe(resolvedOrder.outputs[0].amount, startAmount);
         assertGe(resolvedOrder.outputs[0].amount, endAmount);
     }

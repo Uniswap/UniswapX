@@ -7,3 +7,6 @@
 [submodule "lib/permitpost"]
 	path = lib/permitpost
 	url = git@github.com:Uniswap/permitpost.git
+[submodule "lib/forge-gas-snapshot"]
+	path = lib/forge-gas-snapshot
+	url = https://github.com/marktoda/forge-gas-snapshot
