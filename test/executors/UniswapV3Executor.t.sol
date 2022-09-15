@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
@@ -17,7 +18,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
-contract UniswapV3ExecutorTest is Test, PermitSignature {
+contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 takerPrivateKey;
@@ -96,6 +97,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
+        snapStart("DutchUniswapV3ExecuteSingle");
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
@@ -111,6 +113,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             address(uniswapV3Executor),
             abi.encode(FEE)
         );
+        snapEnd();
         Vm.Log[] memory entries = vm.getRecordedLogs();
         // There will be 7 events in the following order: Transfer, Approval, Transfer,
         // Transfer, Approval, Transfer, Fill
@@ -350,7 +353,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         );
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
+        snapStart("DutchUniswapV3ExecuteBatch");
         dloReactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encode(FEE));
+        snapEnd();
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
