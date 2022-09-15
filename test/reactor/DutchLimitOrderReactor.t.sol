@@ -199,7 +199,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
             endTime,
-            TokenAmount(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolve(abi.encode(dlo));
