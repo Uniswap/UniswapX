@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchInput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {Output, TokenAmount, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
@@ -96,7 +97,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: DutchInput(address(tokenIn), ONE, ONE),
             // The total outputs will resolve to 1.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });
@@ -108,7 +109,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
             ),
             address(directTakerExecutor),
             abi.encode(taker, dloReactor)

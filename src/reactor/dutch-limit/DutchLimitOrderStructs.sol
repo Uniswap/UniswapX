@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
-import {TokenAmount, OrderInfo} from "../../lib/ReactorStructs.sol";
+import {OrderInfo} from "../../lib/ReactorStructs.sol";
 
 struct DutchOutput {
     address token;
@@ -11,10 +11,16 @@ struct DutchOutput {
     address recipient;
 }
 
+struct DutchInput {
+    address token;
+    uint256 startAmount;
+    uint256 endAmount;
+}
+
 struct DutchLimitOrder {
     OrderInfo info;
     uint256 startTime;
     uint256 endTime;
-    TokenAmount input;
+    DutchInput input;
     DutchOutput[] outputs;
 }

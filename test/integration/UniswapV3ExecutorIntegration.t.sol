@@ -8,6 +8,7 @@ import {Output, TokenAmount, OrderInfo, SignedOrder} from "../../src/lib/Reactor
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchInput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import "forge-std/console.sol";
 
@@ -51,7 +52,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(weth), inputAmount),
+            input: DutchInput(address(weth), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -62,7 +63,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encode(fee)
@@ -83,7 +84,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(weth), inputAmount),
+            input: DutchInput(address(weth), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -92,7 +93,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encode(fee)
