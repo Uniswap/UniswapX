@@ -73,7 +73,14 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash);
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order.info,
+            TokenAmount(order.input.token, order.input.endAmount),
+            orderHash
+        );
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -95,7 +102,14 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash);
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order.info,
+            TokenAmount(order.input.token, order.input.endAmount),
+            orderHash
+        );
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -146,7 +160,14 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash);
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order.info,
+            TokenAmount(order.input.token, order.input.endAmount),
+            orderHash
+        );
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
         quoter.quote(abi.encode(order), sig);
     }

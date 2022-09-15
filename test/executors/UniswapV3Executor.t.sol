@@ -99,7 +99,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(FEE)
@@ -145,7 +152,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(FEE)
@@ -187,7 +201,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(FEE)
@@ -220,7 +241,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(FEE)
@@ -260,7 +288,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(FEE)
@@ -288,7 +323,12 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         Signature memory sig1 = signOrder(
-            vm, makerPrivateKey, address(permitPost), order1.info, TokenAmount(order1.input.token, order1.input.endAmount), keccak256(abi.encode(order1))
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order1.info,
+            TokenAmount(order1.input.token, order1.input.endAmount),
+            keccak256(abi.encode(order1))
         );
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
@@ -301,7 +341,12 @@ contract UniswapV3ExecutorTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature memory sig2 = signOrder(
-            vm, makerPrivateKey, address(permitPost), order2.info, TokenAmount(order2.input.token, order2.input.endAmount), keccak256(abi.encode(order2))
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order2.info,
+            TokenAmount(order2.input.token, order2.input.endAmount),
+            keccak256(abi.encode(order2))
         );
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 

@@ -63,7 +63,14 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(fee)
@@ -93,7 +100,14 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encode(fee)

@@ -233,7 +233,12 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             SignedOrder(
                 abi.encode(order),
                 signOrder(
-                    vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(order.input.token, order.input.endAmount), keccak256(abi.encode(order))
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    keccak256(abi.encode(order))
                 )
             ),
             address(fillContract),
@@ -341,7 +346,12 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
         // different maker
         signedOrders[2].sig = signOrder(
-            vm, makerPrivateKey2, address(permitPost), orders[2].info, TokenAmount(orders[2].input.token, orders[2].input.endAmount), keccak256(abi.encode(orders[2]))
+            vm,
+            makerPrivateKey2,
+            address(permitPost),
+            orders[2].info,
+            TokenAmount(orders[2].input.token, orders[2].input.endAmount),
+            keccak256(abi.encode(orders[2]))
         );
 
         vm.expectEmit(false, false, false, true);
