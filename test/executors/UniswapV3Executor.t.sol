@@ -363,4 +363,47 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 1 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
     }
+
+    // This test doesn't relate to UniswapV3Executor per se, but I wanted an additional
+    // test for input decay. Input will resolve to 0.5. Outputs = [0.5]. I am minting
+    // 1 input to maker, so after the execution, maker will have 0.5 input and 0.5
+    // output.
+    function testExecuteInputDecay() public {
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), 0, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE / 2);
+
+        vm.recordLogs();
+        snapStart("DutchUniswapV3ExecuteSingleInputDecay");
+        dloReactor.execute(
+            SignedOrder(
+                abi.encode(order),
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    TokenAmount(order.input.token, order.input.endAmount),
+                    orderHash
+                )
+            ),
+            address(uniswapV3Executor),
+            abi.encode(FEE)
+        );
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(maker), ONE / 2);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(maker), 500000000000000000);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+    }
 }
