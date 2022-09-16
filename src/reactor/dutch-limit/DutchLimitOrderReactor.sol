@@ -12,6 +12,7 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     error EndTimeBeforeStart();
     error DeadlineBeforeEndTime();
+    error InputAndOutputDecay();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -46,6 +47,9 @@ contract DutchLimitOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
+    /// endTime must be greater or equal than startTime
+    /// deadline must be less than endTime
+    /// if there's input decay, outputs must not decay
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
         if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
@@ -54,6 +58,14 @@ contract DutchLimitOrderReactor is BaseReactor {
 
         if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
             revert DeadlineBeforeEndTime();
+        }
+
+        if (dutchLimitOrder.input.startAmount != dutchLimitOrder.input.endAmount) {
+            for (uint i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                    revert InputAndOutputDecay();
+                }
+            }
         }
     }
 }
