@@ -33,8 +33,6 @@ contract DutchLimitOrderReactor is BaseReactor {
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedAmount = output.startAmount;
             } else {
-                // TODO: maybe handle case where startAmount < endAmount
-                // i.e. for exactOutput case
                 uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
                 uint256 duration = dutchLimitOrder.endTime - dutchLimitOrder.startTime;
                 uint256 decayAmount = output.startAmount - output.endAmount;
