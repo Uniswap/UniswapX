@@ -40,8 +40,21 @@ contract DutchLimitOrderReactor is BaseReactor {
             }
             outputs[i] = Output(output.token, decayedAmount, output.recipient);
         }
+
+        uint256 decayedInput;
+        if (dutchLimitOrder.endTime <= block.timestamp || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount) {
+            decayedInput = dutchLimitOrder.input.endAmount;
+        } else if (dutchLimitOrder.startTime >= block.timestamp) {
+            decayedInput = dutchLimitOrder.input.startAmount;
+        } else {
+            uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
+            uint256 duration = dutchLimitOrder.endTime - dutchLimitOrder.startTime;
+            uint256 decayAmount = dutchLimitOrder.input.endAmount - dutchLimitOrder.input.startAmount;
+            decayedInput = dutchLimitOrder.input.startAmount + decayAmount.mulDivDown(elapsed, duration);
+        }
+
         resolvedOrder = ResolvedOrder(
-            dutchLimitOrder.info, TokenAmount(dutchLimitOrder.input.token, dutchLimitOrder.input.startAmount), outputs
+            dutchLimitOrder.info, TokenAmount(dutchLimitOrder.input.token, decayedInput), outputs
         );
     }
 
