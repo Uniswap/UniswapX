@@ -223,6 +223,34 @@ contract DutchLimitOrderReactorValidationTest is Test {
         vm.expectRevert(DutchLimitOrderReactor.InputAndOutputDecay.selector);
         reactor.resolve(abi.encode(dlo));
     }
+
+    function testInputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            1659130540,
+            DutchInput(address(0), 110, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        reactor.resolve(abi.encode(dlo));
+    }
+
+    function testOutputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1100, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            1659130540,
+            DutchInput(address(0), 100, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        reactor.resolve(abi.encode(dlo));
+    }
 }
 
 // This suite of tests test execution with a mock fill contract.
