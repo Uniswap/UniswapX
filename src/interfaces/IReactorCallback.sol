@@ -13,6 +13,5 @@ interface IReactorCallback {
         // TODO: maybe this should just take TokenAmount since recipient is irrelevant
         ResolvedOrder[] memory resolvedOrders,
         bytes memory fillData
-    )
-        external;
+    ) external;
 }
