@@ -6,6 +6,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
 import {
     SignedOrder,
     ResolvedOrder,
@@ -17,21 +18,15 @@ import {
 } from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-abstract contract BaseReactor is OrderValidator, ReactorEvents {
+abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     IPermitPost public immutable permitPost;
 
     constructor(address _permitPost) {
         permitPost = IPermitPost(_permitPost);
     }
 
-    /// @notice Execute the given order with the specified fillContract
-    /// @dev Resolves the order inputs and outputs,
-    ///     validates the order, and fills it if valid.
-    ///     - User funds must be supplied through the permit post
-    ///     and fetched through a valid permit signature
-    ///     - Order execution through the fillContract must
-    ///     properly return all user outputs
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external {
+    /// @inheritdoc IReactor
+    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order.order);
         bytes32[] memory orderHashes = new bytes32[](1);
@@ -42,14 +37,11 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
         _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
     }
 
-    /// @notice Execute the given orders with the specified fillContract
-    /// @dev Resolves the order inputs and outputs,
-    ///     validates the order, and fills it if valid.
-    ///     - User funds must be supplied through the permit post
-    ///     and fetched through a valid permit signature
-    ///     - Order execution through the fillContract must
-    ///     properly return all user outputs for all orders
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) external {
+    /// @inheritdoc IReactor
+    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
+        external
+        override
+    {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
         bytes32[] memory orderHashes = new bytes32[](orders.length);
         Signature[] memory signatures = new Signature[](orders.length);
@@ -113,7 +105,6 @@ abstract contract BaseReactor is OrderValidator, ReactorEvents {
         result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }
 
-    /// @notice Resolve an order-type specific order into a generic order
-    /// @dev should revert on any order-type-specific validation errors
+    /// @inheritdoc IReactor
     function resolve(bytes calldata order) public view virtual returns (ResolvedOrder memory resolvedOrder);
 }
