@@ -60,9 +60,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         bytes32[] memory orderHashes,
         address fillContract,
         bytes calldata fillData
-    )
-        internal
-    {
+    ) internal {
         for (uint256 i = 0; i < orders.length; i++) {
             _validateOrderInfo(orders[i].info);
             _updateFilled(orderHashes[i]);
