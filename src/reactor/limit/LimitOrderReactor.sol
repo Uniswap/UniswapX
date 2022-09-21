@@ -13,6 +13,10 @@ contract LimitOrderReactor is BaseReactor {
     /// @dev limit order inputs and outputs are directly specified
     function resolve(bytes memory order) internal pure override returns (ResolvedOrder memory resolvedOrder) {
         LimitOrder memory limitOrder = abi.decode(order, (LimitOrder));
-        resolvedOrder = ResolvedOrder(limitOrder.info, limitOrder.input, limitOrder.outputs);
+        resolvedOrder = ResolvedOrder({
+            info: limitOrder.info, 
+            input: limitOrder.input, 
+            outputs: limitOrder.outputs
+        });
     }
 }

@@ -89,7 +89,14 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         private
     {
         Permit memory permit =
-            Permit(order.input.token.toTokenDetails(order.input.amount), address(this), order.info.deadline, orderHash);
+            Permit({
+                tokens: order.input.token.toTokenDetails(order.input.amount), 
+                spender: address(this), 
+                deadline: order.info.deadline, 
+                // Note: PermitPost verifies for us that the user signed over the orderHash
+                // using the witness parameter of the permit
+                witness: orderHash
+            });
         address[] memory to = new address[](1);
         to[0] = fillContract;
 

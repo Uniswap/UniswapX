@@ -40,7 +40,11 @@ contract DutchLimitOrderReactor is BaseReactor {
             }
             outputs[i] = OutputToken(output.token, decayedAmount, output.recipient);
         }
-        resolvedOrder = ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
+        resolvedOrder = ResolvedOrder({
+            info: dutchLimitOrder.info, 
+            input: dutchLimitOrder.input, 
+            outputs: outputs
+        });
     }
 
     /// @notice validate the dutch order fields
