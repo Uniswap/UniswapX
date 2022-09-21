@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {IPermitPost, Permit, TokenDetails, TokenType} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
@@ -12,9 +12,9 @@ import {
     ResolvedOrder,
     OrderInfo,
     OrderStatus,
-    TokenAmount,
+    InputToken,
     Signature,
-    Output
+    OutputToken
 } from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
@@ -72,7 +72,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         // transfer output tokens to their respective recipients
         for (uint256 i = 0; i < orders.length; i++) {
             for (uint256 j = 0; j < orders[i].outputs.length; j++) {
-                Output memory output = orders[i].outputs[j];
+                OutputToken memory output = orders[i].outputs[j];
                 ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
             }
 
@@ -101,7 +101,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     }
 
     /// @notice returns a TokenDetails array of length 1 with the given order input
-    function _tokenDetails(TokenAmount memory input) private pure returns (TokenDetails[] memory result) {
+    function _tokenDetails(InputToken memory input) private pure returns (TokenDetails[] memory result) {
         result = new TokenDetails[](1);
         result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }

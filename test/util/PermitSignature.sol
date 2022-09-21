@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.16;
 
 import {Vm} from "forge-std/Vm.sol";
 import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/draft-EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import {Signature, Permit, IPermitPost, SigType, TokenDetails, TokenType} from "permitpost/interfaces/IPermitPost.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
-import {OrderInfo, TokenAmount} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken} from "../../src/lib/ReactorStructs.sol";
 
 contract PermitSignature {
     bytes32 public constant _PERMIT_TYPEHASH = keccak256(
@@ -55,7 +55,7 @@ contract PermitSignature {
         uint256 privateKey,
         address post,
         OrderInfo memory info,
-        TokenAmount memory input,
+        InputToken memory input,
         bytes32 orderHash
     ) internal returns (Signature memory sig) {
         TokenDetails[] memory tokens = new TokenDetails[](1);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {OrderStatus, OrderInfo} from "../lib/ReactorStructs.sol";
 
@@ -37,7 +37,7 @@ contract OrderValidator {
         orderStatus[orderHash].isFilled = true;
     }
 
-    /// @notice marks an order as canceled
+    /// @notice marks an order as cancelled
     function _updateCancelled(bytes32 orderHash) internal {
         OrderStatus memory _orderStatus = orderStatus[orderHash];
         if (_orderStatus.isCancelled) {

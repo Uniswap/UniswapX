@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {Output, ResolvedOrder} from "../lib/ReactorStructs.sol";
+import {OutputToken, ResolvedOrder} from "../lib/ReactorStructs.sol";
 
 contract DirectTakerExecutor is IReactorCallback {
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
@@ -14,7 +14,7 @@ contract DirectTakerExecutor is IReactorCallback {
         uint256 totalOutputAmount;
         // transfer output tokens from taker to this
         for (uint256 i = 0; i < resolvedOrders[0].outputs.length; i++) {
-            Output memory output = resolvedOrders[0].outputs[i];
+            OutputToken memory output = resolvedOrders[0].outputs[i];
             ERC20(output.token).transferFrom(taker, address(this), output.amount);
             totalOutputAmount += output.amount;
         }

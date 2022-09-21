@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
@@ -9,7 +9,7 @@ import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-l
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
-import {Output, TokenAmount, OrderInfo, ResolvedOrder, Signature, SignedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OutputToken, InputToken, OrderInfo, ResolvedOrder, Signature, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -62,14 +62,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     }
 
     function testReactorCallback() public {
-        Output[] memory outputs = new Output[](1);
+        OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
         bytes memory fillData = abi.encode(FEE);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            TokenAmount(address(tokenIn), ONE),
+            InputToken(address(tokenIn), ONE),
             outputs
         );
         tokenIn.mint(address(uniswapV3Executor), ONE);
@@ -87,7 +87,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -132,7 +132,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -176,7 +176,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             // The output will resolve to 2
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
         });
@@ -211,7 +211,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -250,7 +250,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -286,7 +286,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount),
+            input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         Signature memory sig1 = signOrder(
@@ -299,7 +299,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 .withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), inputAmount * 3),
+            input: InputToken(address(tokenIn), inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature memory sig2 = signOrder(

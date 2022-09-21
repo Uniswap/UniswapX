@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {BaseReactor} from "../reactor/BaseReactor.sol";
-import {OrderInfo, ResolvedOrder, TokenAmount, SignedOrder} from "../lib/ReactorStructs.sol";
+import {OrderInfo, ResolvedOrder, SignedOrder} from "../lib/ReactorStructs.sol";
 
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders

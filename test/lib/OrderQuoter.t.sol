@@ -1,10 +1,10 @@
 // SPADIX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
-import {OrderInfo, Output, TokenAmount, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
 import {OrderQuoter} from "../../src/lib/OrderQuoter.sol";
@@ -49,7 +49,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -69,7 +69,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -91,7 +91,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -112,7 +112,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
                 block.timestamp - 1
                 ),
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -125,7 +125,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: TokenAmount(address(tokenIn), ONE * 2),
+            input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -142,7 +142,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp + 1000,
             endTime: block.timestamp,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));

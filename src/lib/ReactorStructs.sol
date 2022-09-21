@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 
-struct TokenAmount {
+struct InputToken {
     address token;
     uint256 amount;
 }
@@ -15,7 +15,7 @@ struct OrderInfo {
     uint256 deadline;
 }
 
-struct Output {
+struct OutputToken {
     address token;
     uint256 amount;
     address recipient;
@@ -23,8 +23,8 @@ struct Output {
 
 struct ResolvedOrder {
     OrderInfo info;
-    TokenAmount input;
-    Output[] outputs;
+    InputToken input;
+    OutputToken[] outputs;
 }
 
 struct OrderStatus {
