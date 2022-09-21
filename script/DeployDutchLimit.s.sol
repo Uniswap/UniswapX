@@ -6,7 +6,7 @@ import "forge-std/Script.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor} from "../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {DirectTakerExecutor} from "../src/sample-executors/DirectTakerExecutor.sol";
-import {OrderQuoter} from "../src/lib/OrderQuoter.sol";
+import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../test/util/mock/MockERC20.sol";
 
 struct DutchLimitDeployment {
