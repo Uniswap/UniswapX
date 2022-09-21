@@ -146,19 +146,4 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
-
-    function testResolve() public {
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        ResolvedOrder memory resolved = reactor.resolve(abi.encode(order));
-        assertEq(resolved.input.amount, ONE);
-        assertEq(resolved.input.token, address(tokenIn));
-        assertEq(resolved.outputs.length, 1);
-        assertEq(resolved.outputs[0].token, address(tokenOut));
-        assertEq(resolved.outputs[0].amount, ONE);
-        assertEq(resolved.outputs[0].recipient, address(maker));
-    }
 }

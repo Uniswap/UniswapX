@@ -105,6 +105,9 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         }
     }
 
-    /// @inheritdoc IReactor
-    function resolve(bytes memory order) public view virtual returns (ResolvedOrder memory resolvedOrder);
+    /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
+    /// @param order The encoded order to resolve
+    /// @return resolvedOrder generic resolved order of inputs and outputs
+    /// @dev should revert on any order-type-specific validation errors
+    function resolve(bytes memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 }
