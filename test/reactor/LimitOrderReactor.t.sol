@@ -90,7 +90,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes32 orderHash2 = keccak256(abi.encode(order));
         Signature memory sig2 =
             signOrder(vm, makerPrivateKey, address(permitPost), order2.info, order2.input, orderHash2);
-        vm.expectRevert(PermitPost.NonceUsed.selector);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
@@ -106,7 +106,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenIn), ONE / 2), orderHash
         );
 
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -127,7 +127,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             orderHash
         );
 
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -143,7 +143,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         Signature memory sig = signOrder(
             vm, makerPrivateKey, address(permitPost), order.info, TokenAmount(address(tokenOut), ONE), orderHash
         );
-        vm.expectRevert(PermitPost.InvalidSignature.selector);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
