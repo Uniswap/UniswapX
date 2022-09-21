@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 import {DutchLimitOrder, DutchOutput} from "./DutchLimitOrderStructs.sol";
-import {ResolvedOrder, OrderInfo, OutputToken, Signature} from "../../lib/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, OutputToken, Signature} from "../../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {

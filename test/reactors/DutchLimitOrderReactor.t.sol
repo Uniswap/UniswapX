@@ -10,14 +10,14 @@ import {
     ResolvedOrder
 } from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
 import {DutchOutput} from "../../src/reactors/dutch-limit/DutchLimitOrderStructs.sol";
-import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
+import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import "forge-std/console.sol";
 
 // This suite of tests test validation and resolves.

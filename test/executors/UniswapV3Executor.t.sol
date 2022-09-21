@@ -10,8 +10,13 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {
-    OutputToken, InputToken, OrderInfo, ResolvedOrder, Signature, SignedOrder
-} from "../../src/lib/ReactorStructs.sol";
+    OutputToken,
+    InputToken,
+    OrderInfo,
+    ResolvedOrder,
+    Signature,
+    SignedOrder
+} from "../../src/base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";

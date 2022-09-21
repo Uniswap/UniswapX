@@ -4,8 +4,8 @@ pragma solidity ^0.8.16;
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {IPermitPost, Permit, TokenDetails} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {OrderValidator} from "../lib/OrderValidator.sol";
-import {ReactorEvents} from "../lib/ReactorEvents.sol";
+import {OrderValidator} from "../base/OrderValidator.sol";
+import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {PermitPostLib} from "../lib/PermitPostLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
@@ -17,7 +17,7 @@ import {
     InputToken,
     Signature,
     OutputToken
-} from "../lib/ReactorStructs.sol";
+} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {

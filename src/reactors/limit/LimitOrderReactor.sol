@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {BaseReactor} from "../BaseReactor.sol";
 import {LimitOrder} from "./LimitOrderStructs.sol";
-import {ResolvedOrder, OrderInfo, InputToken} from "../../lib/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, InputToken} from "../../base/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {

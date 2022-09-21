@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {OrderInfo} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo} from "../../src/base/ReactorStructs.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {

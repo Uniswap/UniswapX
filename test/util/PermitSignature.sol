@@ -6,7 +6,7 @@ import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/draft-
 import {ECDSA} from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 import {Signature, Permit, IPermitPost, SigType, TokenDetails, TokenType} from "permitpost/interfaces/IPermitPost.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
-import {OrderInfo, InputToken} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature {
     bytes32 public constant _PERMIT_TYPEHASH = keccak256(

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ResolvedOrder} from "../lib/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Callback for executing orders through a reactor.
 interface IReactorCallback {
