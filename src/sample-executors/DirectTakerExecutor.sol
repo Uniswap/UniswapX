@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {OutputToken, ResolvedOrder} from "../lib/ReactorStructs.sol";
 
 contract DirectTakerExecutor is IReactorCallback {
+    using SafeTransferLib for ERC20;
+
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
         // Only handle 1 resolved order
         require(resolvedOrders.length == 1, "resolvedOrders.length != 1");
@@ -15,12 +18,12 @@ contract DirectTakerExecutor is IReactorCallback {
         // transfer output tokens from taker to this
         for (uint256 i = 0; i < resolvedOrders[0].outputs.length; i++) {
             OutputToken memory output = resolvedOrders[0].outputs[i];
-            ERC20(output.token).transferFrom(taker, address(this), output.amount);
+            ERC20(output.token).safeTransferFrom(taker, address(this), output.amount);
             totalOutputAmount += output.amount;
         }
         // Assumed that all outputs are of the same token
         ERC20(resolvedOrders[0].outputs[0].token).approve(reactor, totalOutputAmount);
         // transfer input tokens from this to taker
-        ERC20(resolvedOrders[0].input.token).transfer(taker, resolvedOrders[0].input.amount);
+        ERC20(resolvedOrders[0].input.token).safeTransfer(taker, resolvedOrders[0].input.amount);
     }
 }

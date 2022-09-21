@@ -11,7 +11,7 @@ contract LimitOrderReactor is BaseReactor {
 
     /// @notice Resolve a LimitOrder into a generic order
     /// @dev limit order inputs and outputs are directly specified
-    function resolve(bytes calldata order) public pure override returns (ResolvedOrder memory resolvedOrder) {
+    function resolve(bytes memory order) public pure override returns (ResolvedOrder memory resolvedOrder) {
         LimitOrder memory limitOrder = abi.decode(order, (LimitOrder));
         resolvedOrder = ResolvedOrder(limitOrder.info, limitOrder.input, limitOrder.outputs);
     }

@@ -185,7 +185,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
-        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
@@ -258,7 +258,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
-        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
