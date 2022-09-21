@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {OrderValidator} from "../../../src/lib/OrderValidator.sol";
 import {OrderInfo, OrderStatus} from "../../../src/lib/ReactorStructs.sol";

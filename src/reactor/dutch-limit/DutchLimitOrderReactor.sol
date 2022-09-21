@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "../BaseReactor.sol";
 import {DutchLimitOrder, DutchOutput} from "./DutchLimitOrderStructs.sol";
-import {ResolvedOrder, TokenAmount, OrderInfo, Output, Signature} from "../../lib/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, OutputToken, Signature} from "../../lib/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
@@ -21,7 +21,7 @@ contract DutchLimitOrderReactor is BaseReactor {
         DutchLimitOrder memory dutchLimitOrder = abi.decode(order, (DutchLimitOrder));
         _validateOrder(dutchLimitOrder);
 
-        Output[] memory outputs = new Output[](dutchLimitOrder.outputs.length);
+        OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
@@ -38,7 +38,7 @@ contract DutchLimitOrderReactor is BaseReactor {
                 uint256 decayAmount = output.startAmount - output.endAmount;
                 decayedAmount = output.startAmount - decayAmount.mulDivDown(elapsed, duration);
             }
-            outputs[i] = Output(output.token, decayedAmount, output.recipient);
+            outputs[i] = OutputToken(output.token, decayedAmount, output.recipient);
         }
         resolvedOrder = ResolvedOrder(dutchLimitOrder.info, dutchLimitOrder.input, outputs);
     }

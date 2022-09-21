@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {BaseReactor} from "../BaseReactor.sol";
 import {LimitOrder} from "./LimitOrderStructs.sol";
-import {ResolvedOrder, OrderInfo, TokenAmount} from "../../lib/ReactorStructs.sol";
+import {ResolvedOrder, OrderInfo, InputToken} from "../../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLimit.s.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
-import {OrderInfo, Output, TokenAmount, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchLimitOrder, DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
 
@@ -40,7 +40,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(deployment.reactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(deployment.tokenIn), ONE),
+            input: InputToken(address(deployment.tokenIn), ONE),
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {Output, TokenAmount, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -54,12 +54,12 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE;
 
-        Output[] memory outputs = new Output[](1);
+        OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
+            OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);
@@ -73,14 +73,14 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     function testReactorCallback2Outputs() public {
         uint256 inputAmount = ONE;
 
-        Output[] memory outputs = new Output[](2);
+        OutputToken[] memory outputs = new OutputToken[](2);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)), TokenAmount(address(tokenIn), inputAmount), outputs
+            OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
         bytes memory fillData = abi.encode(taker, dloReactor);
@@ -96,7 +96,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: TokenAmount(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE),
             // The total outputs will resolve to 1.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });
