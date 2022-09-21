@@ -17,7 +17,7 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     /// @notice Resolve a DutchLimitOrder into a generic order
     /// @dev applies dutch decay to order outputs
-    function resolve(bytes memory order) public view override returns (ResolvedOrder memory resolvedOrder) {
+    function resolve(bytes memory order) internal view virtual override returns (ResolvedOrder memory resolvedOrder) {
         DutchLimitOrder memory dutchLimitOrder = abi.decode(order, (DutchLimitOrder));
         _validateOrder(dutchLimitOrder);
 

@@ -19,10 +19,4 @@ interface IReactor {
     /// @param fillContract The contract which will fill the order
     /// @param fillData The fillData to pass to the fillContract callback
     function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) external;
-
-    /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
-    /// @param order The encoded order to resolve
-    /// @return resolvedOrder generic resolved order of inputs and outputs
-    /// @dev should revert on any order-type-specific validation errors
-    function resolve(bytes calldata order) external view returns (ResolvedOrder memory resolvedOrder);
 }
