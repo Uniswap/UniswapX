@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {IPermitPost, Permit, TokenDetails, TokenType} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
@@ -19,6 +20,8 @@ import {
 
 /// @notice Reactor for simple limit orders
 abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
+    using SafeTransferLib for ERC20;
+
     IPermitPost public immutable permitPost;
 
     constructor(address _permitPost) {
@@ -26,20 +29,16 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external override {
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        resolvedOrders[0] = resolve(order.order);
-        bytes32[] memory orderHashes = new bytes32[](1);
-        orderHashes[0] = keccak256(order.order);
-        Signature[] memory signatures = new Signature[](1);
-        signatures[0] = order.sig;
+    function execute(SignedOrder memory order, address fillContract, bytes calldata fillData) external override {
+        SignedOrder[] memory orders = new SignedOrder[](1);
+        orders[0] = order;
 
-        _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+        executeBatch(orders, fillContract, fillData);
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
-        external
+    function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData)
+        public
         override
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
@@ -73,7 +72,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         for (uint256 i = 0; i < orders.length; i++) {
             for (uint256 j = 0; j < orders[i].outputs.length; j++) {
                 OutputToken memory output = orders[i].outputs[j];
-                ERC20(output.token).transferFrom(fillContract, output.recipient, output.amount);
+                ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
             }
 
             emit Fill(orderHashes[i], msg.sender);
@@ -107,5 +106,5 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     }
 
     /// @inheritdoc IReactor
-    function resolve(bytes calldata order) public view virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(bytes memory order) public view virtual returns (ResolvedOrder memory resolvedOrder);
 }

@@ -410,7 +410,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
-        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
