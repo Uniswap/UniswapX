@@ -7,15 +7,7 @@ import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {
-    SignedOrder,
-    ResolvedOrder,
-    OrderInfo,
-    OrderStatus,
-    TokenAmount,
-    Signature,
-    Output
-} from "../lib/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo, TokenAmount, Signature, Output} from "../lib/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
 abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {

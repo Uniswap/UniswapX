@@ -27,12 +27,6 @@ struct ResolvedOrder {
     Output[] outputs;
 }
 
-struct OrderStatus {
-    bool isCancelled;
-    // TODO: use numerator/denominator for partial fills
-    bool isFilled;
-}
-
 struct SignedOrder {
     bytes order;
     Signature sig;
