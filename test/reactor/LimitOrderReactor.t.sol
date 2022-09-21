@@ -57,7 +57,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
 
         vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this));
+        emit Fill(orderHash, address(this), order.info.nonce, maker);
 
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 

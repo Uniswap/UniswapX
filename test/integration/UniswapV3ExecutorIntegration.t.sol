@@ -86,7 +86,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
-        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),

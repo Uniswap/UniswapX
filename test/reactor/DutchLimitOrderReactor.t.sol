@@ -225,7 +225,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84);
+        emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84, order.info.nonce, maker);
         snapStart("DutchExecuteSingle");
         reactor.execute(
             SignedOrder(
@@ -269,9 +269,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[0])), address(this));
+        emit Fill(keccak256(abi.encode(orders[0])), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[1])), address(this));
+        emit Fill(keccak256(abi.encode(orders[1])), address(this), orders[1].info.nonce, maker);
         snapStart("DutchExecuteBatch");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
         snapEnd();
@@ -341,11 +341,11 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         );
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[0])), address(this));
+        emit Fill(keccak256(abi.encode(orders[0])), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[1])), address(this));
+        emit Fill(keccak256(abi.encode(orders[1])), address(this), orders[1].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[2])), address(this));
+        emit Fill(keccak256(abi.encode(orders[2])), address(this), orders[2].info.nonce, maker2);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);

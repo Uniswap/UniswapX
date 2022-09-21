@@ -79,7 +79,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
                     ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                 }
 
-                emit Fill(orderHashes[i], msg.sender);
+                emit Fill(orderHashes[i], msg.sender, orders[i].info.nonce, orders[i].info.offerer);
             }
         }
     }
