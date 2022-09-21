@@ -7,7 +7,7 @@ import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.so
 import {InputToken, OrderInfo, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import "forge-std/console.sol";
 
