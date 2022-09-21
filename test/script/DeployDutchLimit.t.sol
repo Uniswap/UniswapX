@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLimit.s.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
-import {OrderInfo, InputToken, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
+import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchLimitOrder, DutchOutput} from "../../src/reactors/dutch-limit/DutchLimitOrderStructs.sol";
 

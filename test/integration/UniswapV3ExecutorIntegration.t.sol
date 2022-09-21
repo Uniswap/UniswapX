@@ -4,7 +4,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
-import {InputToken, OrderInfo, SignedOrder} from "../../src/lib/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";

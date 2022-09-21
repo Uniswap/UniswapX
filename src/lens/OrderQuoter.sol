@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {BaseReactor} from "../reactors/BaseReactor.sol";
-import {OrderInfo, ResolvedOrder, SignedOrder} from "../lib/ReactorStructs.sol";
+import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders

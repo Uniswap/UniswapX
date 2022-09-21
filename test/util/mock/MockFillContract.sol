@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {ResolvedOrder} from "../../../src/lib/ReactorStructs.sol";
+import {ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {IReactorCallback} from "../../../src/interfaces/IReactorCallback.sol";
 
 contract MockFillContract is IReactorCallback {

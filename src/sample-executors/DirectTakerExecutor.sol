@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {OutputToken, ResolvedOrder} from "../lib/ReactorStructs.sol";
+import {OutputToken, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 contract DirectTakerExecutor is IReactorCallback {
     using SafeTransferLib for ERC20;

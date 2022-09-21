@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {OrderStatus, OrderInfo} from "../lib/ReactorStructs.sol";
+import {OrderStatus, OrderInfo} from "../base/ReactorStructs.sol";
 
 contract OrderValidator {
     error InvalidReactor();

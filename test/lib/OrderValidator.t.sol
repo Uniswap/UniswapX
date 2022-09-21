@@ -2,8 +2,8 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo} from "../../src/lib/ReactorStructs.sol";
-import {OrderValidator} from "../../src/lib/OrderValidator.sol";
+import {OrderInfo} from "../../src/base/ReactorStructs.sol";
+import {OrderValidator} from "../../src/base/OrderValidator.sol";
 import {MockOrderValidator} from "../util/mock/MockOrderValidator.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
