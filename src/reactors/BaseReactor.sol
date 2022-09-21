@@ -88,15 +88,14 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     function _transferTokens(ResolvedOrder memory order, Signature memory sig, bytes32 orderHash, address fillContract)
         private
     {
-        Permit memory permit =
-            Permit({
-                tokens: order.input.token.toTokenDetails(order.input.amount), 
-                spender: address(this), 
-                deadline: order.info.deadline, 
-                // Note: PermitPost verifies for us that the user signed over the orderHash
-                // using the witness parameter of the permit
-                witness: orderHash
-            });
+        Permit memory permit = Permit({
+            tokens: order.input.token.toTokenDetails(order.input.amount),
+            spender: address(this),
+            deadline: order.info.deadline,
+            // Note: PermitPost verifies for us that the user signed over the orderHash
+            // using the witness parameter of the permit
+            witness: orderHash
+        });
         address[] memory to = new address[](1);
         to[0] = fillContract;
 

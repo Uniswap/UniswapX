@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {BaseReactor} from "../reactor/BaseReactor.sol";
+import {BaseReactor} from "../reactors/BaseReactor.sol";
 import {OrderInfo, ResolvedOrder, SignedOrder} from "../lib/ReactorStructs.sol";
 
 /// @notice Quoter contract for orders

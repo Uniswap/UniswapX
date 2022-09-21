@@ -8,8 +8,8 @@ import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
     ResolvedOrder
-} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
-import {DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
+} from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchOutput} from "../../src/reactors/dutch-limit/DutchLimitOrderStructs.sol";
 import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";

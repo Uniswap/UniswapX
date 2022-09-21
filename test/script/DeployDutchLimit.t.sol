@@ -7,7 +7,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {DutchLimitOrder, DutchOutput} from "../../src/reactor/dutch-limit/DutchLimitOrderStructs.sol";
+import {DutchLimitOrder, DutchOutput} from "../../src/reactors/dutch-limit/DutchLimitOrderStructs.sol";
 
 contract DeployDutchLimitTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
