@@ -88,7 +88,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
@@ -133,7 +132,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
@@ -177,7 +175,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             // The output will resolve to 2
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
@@ -212,7 +209,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
@@ -251,7 +247,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
@@ -287,7 +282,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -300,7 +294,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
-            endTime: block.timestamp + 100,
             input: InputToken(address(tokenIn), inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
