@@ -2,10 +2,11 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {IPermitPost, Permit, TokenDetails, TokenType} from "permitpost/interfaces/IPermitPost.sol";
+import {IPermitPost, Permit, TokenDetails} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {OrderValidator} from "../lib/OrderValidator.sol";
 import {ReactorEvents} from "../lib/ReactorEvents.sol";
+import {PermitPostLib} from "../lib/PermitPostLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {
@@ -21,6 +22,7 @@ import {
 /// @notice Reactor for simple limit orders
 abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     using SafeTransferLib for ERC20;
+    using PermitPostLib for address;
 
     IPermitPost public immutable permitPost;
 
@@ -37,17 +39,16 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData)
-        public
-        override
-    {
+    function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData) public override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
         bytes32[] memory orderHashes = new bytes32[](orders.length);
         Signature[] memory signatures = new Signature[](orders.length);
-        for (uint256 i = 0; i < orders.length; i++) {
-            resolvedOrders[i] = resolve(orders[i].order);
-            orderHashes[i] = keccak256(orders[i].order);
-            signatures[i] = orders[i].sig;
+        unchecked {
+            for (uint256 i = 0; i < orders.length; i++) {
+                resolvedOrders[i] = resolve(orders[i].order);
+                orderHashes[i] = keccak256(orders[i].order);
+                signatures[i] = orders[i].sig;
+            }
         }
         _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
     }
@@ -60,22 +61,26 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         address fillContract,
         bytes calldata fillData
     ) internal {
-        for (uint256 i = 0; i < orders.length; i++) {
-            _validateOrderInfo(orders[i].info);
-            _updateFilled(orderHashes[i]);
-            _transferTokens(orders[i], signatures[i], orderHashes[i], fillContract);
+        unchecked {
+            for (uint256 i = 0; i < orders.length; i++) {
+                _validateOrderInfo(orders[i].info);
+                _updateFilled(orderHashes[i]);
+                _transferTokens(orders[i], signatures[i], orderHashes[i], fillContract);
+            }
         }
 
         IReactorCallback(fillContract).reactorCallback(orders, fillData);
 
-        // transfer output tokens to their respective recipients
-        for (uint256 i = 0; i < orders.length; i++) {
-            for (uint256 j = 0; j < orders[i].outputs.length; j++) {
-                OutputToken memory output = orders[i].outputs[j];
-                ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
-            }
+        unchecked {
+            // transfer output tokens to their respective recipients
+            for (uint256 i = 0; i < orders.length; i++) {
+                for (uint256 j = 0; j < orders[i].outputs.length; j++) {
+                    OutputToken memory output = orders[i].outputs[j];
+                    ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+                }
 
-            emit Fill(orderHashes[i], msg.sender);
+                emit Fill(orderHashes[i], msg.sender);
+            }
         }
     }
 
@@ -83,7 +88,8 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     function _transferTokens(ResolvedOrder memory order, Signature memory sig, bytes32 orderHash, address fillContract)
         private
     {
-        Permit memory permit = Permit(_tokenDetails(order.input), address(this), order.info.deadline, orderHash);
+        Permit memory permit =
+            Permit(order.input.token.toTokenDetails(order.input.amount), address(this), order.info.deadline, orderHash);
         address[] memory to = new address[](1);
         to[0] = fillContract;
 
@@ -97,12 +103,6 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
         if (sender != order.info.offerer) {
             revert InvalidSender();
         }
-    }
-
-    /// @notice returns a TokenDetails array of length 1 with the given order input
-    function _tokenDetails(InputToken memory input) private pure returns (TokenDetails[] memory result) {
-        result = new TokenDetails[](1);
-        result[0] = TokenDetails(TokenType.ERC20, input.token, input.amount, 0);
     }
 
     /// @inheritdoc IReactor
