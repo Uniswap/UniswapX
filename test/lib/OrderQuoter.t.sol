@@ -7,7 +7,7 @@ import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/lib/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/lib/ReactorEvents.sol";
 import {OrderValidator} from "../../src/lib/OrderValidator.sol";
-import {OrderQuoter} from "../../src/lib/OrderQuoter.sol";
+import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
