@@ -26,7 +26,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
 
-            if (dutchLimitOrder.endTime <= block.timestamp || output.startAmount == output.endAmount) {
+            if (dutchLimitOrder.info.deadline <= block.timestamp || output.startAmount == output.endAmount) {
                 decayedAmount = output.endAmount;
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedAmount = output.startAmount;
@@ -34,7 +34,7 @@ contract DutchLimitOrderReactor is BaseReactor {
                 // TODO: maybe handle case where startAmount < endAmount
                 // i.e. for exactOutput case
                 uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
-                uint256 duration = dutchLimitOrder.endTime - dutchLimitOrder.startTime;
+                uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
                 uint256 decayAmount = output.startAmount - output.endAmount;
                 decayedAmount = output.startAmount - decayAmount.mulDivDown(elapsed, duration);
             }
@@ -46,11 +46,11 @@ contract DutchLimitOrderReactor is BaseReactor {
     /// @notice validate the dutch order fields
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
-        if (dutchLimitOrder.endTime <= dutchLimitOrder.startTime) {
+        if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
 
-        if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
+        if (dutchLimitOrder.info.deadline < dutchLimitOrder.info.deadline) {
             revert DeadlineBeforeEndTime();
         }
     }

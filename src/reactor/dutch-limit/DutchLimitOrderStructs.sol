@@ -14,7 +14,7 @@ struct DutchOutput {
 struct DutchLimitOrder {
     OrderInfo info;
     uint256 startTime;
-    uint256 endTime;
+    // endTime is implicitly info.deadline
     InputToken input;
     DutchOutput[] outputs;
 }
