@@ -7,9 +7,9 @@ import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
-    ResolvedOrder
-} from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
-import {DutchOutput} from "../../src/reactors/dutch-limit/DutchLimitOrderStructs.sol";
+    ResolvedOrder,
+    DutchOutput
+} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";

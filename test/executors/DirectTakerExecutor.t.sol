@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";

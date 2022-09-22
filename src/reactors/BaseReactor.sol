@@ -19,7 +19,8 @@ import {
     OutputToken
 } from "../base/ReactorStructs.sol";
 
-/// @notice Reactor for simple limit orders
+/// @notice Generic reactor logic for settling off-chain signed orders
+///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     using SafeTransferLib for ERC20;
     using PermitPostLib for address;
