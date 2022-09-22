@@ -9,11 +9,10 @@ import {OutputToken, ResolvedOrder} from "../base/ReactorStructs.sol";
 contract DirectTakerExecutor is IReactorCallback {
     using SafeTransferLib for ERC20;
 
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address taker, bytes calldata) external {
         // Only handle 1 resolved order
         require(resolvedOrders.length == 1, "resolvedOrders.length != 1");
 
-        (address taker, address reactor) = abi.decode(fillData, (address, address));
         uint256 totalOutputAmount;
         // transfer output tokens from taker to this
         for (uint256 i = 0; i < resolvedOrders[0].outputs.length; i++) {
@@ -22,7 +21,7 @@ contract DirectTakerExecutor is IReactorCallback {
             totalOutputAmount += output.amount;
         }
         // Assumed that all outputs are of the same token
-        ERC20(resolvedOrders[0].outputs[0].token).approve(reactor, totalOutputAmount);
+        ERC20(resolvedOrders[0].outputs[0].token).approve(msg.sender, totalOutputAmount);
         // transfer input tokens from this to taker
         ERC20(resolvedOrders[0].input.token).safeTransfer(taker, resolvedOrders[0].input.amount);
     }

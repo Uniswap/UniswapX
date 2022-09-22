@@ -81,7 +81,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         );
         tokenIn.mint(address(uniswapV3Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
-        uniswapV3Executor.reactorCallback(resolvedOrders, fillData);
+        uniswapV3Executor.reactorCallback(resolvedOrders, address(this), fillData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE);
     }

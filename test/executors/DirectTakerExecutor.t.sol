@@ -11,6 +11,7 @@ import {SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {MockDirectTaker} from "../util/mock/users/MockDirectTaker.sol";
 
 contract DirectTakerExecutorTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -62,10 +63,9 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
-        bytes memory fillData = abi.encode(taker, dloReactor);
         tokenIn.mint(address(directTakerExecutor), inputAmount);
         tokenOut.mint(taker, outputAmount);
-        directTakerExecutor.reactorCallback(resolvedOrders, fillData);
+        directTakerExecutor.reactorCallback(resolvedOrders, taker, bytes(""));
         assertEq(tokenIn.balanceOf(taker), inputAmount);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), outputAmount);
     }
@@ -83,10 +83,9 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
         );
         resolvedOrders[0] = resolvedOrder;
-        bytes memory fillData = abi.encode(taker, dloReactor);
         tokenOut.mint(taker, ONE * 3);
         tokenIn.mint(address(directTakerExecutor), inputAmount);
-        directTakerExecutor.reactorCallback(resolvedOrders, fillData);
+        directTakerExecutor.reactorCallback(resolvedOrders, taker, bytes(""));
         assertEq(tokenIn.balanceOf(taker), inputAmount);
         assertEq(tokenOut.balanceOf(address(directTakerExecutor)), ONE * 3);
     }
@@ -102,9 +101,13 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         bytes32 orderHash = keccak256(abi.encode(order));
 
         tokenIn.mint(maker, ONE);
-        tokenOut.mint(taker, ONE * 2);
+        MockDirectTaker directTaker = new MockDirectTaker();
 
-        dloReactor.execute(
+        tokenOut.mint(address(directTaker), ONE * 2);
+        directTaker.approve(address(tokenOut), address(directTakerExecutor), type(uint256).max);
+
+        directTaker.execute(
+            dloReactor,
             SignedOrder(
                 abi.encode(order),
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
@@ -113,8 +116,8 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             abi.encode(taker, dloReactor)
         );
         assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(taker), ONE);
-        assertEq(tokenOut.balanceOf(maker), 1500000000000000000);
-        assertEq(tokenOut.balanceOf(taker), 500000000000000000);
+        assertEq(tokenIn.balanceOf(address(directTaker)), ONE);
+        assertEq(tokenOut.balanceOf(address(maker)), 1500000000000000000);
+        assertEq(tokenOut.balanceOf(address(directTaker)), 500000000000000000);
     }
 }
