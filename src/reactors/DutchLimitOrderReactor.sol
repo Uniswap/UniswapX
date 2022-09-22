@@ -2,9 +2,33 @@
 pragma solidity ^0.8.16;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {BaseReactor} from "../BaseReactor.sol";
-import {DutchLimitOrder, DutchOutput} from "./DutchLimitOrderStructs.sol";
-import {ResolvedOrder, OrderInfo, OutputToken, Signature} from "../../base/ReactorStructs.sol";
+import {BaseReactor} from "./BaseReactor.sol";
+import {ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
+
+/// @dev An amount of tokens that decays linearly over time
+struct DutchOutput {
+    // The ERC20 token address
+    address token;
+    // The amount of tokens at the start of the time period
+    uint256 startAmount;
+    // The amount of tokens at the end of the time period
+    uint256 endAmount;
+    // The address who must receive the tokens to satisfy the order
+    address recipient;
+}
+
+struct DutchLimitOrder {
+    // generic order information
+    OrderInfo info;
+    // The time at which the DutchOutputs start decaying
+    uint256 startTime;
+    // endTime is implicitly info.deadline
+
+    // The tokens that the offerer will provide when settling the order
+    InputToken input;
+    // The tokens that must be received to satisfy the order
+    DutchOutput[] outputs;
+}
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {

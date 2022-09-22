@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {DutchLimitOrderReactor, ResolvedOrder} from "../../../src/reactors/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, ResolvedOrder} from "../../../src/reactors/DutchLimitOrderReactor.sol";
 
 contract MockDutchLimitOrderReactor is DutchLimitOrderReactor {
     constructor(address permitPost) DutchLimitOrderReactor(permitPost) {}
