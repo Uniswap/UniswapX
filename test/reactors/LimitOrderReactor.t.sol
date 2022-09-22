@@ -6,7 +6,6 @@ import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {OrderValidator} from "../../src/base/OrderValidator.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";

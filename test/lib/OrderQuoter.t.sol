@@ -6,7 +6,7 @@ import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {OrderValidator} from "../../src/base/OrderValidator.sol";
+import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
@@ -113,7 +113,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
-        vm.expectRevert(OrderValidator.DeadlinePassed.selector);
+        vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         quoter.quote(abi.encode(order), sig);
     }
 

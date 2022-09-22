@@ -39,12 +39,6 @@ struct ResolvedOrder {
     OutputToken[] outputs;
 }
 
-struct OrderStatus {
-    bool isCancelled;
-    // TODO: use numerator/denominator for partial fills
-    bool isFilled;
-}
-
 /// @dev external struct including a generic encoded order and offerer signature
 ///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
 struct SignedOrder {
