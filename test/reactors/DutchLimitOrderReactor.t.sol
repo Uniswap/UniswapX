@@ -155,18 +155,6 @@ contract DutchLimitOrderReactorValidationTest is Test {
         reactor.resolveOrder(abi.encode(dlo));
     }
 
-    function testValidateDutchDeadlineAfterEndTime() public view {
-        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
-        DutchLimitOrder memory dlo = DutchLimitOrder(
-            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130550),
-            1659120540,
-            InputToken(address(0), 0),
-            dutchOutputs
-        );
-        reactor.resolveOrder(abi.encode(dlo));
-    }
-
     function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
         public
     {
