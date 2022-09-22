@@ -40,7 +40,8 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-    function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory) external pure {
+    function reactorCallback(ResolvedOrder[] memory resolvedOrders, address filler, bytes memory) external view {
+        require(filler == address(this));
         bytes memory order = abi.encode(resolvedOrders[0]);
         assembly {
             revert(add(32, order), mload(order))
