@@ -50,25 +50,6 @@ contract DutchLimitOrderReactorValidationTest is Test {
         assertEq(resolvedOrder.input.token, address(0));
     }
 
-    // Test that resolved amount = endAmount if end time is before now
-    function testResolveEndTimeBeforeNow() public {
-        uint256 mockNow = 1659100541;
-        vm.warp(mockNow);
-        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
-        DutchLimitOrder memory dlo = DutchLimitOrder(
-            OrderInfoBuilder.init(address(reactor)).withDeadline(mockNow - 1),
-            1659029740,
-            InputToken(address(0), 0),
-            dutchOutputs
-        );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
-        assertEq(resolvedOrder.outputs[0].amount, 900);
-        assertEq(resolvedOrder.outputs.length, 1);
-        assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
-    }
-
     // Test multiple dutch outputs get resolved correctly. Use same time points as
     // testResolveEndTimeAfterNow().
     function testResolveMultipleDutchOutputs() public {
