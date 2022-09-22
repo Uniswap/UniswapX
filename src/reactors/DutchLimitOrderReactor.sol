@@ -73,9 +73,5 @@ contract DutchLimitOrderReactor is BaseReactor {
         if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
-
-        if (dutchLimitOrder.info.deadline < dutchLimitOrder.info.deadline) {
-            revert DeadlineBeforeEndTime();
-        }
     }
 }
