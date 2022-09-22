@@ -42,7 +42,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
 
         // Instantiate relevant contracts
-        directTakerExecutor = new DirectTakerExecutor();
+        directTakerExecutor = new DirectTakerExecutor(taker);
         permitPost = new PermitPost();
         dloReactor = new DutchLimitOrderReactor(address(permitPost));
 
@@ -102,9 +102,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         tokenIn.mint(maker, ONE);
         MockDirectTaker directTaker = new MockDirectTaker();
+        DirectTakerExecutor executor = new DirectTakerExecutor(address(directTaker));
 
         tokenOut.mint(address(directTaker), ONE * 2);
-        directTaker.approve(address(tokenOut), address(directTakerExecutor), type(uint256).max);
+        directTaker.approve(address(tokenOut), address(executor), type(uint256).max);
 
         directTaker.execute(
             dloReactor,
@@ -112,7 +113,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
                 abi.encode(order),
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
-            address(directTakerExecutor),
+            address(executor),
             abi.encode(taker, dloReactor)
         );
         assertEq(tokenIn.balanceOf(maker), 0);
