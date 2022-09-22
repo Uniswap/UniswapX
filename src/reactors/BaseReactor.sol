@@ -4,26 +4,19 @@ pragma solidity ^0.8.16;
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {IPermitPost, Permit, TokenDetails} from "permitpost/interfaces/IPermitPost.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {OrderValidator} from "../base/OrderValidator.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
+import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
 import {PermitPostLib} from "../lib/PermitPostLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {
-    SignedOrder,
-    ResolvedOrder,
-    OrderInfo,
-    OrderStatus,
-    InputToken,
-    Signature,
-    OutputToken
-} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, Signature, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
-abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
+abstract contract BaseReactor is IReactor, ReactorEvents {
     using SafeTransferLib for ERC20;
     using PermitPostLib for address;
+    using OrderInfoLib for OrderInfo;
 
     IPermitPost public immutable permitPost;
 
@@ -64,8 +57,7 @@ abstract contract BaseReactor is IReactor, OrderValidator, ReactorEvents {
     ) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                _validateOrderInfo(orders[i].info);
-                _updateFilled(orderHashes[i]);
+                orders[i].info.validate();
                 _transferTokens(orders[i], signatures[i], orderHashes[i], fillContract);
             }
         }
