@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {Output, ResolvedOrder} from "../lib/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback {
@@ -14,7 +14,11 @@ contract UniswapV3Executor is IReactorCallback {
     }
 
     /// @dev Can handle multiple resolvedOrders, but the input tokens and output tokens must be the same.
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
+    function reactorCallback(
+        ResolvedOrder[] calldata resolvedOrders,
+        address, //filler
+        bytes calldata fillData
+    ) external {
         uint24 fee = abi.decode(fillData, (uint24));
         address inputToken = resolvedOrders[0].input.token;
         uint256 inputTokenBalance = ERC20(inputToken).balanceOf(address(this));

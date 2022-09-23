@@ -1,13 +1,13 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
-import {Output, TokenAmount, OrderInfo, SignedOrder} from "../../src/lib/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactor/dutch-limit/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import "forge-std/console.sol";
 
@@ -50,8 +50,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: TokenAmount(address(weth), inputAmount),
+            input: InputToken(address(weth), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -82,13 +81,12 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: TokenAmount(address(weth), inputAmount),
+            input: InputToken(address(weth), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
-        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
