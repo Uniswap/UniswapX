@@ -5,7 +5,6 @@ import "forge-std/console2.sol";
 import "forge-std/Script.sol";
 import {PermitPost} from "permitpost/PermitPost.sol";
 import {DutchLimitOrderReactor} from "../src/reactors/DutchLimitOrderReactor.sol";
-import {DirectTakerExecutor} from "../src/sample-executors/DirectTakerExecutor.sol";
 import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../test/util/mock/MockERC20.sol";
 
@@ -13,7 +12,6 @@ struct DutchLimitDeployment {
     PermitPost permitPost;
     DutchLimitOrderReactor reactor;
     OrderQuoter quoter;
-    DirectTakerExecutor executor;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
 }
@@ -32,9 +30,6 @@ contract DeployDutchLimit is Script {
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
         console2.log("Quoter", address(quoter));
 
-        DirectTakerExecutor executor = new DirectTakerExecutor{salt: 0x00}();
-        console2.log("Executor", address(executor));
-
         MockERC20 tokenIn = new MockERC20{salt: 0x00}("Token A", "TA", 18);
         console2.log("tokenA", address(tokenIn));
         MockERC20 tokenOut = new MockERC20{salt: 0x00}("Token B", "TB", 18);
@@ -42,6 +37,6 @@ contract DeployDutchLimit is Script {
 
         vm.stopBroadcast();
 
-        return DutchLimitDeployment(permitPost, reactor, quoter, executor, tokenIn, tokenOut);
+        return DutchLimitDeployment(permitPost, reactor, quoter, tokenIn, tokenOut);
     }
 }

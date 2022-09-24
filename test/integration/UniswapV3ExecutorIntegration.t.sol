@@ -28,7 +28,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
-        uniswapV3Executor = new UniswapV3Executor(swapRouter02);
+        uniswapV3Executor = new UniswapV3Executor(swapRouter02, address(this));
         permitPost = new PermitPost();
         dloReactor = new DutchLimitOrderReactor(address(permitPost));
 
@@ -64,7 +64,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(fee)
+            abi.encodePacked(address(weth), fee, address(usdc))
         );
         assertEq(ERC20(weth).balanceOf(maker), 0);
         assertEq(ERC20(usdc).balanceOf(maker), 30000000);
@@ -93,7 +93,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(fee)
+            abi.encodePacked(address(weth), fee, address(usdc))
         );
     }
 }
