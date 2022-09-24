@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {Owned} from "solmate/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {OutputToken, ResolvedOrder} from "../base/ReactorStructs.sol";
 
-contract DirectTakerExecutor is IReactorCallback {
+contract DirectTakerExecutor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
+
+    constructor(address _owner) Owned(_owner) {}
 
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address taker, bytes calldata) external {
         // Only handle 1 resolved order

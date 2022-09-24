@@ -60,7 +60,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
-        uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter));
+        uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
         permitPost = new PermitPost();
         dloReactor = new DutchLimitOrderReactor(address(permitPost));
 
@@ -72,7 +72,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
-        bytes memory fillData = abi.encode(FEE);
+        bytes memory fillData = abi.encodePacked(tokenIn, FEE, tokenOut);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
@@ -109,7 +109,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         snapEnd();
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -123,6 +123,40 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         assertEq(entries[4].topics[0], APPROVAL_EVENT_SIG);
         assertEq(entries[5].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[6].topics[0], FILL_EVENT_SIG);
+
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(maker), 500000000000000000);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 500000000000000000);
+    }
+
+    // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
+    // There will be 0.5 output token remaining in UniswapV3Executor.
+    function testExecuteTwoHop() public {
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            input: InputToken(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+        MockERC20 tokenMid = new MockERC20("Middle", "MID", 18);
+
+        vm.recordLogs();
+        snapStart("DutchUniswapV3ExecuteSingle");
+        dloReactor.execute(
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
+        );
+        snapEnd();
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
@@ -155,7 +189,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         Vm.Log[] memory entries = vm.getRecordedLogs();
         // There will be 5 events in the following order: Transfer, Transfer,
@@ -196,7 +230,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
     }
 
@@ -228,7 +262,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
@@ -267,7 +301,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
     }
 
@@ -308,7 +342,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
         snapStart("DutchUniswapV3ExecuteBatch");
-        dloReactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encode(FEE));
+        dloReactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encodePacked(tokenIn, FEE, tokenOut));
         snapEnd();
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
@@ -316,5 +350,72 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 * 10 ** 18);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 1 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+    }
+
+    function testClaimTokens() public {
+        // earn some tokens with a swap
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            input: InputToken(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        vm.recordLogs();
+        dloReactor.execute(
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encodePacked(tokenIn, FEE, tokenOut)
+        );
+
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE / 2);
+        assertEq(tokenOut.balanceOf(taker), 0);
+
+        vm.prank(taker);
+        uniswapV3Executor.claimTokens(tokenOut);
+
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(taker), ONE / 2);
+    }
+
+    function testClaimTokensNotOwner() public {
+        // earn some tokens with a swap
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            input: InputToken(address(tokenIn), inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        vm.recordLogs();
+        dloReactor.execute(
+            SignedOrder(
+                abi.encode(order),
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+            ),
+            address(uniswapV3Executor),
+            abi.encodePacked(tokenIn, FEE, tokenOut)
+        );
+
+        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE / 2);
+        assertEq(tokenOut.balanceOf(taker), 0);
+
+        vm.expectRevert("UNAUTHORIZED");
+        uniswapV3Executor.claimTokens(tokenOut);
     }
 }
