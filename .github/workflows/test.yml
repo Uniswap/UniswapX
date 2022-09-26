@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 env:
   FOUNDRY_PROFILE: ci
-  FOUNDRY_RPC_URL: https://mainnet.infura.io/v3/6e758ef5d39a4fdeba50de7d10d08448
 
 jobs:
   check:
@@ -42,5 +41,8 @@ jobs:
 
       - name: Run Forge integration tests
         run: |
-          FOUNDRY_PROFILE=integration forge test -vvv
+          forge test -vvv
+        env:
+          FOUNDRY_RPC_URL: '${{ secrets.RPC_URL }}'
+          FOUNDRY_PROFILE: integration
         id: integration
