@@ -39,6 +39,13 @@ struct ResolvedOrder {
     OutputToken[] outputs;
 }
 
+/// @dev generic internal struct for order data
+struct InternalOrder {
+    ResolvedOrder order;
+    Signature sig;
+    bytes32 hash;
+}
+
 /// @dev external struct including a generic encoded order and offerer signature
 ///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
 struct SignedOrder {
