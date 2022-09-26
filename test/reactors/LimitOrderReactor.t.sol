@@ -9,7 +9,7 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
+import {LimitOrderReactor} from "../../src/reactors/LimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -41,7 +41,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
     function testExecute() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
@@ -68,7 +68,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
     function testExecuteNonceReuse() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         uint256 nonce = 1234;
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
@@ -80,7 +80,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.mint(address(maker), ONE * 2);
         tokenOut.mint(address(fillContract), ONE * 2);
         tokenIn.forceApprove(maker, address(permitPost), ONE * 2);
-        LimitOrder memory order2 = LimitOrder({
+        ResolvedOrder memory order2 = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
@@ -94,7 +94,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
     function testExecuteInsufficientPermit() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
@@ -110,7 +110,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
     function testExecuteIncorrectSpender() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
@@ -131,7 +131,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
     function testExecuteIncorrectToken() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
