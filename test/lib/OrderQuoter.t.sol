@@ -11,7 +11,7 @@ import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
+import {LimitOrderReactor} from "../../src/reactors/LimitOrderReactor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -45,7 +45,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
 
     function testQuoteLimitOrder() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
@@ -104,7 +104,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
                 block.timestamp - 1
                 ),
@@ -119,7 +119,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
 
     function testQuoteLimitOrderInsufficientBalance() public {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
-        LimitOrder memory order = LimitOrder({
+        ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
