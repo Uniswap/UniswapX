@@ -91,6 +91,21 @@ contract DutchLimitOrderReactorValidationTest is Test {
         assertEq(resolvedOrder.input.token, address(0));
     }
 
+    // startAmount is expected to always be greater than endAmount
+    // otherwise the order decays out of favor for the offerer
+    function testStartAmountLessThanEndAmount() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 900, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
+            block.timestamp,
+            InputToken(address(0), 0),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
+        reactor.resolveOrder(abi.encode(dlo));
+    }
+
     // At time 1659030747, output will still be 1000. One second later at 1659030748,
     // the first decay will occur and the output will be 999.
     function testResolveFirstDecay() public {

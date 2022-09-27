@@ -35,7 +35,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
 
     error EndTimeBeforeStart();
-    error DeadlineBeforeEndTime();
+    error NegativeDecay();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -50,7 +50,9 @@ contract DutchLimitOrderReactor is BaseReactor {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
 
-            if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
+            if (output.startAmount < output.endAmount) {
+                revert NegativeDecay();
+            } else if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
                 decayedAmount = output.endAmount;
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedAmount = output.startAmount;
