@@ -17,6 +17,12 @@ struct DutchOutput {
     address recipient;
 }
 
+struct DutchInput {
+    address token;
+    uint256 startAmount;
+    uint256 endAmount;
+}
+
 struct DutchLimitOrder {
     // generic order information
     OrderInfo info;
@@ -25,7 +31,7 @@ struct DutchLimitOrder {
     // endTime is implicitly info.deadline
 
     // The tokens that the offerer will provide when settling the order
-    InputToken input;
+    DutchInput input;
     // The tokens that must be received to satisfy the order
     DutchOutput[] outputs;
 }
@@ -66,7 +72,9 @@ contract DutchLimitOrderReactor is BaseReactor {
             }
             outputs[i] = OutputToken(output.token, decayedAmount, output.recipient);
         }
-        resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: dutchLimitOrder.input, outputs: outputs});
+
+        uint256 decayedInput;
+        resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: InputToken(dutchLimitOrder.input.token, decayedInput), outputs: outputs});
     }
 
     /// @notice validate the dutch order fields
