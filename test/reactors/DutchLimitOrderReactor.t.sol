@@ -103,7 +103,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
-        vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
         reactor.resolveOrder(abi.encode(dlo));
     }
 
