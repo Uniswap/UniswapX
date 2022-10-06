@@ -42,6 +42,8 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     error EndTimeBeforeStart();
     error NegativeDecay();
+    error InputAndOutputDecay();
+    error IncorrectAmounts();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -63,8 +65,6 @@ contract DutchLimitOrderReactor is BaseReactor {
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedAmount = output.startAmount;
             } else {
-                // TODO: maybe handle case where startAmount < endAmount
-                // i.e. for exactOutput case
                 uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
                 uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
                 uint256 decayAmount = output.startAmount - output.endAmount;
@@ -74,14 +74,45 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
 
         uint256 decayedInput;
+        if (dutchLimitOrder.info.deadline == block.timestamp || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount) {
+            decayedInput = dutchLimitOrder.input.endAmount;
+        } else if (dutchLimitOrder.startTime >= block.timestamp) {
+            decayedInput = dutchLimitOrder.input.startAmount;
+        } else {
+            uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
+            uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
+            uint256 decayAmount = dutchLimitOrder.input.endAmount - dutchLimitOrder.input.startAmount;
+            decayedInput = dutchLimitOrder.input.startAmount + decayAmount.mulDivDown(elapsed, duration);
+        }
         resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: InputToken(dutchLimitOrder.input.token, decayedInput), outputs: outputs});
     }
 
     /// @notice validate the dutch order fields
+    /// - deadline must be greater or equal than startTime
+    /// - if there's input decay, outputs must not decay
+    /// - for input decay, startAmount must < endAmount
+    /// - for output decay, endAmount must < startAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
         if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
+        }
+
+        if (dutchLimitOrder.input.startAmount != dutchLimitOrder.input.endAmount) {
+            if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
+                revert IncorrectAmounts();
+            }
+            for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                    revert InputAndOutputDecay();
+                }
+            }
+        }
+
+        for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+            if (dutchLimitOrder.outputs[i].startAmount < dutchLimitOrder.outputs[i].endAmount) {
+                revert IncorrectAmounts();
+            }
         }
     }
 }
