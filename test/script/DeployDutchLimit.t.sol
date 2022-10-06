@@ -7,7 +7,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrder, DutchOutput, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 
 contract DeployDutchLimitTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -39,12 +39,12 @@ contract DeployDutchLimitTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(deployment.reactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
-            input: InputToken(address(deployment.tokenIn), ONE),
+            input: DutchInput(address(deployment.tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig =
-            signOrder(vm, makerPrivateKey, address(deployment.permitPost), order.info, order.input, orderHash);
+            signOrder(vm, makerPrivateKey, address(deployment.permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash);
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));
