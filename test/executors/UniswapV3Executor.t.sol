@@ -5,7 +5,7 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
@@ -93,7 +93,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -106,7 +106,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -137,7 +137,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -151,7 +151,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
@@ -171,7 +171,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -186,7 +186,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -214,7 +214,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             // The output will resolve to 2
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
         });
@@ -227,7 +227,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -248,7 +248,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -259,7 +259,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -286,7 +286,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -298,7 +298,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -321,11 +321,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         Signature memory sig1 = signOrder(
-            vm, makerPrivateKey, address(permitPost), order1.info, order1.input, keccak256(abi.encode(order1))
+            vm, makerPrivateKey, address(permitPost), order1.info, InputToken(order1.input.token, order1.input.endAmount), keccak256(abi.encode(order1))
         );
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
@@ -333,11 +333,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount * 3),
+            input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         Signature memory sig2 = signOrder(
-            vm, makerPrivateKey, address(permitPost), order2.info, order2.input, keccak256(abi.encode(order2))
+            vm, makerPrivateKey, address(permitPost), order2.info, InputToken(order2.input.token, order2.input.endAmount), keccak256(abi.encode(order2))
         );
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
@@ -358,7 +358,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -370,7 +370,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -393,7 +393,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -405,7 +405,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
