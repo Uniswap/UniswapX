@@ -41,7 +41,6 @@ contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
 
     error EndTimeBeforeStart();
-    error NegativeDecay();
     error InputAndOutputDecay();
     error IncorrectAmounts();
 
