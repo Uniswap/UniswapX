@@ -169,6 +169,79 @@ contract DutchLimitOrderReactorValidationTest is Test {
         assertLe(resolvedOrder.outputs[0].amount, startAmount);
         assertGe(resolvedOrder.outputs[0].amount, endAmount);
     }
+
+    // The input decays, which means the outputs must not decay. In this test, the
+    // 2nd output decays, so revert with error InputAndOutputDecay().
+    function testBothInputAndOutputDecay() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        dutchOutputs[1] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 100, 110),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.InputAndOutputDecay.selector);
+        reactor.resolveOrder(abi.encode(dlo));
+    }
+
+    function testInputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 110, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        reactor.resolveOrder(abi.encode(dlo));
+    }
+
+    function testOutputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1100, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 100, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        reactor.resolveOrder(abi.encode(dlo));
+    }
+
+    function testInputDecayStartTimeAfterNow() public {
+        uint256 mockNow = 1659050541;
+        vm.warp(mockNow);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            mockNow + 1,
+            DutchInput(address(0), 2000, 2500),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        assertEq(resolvedOrder.input.amount, 2000);
+    }
+
+    // 2000+(2500-2000)*(20801/70901) = 2146
+    function testInputDecayNowBetweenStartAndEnd() public {
+        uint256 mockNow = 1659050541;
+        vm.warp(mockNow);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659100641),
+            1659029740,
+            DutchInput(address(0), 2000, 2500),
+            dutchOutputs
+        );
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        assertEq(resolvedOrder.input.amount, 2146);
+    }
 }
 
 // This suite of tests test execution with a mock fill contract.
