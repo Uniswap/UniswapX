@@ -8,7 +8,8 @@ import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
     ResolvedOrder,
-    DutchOutput
+    DutchOutput,
+    DutchInput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -40,7 +41,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
@@ -61,7 +62,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
@@ -81,7 +82,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
@@ -99,7 +100,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             block.timestamp,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
@@ -115,7 +116,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
@@ -133,7 +134,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130541,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         reactor.resolveOrder(abi.encode(dlo));
@@ -145,7 +146,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         reactor.resolveOrder(abi.encode(dlo));
@@ -161,7 +162,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
@@ -204,7 +205,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
@@ -215,7 +216,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             SignedOrder(
                 abi.encode(order),
                 signOrder(
-                    vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))
+                    vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), keccak256(abi.encode(order))
                 )
             ),
             address(fillContract),
@@ -240,7 +241,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
@@ -248,7 +249,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount * 2),
+            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
@@ -289,7 +290,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 10 ** 18),
+            input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
         });
 
@@ -298,7 +299,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 2 * 10 ** 18),
+            input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
         });
 
@@ -315,13 +316,13 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 2
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 3 * 10 ** 18),
+            input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
         // different maker
         signedOrders[2].sig = signOrder(
-            vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
+            vm, makerPrivateKey2, address(permitPost), orders[2].info, InputToken(orders[2].input.token, orders[2].input.endAmount), keccak256(abi.encode(orders[2]))
         );
 
         vm.expectEmit(false, false, false, true);
@@ -352,7 +353,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
@@ -360,7 +361,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount * 2),
+            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
@@ -376,7 +377,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 makerPrivateKey,
                 address(permitPost),
                 orders[i].info,
-                orders[i].input,
+                InputToken(orders[i].input.token, orders[i].input.endAmount),
                 keccak256(abi.encode(orders[i]))
             );
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
