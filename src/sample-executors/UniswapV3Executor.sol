@@ -22,7 +22,9 @@ contract UniswapV3Executor is IReactorCallback, Owned {
         ResolvedOrder[] calldata resolvedOrders,
         address, //filler
         bytes calldata path
-    ) external {
+    )
+        external
+    {
         // assume for now only single input / output token
         address inputToken = resolvedOrders[0].input.token;
         uint256 inputTokenBalance = ERC20(inputToken).balanceOf(address(this));

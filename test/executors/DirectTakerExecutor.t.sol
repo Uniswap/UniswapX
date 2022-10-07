@@ -111,7 +111,14 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             dloReactor,
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(order.input.token, order.input.endAmount), orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    InputToken(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(executor),
             abi.encode(taker, dloReactor)

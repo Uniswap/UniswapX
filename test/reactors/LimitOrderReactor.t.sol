@@ -144,9 +144,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
-        Signature memory sig = signOrder(
-            vm, makerPrivateKey, address(permitPost), order.info, InputToken(address(tokenOut), ONE), orderHash
-        );
+        Signature memory sig =
+            signOrder(vm, makerPrivateKey, address(permitPost), order.info, InputToken(address(tokenOut), ONE), orderHash);
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }

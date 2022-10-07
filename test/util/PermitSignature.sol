@@ -26,7 +26,10 @@ contract PermitSignature {
         Permit memory permit,
         SigType sigType,
         uint256 nonce
-    ) internal returns (Signature memory sig) {
+    )
+        internal
+        returns (Signature memory sig)
+    {
         bytes32[] memory tokenHashes = new bytes32[](permit.tokens.length);
         for (uint256 i = 0; i < permit.tokens.length; ++i) {
             tokenHashes[i] = keccak256(abi.encode(_TOKEN_DETAILS_TYPEHASH, permit.tokens[i]));
@@ -57,7 +60,10 @@ contract PermitSignature {
         OrderInfo memory info,
         InputToken memory input,
         bytes32 orderHash
-    ) internal returns (Signature memory sig) {
+    )
+        internal
+        returns (Signature memory sig)
+    {
         TokenDetails[] memory tokens = new TokenDetails[](1);
         tokens[0] = TokenDetails({tokenType: TokenType.ERC20, token: input.token, maxAmount: input.amount, id: 0});
         Permit memory permit =
