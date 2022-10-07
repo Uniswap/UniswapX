@@ -452,7 +452,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                 )
             ),
             address(uniswapV3Executor),
-            abi.encode(FEE)
+            abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         snapEnd();
 
