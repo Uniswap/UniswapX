@@ -378,7 +378,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
         DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withNonce(1),
             startTime: block.timestamp,
             input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
