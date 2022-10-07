@@ -82,7 +82,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         private
     {
         Permit memory permit = Permit({
-            tokens: order.input.token.toTokenDetails(order.input.amount),
+            tokens: order.input.token.toTokenDetails(order.maxInput),
             spender: address(this),
             deadline: order.info.deadline,
             // Note: PermitPost verifies for us that the user signed over the orderHash

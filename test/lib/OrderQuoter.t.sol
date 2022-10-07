@@ -48,7 +48,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker)),
+            maxInput: ONE
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
@@ -109,7 +110,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
                 block.timestamp - 1
                 ),
             input: InputToken(address(tokenIn), ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker)),
+            maxInput: ONE
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
@@ -122,7 +124,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE * 2),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker)),
+            maxInput: ONE * 2
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);

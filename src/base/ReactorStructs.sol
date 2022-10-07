@@ -37,6 +37,8 @@ struct ResolvedOrder {
     OrderInfo info;
     InputToken input;
     OutputToken[] outputs;
+    // Needed for dutch decaying inputs
+    uint256 maxInput;
 }
 
 /// @dev external struct including a generic encoded order and offerer signature

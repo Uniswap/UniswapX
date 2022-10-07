@@ -77,7 +77,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             InputToken(address(tokenIn), ONE),
-            outputs
+            outputs,
+            ONE
         );
         tokenIn.mint(address(uniswapV3Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);

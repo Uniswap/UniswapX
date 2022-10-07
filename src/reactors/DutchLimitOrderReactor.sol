@@ -81,7 +81,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             uint256 decayAmount = dutchLimitOrder.input.endAmount - dutchLimitOrder.input.startAmount;
             decayedInput = dutchLimitOrder.input.startAmount + decayAmount.mulDivDown(elapsed, duration);
         }
-        resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: InputToken(dutchLimitOrder.input.token, decayedInput), outputs: outputs});
+        resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: InputToken(dutchLimitOrder.input.token, decayedInput), outputs: outputs, maxInput: dutchLimitOrder.input.endAmount});
     }
 
     /// @notice validate the dutch order fields
