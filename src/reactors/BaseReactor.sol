@@ -9,15 +9,7 @@ import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
 import {PermitPostLib} from "../lib/PermitPostLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {
-    SignedOrder,
-    ResolvedOrder,
-    OrderInfo,
-    InputToken,
-    Signature,
-    OutputToken,
-    InternalOrder
-} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, Signature, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
@@ -34,46 +26,40 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
 
     /// @inheritdoc IReactor
     function execute(SignedOrder memory order, address fillContract, bytes calldata fillData) external override {
-        SignedOrder[] memory orders = new SignedOrder[](1);
-        orders[0] = order;
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        resolvedOrders[0] = resolve(order);
 
-        executeBatch(orders, fillContract, fillData);
+        _fill(resolvedOrders, fillContract, fillData);
     }
 
     /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData) public override {
-        InternalOrder[] memory internalOrders = new InternalOrder[](orders.length);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
 
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                internalOrders[i] = InternalOrder({
-                    order: resolve(orders[i].order),
-                    sig: orders[i].sig,
-                    hash: keccak256(orders[i].order)
-                });
+                resolvedOrders[i] = resolve(orders[i]);
             }
         }
-        _fill(internalOrders, fillContract, fillData);
+        _fill(resolvedOrders, fillContract, fillData);
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(InternalOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+    function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                InternalOrder memory order = orders[i];
-                order.order.info.validate();
+                ResolvedOrder memory order = orders[i];
+                order.info.validate();
                 _transferTokens(order, fillContract);
-                resolvedOrders[i] = order.order;
             }
         }
 
-        IReactorCallback(fillContract).reactorCallback(resolvedOrders, msg.sender, fillData);
+        IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
 
         unchecked {
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory resolvedOrder = orders[i].order;
+                ResolvedOrder memory resolvedOrder = orders[i];
 
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
@@ -86,11 +72,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     }
 
     /// @notice Transfers tokens to the fillContract using permitPost
-    function _transferTokens(InternalOrder memory order, address fillContract) private {
+    function _transferTokens(ResolvedOrder memory order, address fillContract) private {
         Permit memory permit = Permit({
-            tokens: order.order.input.token.toTokenDetails(order.order.input.amount),
+            tokens: order.input.token.toTokenDetails(order.input.amount),
             spender: address(this),
-            deadline: order.order.info.deadline,
+            deadline: order.info.deadline,
             // Note: PermitPost verifies for us that the user signed over the orderHash
             // using the witness parameter of the permit
             witness: order.hash
@@ -102,10 +88,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         ids[0] = 0;
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = order.order.input.amount;
+        amounts[0] = order.input.amount;
 
-        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.order.info.nonce, order.sig);
-        if (sender != order.order.info.offerer) {
+        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, order.sig);
+        if (sender != order.info.offerer) {
             revert InvalidSender();
         }
     }
@@ -114,5 +100,5 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(bytes memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 }

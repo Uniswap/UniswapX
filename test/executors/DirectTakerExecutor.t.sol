@@ -5,7 +5,14 @@ import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {
+    OutputToken,
+    InputToken,
+    OrderInfo,
+    ResolvedOrder,
+    SignedOrder,
+    Signature
+} from "../../src/base/ReactorStructs.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
 import {SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -59,8 +66,13 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[0].token = address(tokenOut);
         outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
+            OrderInfoBuilder.init(address(dloReactor)),
+            InputToken(address(tokenIn), inputAmount),
+            outputs,
+            sig,
+            keccak256(abi.encode(1))
         );
         resolvedOrders[0] = resolvedOrder;
         tokenIn.mint(address(directTakerExecutor), inputAmount);
@@ -79,8 +91,13 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)), InputToken(address(tokenIn), inputAmount), outputs
+            OrderInfoBuilder.init(address(dloReactor)),
+            InputToken(address(tokenIn), inputAmount),
+            outputs,
+            sig,
+            keccak256(abi.encode(1))
         );
         resolvedOrders[0] = resolvedOrder;
         tokenOut.mint(taker, ONE * 3);

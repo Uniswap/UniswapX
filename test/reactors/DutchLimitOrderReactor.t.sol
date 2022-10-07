@@ -43,7 +43,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -64,7 +65,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs.length, 3);
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs[1].amount, 9429);
@@ -84,7 +86,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
@@ -118,11 +121,12 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
 
         vm.warp(1659030748);
-        resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 999);
     }
 
@@ -136,7 +140,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
     function testValidateDutchEndTimeAfterStart() public view {
@@ -148,7 +153,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
     function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
@@ -164,7 +170,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertLe(resolvedOrder.outputs[0].amount, startAmount);
         assertGe(resolvedOrder.outputs[0].amount, endAmount);
     }

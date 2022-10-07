@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
-import {ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
 
 /// @dev An amount of tokens that decays linearly over time
 struct DutchOutput {
@@ -41,8 +41,14 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     /// @notice Resolve a DutchLimitOrder into a generic order
     /// @dev applies dutch decay to order outputs
-    function resolve(bytes memory order) internal view virtual override returns (ResolvedOrder memory resolvedOrder) {
-        DutchLimitOrder memory dutchLimitOrder = abi.decode(order, (DutchLimitOrder));
+    function resolve(SignedOrder memory signedOrder)
+        internal
+        view
+        virtual
+        override
+        returns (ResolvedOrder memory resolvedOrder)
+    {
+        DutchLimitOrder memory dutchLimitOrder = abi.decode(signedOrder.order, (DutchLimitOrder));
         _validateOrder(dutchLimitOrder);
 
         OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
@@ -66,7 +72,13 @@ contract DutchLimitOrderReactor is BaseReactor {
             }
             outputs[i] = OutputToken(output.token, decayedAmount, output.recipient);
         }
-        resolvedOrder = ResolvedOrder({info: dutchLimitOrder.info, input: dutchLimitOrder.input, outputs: outputs});
+        resolvedOrder = ResolvedOrder({
+            info: dutchLimitOrder.info,
+            input: dutchLimitOrder.input,
+            outputs: outputs,
+            sig: signedOrder.sig,
+            hash: keccak256(signedOrder.order)
+        });
     }
 
     /// @notice validate the dutch order fields

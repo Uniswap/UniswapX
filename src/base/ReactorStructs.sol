@@ -37,11 +37,6 @@ struct ResolvedOrder {
     OrderInfo info;
     InputToken input;
     OutputToken[] outputs;
-}
-
-/// @dev generic internal struct for order data
-struct InternalOrder {
-    ResolvedOrder order;
     Signature sig;
     bytes32 hash;
 }
