@@ -106,7 +106,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
             dutchOutputs
         );
         vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
-        reactor.resolveOrder(abi.encode(dlo));
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
     // At time 1659030747, output will still be 1000. One second later at 1659030748,
