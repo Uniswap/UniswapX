@@ -74,10 +74,13 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         outputs[0].amount = ONE;
         bytes memory fillData = abi.encodePacked(tokenIn, FEE, tokenOut);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             InputToken(address(tokenIn), ONE),
-            outputs
+            outputs,
+            sig,
+            keccak256(abi.encode(1))
         );
         tokenIn.mint(address(uniswapV3Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);

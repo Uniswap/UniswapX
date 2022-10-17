@@ -37,6 +37,8 @@ struct ResolvedOrder {
     OrderInfo info;
     InputToken input;
     OutputToken[] outputs;
+    Signature sig;
+    bytes32 hash;
 }
 
 /// @dev external struct including a generic encoded order and offerer signature
