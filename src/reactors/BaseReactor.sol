@@ -26,39 +26,31 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
 
     /// @inheritdoc IReactor
     function execute(SignedOrder memory order, address fillContract, bytes calldata fillData) external override {
-        SignedOrder[] memory orders = new SignedOrder[](1);
-        orders[0] = order;
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        resolvedOrders[0] = resolve(order);
 
-        executeBatch(orders, fillContract, fillData);
+        _fill(resolvedOrders, fillContract, fillData);
     }
 
     /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData) public override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
-        bytes32[] memory orderHashes = new bytes32[](orders.length);
-        Signature[] memory signatures = new Signature[](orders.length);
+
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                resolvedOrders[i] = resolve(orders[i].order);
-                orderHashes[i] = keccak256(orders[i].order);
-                signatures[i] = orders[i].sig;
+                resolvedOrders[i] = resolve(orders[i]);
             }
         }
-        _fill(resolvedOrders, signatures, orderHashes, fillContract, fillData);
+        _fill(resolvedOrders, fillContract, fillData);
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(
-        ResolvedOrder[] memory orders,
-        Signature[] memory signatures,
-        bytes32[] memory orderHashes,
-        address fillContract,
-        bytes calldata fillData
-    ) internal {
+    function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                orders[i].info.validate();
-                _transferTokens(orders[i], signatures[i], orderHashes[i], fillContract);
+                ResolvedOrder memory order = orders[i];
+                order.info.validate();
+                _transferTokens(order, fillContract);
             }
         }
 
@@ -67,27 +59,27 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         unchecked {
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
-                for (uint256 j = 0; j < orders[i].outputs.length; j++) {
-                    OutputToken memory output = orders[i].outputs[j];
+                ResolvedOrder memory resolvedOrder = orders[i];
+
+                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
+                    OutputToken memory output = resolvedOrder.outputs[j];
                     ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                 }
 
-                emit Fill(orderHashes[i], msg.sender, orders[i].info.nonce, orders[i].info.offerer);
+                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.nonce, resolvedOrder.info.offerer);
             }
         }
     }
 
     /// @notice Transfers tokens to the fillContract using permitPost
-    function _transferTokens(ResolvedOrder memory order, Signature memory sig, bytes32 orderHash, address fillContract)
-        private
-    {
+    function _transferTokens(ResolvedOrder memory order, address fillContract) private {
         Permit memory permit = Permit({
             tokens: order.input.token.toTokenDetails(order.input.amount),
             spender: address(this),
             deadline: order.info.deadline,
             // Note: PermitPost verifies for us that the user signed over the orderHash
             // using the witness parameter of the permit
-            witness: orderHash
+            witness: order.hash
         });
         address[] memory to = new address[](1);
         to[0] = fillContract;
@@ -98,7 +90,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = order.input.amount;
 
-        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, sig);
+        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, order.sig);
         if (sender != order.info.offerer) {
             revert InvalidSender();
         }
@@ -108,5 +100,5 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(bytes memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 }
