@@ -7,7 +7,7 @@ import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.so
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import "forge-std/console.sol";
 
@@ -50,7 +50,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(weth), inputAmount),
+            input: DutchInput(address(weth), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -61,7 +61,14 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    InputToken(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
@@ -81,7 +88,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(weth), inputAmount),
+            input: DutchInput(address(weth), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -90,7 +97,14 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                signOrder(
+                    vm,
+                    makerPrivateKey,
+                    address(permitPost),
+                    order.info,
+                    InputToken(order.input.token, order.input.endAmount),
+                    orderHash
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
