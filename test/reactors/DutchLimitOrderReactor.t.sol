@@ -152,7 +152,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
