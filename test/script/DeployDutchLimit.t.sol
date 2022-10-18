@@ -43,15 +43,14 @@ contract DeployDutchLimitTest is Test, PermitSignature {
             outputs: dutchOutputs
         });
         bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig =
-            signOrder(
-                vm,
-                makerPrivateKey,
-                address(deployment.permitPost),
-                order.info,
-                InputToken(order.input.token, order.input.endAmount),
-                orderHash
-            );
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(deployment.permitPost),
+            order.info,
+            InputToken(order.input.token, order.input.endAmount),
+            orderHash
+        );
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));

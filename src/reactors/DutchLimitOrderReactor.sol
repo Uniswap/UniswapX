@@ -78,7 +78,7 @@ contract DutchLimitOrderReactor is BaseReactor {
         uint256 decayedInput;
         if (
             dutchLimitOrder.info.deadline == block.timestamp
-            || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount
+                || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount
         ) {
             decayedInput = dutchLimitOrder.input.endAmount;
         } else if (dutchLimitOrder.startTime >= block.timestamp) {
