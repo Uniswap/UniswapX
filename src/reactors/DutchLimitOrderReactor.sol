@@ -17,6 +17,12 @@ struct DutchOutput {
     address recipient;
 }
 
+struct DutchInput {
+    address token;
+    uint256 startAmount;
+    uint256 endAmount;
+}
+
 struct DutchLimitOrder {
     // generic order information
     OrderInfo info;
@@ -25,7 +31,7 @@ struct DutchLimitOrder {
     // endTime is implicitly info.deadline
 
     // The tokens that the offerer will provide when settling the order
-    InputToken input;
+    DutchInput input;
     // The tokens that must be received to satisfy the order
     DutchOutput[] outputs;
 }
@@ -35,7 +41,8 @@ contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
 
     error EndTimeBeforeStart();
-    error NegativeDecay();
+    error InputAndOutputDecay();
+    error IncorrectAmounts();
 
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
@@ -56,15 +63,11 @@ contract DutchLimitOrderReactor is BaseReactor {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             uint256 decayedAmount;
 
-            if (output.startAmount < output.endAmount) {
-                revert NegativeDecay();
-            } else if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
+            if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
                 decayedAmount = output.endAmount;
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedAmount = output.startAmount;
             } else {
-                // TODO: maybe handle case where startAmount < endAmount
-                // i.e. for exactOutput case
                 uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
                 uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
                 uint256 decayAmount = output.startAmount - output.endAmount;
@@ -72,12 +75,27 @@ contract DutchLimitOrderReactor is BaseReactor {
             }
             outputs[i] = OutputToken(output.token, decayedAmount, output.recipient);
         }
+        uint256 decayedInput;
+        if (
+            dutchLimitOrder.info.deadline == block.timestamp
+            || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount
+        ) {
+            decayedInput = dutchLimitOrder.input.endAmount;
+        } else if (dutchLimitOrder.startTime >= block.timestamp) {
+            decayedInput = dutchLimitOrder.input.startAmount;
+        } else {
+            uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
+            uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
+            uint256 decayAmount = dutchLimitOrder.input.endAmount - dutchLimitOrder.input.startAmount;
+            decayedInput = dutchLimitOrder.input.startAmount + decayAmount.mulDivDown(elapsed, duration);
+        }
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
-            input: dutchLimitOrder.input,
+            input: InputToken(dutchLimitOrder.input.token, decayedInput),
             outputs: outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order)
+            hash: keccak256(signedOrder.order),
+            maxInput: dutchLimitOrder.input.endAmount
         });
     }
 
@@ -86,6 +104,22 @@ contract DutchLimitOrderReactor is BaseReactor {
     function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
         if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
+        }
+
+        if (dutchLimitOrder.input.startAmount != dutchLimitOrder.input.endAmount) {
+            if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
+                revert IncorrectAmounts();
+            }
+            for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                    revert InputAndOutputDecay();
+                }
+            }
+            for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                if (dutchLimitOrder.outputs[i].startAmount < dutchLimitOrder.outputs[i].endAmount) {
+                    revert IncorrectAmounts();
+                }
+            }
         }
     }
 }
