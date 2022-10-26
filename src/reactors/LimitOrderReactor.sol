@@ -27,9 +27,14 @@ contract LimitOrderReactor is BaseReactor {
 
     string private constant ORDER_TYPE_NAME = "LimitOrder";
     bytes private constant ORDER_TYPE = abi.encodePacked(
-        "LimitOrder(OrderInfo info,InputToken input,OutputToken[] outputs)",
-        OrderHash.INPUT_TOKEN_TYPE,
-        OrderHash.ORDER_INFO_TYPE,
+        "LimitOrder(",
+        "address reactor,",
+        "address offerer,",
+        "uint256 nonce,",
+        "uint256 deadline,",
+        "address inputToken,",
+        "uint256 inputAmount,",
+        "OutputToken[] outputs)",
         OrderHash.OUTPUT_TOKEN_TYPE
     );
     bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
@@ -69,6 +74,17 @@ contract LimitOrderReactor is BaseReactor {
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function _hash(LimitOrder memory order) internal pure returns (bytes32) {
-        return keccak256(abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.input.hash(), order.outputs.hash()));
+        return keccak256(
+            abi.encode(
+                ORDER_TYPE_HASH,
+                order.info.reactor,
+                order.info.offerer,
+                order.info.nonce,
+                order.info.deadline,
+                order.input.token,
+                order.input.amount,
+                order.outputs.hash()
+            )
+        );
     }
 }

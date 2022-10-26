@@ -47,10 +47,16 @@ contract DutchLimitOrderReactor is BaseReactor {
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
     bytes private constant ORDER_TYPE = abi.encodePacked(
-        "DutchLimitOrder(OrderInfo info,uint256 startTime,InputToken input,DutchOutput[] outputs)",
-        DUTCH_OUTPUT_TYPE,
-        OrderHash.INPUT_TOKEN_TYPE,
-        OrderHash.ORDER_INFO_TYPE
+        "DutchLimitOrder(",
+        "address reactor,",
+        "address offerer,",
+        "uint256 nonce,",
+        "uint256 deadline,",
+        "uint256 startTime,",
+        "address inputToken,",
+        "uint256 inputAmount,",
+        "DutchOutput[] outputs)",
+        DUTCH_OUTPUT_TYPE
     );
     bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
@@ -138,7 +144,17 @@ contract DutchLimitOrderReactor is BaseReactor {
         bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
 
         return keccak256(
-            abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.startTime, order.input.hash(), outputHash)
+            abi.encode(
+                ORDER_TYPE_HASH,
+                order.info.reactor,
+                order.info.offerer,
+                order.info.nonce,
+                order.info.deadline,
+                order.startTime,
+                order.input.token,
+                order.input.amount,
+                outputHash
+            )
         );
     }
 }

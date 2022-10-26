@@ -15,9 +15,14 @@ contract TestOrderHashing {
         "PermitWitnessTransferFrom(address token,address spender,uint256 signedAmount,uint256 nonce,uint256 deadline,";
 
     bytes constant LIMIT_ORDER_TYPE = abi.encodePacked(
-        "LimitOrder(OrderInfo info,InputToken input,OutputToken[] outputs)",
-        OrderHash.INPUT_TOKEN_TYPE,
-        OrderHash.ORDER_INFO_TYPE,
+        "LimitOrder(",
+        "address reactor,",
+        "address offerer,",
+        "uint256 nonce,",
+        "uint256 deadline,",
+        "address inputToken,",
+        "uint256 inputAmount,",
+        "OutputToken[] outputs)",
         OrderHash.OUTPUT_TOKEN_TYPE
     );
     bytes32 constant LIMIT_ORDER_TYPE_HASH_INNER = keccak256(LIMIT_ORDER_TYPE);
@@ -28,10 +33,16 @@ contract TestOrderHashing {
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
     bytes constant DUTCH_ORDER_TYPE = abi.encodePacked(
-        "DutchLimitOrder(OrderInfo info,uint256 startTime,InputToken input,DutchOutput[] outputs)",
-        DUTCH_OUTPUT_TYPE,
-        OrderHash.INPUT_TOKEN_TYPE,
-        OrderHash.ORDER_INFO_TYPE
+        "DutchLimitOrder(",
+        "address reactor,",
+        "address offerer,",
+        "uint256 nonce,",
+        "uint256 deadline,",
+        "uint256 startTime,",
+        "address inputToken,",
+        "uint256 inputAmount,",
+        "DutchOutput[] outputs)",
+        DUTCH_OUTPUT_TYPE
     );
     bytes32 constant DUTCH_ORDER_TYPE_HASH_INNER = keccak256(DUTCH_ORDER_TYPE);
     bytes32 constant DUTCH_ORDER_TYPE_HASH =
@@ -39,7 +50,16 @@ contract TestOrderHashing {
 
     function hash(LimitOrder memory order) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(LIMIT_ORDER_TYPE_HASH_INNER, order.info.hash(), order.input.hash(), order.outputs.hash())
+            abi.encode(
+                LIMIT_ORDER_TYPE_HASH_INNER,
+                order.info.reactor,
+                order.info.offerer,
+                order.info.nonce,
+                order.info.deadline,
+                order.input.token,
+                order.input.amount,
+                order.outputs.hash()
+            )
         );
     }
 
@@ -59,7 +79,17 @@ contract TestOrderHashing {
         bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
 
         return keccak256(
-            abi.encode(DUTCH_ORDER_TYPE_HASH_INNER, order.info.hash(), order.startTime, order.input.hash(), outputHash)
+            abi.encode(
+                DUTCH_ORDER_TYPE_HASH_INNER,
+                order.info.reactor,
+                order.info.offerer,
+                order.info.nonce,
+                order.info.deadline,
+                order.startTime,
+                order.input.token,
+                order.input.amount,
+                outputHash
+            )
         );
     }
 }
