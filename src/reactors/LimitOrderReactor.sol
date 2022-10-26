@@ -2,6 +2,8 @@
 pragma solidity ^0.8.16;
 
 import {BaseReactor} from "./BaseReactor.sol";
+import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {OrderHash} from "../lib/OrderHash.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @dev External struct used to specify simple limit orders
@@ -16,10 +18,23 @@ struct LimitOrder {
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
-    constructor(address _permitPost) BaseReactor(_permitPost) {}
+    using Permit2Lib for ResolvedOrder;
+    using OrderHash for OrderInfo;
+    using OrderHash for InputToken;
+    using OrderHash for OutputToken[];
 
-    /// @notice Resolve the encoded order into a generic order
-    /// @dev limit order inputs and outputs are directly specified
+    constructor(address _permit2) BaseReactor(_permit2) {}
+
+    string private constant ORDER_TYPE_NAME = "LimitOrder";
+    bytes private constant ORDER_TYPE = abi.encodePacked(
+        "LimitOrder(OrderInfo info,InputToken input,OutputToken[] outputs)",
+        OrderHash.INPUT_TOKEN_TYPE,
+        OrderHash.ORDER_INFO_TYPE,
+        OrderHash.OUTPUT_TOKEN_TYPE
+    );
+    bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
+
+    /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
         internal
         pure
@@ -32,7 +47,28 @@ contract LimitOrderReactor is BaseReactor {
             input: limitOrder.input,
             outputs: limitOrder.outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order)
+            hash: _hash(limitOrder)
         });
+    }
+
+    /// @inheritdoc BaseReactor
+    function transferInputTokens(ResolvedOrder memory order, address to) internal override {
+        permit2.permitWitnessTransferFrom(
+            order.toPermit(),
+            order.info.offerer,
+            to,
+            order.input.amount,
+            order.hash,
+            ORDER_TYPE_NAME,
+            string(ORDER_TYPE),
+            order.sig
+        );
+    }
+
+    /// @notice hash the given order
+    /// @param order the order to hash
+    /// @return the eip-712 order hash
+    function _hash(LimitOrder memory order) internal pure returns (bytes32) {
+        return keccak256(abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.input.hash(), order.outputs.hash()));
     }
 }

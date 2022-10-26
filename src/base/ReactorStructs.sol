@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {Signature} from "permitpost/interfaces/IPermitPost.sol";
-
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
 struct OrderInfo {
@@ -37,7 +35,7 @@ struct ResolvedOrder {
     OrderInfo info;
     InputToken input;
     OutputToken[] outputs;
-    Signature sig;
+    bytes sig;
     bytes32 hash;
 }
 
@@ -45,5 +43,5 @@ struct ResolvedOrder {
 ///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
 struct SignedOrder {
     bytes order;
-    Signature sig;
+    bytes sig;
 }

@@ -26,7 +26,7 @@ FOUNDRY_PROFILE=integration forge test
 2. The `maker` signs the order with their private key
 3. A `taker` sees the order, and looks for an optimal venue to execute it on
 4. The `taker` submits the order to the `reactor`, specifying a `fillContract` which will fill the order
-5. The reactor calls `PermitPost` to verify the `maker`'s signature and transfer their input tokens to the `fillContract`
+5. The reactor calls `permit2` to verify the `maker`'s signature and transfer their input tokens to the `fillContract`
 6. The reactor passes control off to the `fillContract`
 7. The `fillContract` uses the input tokens to acquire the required output tokens
 8. The `reactor` finally remits the output tokens to the `maker`

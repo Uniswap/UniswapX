@@ -4,12 +4,12 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLimit.s.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 
-contract DeployDutchLimitTest is Test, PermitSignature {
+contract DeployDutchLimitTest is Test, PermitSignature, TestOrderHashing {
     using OrderInfoBuilder for OrderInfo;
 
     DeployDutchLimit deployer;
@@ -22,7 +22,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
     function testDeploy() public {
         DutchLimitDeployment memory deployment = deployer.run();
 
-        assertEq(address(deployment.reactor.permitPost()), address(deployment.permitPost));
+        assertEq(address(deployment.reactor.permit2()), address(deployment.permit2));
         quoteTest(deployment);
     }
 
@@ -33,7 +33,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
         address maker = vm.addr(makerPrivateKey);
 
         deployment.tokenIn.mint(address(maker), ONE);
-        deployment.tokenIn.forceApprove(maker, address(deployment.permitPost), ONE);
+        deployment.tokenIn.forceApprove(maker, address(deployment.permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(deployment.tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -42,9 +42,8 @@ contract DeployDutchLimitTest is Test, PermitSignature {
             input: InputToken(address(deployment.tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig =
-            signOrder(vm, makerPrivateKey, address(deployment.permitPost), order.info, order.input, orderHash);
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(deployment.permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));

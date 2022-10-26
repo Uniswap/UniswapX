@@ -2,26 +2,24 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {IPermitPost, Permit, TokenDetails} from "permitpost/interfaces/IPermitPost.sol";
+import {ISignatureTransfer} from "permit2/interfaces/ISignatureTransfer.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
-import {PermitPostLib} from "../lib/PermitPostLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, Signature, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, ReactorEvents {
     using SafeTransferLib for ERC20;
-    using PermitPostLib for address;
     using OrderInfoLib for OrderInfo;
 
-    IPermitPost public immutable permitPost;
+    ISignatureTransfer public immutable permit2;
 
-    constructor(address _permitPost) {
-        permitPost = IPermitPost(_permitPost);
+    constructor(address _permit2) {
+        permit2 = ISignatureTransfer(_permit2);
     }
 
     /// @inheritdoc IReactor
@@ -50,7 +48,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 order.info.validate();
-                _transferTokens(order, fillContract);
+                transferInputTokens(order, fillContract);
             }
         }
 
@@ -71,34 +69,14 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         }
     }
 
-    /// @notice Transfers tokens to the fillContract using permitPost
-    function _transferTokens(ResolvedOrder memory order, address fillContract) private {
-        Permit memory permit = Permit({
-            tokens: order.input.token.toTokenDetails(order.input.amount),
-            spender: address(this),
-            deadline: order.info.deadline,
-            // Note: PermitPost verifies for us that the user signed over the orderHash
-            // using the witness parameter of the permit
-            witness: order.hash
-        });
-        address[] memory to = new address[](1);
-        to[0] = fillContract;
-
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 0;
-
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = order.input.amount;
-
-        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, order.sig);
-        if (sender != order.info.offerer) {
-            revert InvalidSender();
-        }
-    }
-
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
     function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+
+    /// @notice Transfers tokens to the fillContract using permit2
+    /// @param order The encoded order to resolve
+    /// @param to The address to transfer tokens to
+    function transferInputTokens(ResolvedOrder memory order, address to) internal virtual;
 }

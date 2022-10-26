@@ -3,7 +3,9 @@ pragma solidity ^0.8.16;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
+import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {OrderHash} from "../lib/OrderHash.sol";
+import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @dev An amount of tokens that decays linearly over time
 struct DutchOutput {
@@ -33,14 +35,28 @@ struct DutchLimitOrder {
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
+    using Permit2Lib for ResolvedOrder;
+    using OrderHash for OrderInfo;
+    using OrderHash for InputToken;
 
     error EndTimeBeforeStart();
     error NegativeDecay();
 
-    constructor(address _permitPost) BaseReactor(_permitPost) {}
+    string private constant ORDER_TYPE_NAME = "DutchLimitOrder";
+    bytes private constant DUTCH_OUTPUT_TYPE =
+        "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
+    bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
+    bytes private constant ORDER_TYPE = abi.encodePacked(
+        "DutchLimitOrder(OrderInfo info,uint256 startTime,InputToken input,DutchOutput[] outputs)",
+        DUTCH_OUTPUT_TYPE,
+        OrderHash.INPUT_TOKEN_TYPE,
+        OrderHash.ORDER_INFO_TYPE
+    );
+    bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
-    /// @notice Resolve a DutchLimitOrder into a generic order
-    /// @dev applies dutch decay to order outputs
+    constructor(address _permit2) BaseReactor(_permit2) {}
+
+    /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
         internal
         view
@@ -77,8 +93,22 @@ contract DutchLimitOrderReactor is BaseReactor {
             input: dutchLimitOrder.input,
             outputs: outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order)
+            hash: _hash(dutchLimitOrder)
         });
+    }
+
+    /// @inheritdoc BaseReactor
+    function transferInputTokens(ResolvedOrder memory order, address to) internal override {
+        permit2.permitWitnessTransferFrom(
+            order.toPermit(),
+            order.info.offerer,
+            to,
+            order.input.amount,
+            order.hash,
+            ORDER_TYPE_NAME,
+            string(ORDER_TYPE),
+            order.sig
+        );
     }
 
     /// @notice validate the dutch order fields
@@ -87,5 +117,28 @@ contract DutchLimitOrderReactor is BaseReactor {
         if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
             revert EndTimeBeforeStart();
         }
+    }
+
+    /// @notice hash the given order
+    /// @param order the order to hash
+    /// @return the eip-712 order hash
+    function _hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
+        bytes32[] memory outputHashes = new bytes32[](order.outputs.length);
+        for (uint256 i = 0; i < order.outputs.length; i++) {
+            outputHashes[i] = keccak256(
+                abi.encode(
+                    DUTCH_OUTPUT_TYPE_HASH,
+                    order.outputs[i].token,
+                    order.outputs[i].startAmount,
+                    order.outputs[i].endAmount,
+                    order.outputs[i].recipient
+                )
+            );
+        }
+        bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
+
+        return keccak256(
+            abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.startTime, order.input.hash(), outputHash)
+        );
     }
 }

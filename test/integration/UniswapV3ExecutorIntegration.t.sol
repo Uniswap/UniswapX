@@ -6,13 +6,13 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {PermitPost, Permit} from "permitpost/PermitPost.sol";
+import {Permit2} from "permit2/Permit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import "forge-std/console.sol";
+import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 
 // This set of tests will use a mainnet fork to test integration.
-contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
+contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, TestOrderHashing {
     using OrderInfoBuilder for OrderInfo;
 
     address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -21,7 +21,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     address maker;
     uint256 makerPrivateKey;
     UniswapV3Executor uniswapV3Executor;
-    PermitPost permitPost;
+    Permit2 permit2;
     DutchLimitOrderReactor dloReactor;
 
     function setUp() public {
@@ -29,12 +29,12 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
         uniswapV3Executor = new UniswapV3Executor(swapRouter02, address(this));
-        permitPost = new PermitPost();
-        dloReactor = new DutchLimitOrderReactor(address(permitPost));
+        permit2 = new Permit2();
+        dloReactor = new DutchLimitOrderReactor(address(permit2));
 
         // Maker max approves permit post
         vm.prank(maker);
-        ERC20(weth).approve(address(permitPost), type(uint256).max);
+        ERC20(weth).approve(address(permit2), type(uint256).max);
 
         // Transfer 0.02 WETH to maker
         vm.prank(0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E);
@@ -53,15 +53,13 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             input: InputToken(address(weth), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 30000000, 30000000, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
 
         assertEq(ERC20(weth).balanceOf(maker), 20000000000000000);
         assertEq(ERC20(usdc).balanceOf(maker), 0);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
@@ -84,13 +82,11 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
             input: InputToken(address(weth), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order),
-                signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash)
+                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))

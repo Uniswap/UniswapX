@@ -3,19 +3,20 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {PermitPost, Permit} from "permitpost/PermitPost.sol";
+import {Permit2} from "permit2/Permit2.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
     ResolvedOrder,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {OrderInfo, InputToken, Signature, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import "forge-std/console.sol";
@@ -25,11 +26,11 @@ contract DutchLimitOrderReactorValidationTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     MockDutchLimitOrderReactor reactor;
-    PermitPost permitPost;
+    Permit2 permit2;
 
     function setUp() public {
-        permitPost = new PermitPost();
-        reactor = new MockDutchLimitOrderReactor(address(permitPost));
+        permit2 = new Permit2();
+        reactor = new MockDutchLimitOrderReactor(address(permit2));
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
@@ -43,7 +44,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs.length, 1);
@@ -65,7 +66,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs.length, 3);
         assertEq(resolvedOrder.outputs[0].amount, 943);
@@ -86,7 +87,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.outputs.length, 1);
@@ -106,7 +107,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             dutchOutputs
         );
         vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
@@ -122,7 +123,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertEq(resolvedOrder.outputs[0].amount, 1000);
 
@@ -141,7 +142,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
@@ -154,7 +155,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
@@ -171,7 +172,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
             InputToken(address(0), 0),
             dutchOutputs
         );
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertLe(resolvedOrder.outputs[0].amount, startAmount);
         assertGe(resolvedOrder.outputs[0].amount, endAmount);
@@ -179,7 +180,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot, TestOrderHashing {
     using OrderInfoBuilder for OrderInfo;
 
     MockFillContract fillContract;
@@ -188,7 +189,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     uint256 makerPrivateKey;
     address maker;
     DutchLimitOrderReactor reactor;
-    PermitPost permitPost;
+    Permit2 permit2;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -196,8 +197,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
-        permitPost = new PermitPost();
-        reactor = new DutchLimitOrderReactor(address(permitPost));
+        permit2 = new Permit2();
+        reactor = new DutchLimitOrderReactor(address(permit2));
     }
 
     // Execute a single order, input = 1 and outputs = [2].
@@ -207,7 +208,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         tokenIn.mint(address(maker), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
@@ -222,9 +223,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         reactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(
-                    vm, makerPrivateKey, address(permitPost), order.info, order.input, keccak256(abi.encode(order))
-                )
+                signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
             ),
             address(fillContract),
             bytes("")
@@ -242,7 +241,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         tokenIn.mint(address(maker), inputAmount * 3);
         tokenOut.mint(address(fillContract), 6 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
@@ -282,8 +281,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         tokenIn.mint(address(maker), 3 * 10 ** 18);
         tokenIn.mint(address(maker2), 3 * 10 ** 18);
         tokenOut.mint(address(fillContract), 18 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
-        tokenIn.forceApprove(maker2, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(maker2, address(permit2), type(uint256).max);
 
         // Build the 3 orders
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](3);
@@ -329,7 +328,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
         // different maker
         signedOrders[2].sig = signOrder(
-            vm, makerPrivateKey2, address(permitPost), orders[2].info, orders[2].input, keccak256(abi.encode(orders[2]))
+            makerPrivateKey2, address(permit2), orders[2].info, orders[2].input, DUTCH_ORDER_TYPE_HASH, hash(orders[2])
         );
 
         vm.expectEmit(false, false, false, true);
@@ -354,7 +353,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         tokenIn.mint(address(maker), inputAmount * 3);
         tokenOut.mint(address(fillContract), 5 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
@@ -379,13 +378,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     function generateSignedOrders(DutchLimitOrder[] memory orders) private returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            Signature memory sig = signOrder(
-                vm,
-                makerPrivateKey,
-                address(permitPost),
-                orders[i].info,
-                orders[i].input,
-                keccak256(abi.encode(orders[i]))
+            bytes memory sig = signOrder(
+                makerPrivateKey, address(permit2), orders[i].info, orders[i].input, DUTCH_ORDER_TYPE_HASH, hash(orders[i])
             );
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }

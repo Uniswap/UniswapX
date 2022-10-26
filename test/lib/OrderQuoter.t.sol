@@ -2,8 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {Signature, SigType} from "permitpost/interfaces/IPermitPost.sol";
+import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
@@ -16,8 +15,9 @@ import {DutchLimitOrderReactor, DutchLimitOrder, DutchOutput} from "../../src/re
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 
-contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
+contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashing {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
@@ -29,7 +29,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     address maker;
     LimitOrderReactor limitOrderReactor;
     DutchLimitOrderReactor dutchOrderReactor;
-    PermitPost permitPost;
+    Permit2 permit2;
 
     function setUp() public {
         quoter = new OrderQuoter();
@@ -38,20 +38,19 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         tokenIn.mint(address(maker), ONE);
-        permitPost = new PermitPost();
-        limitOrderReactor = new LimitOrderReactor(address(permitPost));
-        dutchOrderReactor = new DutchLimitOrderReactor(address(permitPost));
+        permit2 = new Permit2();
+        limitOrderReactor = new LimitOrderReactor(address(permit2));
+        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2));
     }
 
     function testQuoteLimitOrder() public {
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
         assertEq(quote.input.token, address(tokenIn));
         assertEq(quote.input.amount, ONE);
@@ -60,7 +59,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     }
 
     function testQuoteDutchOrder() public {
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -69,8 +68,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -81,7 +79,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
 
     function testQuoteDutchOrderAfterDecay() public {
         vm.warp(block.timestamp + 100);
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -90,8 +88,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -103,7 +100,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     function testQuoteLimitOrderDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
                 block.timestamp - 1
@@ -111,27 +108,25 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         quoter.quote(abi.encode(order), sig);
     }
 
     function testQuoteLimitOrderInsufficientBalance() public {
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert("TRANSFER_FROM_FAILED");
         quoter.quote(abi.encode(order), sig);
     }
 
     function testQuoteDutchOrderEndBeforeStart() public {
-        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -140,8 +135,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
-        Signature memory sig = signOrder(vm, makerPrivateKey, address(permitPost), order.info, order.input, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
         quoter.quote(abi.encode(order), sig);
     }
