@@ -42,8 +42,9 @@ contract DeployDutchLimitTest is Test, PermitSignature, TestOrderHashing {
             input: InputToken(address(deployment.tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(deployment.permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(
+            makerPrivateKey, address(deployment.permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+        );
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));

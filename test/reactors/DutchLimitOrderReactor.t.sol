@@ -218,19 +218,21 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(order)), 0xb4c79daB8f259C7Aee6E5b2Aa729821864227e84, order.info.nonce, maker);
+        emit Fill(hash(order), address(this), order.info.nonce, maker);
         snapStart("DutchExecuteSingle");
         reactor.execute(
             SignedOrder(
                 abi.encode(order),
-                signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(fillContract),
             bytes("")
         );
         snapEnd();
-        assertEq(tokenOut.balanceOf(maker), 2000000000000000000);
-        assertEq(tokenIn.balanceOf(address(fillContract)), 1000000000000000000);
+        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
     // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
@@ -260,9 +262,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[0])), address(this), orders[0].info.nonce, maker);
+        emit Fill(hash(orders[0]), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[1])), address(this), orders[1].info.nonce, maker);
+        emit Fill(hash(orders[1]), address(this), orders[1].info.nonce, maker);
         snapStart("DutchExecuteBatch");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
         snapEnd();
@@ -332,11 +334,11 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         );
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[0])), address(this), orders[0].info.nonce, maker);
+        emit Fill(hash(orders[0]), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[1])), address(this), orders[1].info.nonce, maker);
+        emit Fill(hash(orders[1]), address(this), orders[1].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(keccak256(abi.encode(orders[2])), address(this), orders[2].info.nonce, maker2);
+        emit Fill(hash(orders[2]), address(this), orders[2].info.nonce, maker2);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
@@ -379,7 +381,12 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             bytes memory sig = signOrder(
-                makerPrivateKey, address(permit2), orders[i].info, orders[i].input, DUTCH_ORDER_TYPE_HASH, hash(orders[i])
+                makerPrivateKey,
+                address(permit2),
+                orders[i].info,
+                orders[i].input,
+                DUTCH_ORDER_TYPE_HASH,
+                hash(orders[i])
             );
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }

@@ -59,7 +59,10 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, TestOrderHas
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
@@ -86,7 +89,10 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, TestOrderHas
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))

@@ -50,7 +50,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
         assertEq(quote.input.token, address(tokenIn));
         assertEq(quote.input.amount, ONE);
@@ -68,7 +69,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -88,7 +90,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -108,7 +111,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         quoter.quote(abi.encode(order), sig);
     }
@@ -120,7 +124,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert("TRANSFER_FROM_FAILED");
         quoter.quote(abi.encode(order), sig);
     }
@@ -135,7 +140,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig =
+            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
         quoter.quote(abi.encode(order), sig);
     }

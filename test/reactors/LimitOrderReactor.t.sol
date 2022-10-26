@@ -3,6 +3,8 @@ pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {Permit2} from "permit2/Permit2.sol";
+import {SignatureVerification} from "permit2/libraries/SignatureVerification.sol";
+import {InvalidNonce} from "permit2/PermitErrors.sol";
 import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -91,7 +93,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
         bytes32 orderHash2 = hash(order2);
         bytes memory sig2 =
             signOrder(makerPrivateKey, address(permit2), order2.info, order2.input, LIMIT_ORDER_TYPE_HASH, orderHash2);
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(InvalidNonce.selector);
         reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
@@ -112,7 +114,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             orderHash
         );
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -133,7 +135,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             orderHash
         );
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -154,7 +156,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             LIMIT_ORDER_TYPE_HASH,
             orderHash
         );
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 }

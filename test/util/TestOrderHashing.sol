@@ -11,13 +11,18 @@ contract TestOrderHashing {
     using OrderHash for InputToken;
     using OrderHash for OutputToken[];
 
+    string constant TYPEHASH_STUB =
+        "PermitWitnessTransferFrom(address token,address spender,uint256 signedAmount,uint256 nonce,uint256 deadline,";
+
     bytes constant LIMIT_ORDER_TYPE = abi.encodePacked(
         "LimitOrder(OrderInfo info,InputToken input,OutputToken[] outputs)",
         OrderHash.INPUT_TOKEN_TYPE,
         OrderHash.ORDER_INFO_TYPE,
         OrderHash.OUTPUT_TOKEN_TYPE
     );
-    bytes32 constant LIMIT_ORDER_TYPE_HASH = keccak256(LIMIT_ORDER_TYPE);
+    bytes32 constant LIMIT_ORDER_TYPE_HASH_INNER = keccak256(LIMIT_ORDER_TYPE);
+    bytes32 constant LIMIT_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, "LimitOrder", " witness)", LIMIT_ORDER_TYPE));
 
     bytes constant DUTCH_OUTPUT_TYPE =
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
@@ -28,10 +33,14 @@ contract TestOrderHashing {
         OrderHash.INPUT_TOKEN_TYPE,
         OrderHash.ORDER_INFO_TYPE
     );
-    bytes32 constant DUTCH_ORDER_TYPE_HASH = keccak256(DUTCH_ORDER_TYPE);
+    bytes32 constant DUTCH_ORDER_TYPE_HASH_INNER = keccak256(DUTCH_ORDER_TYPE);
+    bytes32 constant DUTCH_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, "DutchLimitOrder", " witness)", DUTCH_ORDER_TYPE));
 
     function hash(LimitOrder memory order) internal pure returns (bytes32) {
-        return keccak256(abi.encode(LIMIT_ORDER_TYPE_HASH, order.info.hash(), order.input.hash(), order.outputs.hash()));
+        return keccak256(
+            abi.encode(LIMIT_ORDER_TYPE_HASH_INNER, order.info.hash(), order.input.hash(), order.outputs.hash())
+        );
     }
 
     function hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
@@ -50,7 +59,7 @@ contract TestOrderHashing {
         bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
 
         return keccak256(
-            abi.encode(DUTCH_ORDER_TYPE_HASH, order.info.hash(), order.startTime, order.input.hash(), outputHash)
+            abi.encode(DUTCH_ORDER_TYPE_HASH_INNER, order.info.hash(), order.startTime, order.input.hash(), outputHash)
         );
     }
 }

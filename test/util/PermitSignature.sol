@@ -9,8 +9,6 @@ import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
-    string public constant _PERMIT_TRANSFER_TYPEHASH_STUB =
-        "PermitWitnessTransferFrom(address token,address spender,uint256 signedAmount,uint256 nonce,uint256 deadline,";
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 

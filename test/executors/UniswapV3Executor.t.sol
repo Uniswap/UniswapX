@@ -101,7 +101,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         snapStart("DutchUniswapV3ExecuteSingle");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -144,7 +147,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         snapStart("DutchUniswapV3ExecuteSingle");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
@@ -177,7 +183,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.recordLogs();
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -216,7 +225,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -246,7 +258,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -283,7 +298,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -351,7 +369,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.recordLogs();
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -384,7 +405,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.recordLogs();
         dloReactor.execute(
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)

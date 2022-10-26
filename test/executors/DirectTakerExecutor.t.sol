@@ -119,7 +119,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature, TestOrderHashing {
         directTaker.execute(
             dloReactor,
             SignedOrder(
-                abi.encode(order), signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order))
+                abi.encode(order),
+                signOrder(
+                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
+                )
             ),
             address(executor),
             abi.encode(taker, dloReactor)
