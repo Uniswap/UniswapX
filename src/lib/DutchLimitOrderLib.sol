@@ -48,21 +48,19 @@ library DutchLimitOrderLib {
     );
     bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
+    function hash(DutchOutput memory output) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(DUTCH_OUTPUT_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
+        );
+    }
+
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](order.outputs.length);
         for (uint256 i = 0; i < order.outputs.length; i++) {
-            outputHashes[i] = keccak256(
-                abi.encode(
-                    DUTCH_OUTPUT_TYPE_HASH,
-                    order.outputs[i].token,
-                    order.outputs[i].startAmount,
-                    order.outputs[i].endAmount,
-                    order.outputs[i].recipient
-                )
-            );
+            outputHashes[i] = hash(order.outputs[i]);
         }
         bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
 
