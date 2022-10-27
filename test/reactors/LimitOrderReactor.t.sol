@@ -8,16 +8,17 @@ import {InvalidNonce} from "permit2/PermitErrors.sol";
 import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
+import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrderHashing {
+contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
     using OrderInfoBuilder for OrderInfo;
+    using LimitOrderLib for LimitOrder;
 
     uint256 constant ONE = 10 ** 18;
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
@@ -49,9 +50,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = hash(order);
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, orderHash);
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -77,9 +77,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = hash(order);
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, orderHash);
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 
         tokenIn.mint(address(maker), ONE * 2);
@@ -90,9 +88,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
         });
-        bytes32 orderHash2 = hash(order2);
-        bytes memory sig2 =
-            signOrder(makerPrivateKey, address(permit2), order2.info, order2.input, LIMIT_ORDER_TYPE_HASH, orderHash2);
+        bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
         vm.expectRevert(InvalidNonce.selector);
         reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
@@ -104,7 +100,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = hash(order);
+
+        bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(
             makerPrivateKey,
             address(permit2),
@@ -125,7 +122,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = hash(order);
+
+        bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(
             makerPrivateKey,
             address(permit2),
@@ -146,8 +144,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, TestOrde
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = hash(order);
 
+        bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(
             makerPrivateKey,
             address(permit2),

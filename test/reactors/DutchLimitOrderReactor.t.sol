@@ -14,12 +14,11 @@ import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
+import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import "forge-std/console.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test {
@@ -180,8 +179,9 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot, TestOrderHashing {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
+    using DutchLimitOrderLib for DutchLimitOrder;
 
     MockFillContract fillContract;
     MockERC20 tokenIn;
@@ -218,15 +218,10 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(order), address(this), order.info.nonce, maker);
+        emit Fill(order.hash(), address(this), order.info.nonce, maker);
         snapStart("DutchExecuteSingle");
         reactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
@@ -262,9 +257,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(orders[0]), address(this), orders[0].info.nonce, maker);
+        emit Fill(orders[0].hash(), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(orders[1]), address(this), orders[1].info.nonce, maker);
+        emit Fill(orders[1].hash(), address(this), orders[1].info.nonce, maker);
         snapStart("DutchExecuteBatch");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
         snapEnd();
@@ -329,16 +324,14 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
         // different maker
-        signedOrders[2].sig = signOrder(
-            makerPrivateKey2, address(permit2), orders[2].info, orders[2].input, DUTCH_ORDER_TYPE_HASH, hash(orders[2])
-        );
+        signedOrders[2].sig = signOrder(makerPrivateKey2, address(permit2), orders[2]);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(orders[0]), address(this), orders[0].info.nonce, maker);
+        emit Fill(orders[0].hash(), address(this), orders[0].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(orders[1]), address(this), orders[1].info.nonce, maker);
+        emit Fill(orders[1].hash(), address(this), orders[1].info.nonce, maker);
         vm.expectEmit(false, false, false, true);
-        emit Fill(hash(orders[2]), address(this), orders[2].info.nonce, maker2);
+        emit Fill(orders[2].hash(), address(this), orders[2].info.nonce, maker2);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
@@ -380,14 +373,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     function generateSignedOrders(DutchLimitOrder[] memory orders) private returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            bytes memory sig = signOrder(
-                makerPrivateKey,
-                address(permit2),
-                orders[i].info,
-                orders[i].input,
-                DUTCH_ORDER_TYPE_HASH,
-                hash(orders[i])
-            );
+            bytes memory sig = signOrder(makerPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
     }

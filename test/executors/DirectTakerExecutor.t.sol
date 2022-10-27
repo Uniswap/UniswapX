@@ -9,11 +9,10 @@ import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "..
 import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MockDirectTaker} from "../util/mock/users/MockDirectTaker.sol";
 
-contract DirectTakerExecutorTest is Test, PermitSignature, TestOrderHashing {
+contract DirectTakerExecutorTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 takerPrivateKey;
@@ -118,12 +117,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature, TestOrderHashing {
 
         directTaker.execute(
             dloReactor,
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(executor),
             abi.encode(taker, dloReactor)
         );

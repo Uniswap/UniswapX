@@ -6,10 +6,9 @@ import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLi
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 import {DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 
-contract DeployDutchLimitTest is Test, PermitSignature, TestOrderHashing {
+contract DeployDutchLimitTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
     DeployDutchLimit deployer;
@@ -42,9 +41,7 @@ contract DeployDutchLimitTest is Test, PermitSignature, TestOrderHashing {
             input: InputToken(address(deployment.tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig = signOrder(
-            makerPrivateKey, address(deployment.permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-        );
+        bytes memory sig = signOrder(makerPrivateKey, address(deployment.permit2), order);
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));

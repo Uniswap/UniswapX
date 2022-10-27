@@ -15,10 +15,9 @@ import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
-contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderHashing {
+contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 takerPrivateKey;
@@ -100,12 +99,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingle");
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -146,12 +140,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingle");
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
         );
@@ -182,12 +171,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         vm.recordLogs();
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -224,12 +208,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -257,12 +236,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -297,12 +271,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -327,8 +296,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
             input: InputToken(address(tokenIn), inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
-        bytes memory sig1 =
-            signOrder(makerPrivateKey, address(permit2), order1.info, order1.input, DUTCH_ORDER_TYPE_HASH, hash(order1));
+        bytes memory sig1 = signOrder(makerPrivateKey, address(permit2), order1);
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
         DutchLimitOrder memory order2 = DutchLimitOrder({
@@ -338,8 +306,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
             input: InputToken(address(tokenIn), inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
-        bytes memory sig2 =
-            signOrder(makerPrivateKey, address(permit2), order2.info, order2.input, DUTCH_ORDER_TYPE_HASH, hash(order2));
+        bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
         snapStart("DutchUniswapV3ExecuteBatch");
@@ -368,12 +335,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         vm.recordLogs();
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
@@ -404,12 +366,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, TestOrderH
 
         vm.recordLogs();
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order)
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );

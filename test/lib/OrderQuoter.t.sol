@@ -15,9 +15,8 @@ import {DutchLimitOrderReactor, DutchLimitOrder, DutchOutput} from "../../src/re
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {TestOrderHashing} from "../util/TestOrderHashing.sol";
 
-contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashing {
+contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
@@ -50,8 +49,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
         assertEq(quote.input.token, address(tokenIn));
         assertEq(quote.input.amount, ONE);
@@ -69,8 +67,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -90,8 +87,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(tokenIn));
@@ -111,8 +107,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         quoter.quote(abi.encode(order), sig);
     }
@@ -124,8 +119,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, LIMIT_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         vm.expectRevert("TRANSFER_FROM_FAILED");
         quoter.quote(abi.encode(order), sig);
     }
@@ -140,8 +134,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, TestOrderHashi
             input: InputToken(address(tokenIn), ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig =
-            signOrder(makerPrivateKey, address(permit2), order.info, order.input, DUTCH_ORDER_TYPE_HASH, hash(order));
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
         quoter.quote(abi.encode(order), sig);
     }
