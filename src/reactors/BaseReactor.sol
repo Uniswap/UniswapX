@@ -75,7 +75,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     /// @dev should revert on any order-type-specific validation errors
     function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
-    /// @notice Transfers tokens to the fillContract using permit2
+    /// @notice Transfers tokens to the fillContract
     /// @param order The encoded order to resolve
     /// @param to The address to transfer tokens to
     function transferInputTokens(ResolvedOrder memory order, address to) internal virtual;
