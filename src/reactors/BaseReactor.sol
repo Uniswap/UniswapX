@@ -76,7 +76,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers tokens to the fillContract
-    /// @param order The encoded order to resolve
+    /// @param order The encoded order to transfer tokens for
     /// @param to The address to transfer tokens to
     function transferInputTokens(ResolvedOrder memory order, address to) internal virtual;
 }
