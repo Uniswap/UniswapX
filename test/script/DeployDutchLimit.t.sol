@@ -48,7 +48,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
             makerPrivateKey,
             address(deployment.permitPost),
             order.info,
-            InputToken(order.input.token, order.input.endAmount),
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
             orderHash
         );
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
