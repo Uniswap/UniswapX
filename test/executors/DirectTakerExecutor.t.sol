@@ -69,11 +69,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
-            InputToken(address(tokenIn), inputAmount),
+            InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs,
             sig,
-            keccak256(abi.encode(1)),
-            inputAmount
+            keccak256(abi.encode(1))
         );
         resolvedOrders[0] = resolvedOrder;
         tokenIn.mint(address(directTakerExecutor), inputAmount);
@@ -95,11 +94,10 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
-            InputToken(address(tokenIn), inputAmount),
+            InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs,
             sig,
-            keccak256(abi.encode(1)),
-            inputAmount
+            keccak256(abi.encode(1))
         );
         resolvedOrders[0] = resolvedOrder;
         tokenOut.mint(taker, ONE * 3);
@@ -135,7 +133,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
