@@ -32,8 +32,7 @@ contract LimitOrderReactor is BaseReactor {
             input: limitOrder.input,
             outputs: limitOrder.outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order),
-            maxInput: limitOrder.input.amount
+            hash: keccak256(signedOrder.order)
         });
     }
 }

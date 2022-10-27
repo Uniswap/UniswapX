@@ -74,7 +74,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     /// @notice Transfers tokens to the fillContract using permitPost
     function _transferTokens(ResolvedOrder memory order, address fillContract) private {
         Permit memory permit = Permit({
-            tokens: order.input.token.toTokenDetails(order.maxInput),
+            tokens: order.input.token.toTokenDetails(order.input.maxAmount),
             spender: address(this),
             deadline: order.info.deadline,
             // Note: PermitPost verifies for us that the user signed over the orderHash

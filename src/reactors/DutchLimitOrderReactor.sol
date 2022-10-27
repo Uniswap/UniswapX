@@ -91,11 +91,10 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
-            input: InputToken(dutchLimitOrder.input.token, decayedInput),
+            input: InputToken(dutchLimitOrder.input.token, decayedInput, dutchLimitOrder.input.endAmount),
             outputs: outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order),
-            maxInput: dutchLimitOrder.input.endAmount
+            hash: keccak256(signedOrder.order)
         });
     }
 
