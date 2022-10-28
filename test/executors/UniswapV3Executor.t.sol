@@ -77,11 +77,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE),
+            InputToken(address(tokenIn), ONE, ONE),
             outputs,
             sig,
-            keccak256(abi.encode(1)),
-            ONE
+            keccak256(abi.encode(1))
         );
         tokenIn.mint(address(uniswapV3Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
@@ -115,7 +114,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -167,7 +166,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -209,7 +208,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -257,7 +256,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -296,7 +295,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -342,7 +341,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -375,7 +374,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             makerPrivateKey,
             address(permitPost),
             order1.info,
-            InputToken(order1.input.token, order1.input.endAmount),
+            InputToken(order1.input.token, order1.input.endAmount, order1.input.endAmount),
             keccak256(abi.encode(order1))
         );
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
@@ -392,7 +391,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             makerPrivateKey,
             address(permitPost),
             order2.info,
-            InputToken(order2.input.token, order2.input.endAmount),
+            InputToken(order2.input.token, order2.input.endAmount, order2.input.endAmount),
             keccak256(abi.encode(order2))
         );
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
@@ -431,7 +430,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -473,7 +472,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -516,7 +515,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
