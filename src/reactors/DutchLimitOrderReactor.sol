@@ -68,10 +68,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedOutput = output.startAmount;
             } else {
-                uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
-                uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
-                uint256 decayAmount = output.startAmount - output.endAmount;
-                decayedOutput = output.startAmount - decayAmount.mulDivDown(elapsed, duration);
+                decayedOutput = _getDecayedAmount(output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, true);
             }
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
         }
@@ -84,10 +81,7 @@ contract DutchLimitOrderReactor is BaseReactor {
         } else if (dutchLimitOrder.startTime >= block.timestamp) {
             decayedInput = dutchLimitOrder.input.startAmount;
         } else {
-            uint256 elapsed = block.timestamp - dutchLimitOrder.startTime;
-            uint256 duration = dutchLimitOrder.info.deadline - dutchLimitOrder.startTime;
-            uint256 decayAmount = dutchLimitOrder.input.endAmount - dutchLimitOrder.input.startAmount;
-            decayedInput = dutchLimitOrder.input.startAmount + decayAmount.mulDivDown(elapsed, duration);
+            decayedInput = _getDecayedAmount(dutchLimitOrder.input.startAmount, dutchLimitOrder.input.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, false);
         }
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
@@ -124,6 +118,16 @@ contract DutchLimitOrderReactor is BaseReactor {
             if (dutchLimitOrder.outputs[i].startAmount < dutchLimitOrder.outputs[i].endAmount) {
                 revert IncorrectAmounts();
             }
+        }
+    }
+
+    function _getDecayedAmount(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime, bool outputDecay) internal view returns (uint256 decayedAmount) {
+        uint256 elapsed = block.timestamp - startTime;
+        uint256 duration = endTime - startTime;
+        if (outputDecay) {
+            decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+        } else {
+            decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
         }
     }
 }
