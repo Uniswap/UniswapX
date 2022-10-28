@@ -47,7 +47,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     constructor(address _permitPost) BaseReactor(_permitPost) {}
 
     /// @notice Resolve a DutchLimitOrder into a generic order
-    /// @dev applies dutch decay to order outputs
+    /// @dev applies dutch decay to order outputs or order input
     function resolve(SignedOrder memory signedOrder)
         internal
         view
@@ -108,7 +108,6 @@ contract DutchLimitOrderReactor is BaseReactor {
     /// - deadline must be greater or equal than startTime
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
-    /// - for output decay, endAmount must < startAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
         if (dutchLimitOrder.info.deadline <= dutchLimitOrder.startTime) {
