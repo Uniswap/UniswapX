@@ -66,7 +66,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),
@@ -102,7 +102,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
                     makerPrivateKey,
                     address(permitPost),
                     order.info,
-                    InputToken(order.input.token, order.input.endAmount),
+                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
                     orderHash
                 )
             ),

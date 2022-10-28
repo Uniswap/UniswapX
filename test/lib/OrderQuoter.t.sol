@@ -52,7 +52,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -80,7 +80,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey,
             address(permitPost),
             order.info,
-            InputToken(order.input.token, order.input.endAmount),
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
             orderHash
         );
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
@@ -108,7 +108,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey,
             address(permitPost),
             order.info,
-            InputToken(order.input.token, order.input.endAmount),
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
             orderHash
         );
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
@@ -136,7 +136,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey,
             address(permitPost),
             order.info,
-            InputToken(order.input.token, order.input.endAmount),
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
             orderHash
         );
         ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
@@ -155,7 +155,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
                 block.timestamp - 1
                 ),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -168,7 +168,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE * 2),
+            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -193,7 +193,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey,
             address(permitPost),
             order.info,
-            InputToken(order.input.token, order.input.endAmount),
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
             orderHash
         );
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
