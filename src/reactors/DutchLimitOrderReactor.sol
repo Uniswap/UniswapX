@@ -72,7 +72,9 @@ contract DutchLimitOrderReactor is BaseReactor {
             } else if (dutchLimitOrder.startTime >= block.timestamp) {
                 decayedOutput = output.startAmount;
             } else {
-                decayedOutput = _getDecayedAmount(output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, true);
+                decayedOutput = _getDecayedAmount(
+                    output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, true
+                );
             }
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
         }
@@ -85,7 +87,13 @@ contract DutchLimitOrderReactor is BaseReactor {
         } else if (dutchLimitOrder.startTime >= block.timestamp) {
             decayedInput = dutchLimitOrder.input.startAmount;
         } else {
-            decayedInput = _getDecayedAmount(dutchLimitOrder.input.startAmount, dutchLimitOrder.input.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, false);
+            decayedInput = _getDecayedAmount(
+                dutchLimitOrder.input.startAmount,
+                dutchLimitOrder.input.endAmount,
+                dutchLimitOrder.startTime,
+                dutchLimitOrder.info.deadline,
+                false
+            );
         }
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
@@ -119,7 +127,13 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
     }
 
-    function _getDecayedAmount(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime, bool outputDecay) internal view returns (uint256 decayedAmount) {
+    function _getDecayedAmount(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 startTime,
+        uint256 endTime,
+        bool outputDecay
+    ) internal view returns (uint256 decayedAmount) {
         uint256 elapsed = block.timestamp - startTime;
         uint256 duration = endTime - startTime;
         if (outputDecay) {
