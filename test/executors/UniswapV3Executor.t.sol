@@ -526,7 +526,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         assertEq(tokenIn.balanceOf(maker), ONE / 2);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
-        assertEq(tokenOut.balanceOf(maker), 500000000000000000);
+        assertEq(tokenOut.balanceOf(maker), ONE / 2);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
     }
 }

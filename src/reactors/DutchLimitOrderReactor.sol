@@ -61,6 +61,10 @@ contract DutchLimitOrderReactor is BaseReactor {
         OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
+            if (output.startAmount < output.endAmount) {
+                revert IncorrectAmounts();
+            }
+
             uint256 decayedOutput;
 
             if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
@@ -111,12 +115,6 @@ contract DutchLimitOrderReactor is BaseReactor {
                 if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
                     revert InputAndOutputDecay();
                 }
-            }
-        }
-
-        for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
-            if (dutchLimitOrder.outputs[i].startAmount < dutchLimitOrder.outputs[i].endAmount) {
-                revert IncorrectAmounts();
             }
         }
     }
