@@ -115,13 +115,14 @@ contract DutchLimitOrderReactor is BaseReactor {
             decayedAmount = endAmount;
         } else if (startTime >= block.timestamp) {
             decayedAmount = startAmount;
-        }
-        uint256 elapsed = block.timestamp - startTime;
-        uint256 duration = endTime - startTime;
-        if (endAmount < startAmount) {
-            decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
         } else {
-            decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
+            uint256 elapsed = block.timestamp - startTime;
+            uint256 duration = endTime - startTime;
+            if (endAmount < startAmount) {
+                decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+            } else {
+                decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
+            }
         }
     }
 }
