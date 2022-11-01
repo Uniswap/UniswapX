@@ -64,37 +64,17 @@ contract DutchLimitOrderReactor is BaseReactor {
             if (output.startAmount < output.endAmount) {
                 revert IncorrectAmounts();
             }
-
-            uint256 decayedOutput;
-
-            if (dutchLimitOrder.info.deadline == block.timestamp || output.startAmount == output.endAmount) {
-                decayedOutput = output.endAmount;
-            } else if (dutchLimitOrder.startTime >= block.timestamp) {
-                decayedOutput = output.startAmount;
-            } else {
-                decayedOutput = _getDecayedAmount(
-                    output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline, true
-                );
-            }
+            uint256 decayedOutput = _getDecayedAmount(
+                output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline
+            );
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
         }
-        uint256 decayedInput;
-        if (
-            dutchLimitOrder.info.deadline == block.timestamp
-                || dutchLimitOrder.input.startAmount == dutchLimitOrder.input.endAmount
-        ) {
-            decayedInput = dutchLimitOrder.input.endAmount;
-        } else if (dutchLimitOrder.startTime >= block.timestamp) {
-            decayedInput = dutchLimitOrder.input.startAmount;
-        } else {
-            decayedInput = _getDecayedAmount(
-                dutchLimitOrder.input.startAmount,
-                dutchLimitOrder.input.endAmount,
-                dutchLimitOrder.startTime,
-                dutchLimitOrder.info.deadline,
-                false
-            );
-        }
+        uint256 decayedInput = _getDecayedAmount(
+            dutchLimitOrder.input.startAmount,
+            dutchLimitOrder.input.endAmount,
+            dutchLimitOrder.startTime,
+            dutchLimitOrder.info.deadline
+        );
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
             input: InputToken(dutchLimitOrder.input.token, decayedInput, dutchLimitOrder.input.endAmount),
@@ -126,16 +106,19 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
     }
 
-    function _getDecayedAmount(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 startTime,
-        uint256 endTime,
-        bool outputDecay
-    ) internal view returns (uint256 decayedAmount) {
+    function _getDecayedAmount(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+        internal
+        view
+        returns (uint256 decayedAmount)
+    {
+        if (endTime == block.timestamp || startAmount == endAmount) {
+            decayedAmount = endAmount;
+        } else if (startTime >= block.timestamp) {
+            decayedAmount = startAmount;
+        }
         uint256 elapsed = block.timestamp - startTime;
         uint256 duration = endTime - startTime;
-        if (outputDecay) {
+        if (endAmount < startAmount) {
             decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
         } else {
             decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
