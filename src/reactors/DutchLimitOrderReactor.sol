@@ -5,7 +5,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
 
-/// @dev An amount of tokens that decays linearly over time
+/// @dev An amount of output tokens that decreases linearly over time
 struct DutchOutput {
     // The ERC20 token address
     address token;
@@ -17,9 +17,13 @@ struct DutchOutput {
     address recipient;
 }
 
+/// @dev An amount of input tokens that increases linearly over time
 struct DutchInput {
+    // The ERC20 token address
     address token;
+    // The amount of tokens at the start of the time period
     uint256 startAmount;
+    // The amount of tokens at the end of the time period
     uint256 endAmount;
 }
 
