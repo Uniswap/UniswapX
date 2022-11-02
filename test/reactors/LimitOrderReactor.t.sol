@@ -43,7 +43,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -70,7 +70,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         uint256 nonce = 1234;
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -82,7 +82,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE * 2);
         LimitOrder memory order2 = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE * 2),
+            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
         });
         bytes32 orderHash2 = keccak256(abi.encode(order));
@@ -96,12 +96,17 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
         Signature memory sig = signOrder(
-            vm, makerPrivateKey, address(permitPost), order.info, InputToken(address(tokenIn), ONE / 2), orderHash
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order.info,
+            InputToken(address(tokenIn), ONE / 2, ONE / 2),
+            orderHash
         );
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
@@ -112,7 +117,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
@@ -133,13 +138,13 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permitPost), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes32 orderHash = keccak256(abi.encode(order));
 
         Signature memory sig = signOrder(
-            vm, makerPrivateKey, address(permitPost), order.info, InputToken(address(tokenOut), ONE), orderHash
+            vm, makerPrivateKey, address(permitPost), order.info, InputToken(address(tokenOut), ONE, ONE), orderHash
         );
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));

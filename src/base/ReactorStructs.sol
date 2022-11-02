@@ -23,6 +23,8 @@ struct OrderInfo {
 struct InputToken {
     address token;
     uint256 amount;
+    // Needed for dutch decaying inputs
+    uint256 maxAmount;
 }
 
 /// @dev tokens that need to be received by the recipient in order to satisfy an order
