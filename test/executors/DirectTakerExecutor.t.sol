@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {Permit2} from "permit2/Permit2.sol";
@@ -61,7 +61,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
-            InputToken(address(tokenIn), inputAmount),
+            InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs,
             sig,
             keccak256(abi.encode(1))
@@ -86,7 +86,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
-            InputToken(address(tokenIn), inputAmount),
+            InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs,
             sig,
             keccak256(abi.encode(1))
@@ -103,7 +103,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), ONE),
+            input: DutchInput(address(tokenIn), ONE, ONE),
             // The total outputs will resolve to 1.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });

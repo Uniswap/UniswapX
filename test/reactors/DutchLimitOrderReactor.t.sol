@@ -8,7 +8,8 @@ import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
     ResolvedOrder,
-    DutchOutput
+    DutchOutput,
+    DutchInput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -40,7 +41,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -62,7 +63,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -83,7 +84,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -102,7 +103,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             block.timestamp,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         vm.expectRevert(DutchLimitOrderReactor.NegativeDecay.selector);
@@ -119,7 +120,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -138,7 +139,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130541,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -151,7 +152,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -168,13 +169,91 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
-            InputToken(address(0), 0),
+            DutchInput(address(0), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
         assertLe(resolvedOrder.outputs[0].amount, startAmount);
         assertGe(resolvedOrder.outputs[0].amount, endAmount);
+    }
+
+    // The input decays, which means the outputs must not decay. In this test, the
+    // 2nd output decays, so revert with error InputAndOutputDecay().
+    function testBothInputAndOutputDecay() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        dutchOutputs[1] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 100, 110),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.InputAndOutputDecay.selector);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+    }
+
+    function testInputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 110, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+    }
+
+    function testOutputDecayIncorrectAmounts() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1100, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            1659130500,
+            DutchInput(address(0), 100, 100),
+            dutchOutputs
+        );
+        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+    }
+
+    function testInputDecayStartTimeAfterNow() public {
+        uint256 mockNow = 1659050541;
+        vm.warp(mockNow);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
+            mockNow + 1,
+            DutchInput(address(0), 2000, 2500),
+            dutchOutputs
+        );
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+        assertEq(resolvedOrder.input.amount, 2000);
+    }
+
+    // 2000+(2500-2000)*(20801/70901) = 2146
+    function testInputDecayNowBetweenStartAndEnd() public {
+        uint256 mockNow = 1659050541;
+        vm.warp(mockNow);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659100641),
+            1659029740,
+            DutchInput(address(0), 2000, 2500),
+            dutchOutputs
+        );
+        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+        assertEq(resolvedOrder.input.amount, 2146);
     }
 }
 
@@ -213,7 +292,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
@@ -244,7 +323,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
@@ -252,7 +331,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount * 2),
+            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
@@ -293,7 +372,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 10 ** 18),
+            input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
         });
 
@@ -302,7 +381,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 2 * 10 ** 18),
+            input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
         });
 
@@ -319,7 +398,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 2
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), 3 * 10 ** 18),
+            input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
@@ -354,7 +433,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount),
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
@@ -362,7 +441,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), inputAmount * 2),
+            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 

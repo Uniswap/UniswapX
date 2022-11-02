@@ -11,7 +11,12 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {
+    DutchLimitOrderReactor,
+    DutchLimitOrder,
+    DutchOutput,
+    DutchInput
+} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -46,7 +51,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -64,7 +69,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
-            input: InputToken(address(tokenIn), ONE),
+            input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -76,7 +81,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         assertEq(quote.outputs[0].amount, ONE);
     }
 
-    function testQuoteDutchOrderAfterDecay() public {
+    function testQuoteDutchOrderAfterOutputDecay() public {
         vm.warp(block.timestamp + 100);
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
@@ -84,7 +89,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
-            input: InputToken(address(tokenIn), ONE),
+            input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -96,6 +101,34 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         assertEq(quote.outputs[0].amount, ONE * 95 / 100);
     }
 
+    function testQuoteDutchOrderAfterInputDecay() public {
+        vm.warp(block.timestamp + 100);
+        tokenIn.forceApprove(maker, address(permitPost), ONE);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
+            startTime: block.timestamp - 100,
+            input: DutchInput(address(tokenIn), ONE * 9 / 10, ONE),
+            outputs: dutchOutputs
+        });
+        bytes32 orderHash = keccak256(abi.encode(order));
+        Signature memory sig = signOrder(
+            vm,
+            makerPrivateKey,
+            address(permitPost),
+            order.info,
+            InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
+            orderHash
+        );
+        ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
+
+        assertEq(quote.input.token, address(tokenIn));
+        assertEq(quote.input.amount, ONE * 95 / 100);
+        assertEq(quote.outputs[0].token, address(tokenOut));
+        assertEq(quote.outputs[0].amount, ONE);
+    }
+
     function testQuoteLimitOrderDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
@@ -104,7 +137,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)).withDeadline(
                 block.timestamp - 1
                 ),
-            input: InputToken(address(tokenIn), ONE),
+            input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -116,7 +149,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(limitOrderReactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE * 2),
+            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -131,7 +164,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp + 1000,
-            input: InputToken(address(tokenIn), ONE),
+            input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);

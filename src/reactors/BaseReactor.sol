@@ -69,6 +69,31 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         }
     }
 
+    /// @notice Transfers tokens to the fillContract using permitPost
+    function _transferTokens(ResolvedOrder memory order, address fillContract) private {
+        Permit memory permit = Permit({
+            tokens: order.input.token.toTokenDetails(order.input.maxAmount),
+            spender: address(this),
+            deadline: order.info.deadline,
+            // Note: PermitPost verifies for us that the user signed over the orderHash
+            // using the witness parameter of the permit
+            witness: order.hash
+        });
+        address[] memory to = new address[](1);
+        to[0] = fillContract;
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 0;
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = order.input.amount;
+
+        address sender = permitPost.unorderedTransferFrom(permit, to, ids, amounts, order.info.nonce, order.sig);
+        if (sender != order.info.offerer) {
+            revert InvalidSender();
+        }
+    }
+
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs

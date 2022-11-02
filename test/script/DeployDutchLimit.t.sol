@@ -6,7 +6,7 @@ import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLi
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {DutchLimitOrder, DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrder, DutchOutput, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 
 contract DeployDutchLimitTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -38,7 +38,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(deployment.reactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
-            input: InputToken(address(deployment.tokenIn), ONE),
+            input: DutchInput(address(deployment.tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(deployment.permit2), order);
