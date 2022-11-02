@@ -59,7 +59,7 @@ contract PermitSignature {
         bytes32 orderHash
     ) internal returns (Signature memory sig) {
         TokenDetails[] memory tokens = new TokenDetails[](1);
-        tokens[0] = TokenDetails({tokenType: TokenType.ERC20, token: input.token, maxAmount: input.amount, id: 0});
+        tokens[0] = TokenDetails({tokenType: TokenType.ERC20, token: input.token, maxAmount: input.maxAmount, id: 0});
         Permit memory permit =
             Permit({tokens: tokens, spender: info.reactor, deadline: info.deadline, witness: orderHash});
         return getPermitSignature(vm, privateKey, post, permit, SigType.UNORDERED, info.nonce);
