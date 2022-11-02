@@ -399,17 +399,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingleInputDecay");
         dloReactor.execute(
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    vm,
-                    makerPrivateKey,
-                    address(permitPost),
-                    order.info,
-                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
-                    orderHash
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );

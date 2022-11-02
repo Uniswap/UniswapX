@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
-/// @dev An amount of tokens that decays linearly over time
+/// @dev An amount of output tokens that decreases linearly over time
 struct DutchOutput {
     // The ERC20 token address
     address token;
@@ -15,6 +15,16 @@ struct DutchOutput {
     address recipient;
 }
 
+/// @dev An amount of input tokens that increases linearly over time
+struct DutchInput {
+    // The ERC20 token address
+    address token;
+    // The amount of tokens at the start of the time period
+    uint256 startAmount;
+    // The amount of tokens at the end of the time period
+    uint256 endAmount;
+}
+
 struct DutchLimitOrder {
     // generic order information
     OrderInfo info;
@@ -23,7 +33,7 @@ struct DutchLimitOrder {
     // endTime is implicitly info.deadline
 
     // The tokens that the offerer will provide when settling the order
-    InputToken input;
+    DutchInput input;
     // The tokens that must be received to satisfy the order
     DutchOutput[] outputs;
 }
@@ -42,7 +52,8 @@ library DutchLimitOrderLib {
         "uint256 deadline,",
         "uint256 startTime,",
         "address inputToken,",
-        "uint256 inputAmount,",
+        "uint256 inputStartAmount,",
+        "uint256 inputEndAmount,",
         "DutchOutput[] outputs)",
         DUTCH_OUTPUT_TYPE
     );
@@ -73,7 +84,8 @@ library DutchLimitOrderLib {
                 order.info.deadline,
                 order.startTime,
                 order.input.token,
-                order.input.amount,
+                order.input.startAmount,
+                order.input.endAmount,
                 outputHash
             )
         );

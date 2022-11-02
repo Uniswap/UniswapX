@@ -49,14 +49,15 @@ contract PermitSignature is Test {
         uint256 privateKey,
         address permit2,
         OrderInfo memory info,
-        InputToken memory input,
+        address inputToken,
+        uint256 inputAmount,
         bytes32 typeHash,
         bytes32 orderHash
     ) internal returns (bytes memory sig) {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            token: input.token,
+            token: inputToken,
             spender: info.reactor,
-            signedAmount: input.amount,
+            signedAmount: inputAmount,
             nonce: info.nonce,
             deadline: info.deadline
         });
@@ -67,14 +68,24 @@ contract PermitSignature is Test {
         internal
         returns (bytes memory sig)
     {
-        return signOrder(privateKey, permit2, order.info, order.input, LIMIT_ORDER_TYPE_HASH, order.hash());
+        return signOrder(
+            privateKey, permit2, order.info, order.input.token, order.input.amount, LIMIT_ORDER_TYPE_HASH, order.hash()
+        );
     }
 
     function signOrder(uint256 privateKey, address permit2, DutchLimitOrder memory order)
         internal
         returns (bytes memory sig)
     {
-        return signOrder(privateKey, permit2, order.info, order.input, DUTCH_LIMIT_ORDER_TYPE_HASH, order.hash());
+        return signOrder(
+            privateKey,
+            permit2,
+            order.info,
+            order.input.token,
+            order.input.endAmount,
+            DUTCH_LIMIT_ORDER_TYPE_HASH,
+            order.hash()
+        );
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {

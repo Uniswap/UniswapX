@@ -103,12 +103,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(
-            makerPrivateKey,
-            address(permit2),
-            order.info,
-            InputToken(address(tokenIn), ONE / 2),
-            LIMIT_ORDER_TYPE_HASH,
-            orderHash
+            makerPrivateKey, address(permit2), order.info, address(tokenIn), ONE / 2, LIMIT_ORDER_TYPE_HASH, orderHash
         );
 
         vm.expectRevert(SignatureVerification.InvalidSigner.selector);
@@ -128,7 +123,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey,
             address(permit2),
             OrderInfoBuilder.init(address(this)).withOfferer(address(maker)),
-            order.input,
+            order.input.token,
+            order.input.amount,
             LIMIT_ORDER_TYPE_HASH,
             orderHash
         );
@@ -147,12 +143,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(
-            makerPrivateKey,
-            address(permit2),
-            order.info,
-            InputToken(address(tokenOut), ONE),
-            LIMIT_ORDER_TYPE_HASH,
-            orderHash
+            makerPrivateKey, address(permit2), order.info, address(tokenOut), ONE, LIMIT_ORDER_TYPE_HASH, orderHash
         );
         vm.expectRevert(SignatureVerification.InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));

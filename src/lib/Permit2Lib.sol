@@ -16,7 +16,7 @@ library Permit2Lib {
         return ISignatureTransfer.PermitTransferFrom({
             token: order.input.token,
             spender: address(this),
-            signedAmount: order.input.amount,
+            signedAmount: order.input.maxAmount,
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });

@@ -7,7 +7,7 @@ import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.so
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {Permit2} from "permit2/Permit2.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 
 // This set of tests will use a mainnet fork to test integration.
