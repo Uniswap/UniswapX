@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo} from "../base/ReactorStructs.sol";
 
 /// @dev An amount of output tokens that decreases linearly over time
 struct DutchOutput {
@@ -43,6 +43,7 @@ library DutchLimitOrderLib {
     bytes private constant DUTCH_OUTPUT_TYPE =
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
+
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "DutchLimitOrder(",
         "address reactor,",
@@ -57,8 +58,8 @@ library DutchLimitOrderLib {
         DUTCH_OUTPUT_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
-    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
 
+    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
         string(abi.encodePacked("DutchLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
