@@ -61,12 +61,10 @@ contract DutchLimitOrderReactor is BaseReactor {
     function transferInputTokens(ResolvedOrder memory order, address to) internal override {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
+            order.transferDetails(to),
             order.info.offerer,
-            to,
-            order.input.amount,
             order.hash,
-            DutchLimitOrderLib.ORDER_TYPE_NAME,
-            string(DutchLimitOrderLib.ORDER_TYPE),
+            DutchLimitOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }

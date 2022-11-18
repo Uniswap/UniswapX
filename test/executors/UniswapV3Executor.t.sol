@@ -391,7 +391,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             input: DutchInput(address(tokenIn), 0, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
 
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE / 2);

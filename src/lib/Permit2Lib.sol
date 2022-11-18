@@ -10,15 +10,22 @@ library Permit2Lib {
     /// @notice returns a ResolvedOrder into a permit object
     function toPermit(ResolvedOrder memory order)
         internal
-        view
+        pure
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            token: order.input.token,
-            spender: address(this),
-            signedAmount: order.input.maxAmount,
+            permitted: ISignatureTransfer.TokenPermissions({token: order.input.token, amount: order.input.maxAmount}),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
+    }
+
+    /// @notice returns a ResolvedOrder into a permit object
+    function transferDetails(ResolvedOrder memory order, address to)
+        internal
+        pure
+        returns (ISignatureTransfer.SignatureTransferDetails memory)
+    {
+        return ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: order.input.amount});
     }
 }

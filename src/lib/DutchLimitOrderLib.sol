@@ -40,11 +40,10 @@ struct DutchLimitOrder {
 
 /// @notice helpers for handling dutch limit order objects
 library DutchLimitOrderLib {
-    string constant ORDER_TYPE_NAME = "DutchLimitOrder";
     bytes private constant DUTCH_OUTPUT_TYPE =
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
-    bytes constant ORDER_TYPE = abi.encodePacked(
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
         "DutchLimitOrder(",
         "address reactor,",
         "address offerer,",
@@ -57,7 +56,11 @@ library DutchLimitOrderLib {
         "DutchOutput[] outputs)",
         DUTCH_OUTPUT_TYPE
     );
-    bytes32 private constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
+    bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
+    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
+
+    string internal constant PERMIT2_ORDER_TYPE =
+        string(abi.encodePacked("DutchLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     function hash(DutchOutput memory output) private pure returns (bytes32) {
         return keccak256(

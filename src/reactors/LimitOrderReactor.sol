@@ -34,12 +34,10 @@ contract LimitOrderReactor is BaseReactor {
     function transferInputTokens(ResolvedOrder memory order, address to) internal override {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
+            order.transferDetails(to),
             order.info.offerer,
-            to,
-            order.input.amount,
             order.hash,
-            LimitOrderLib.ORDER_TYPE_NAME,
-            string(LimitOrderLib.ORDER_TYPE),
+            LimitOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }
