@@ -3,13 +3,13 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console2.sol";
 import "forge-std/Script.sol";
-import {PermitPost} from "permitpost/PermitPost.sol";
+import {Permit2} from "permit2/Permit2.sol";
 import {DutchLimitOrderReactor} from "../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 import {MockERC20} from "../test/util/mock/MockERC20.sol";
 
 struct DutchLimitDeployment {
-    PermitPost permitPost;
+    Permit2 permit2;
     DutchLimitOrderReactor reactor;
     OrderQuoter quoter;
     MockERC20 tokenIn;
@@ -21,10 +21,10 @@ contract DeployDutchLimit is Script {
 
     function run() public returns (DutchLimitDeployment memory deployment) {
         vm.startBroadcast();
-        PermitPost permitPost = new PermitPost{salt: 0x00}();
-        console2.log("PermitPost", address(permitPost));
+        Permit2 permit2 = new Permit2{salt: 0x00}();
+        console2.log("Permit2", address(permit2));
 
-        DutchLimitOrderReactor reactor = new DutchLimitOrderReactor{salt: 0x00}(address(permitPost));
+        DutchLimitOrderReactor reactor = new DutchLimitOrderReactor{salt: 0x00}(address(permit2));
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
@@ -37,6 +37,6 @@ contract DeployDutchLimit is Script {
 
         vm.stopBroadcast();
 
-        return DutchLimitDeployment(permitPost, reactor, quoter, tokenIn, tokenOut);
+        return DutchLimitDeployment(permit2, reactor, quoter, tokenIn, tokenOut);
     }
 }

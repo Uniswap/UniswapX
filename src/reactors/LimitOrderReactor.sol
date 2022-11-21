@@ -2,24 +2,18 @@
 pragma solidity ^0.8.16;
 
 import {BaseReactor} from "./BaseReactor.sol";
+import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {LimitOrderLib, LimitOrder} from "../lib/LimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
-
-/// @dev External struct used to specify simple limit orders
-struct LimitOrder {
-    // generic order information
-    OrderInfo info;
-    // The tokens that the offerer will provide when settling the order
-    InputToken input;
-    // The tokens that must be received to satisfy the order
-    OutputToken[] outputs;
-}
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
-    constructor(address _permitPost) BaseReactor(_permitPost) {}
+    using Permit2Lib for ResolvedOrder;
+    using LimitOrderLib for LimitOrder;
 
-    /// @notice Resolve the encoded order into a generic order
-    /// @dev limit order inputs and outputs are directly specified
+    constructor(address _permit2) BaseReactor(_permit2) {}
+
+    /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
         internal
         pure
@@ -32,7 +26,19 @@ contract LimitOrderReactor is BaseReactor {
             input: limitOrder.input,
             outputs: limitOrder.outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order)
+            hash: limitOrder.hash()
         });
+    }
+
+    /// @inheritdoc BaseReactor
+    function transferInputTokens(ResolvedOrder memory order, address to) internal override {
+        permit2.permitWitnessTransferFrom(
+            order.toPermit(),
+            order.transferDetails(to),
+            order.info.offerer,
+            order.hash,
+            LimitOrderLib.PERMIT2_ORDER_TYPE,
+            order.sig
+        );
     }
 }

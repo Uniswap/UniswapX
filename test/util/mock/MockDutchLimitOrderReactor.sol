@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {DutchLimitOrderReactor, ResolvedOrder, SignedOrder} from "../../../src/reactors/DutchLimitOrderReactor.sol";
 
 contract MockDutchLimitOrderReactor is DutchLimitOrderReactor {
-    constructor(address permitPost) DutchLimitOrderReactor(permitPost) {}
+    constructor(address permit2) DutchLimitOrderReactor(permit2) {}
 
     function resolveOrder(SignedOrder memory order) external view returns (ResolvedOrder memory resolvedOrder) {
         return resolve(order);
