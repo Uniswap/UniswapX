@@ -3,55 +3,23 @@ pragma solidity ^0.8.16;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken, Signature} from "../base/ReactorStructs.sol";
-
-/// @dev An amount of output tokens that decreases linearly over time
-struct DutchOutput {
-    // The ERC20 token address
-    address token;
-    // The amount of tokens at the start of the time period
-    uint256 startAmount;
-    // The amount of tokens at the end of the time period
-    uint256 endAmount;
-    // The address who must receive the tokens to satisfy the order
-    address recipient;
-}
-
-/// @dev An amount of input tokens that increases linearly over time
-struct DutchInput {
-    // The ERC20 token address
-    address token;
-    // The amount of tokens at the start of the time period
-    uint256 startAmount;
-    // The amount of tokens at the end of the time period
-    uint256 endAmount;
-}
-
-struct DutchLimitOrder {
-    // generic order information
-    OrderInfo info;
-    // The time at which the DutchOutputs start decaying
-    uint256 startTime;
-    // endTime is implicitly info.deadline
-
-    // The tokens that the offerer will provide when settling the order
-    DutchInput input;
-    // The tokens that must be received to satisfy the order
-    DutchOutput[] outputs;
-}
+import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
+import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
+    using Permit2Lib for ResolvedOrder;
+    using DutchLimitOrderLib for DutchLimitOrder;
 
     error EndTimeBeforeStart();
     error InputAndOutputDecay();
     error IncorrectAmounts();
 
-    constructor(address _permitPost) BaseReactor(_permitPost) {}
+    constructor(address _permit2) BaseReactor(_permit2) {}
 
-    /// @notice Resolve a DutchLimitOrder into a generic order
-    /// @dev applies dutch decay to order outputs or order input
+    /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
         internal
         view
@@ -73,6 +41,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             );
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
         }
+
         uint256 decayedInput = _getDecayedAmount(
             dutchLimitOrder.input.startAmount,
             dutchLimitOrder.input.endAmount,
@@ -84,8 +53,20 @@ contract DutchLimitOrderReactor is BaseReactor {
             input: InputToken(dutchLimitOrder.input.token, decayedInput, dutchLimitOrder.input.endAmount),
             outputs: outputs,
             sig: signedOrder.sig,
-            hash: keccak256(signedOrder.order)
+            hash: dutchLimitOrder.hash()
         });
+    }
+
+    /// @inheritdoc BaseReactor
+    function transferInputTokens(ResolvedOrder memory order, address to) internal override {
+        permit2.permitWitnessTransferFrom(
+            order.toPermit(),
+            order.transferDetails(to),
+            order.info.offerer,
+            order.hash,
+            DutchLimitOrderLib.PERMIT2_ORDER_TYPE,
+            order.sig
+        );
     }
 
     /// @notice validate the dutch order fields
@@ -110,6 +91,12 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
     }
 
+    /// @notice calculates an amount using linear decay over time from startTime to endTime
+    /// @dev handles both positive and negative decay depending on startAmount and endAmount
+    /// @param startAmount The amount of tokens at startTime
+    /// @param endAmount The amount of tokens at endTime
+    /// @param startTime The time to start decaying linearly
+    /// @param endTime The time to stop decaying linearly
     function _getDecayedAmount(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
         internal
         view

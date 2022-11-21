@@ -5,16 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecutor.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {
-    OutputToken,
-    InputToken,
-    OrderInfo,
-    ResolvedOrder,
-    SignedOrder,
-    Signature
-} from "../../src/base/ReactorStructs.sol";
-import {PermitPost, Permit} from "permitpost/PermitPost.sol";
-import {SigType} from "permitpost/interfaces/IPermitPost.sol";
+import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -31,7 +23,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     address maker;
     DirectTakerExecutor directTakerExecutor;
     DutchLimitOrderReactor dloReactor;
-    PermitPost permitPost;
+    Permit2 permit2;
 
     uint256 constant ONE = 10 ** 18;
 
@@ -50,12 +42,12 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         // Instantiate relevant contracts
         directTakerExecutor = new DirectTakerExecutor(taker);
-        permitPost = new PermitPost();
-        dloReactor = new DutchLimitOrderReactor(address(permitPost));
+        permit2 = new Permit2();
+        dloReactor = new DutchLimitOrderReactor(address(permit2));
 
         // Do appropriate max approvals
         tokenOut.forceApprove(taker, address(directTakerExecutor), type(uint256).max);
-        tokenIn.forceApprove(maker, address(permitPost), type(uint256).max);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
     }
 
     function testReactorCallback() public {
@@ -66,7 +58,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[0].token = address(tokenOut);
         outputs[0].amount = outputAmount;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
             InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -91,7 +83,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         outputs[1].token = address(tokenOut);
         outputs[1].amount = ONE * 2;
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        Signature memory sig = Signature(1, keccak256(abi.encode(1)), keccak256(abi.encode(1)));
+        bytes memory sig = hex"1234";
         ResolvedOrder memory resolvedOrder = ResolvedOrder(
             OrderInfoBuilder.init(address(dloReactor)),
             InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -115,7 +107,6 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
             // The total outputs will resolve to 1.5
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE, address(maker))
         });
-        bytes32 orderHash = keccak256(abi.encode(order));
 
         tokenIn.mint(maker, ONE);
         MockDirectTaker directTaker = new MockDirectTaker();
@@ -126,17 +117,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         directTaker.execute(
             dloReactor,
-            SignedOrder(
-                abi.encode(order),
-                signOrder(
-                    vm,
-                    makerPrivateKey,
-                    address(permitPost),
-                    order.info,
-                    InputToken(order.input.token, order.input.endAmount, order.input.endAmount),
-                    orderHash
-                )
-            ),
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(executor),
             abi.encode(taker, dloReactor)
         );

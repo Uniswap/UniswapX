@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console2.sol";
 import "forge-std/Script.sol";
-import {PermitPost} from "permitpost/PermitPost.sol";
 import {UniswapV3Executor} from "../src/sample-executors/UniswapV3Executor.sol";
 
 contract DeployUniswapV3Executor is Script {

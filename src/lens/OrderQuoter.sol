@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {Signature} from "permitpost/interfaces/IPermitPost.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {BaseReactor} from "../reactors/BaseReactor.sol";
 import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
@@ -17,7 +16,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param order abi-encoded order, including `reactor` as the first encoded struct member
     /// @param sig The order signature
     /// @return result The ResolvedOrder
-    function quote(bytes memory order, Signature memory sig) external returns (ResolvedOrder memory result) {
+    function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
         try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), address(this), bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
