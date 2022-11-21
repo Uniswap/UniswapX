@@ -69,16 +69,18 @@ library DutchLimitOrderLib {
         );
     }
 
+    function hash(DutchOutput[] memory outputs) private pure returns (bytes32) {
+        bytes32[] memory outputHashes = new bytes32[](outputs.length);
+        for (uint256 i = 0; i < outputs.length; i++) {
+            outputHashes[i] = hash(outputs[i]);
+        }
+        bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
+    }
+
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
-        bytes32[] memory outputHashes = new bytes32[](order.outputs.length);
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            outputHashes[i] = hash(order.outputs[i]);
-        }
-        bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
-
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,
@@ -90,7 +92,7 @@ library DutchLimitOrderLib {
                 order.input.token,
                 order.input.startAmount,
                 order.input.endAmount,
-                outputHash
+                hash(order.outputs)
             )
         );
     }
