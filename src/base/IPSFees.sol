@@ -17,7 +17,6 @@ abstract contract IPSFees {
     using FixedPointMathLib for uint256;
 
     error InvalidFee();
-    error NoFeeOutput();
     error UnauthorizedFeeRecipient();
 
     /// @dev The number of basis points per whole
@@ -45,9 +44,6 @@ abstract contract IPSFees {
         if (_protocolFeeBps > BPS) revert InvalidFee();
 
         PROTOCOL_FEE_BPS = _protocolFeeBps;
-        // TODO: do we want to separate the setter from the recipient?
-        // i.e. governance is the setter, but can delegate to someone else
-        // and still only governance can re-delegate
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
@@ -57,11 +53,14 @@ abstract contract IPSFees {
     /// @dev Note: the fee output is defined as the last output in the order
     /// @param order The encoded order to take fees from
     function _takeFees(ResolvedOrder memory order) internal {
-        if (order.outputs.length == 0) revert NoFeeOutput();
+        // no fee output, nothing to do
+        if (order.outputs.length < 2) return;
+
         OutputToken memory feeOutput = order.outputs[order.outputs.length - 1];
         uint256 protocolFeeAmount = feeOutput.amount.mulDivDown(PROTOCOL_FEE_BPS, BPS);
 
-        // protocol fees are accrued to address[0]
+        // protocol fees are accrued to PROTOCOL_FEE_RECIPIENT_STORED as sentinel for
+        // whatever address is currently set for protocolFeeRecipient
         feesOwed[feeOutput.token][PROTOCOL_FEE_RECIPIENT_STORED] += protocolFeeAmount;
         // rest goes to the original interface fee recipient
         feesOwed[feeOutput.token][feeOutput.recipient] += feeOutput.amount - protocolFeeAmount;

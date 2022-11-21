@@ -5,7 +5,12 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {
+    DutchLimitOrderReactor,
+    DutchLimitOrder,
+    DutchInput,
+    DutchOutput
+} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
@@ -28,12 +33,14 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     address maker;
     UniswapV3Executor uniswapV3Executor;
     MockSwapRouter mockSwapRouter;
-    DutchLimitOrderReactor dloReactor;
+    DutchLimitOrderReactor reactor;
     Permit2 permit2;
 
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
     uint24 constant FEE = 3000;
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
     bytes32 constant TRANSFER_EVENT_SIG = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
     bytes32 constant APPROVAL_EVENT_SIG = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
     bytes32 constant FILL_EVENT_SIG = 0xb7425f63eb6d6633896fb37a17c56e098d84542b065fb929e1e65eac5d8c96ba;
@@ -55,7 +62,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         mockSwapRouter = new MockSwapRouter();
         uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
         permit2 = new Permit2();
-        dloReactor = new DutchLimitOrderReactor(address(permit2));
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
@@ -69,7 +76,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
-            OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             InputToken(address(tokenIn), ONE, ONE),
             outputs,
             sig,
@@ -87,7 +94,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     function testExecute() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
@@ -98,7 +105,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingle");
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -127,7 +134,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     function testExecuteTwoHop() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
@@ -139,7 +146,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingle");
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
@@ -157,7 +164,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     function testExecutePreApprovals() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
@@ -167,10 +174,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenOut.mint(address(mockSwapRouter), ONE);
         // Do pre approvals
         tokenIn.forceApprove(address(uniswapV3Executor), address(mockSwapRouter), type(uint256).max);
-        tokenOut.forceApprove(address(uniswapV3Executor), address(dloReactor), type(uint256).max);
+        tokenOut.forceApprove(address(uniswapV3Executor), address(reactor), type(uint256).max);
 
         vm.recordLogs();
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -196,7 +203,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     function testExecuteInsufficientOutput() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             // The output will resolve to 2
@@ -207,7 +214,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -218,34 +225,46 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     // swap rate at 1 to 1, at the end of the test there will be 3 tokenIn
     // in mockSwapRouter and 3 tokenOut in maker.
     function testExecuteMultipleOutputs() public {
-        uint256 inputAmount = ONE * 3;
-        uint256[] memory startAmounts = new uint256[](2);
+        uint256 inputAmount = ONE * 4;
+        uint256[] memory startAmounts = new uint256[](3);
         startAmounts[0] = ONE * 2;
         startAmounts[1] = ONE;
-        uint256[] memory endAmounts = new uint256[](2);
+        startAmounts[2] = ONE;
+        uint256[] memory endAmounts = new uint256[](3);
         endAmounts[0] = startAmounts[0];
         endAmounts[1] = startAmounts[1];
+        endAmounts[2] = startAmounts[2];
+        DutchOutput[] memory outputs =
+            OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
+        // fee output
+        outputs[2].recipient = address(1);
+
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
+            outputs: outputs
         });
 
         tokenIn.mint(maker, inputAmount);
-        tokenOut.mint(address(mockSwapRouter), ONE * 3);
+        tokenOut.mint(address(mockSwapRouter), ONE * 4);
 
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE * 3);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE * 4);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
         assertEq(tokenOut.balanceOf(maker), ONE * 3);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+
+        // assert fees properly handled
+        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
+        assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
+        assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
     }
 
     // Requested outputs = 2 & 1 (for a total output of 3), input = 2. With
@@ -260,7 +279,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         endAmounts[0] = startAmounts[0];
         endAmounts[1] = startAmounts[1];
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
@@ -270,7 +289,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -291,7 +310,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
         DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
@@ -300,8 +319,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
         DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withNonce(1),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
             startTime: block.timestamp,
             input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
@@ -310,7 +330,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
         snapStart("DutchUniswapV3ExecuteBatch");
-        dloReactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encodePacked(tokenIn, FEE, tokenOut));
+        reactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encodePacked(tokenIn, FEE, tokenOut));
         snapEnd();
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
@@ -324,7 +344,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         // earn some tokens with a swap
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
@@ -334,7 +354,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -355,7 +375,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         // earn some tokens with a swap
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
@@ -365,7 +385,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
@@ -386,7 +406,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     function testExecuteInputDecay() public {
         uint256 inputAmount = ONE;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             input: DutchInput(address(tokenIn), 0, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE / 2, ONE / 2, address(maker))
@@ -397,7 +417,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingleInputDecay");
-        dloReactor.execute(
+        reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)

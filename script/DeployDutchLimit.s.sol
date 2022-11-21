@@ -17,6 +17,9 @@ struct DutchLimitDeployment {
 }
 
 contract DeployDutchLimit is Script {
+    address constant UNI_TIMELOCK = 0x1a9C8182C09F50C8318d769245beA52c32BE35BC;
+    uint256 constant PROTOCOL_FEES_BPS = 5000;
+
     function setUp() public {}
 
     function run() public returns (DutchLimitDeployment memory deployment) {
@@ -24,7 +27,8 @@ contract DeployDutchLimit is Script {
         Permit2 permit2 = new Permit2{salt: 0x00}();
         console2.log("Permit2", address(permit2));
 
-        DutchLimitOrderReactor reactor = new DutchLimitOrderReactor{salt: 0x00}(address(permit2));
+        DutchLimitOrderReactor reactor =
+            new DutchLimitOrderReactor{salt: 0x00}(address(permit2), PROTOCOL_FEES_BPS, UNI_TIMELOCK);
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
