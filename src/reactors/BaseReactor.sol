@@ -19,7 +19,9 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
 
     ISignatureTransfer public immutable permit2;
 
-    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient) IPSFees(_protocolFeeBps, _protocolFeeRecipient) {
+    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
+        IPSFees(_protocolFeeBps, _protocolFeeRecipient)
+    {
         permit2 = ISignatureTransfer(_permit2);
     }
 
@@ -48,6 +50,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
+                _takeFees(order);
                 order.info.validate();
                 transferInputTokens(order, fillContract);
             }

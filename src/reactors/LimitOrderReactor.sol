@@ -7,7 +7,7 @@ import {LimitOrderLib, LimitOrder} from "../lib/LimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract LimitOrderReactor is BaseReactor{
+contract LimitOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using LimitOrderLib for LimitOrder;
 
@@ -16,7 +16,12 @@ contract LimitOrderReactor is BaseReactor{
     {}
 
     /// @inheritdoc BaseReactor
-    function resolve(SignedOrder memory signedOrder) internal pure override returns (ResolvedOrder memory resolvedOrder) {
+    function resolve(SignedOrder memory signedOrder)
+        internal
+        pure
+        override
+        returns (ResolvedOrder memory resolvedOrder)
+    {
         LimitOrder memory limitOrder = abi.decode(signedOrder.order, (LimitOrder));
         resolvedOrder = ResolvedOrder({
             info: limitOrder.info,

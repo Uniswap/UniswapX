@@ -8,7 +8,7 @@ import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../l
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
-contract DutchLimitOrderReactor is BaseReactor{
+contract DutchLimitOrderReactor is BaseReactor {
     using FixedPointMathLib for uint256;
     using Permit2Lib for ResolvedOrder;
     using DutchLimitOrderLib for DutchLimitOrder;
