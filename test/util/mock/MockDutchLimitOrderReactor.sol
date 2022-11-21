@@ -8,11 +8,11 @@ contract MockDutchLimitOrderReactor is DutchLimitOrderReactor {
         DutchLimitOrderReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
     {}
 
-    function resolveOrder(SignedOrder memory order) external returns (ResolvedOrder memory resolvedOrder) {
+    function resolveOrder(SignedOrder memory order) external view returns (ResolvedOrder memory resolvedOrder) {
         return resolve(order);
     }
 
-    function resolve(SignedOrder memory order) internal override returns (ResolvedOrder memory resolvedOrder) {
+    function resolve(SignedOrder memory order) internal view override returns (ResolvedOrder memory resolvedOrder) {
         return DutchLimitOrderReactor.resolve(order);
     }
 }

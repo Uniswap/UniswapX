@@ -149,7 +149,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
-    function testValidateDutchEndTimeAfterStart() public {
+    function testValidateDutchEndTimeAfterStart() public view {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(

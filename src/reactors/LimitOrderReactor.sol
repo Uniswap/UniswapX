@@ -4,21 +4,19 @@ pragma solidity ^0.8.16;
 import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {LimitOrderLib, LimitOrder} from "../lib/LimitOrderLib.sol";
-import {IPSFees} from "../base/IPSFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for simple limit orders
-contract LimitOrderReactor is BaseReactor, IPSFees {
+contract LimitOrderReactor is BaseReactor{
     using Permit2Lib for ResolvedOrder;
     using LimitOrderLib for LimitOrder;
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
-        BaseReactor(_permit2)
-        IPSFees(_protocolFeeBps, _protocolFeeRecipient)
+        BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
     {}
 
     /// @inheritdoc BaseReactor
-    function resolve(SignedOrder memory signedOrder) internal override returns (ResolvedOrder memory resolvedOrder) {
+    function resolve(SignedOrder memory signedOrder) internal pure override returns (ResolvedOrder memory resolvedOrder) {
         LimitOrder memory limitOrder = abi.decode(signedOrder.order, (LimitOrder));
         resolvedOrder = ResolvedOrder({
             info: limitOrder.info,
@@ -27,7 +25,6 @@ contract LimitOrderReactor is BaseReactor, IPSFees {
             sig: signedOrder.sig,
             hash: limitOrder.hash()
         });
-        _takeFees(resolvedOrder);
     }
 
     /// @inheritdoc BaseReactor

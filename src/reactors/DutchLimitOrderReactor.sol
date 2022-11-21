@@ -5,11 +5,10 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
-import {IPSFees} from "../base/IPSFees.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
-contract DutchLimitOrderReactor is BaseReactor, IPSFees {
+contract DutchLimitOrderReactor is BaseReactor{
     using FixedPointMathLib for uint256;
     using Permit2Lib for ResolvedOrder;
     using DutchLimitOrderLib for DutchLimitOrder;
@@ -19,13 +18,13 @@ contract DutchLimitOrderReactor is BaseReactor, IPSFees {
     error IncorrectAmounts();
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
-        BaseReactor(_permit2)
-        IPSFees(_protocolFeeBps, _protocolFeeRecipient)
+        BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
     {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
         internal
+        view
         virtual
         override
         returns (ResolvedOrder memory resolvedOrder)
@@ -58,7 +57,6 @@ contract DutchLimitOrderReactor is BaseReactor, IPSFees {
             sig: signedOrder.sig,
             hash: dutchLimitOrder.hash()
         });
-        _takeFees(resolvedOrder);
     }
 
     /// @inheritdoc BaseReactor

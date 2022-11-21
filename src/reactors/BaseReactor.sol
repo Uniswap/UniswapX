@@ -8,17 +8,18 @@ import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
+import {IPSFees} from "../base/IPSFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
-abstract contract BaseReactor is IReactor, ReactorEvents {
+abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using OrderInfoLib for OrderInfo;
 
     ISignatureTransfer public immutable permit2;
 
-    constructor(address _permit2) {
+    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient) IPSFees(_protocolFeeBps, _protocolFeeRecipient) {
         permit2 = ISignatureTransfer(_permit2);
     }
 
@@ -73,7 +74,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder memory order) internal virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers tokens to the fillContract
     /// @param order The encoded order to transfer tokens for
