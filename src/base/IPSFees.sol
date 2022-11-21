@@ -20,17 +20,20 @@ abstract contract IPSFees {
     error NoFeeOutput();
     error UnauthorizedFeeRecipient();
 
+    /// @dev The number of basis points per whole
+    uint256 private constant BPS = 10000;
+
+    /// @dev The fee recipient used in feesOwed for protocol fees
+    address private constant PROTOCOL_FEE_RECIPIENT_STORED = address(0);
+
     /// @notice stores the owed fees
     /// @dev maps token address to owner address to amount
     mapping(address => mapping(address => uint256)) public feesOwed;
 
-    /// The number of basis points per whole
-    uint256 private constant BPS = 10000;
-
-    /// The amount of fees to take in basis points
+    /// @dev The amount of fees to take in basis points
     uint256 public immutable PROTOCOL_FEE_BPS;
 
-    /// The address who can receive fees
+    /// @dev The address who can receive fees
     address public protocolFeeRecipient;
 
     modifier onlyProtocolFeeRecipient() {
@@ -59,7 +62,7 @@ abstract contract IPSFees {
         uint256 protocolFeeAmount = feeOutput.amount.mulDivDown(PROTOCOL_FEE_BPS, BPS);
 
         // protocol fees are accrued to address[0]
-        feesOwed[feeOutput.token][address(0)] += protocolFeeAmount;
+        feesOwed[feeOutput.token][PROTOCOL_FEE_RECIPIENT_STORED] += protocolFeeAmount;
         // rest goes to the original interface fee recipient
         feesOwed[feeOutput.token][feeOutput.recipient] += feeOutput.amount - protocolFeeAmount;
 
@@ -72,7 +75,7 @@ abstract contract IPSFees {
     /// @notice claim accrued fees
     /// @param token The token to claim fees for
     function claimFees(address token) external {
-        address feeRecipient = msg.sender == protocolFeeRecipient ? address(0) : msg.sender;
+        address feeRecipient = msg.sender == protocolFeeRecipient ? PROTOCOL_FEE_RECIPIENT_STORED : msg.sender;
         uint256 amount = feesOwed[token][feeRecipient];
         feesOwed[token][feeRecipient] = 0;
         ERC20(token).safeTransfer(msg.sender, amount);
