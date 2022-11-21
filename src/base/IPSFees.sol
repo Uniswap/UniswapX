@@ -3,13 +3,8 @@ pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {ISignatureTransfer} from "permit2/interfaces/ISignatureTransfer.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {ReactorEvents} from "../base/ReactorEvents.sol";
-import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
-import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {IReactor} from "../interfaces/IReactor.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Handling for interface-protocol-split fees
 abstract contract IPSFees {
@@ -25,12 +20,12 @@ abstract contract IPSFees {
     /// @dev The fee recipient used in feesOwed for protocol fees
     address private constant PROTOCOL_FEE_RECIPIENT_STORED = address(0);
 
+    /// @dev The amount of fees to take in basis points
+    uint256 public immutable PROTOCOL_FEE_BPS;
+
     /// @notice stores the owed fees
     /// @dev maps token address to owner address to amount
     mapping(address => mapping(address => uint256)) public feesOwed;
-
-    /// @dev The amount of fees to take in basis points
-    uint256 public immutable PROTOCOL_FEE_BPS;
 
     /// @dev The address who can receive fees
     address public protocolFeeRecipient;
