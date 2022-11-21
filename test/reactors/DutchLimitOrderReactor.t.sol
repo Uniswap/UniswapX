@@ -25,12 +25,15 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 contract DutchLimitOrderReactorValidationTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
+
     MockDutchLimitOrderReactor reactor;
     Permit2 permit2;
 
     function setUp() public {
         permit2 = new Permit2();
-        reactor = new MockDutchLimitOrderReactor(address(permit2));
+        reactor = new MockDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
@@ -146,7 +149,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
-    function testValidateDutchEndTimeAfterStart() public view {
+    function testValidateDutchEndTimeAfterStart() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchLimitOrder memory dlo = DutchLimitOrder(
@@ -262,6 +265,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
+
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
@@ -277,7 +283,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         permit2 = new Permit2();
-        reactor = new DutchLimitOrderReactor(address(permit2));
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
     // Execute a single order, input = 1 and outputs = [2].
@@ -413,7 +419,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         emit Fill(orders[2].hash(), address(this), orders[2].info.nonce, maker2);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker2), 7 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
     }
 

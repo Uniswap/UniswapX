@@ -22,6 +22,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
 
     uint256 constant ONE = 10 ** 18;
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockFillContract fillContract;
     MockERC20 tokenIn;
@@ -40,7 +42,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
         permit2 = new Permit2();
-        reactor = new LimitOrderReactor(address(permit2));
+        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
     function testExecute() public {
