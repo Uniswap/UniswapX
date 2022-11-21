@@ -74,7 +74,7 @@ library DutchLimitOrderLib {
         for (uint256 i = 0; i < outputs.length; i++) {
             outputHashes[i] = hash(outputs[i]);
         }
-        bytes32 outputHash = keccak256(abi.encodePacked(outputHashes));
+        return keccak256(abi.encodePacked(outputHashes));
     }
 
     /// @notice hash the given order

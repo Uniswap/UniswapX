@@ -449,7 +449,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
-    function generateSignedOrders(DutchLimitOrder[] memory orders) private returns (SignedOrder[] memory result) {
+    function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             bytes memory sig = signOrder(makerPrivateKey, address(permit2), orders[i]);

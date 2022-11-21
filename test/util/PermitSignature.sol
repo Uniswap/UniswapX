@@ -67,6 +67,7 @@ contract PermitSignature is Test {
 
     function signOrder(uint256 privateKey, address permit2, LimitOrder memory order)
         internal
+        view
         returns (bytes memory sig)
     {
         return signOrder(
@@ -76,6 +77,7 @@ contract PermitSignature is Test {
 
     function signOrder(uint256 privateKey, address permit2, DutchLimitOrder memory order)
         internal
+        view
         returns (bytes memory sig)
     {
         return signOrder(
