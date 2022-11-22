@@ -67,7 +67,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     function testQuoteDutchOrder() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
@@ -87,7 +87,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         vm.warp(block.timestamp + 100);
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
@@ -107,7 +107,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         vm.warp(block.timestamp + 100);
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0), false);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
@@ -154,7 +154,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     function testQuoteDutchOrderEndBeforeStart() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp + 1000,

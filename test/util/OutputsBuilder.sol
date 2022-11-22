@@ -17,7 +17,7 @@ library OutputsBuilder {
         returns (DutchOutput[] memory)
     {
         DutchOutput[] memory result = new DutchOutput[](1);
-        result[0] = DutchOutput(token, startAmount, endAmount, recipient);
+        result[0] = DutchOutput(token, startAmount, endAmount, recipient, false);
         return result;
     }
 
@@ -30,7 +30,7 @@ library OutputsBuilder {
     {
         DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
         for (uint256 i = 0; i < startAmounts.length; i++) {
-            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient);
+            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient, false);
         }
         return result;
     }

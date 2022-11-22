@@ -40,7 +40,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
     function testResolveEndTimeAfterNow() public {
         vm.warp(1659087340);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
@@ -60,9 +60,9 @@ contract DutchLimitOrderReactorValidationTest is Test {
     function testResolveMultipleDutchOutputs() public {
         vm.warp(1659087340);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
-        dutchOutputs[1] = DutchOutput(address(0), 10000, 9000, address(0));
-        dutchOutputs[2] = DutchOutput(address(0), 2000, 1000, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
+        dutchOutputs[1] = DutchOutput(address(0), 10000, 9000, address(0), false);
+        dutchOutputs[2] = DutchOutput(address(0), 2000, 1000, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
@@ -83,7 +83,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
     function testResolveStartTimeEqualsNow() public {
         vm.warp(1659029740);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
@@ -102,7 +102,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
     // otherwise the order decays out of favor for the offerer
     function testStartAmountLessThanEndAmount() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 900, 1000, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 900, 1000, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             block.timestamp,
@@ -119,7 +119,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
     function testResolveFirstDecay() public {
         vm.warp(1659030747);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
@@ -138,7 +138,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
     function testValidateDutchEndTimeBeforeStart() public {
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130541,
@@ -151,7 +151,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 
     function testValidateDutchEndTimeAfterStart() public view {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
@@ -168,7 +168,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         vm.assume(startTime < endTime);
         vm.assume(startAmount > endAmount);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), startAmount, endAmount, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), startAmount, endAmount, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
@@ -185,8 +185,8 @@ contract DutchLimitOrderReactorValidationTest is Test {
     // 2nd output decays, so revert with error InputAndOutputDecay().
     function testBothInputAndOutputDecay() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
-        dutchOutputs[1] = DutchOutput(address(0), 1000, 900, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0), false);
+        dutchOutputs[1] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
@@ -200,7 +200,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 
     function testInputDecayIncorrectAmounts() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
@@ -214,7 +214,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 
     function testOutputDecayIncorrectAmounts() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 1100, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1100, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
@@ -230,7 +230,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         uint256 mockNow = 1659050541;
         vm.warp(mockNow);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             mockNow + 1,
@@ -247,7 +247,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         uint256 mockNow = 1659050541;
         vm.warp(mockNow);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0));
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 1000, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659100641),
             1659029740,
