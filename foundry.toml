@@ -11,3 +11,7 @@ via_ir = true
 [profile.integration]
 no_match_path = ""
 match_path = "*/integration/*"
+
+[profile.lite.optimizer_details.yulDetails]
+stackAllocation = true
+optimizerSteps = 'xca'
