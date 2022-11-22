@@ -1,4 +1,4 @@
-name: unit-test
+name: integration-test
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  unit-tests:
+  integration-tests:
     strategy:
       fail-fast: true
 
@@ -32,12 +32,10 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: Check fmt
-        run: |
-          forge fmt --check
-        id: fmt
-
-      - name: Run Forge unit tests
+      - name: Run Forge integration tests
         run: |
           forge test -vvv
-        id: test
+        env:
+          FOUNDRY_RPC_URL: '${{ secrets.RPC_URL }}'
+          FOUNDRY_PROFILE: integration
+        id: integration
