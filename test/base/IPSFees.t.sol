@@ -62,6 +62,56 @@ contract IPSFeesTest is Test {
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE * 10 / 2);
     }
 
+    function testMultipleFeeOutputsDifferentTokens() public {
+        OutputToken[] memory outputs = new OutputToken[](4);
+        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[1] = OutputToken(address(tokenOut), ONE, INTERFACE_FEE_RECIPIENT, true);
+        outputs[2] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[3] = OutputToken(address(tokenIn), ONE, INTERFACE_FEE_RECIPIENT, true);
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(0)),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: outputs,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory newOrder = fees.takeFees(order);
+
+        assertEq(fees.feesOwed(address(tokenOut), address(0)), ONE / 2);
+        assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE / 2);
+        assertEq(fees.feesOwed(address(tokenIn), address(0)), ONE / 2);
+        assertEq(fees.feesOwed(address(tokenIn), INTERFACE_FEE_RECIPIENT), ONE / 2);
+        assertEq(newOrder.outputs[0].recipient, RECIPIENT);
+        assertEq(newOrder.outputs[1].recipient, address(fees));
+        assertEq(newOrder.outputs[2].recipient, RECIPIENT);
+        assertEq(newOrder.outputs[3].recipient, address(fees));
+    }
+
+    function testMultipleFeeOutputsSameToken() public {
+        OutputToken[] memory outputs = new OutputToken[](4);
+        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[1] = OutputToken(address(tokenOut), ONE, INTERFACE_FEE_RECIPIENT, true);
+        outputs[2] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[3] = OutputToken(address(tokenOut), ONE, INTERFACE_FEE_RECIPIENT, true);
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(0)),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: outputs,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory newOrder = fees.takeFees(order);
+
+        assertEq(fees.feesOwed(address(tokenOut), address(0)), ONE);
+        assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE);
+        assertEq(newOrder.outputs[0].recipient, RECIPIENT);
+        assertEq(newOrder.outputs[1].recipient, address(fees));
+        assertEq(newOrder.outputs[2].recipient, RECIPIENT);
+        assertEq(newOrder.outputs[3].recipient, address(fees));
+    }
+
     function testNoFeeOutput() public {
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
@@ -78,6 +128,28 @@ contract IPSFeesTest is Test {
         assertEq(newOrder.outputs[0].amount, ONE);
     }
 
+    function testMultipleOutputsNoFeeOutput() public {
+        OutputToken[] memory outputs = new OutputToken[](3);
+        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[1] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[2] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(0)),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: outputs,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory newOrder = fees.takeFees(order);
+        // doesn't modify the one output
+        assertEq(newOrder.outputs.length, 3);
+        for (uint256 i = 0; i < 2; i++) {
+            assertEq(newOrder.outputs[1].recipient, RECIPIENT);
+            assertEq(newOrder.outputs[1].amount, ONE);
+        }
+    }
+
     function testClaimFees() public {
         fees.takeFees(createOrder(ONE));
         deal(address(tokenOut), address(fees), ONE);
@@ -85,13 +157,14 @@ contract IPSFeesTest is Test {
         uint256 preBalance = tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT));
         vm.prank(PROTOCOL_FEE_RECIPIENT);
         fees.claimFees(address(tokenOut));
-        assertEq(tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT)), preBalance + ONE / 2);
+        assertEq(tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT)), preBalance + ONE / 2 - 1);
         assertEq(fees.feesOwed(address(tokenOut), address(0)), 0);
 
         preBalance = tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT);
         vm.prank(INTERFACE_FEE_RECIPIENT);
         fees.claimFees(address(tokenOut));
-        assertEq(tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT), preBalance + ONE / 2);
+        // subtract one because the reactor keeps one wei for gas savings
+        assertEq(tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT), preBalance + ONE / 2 - 1);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 0);
     }
 
@@ -113,17 +186,16 @@ contract IPSFeesTest is Test {
         fees.takeFees(createOrder(ONE));
         deal(address(tokenOut), address(fees), ONE);
 
-        assertEq(tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT)), 0);
         vm.startPrank(PROTOCOL_FEE_RECIPIENT);
         fees.setProtocolFeeRecipient(address(0));
+        vm.expectRevert(IPSFees.NoClaimableFees.selector);
         fees.claimFees(address(tokenOut));
-        assertEq(tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT)), 0);
     }
 
     function createOrder(uint256 amount) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](2);
-        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT);
-        outputs[1] = OutputToken(address(tokenOut), amount, INTERFACE_FEE_RECIPIENT);
+        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
+        outputs[1] = OutputToken(address(tokenOut), amount, INTERFACE_FEE_RECIPIENT, true);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
             input: InputToken(address(tokenIn), ONE, ONE),

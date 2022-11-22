@@ -12,6 +12,7 @@ abstract contract IPSFees {
     using FixedPointMathLib for uint256;
 
     error InvalidFee();
+    error NoClaimableFees();
     error UnauthorizedFeeRecipient();
 
     /// @dev The number of basis points per whole
@@ -48,22 +49,30 @@ abstract contract IPSFees {
     /// @dev Note: the fee output is defined as the last output in the order
     /// @param order The encoded order to take fees from
     function _takeFees(ResolvedOrder memory order) internal {
-        // no fee output, nothing to do
-        if (order.outputs.length < 2) return;
+        for (uint256 i = 0; i < order.outputs.length;) {
+            OutputToken memory output = order.outputs[i];
 
-        OutputToken memory feeOutput = order.outputs[order.outputs.length - 1];
-        uint256 protocolFeeAmount = feeOutput.amount.mulDivDown(PROTOCOL_FEE_BPS, BPS);
+            if (output.isFeeOutput) {
+                uint256 protocolFeeAmount = output.amount.mulDivDown(PROTOCOL_FEE_BPS, BPS);
+                uint256 interfaceFeeAmount;
+                unchecked {
+                    interfaceFeeAmount = output.amount - protocolFeeAmount;
+                }
 
-        // protocol fees are accrued to PROTOCOL_FEE_RECIPIENT_STORED as sentinel for
-        // whatever address is currently set for protocolFeeRecipient
-        feesOwed[feeOutput.token][PROTOCOL_FEE_RECIPIENT_STORED] += protocolFeeAmount;
-        // rest goes to the original interface fee recipient
-        feesOwed[feeOutput.token][feeOutput.recipient] += feeOutput.amount - protocolFeeAmount;
+                // protocol fees are accrued to PROTOCOL_FEE_RECIPIENT_STORED as sentinel for
+                // whatever address is currently set for protocolFeeRecipient
+                feesOwed[output.token][PROTOCOL_FEE_RECIPIENT_STORED] += protocolFeeAmount;
+                // rest goes to the original interface fee recipient
+                feesOwed[output.token][output.recipient] += interfaceFeeAmount;
 
-        // TODO: consider / bench just adding protocol fee output to the order
-        //  and having filler send directly to both recipients
-        // we custody the fee and they can claim later
-        feeOutput.recipient = address(this);
+                // we custody the fee and they can claim later
+                output.recipient = address(this);
+            }
+
+            unchecked {
+                i++;
+            }
+        }
     }
 
     /// @notice claim accrued fees
@@ -71,8 +80,12 @@ abstract contract IPSFees {
     function claimFees(address token) external {
         address feeRecipient = msg.sender == protocolFeeRecipient ? PROTOCOL_FEE_RECIPIENT_STORED : msg.sender;
         uint256 amount = feesOwed[token][feeRecipient];
+        if (amount <= 1) revert NoClaimableFees();
+
         feesOwed[token][feeRecipient] = 0;
-        ERC20(token).safeTransfer(msg.sender, amount);
+        unchecked {
+            ERC20(token).safeTransfer(msg.sender, amount - 1);
+        }
     }
 
     /// @notice sets the protocol fee recipient

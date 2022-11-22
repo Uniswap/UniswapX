@@ -238,6 +238,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
             OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
         // fee output
         outputs[2].recipient = address(1);
+        outputs[2].isFeeOutput = true;
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
@@ -262,9 +263,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
 
         // assert fees properly handled
-        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
-        assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
-        assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
+        assertEq(tokenOut.balanceOf(address(reactor)), 0);
+        assertEq(reactor.feesOwed(address(tokenOut), address(1)), 0);
+        assertEq(reactor.feesOwed(address(tokenOut), address(0)), 0);
     }
 
     // Requested outputs = 2 & 1 (for a total output of 3), input = 2. With

@@ -418,8 +418,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), orders[2].info.nonce, maker2);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(maker), 5 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(maker2), 7 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
     }
 

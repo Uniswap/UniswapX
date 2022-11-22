@@ -41,7 +41,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             uint256 decayedOutput = _getDecayedAmount(
                 output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline
             );
-            outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
+            outputs[i] = OutputToken(output.token, decayedOutput, output.recipient, false);
         }
 
         uint256 decayedInput = _getDecayedAmount(
