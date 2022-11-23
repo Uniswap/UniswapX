@@ -7,5 +7,4 @@ out/
 /broadcast/*
 /broadcast/*/31337/
 
-remappings.txt
 .idea/
