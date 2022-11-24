@@ -82,7 +82,7 @@ abstract contract IPSFees {
         uint256 amount = feesOwed[token][feeRecipient];
         if (amount <= 1) revert NoClaimableFees();
 
-        feesOwed[token][feeRecipient] = 0;
+        feesOwed[token][feeRecipient] = 1;
         unchecked {
             ERC20(token).safeTransfer(msg.sender, amount - 1);
         }

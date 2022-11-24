@@ -158,14 +158,14 @@ contract IPSFeesTest is Test {
         vm.prank(PROTOCOL_FEE_RECIPIENT);
         fees.claimFees(address(tokenOut));
         assertEq(tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT)), preBalance + ONE / 2 - 1);
-        assertEq(fees.feesOwed(address(tokenOut), address(0)), 0);
+        assertEq(fees.feesOwed(address(tokenOut), address(0)), 1);
 
         preBalance = tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT);
         vm.prank(INTERFACE_FEE_RECIPIENT);
         fees.claimFees(address(tokenOut));
         // subtract one because the reactor keeps one wei for gas savings
         assertEq(tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT), preBalance + ONE / 2 - 1);
-        assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 0);
+        assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 1);
     }
 
     function testSetProtocolFeeRecipient() public {
