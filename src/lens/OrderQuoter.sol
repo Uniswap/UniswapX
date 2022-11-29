@@ -8,7 +8,7 @@ import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol"
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders
 contract OrderQuoter is IReactorCallback {
-    uint256 constant REACTOR_ADDRESS_OFFSET = 64;
+    uint256 constant REACTOR_OFFSET_OFFSET = 64;
 
     /// @notice Quote the given order, returning the ResolvedOrder object which defines
     /// the current input and output token amounts required to satisfy it
@@ -23,9 +23,14 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-    function getReactor(bytes memory order) private pure returns (address reactor) {
+    function getReactor(bytes memory order) private view returns (address reactor) {
+        uint256 reactorOffset;
         assembly {
-            reactor := mload(add(order, REACTOR_ADDRESS_OFFSET))
+            reactorOffset := mload(add(order, REACTOR_OFFSET_OFFSET))
+        }
+        reactorOffset += 64;
+        assembly {
+            reactor := mload(add(order, reactorOffset))
         }
     }
 
