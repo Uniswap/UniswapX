@@ -23,7 +23,10 @@ library OrderInfoLib {
         }
 
         console.log("info.validationContract", info.validationContract);
-        console.log("IValidationCallback(info.validationContract).validate(info)", IValidationCallback(info.validationContract).validate(info));
+        console.log(
+            "IValidationCallback(info.validationContract).validate(info)",
+            IValidationCallback(info.validationContract).validate(info)
+        );
 
         if (info.validationContract != address(0) && !IValidationCallback(info.validationContract).validate(info)) {
             console.log("prior to revert InvalidOrder");

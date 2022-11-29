@@ -5,32 +5,44 @@ import {Test} from "forge-std/Test.sol";
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 
 contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
-    using OrderInfoLib for OrderInfo;
+
+    MockOrderInfoLib private orderInfoLib;
+
+    function setUp() public {
+        orderInfoLib = new MockOrderInfoLib();
+    }
 
     function testInvalidReactor() public {
+        OrderInfo memory info = OrderInfoBuilder.init(address(0));
+
         vm.expectRevert(OrderInfoLib.InvalidReactor.selector);
-        OrderInfoBuilder.init(address(0)).validate();
+        orderInfoLib.validate(info);
     }
 
     function testDeadlinePassed() public {
-        vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
-        OrderInfoBuilder.init(address(this)).withDeadline(block.timestamp - 1).validate();
+        OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
+
+        vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
+        orderInfoLib.validate(info);
     }
 
     function testValid() public view {
-        OrderInfoBuilder.init(address(this)).validate();
+        orderInfoLib.validate(OrderInfoBuilder.init(address(orderInfoLib)));
     }
 
     function testValidationContractInvalid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
         vm.expectRevert(OrderInfoLib.InvalidOrder.selector);
-        OrderInfoBuilder.init(address(this)).withValidationContract(address(validationContract)).validate();
+        OrderInfo memory info =
+            OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
+        orderInfoLib.validate(info);
     }
 }
