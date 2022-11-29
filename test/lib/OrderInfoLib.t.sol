@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 
 contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -24,5 +25,12 @@ contract OrderInfoLibTest is Test {
 
     function testValid() public view {
         OrderInfoBuilder.init(address(this)).validate();
+    }
+
+    function testValidationContractInvalid() public {
+        MockValidationContract validationContract = new MockValidationContract();
+        validationContract.setValid(false);
+        vm.expectRevert(OrderInfoLib.InvalidOrder.selector);
+        OrderInfoBuilder.init(address(this)).withValidationContract(address(validationContract)).validate();
     }
 }
