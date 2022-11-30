@@ -45,4 +45,12 @@ contract OrderInfoLibTest is Test {
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
         orderInfoLib.validate(info);
     }
+
+    function testValidationContractValid() public {
+        MockValidationContract validationContract = new MockValidationContract();
+        validationContract.setValid(true);
+        OrderInfo memory info =
+            OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
+        orderInfoLib.validate(info);
+    }
 }
