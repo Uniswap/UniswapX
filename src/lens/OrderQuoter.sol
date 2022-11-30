@@ -23,7 +23,7 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-    function getReactor(bytes memory order) private view returns (address reactor) {
+    function getReactor(bytes memory order) private pure returns (address reactor) {
         uint256 reactorOffset;
         assembly {
             reactorOffset := mload(add(order, REACTOR_OFFSET_OFFSET))
