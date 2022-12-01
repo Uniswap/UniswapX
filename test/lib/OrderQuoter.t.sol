@@ -69,6 +69,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
@@ -89,6 +90,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
@@ -109,6 +111,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE * 9 / 10, ONE),
             outputs: dutchOutputs
         });
@@ -156,6 +159,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp + 1000,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });

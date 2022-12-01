@@ -41,6 +41,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -63,6 +64,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -84,6 +86,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -103,6 +106,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             block.timestamp,
+            block.timestamp + 100,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -120,6 +124,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -139,6 +144,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130541,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -152,6 +158,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
+            1659130540,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -169,6 +176,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
+            endTime,
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
@@ -187,6 +195,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
+            1659130540,
             DutchInput(address(0), 100, 110),
             dutchOutputs
         );
@@ -201,6 +210,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
+            1659130540,
             DutchInput(address(0), 110, 100),
             dutchOutputs
         );
@@ -215,6 +225,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
+            1659130540,
             DutchInput(address(0), 100, 100),
             dutchOutputs
         );
@@ -231,6 +242,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             mockNow + 1,
+            1659130540,
             DutchInput(address(0), 2000, 2500),
             dutchOutputs
         );
@@ -248,6 +260,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
         DutchLimitOrder memory dlo = DutchLimitOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659100641),
             1659029740,
+            1659100641,
             DutchInput(address(0), 2000, 2500),
             dutchOutputs
         );
@@ -292,6 +305,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -323,6 +337,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -331,6 +346,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
@@ -372,6 +388,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
         });
@@ -381,6 +398,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
         });
@@ -398,6 +416,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 2
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
         });
@@ -433,6 +452,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         orders[0] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -441,6 +461,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
                 1
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
