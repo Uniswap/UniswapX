@@ -20,6 +20,7 @@ import {
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import "forge-std/console.sol";
 
 contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     using OrderInfoBuilder for OrderInfo;
@@ -104,10 +105,13 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     }
 
     function testQuoteDutchOrderAfterInputDecay() public {
+        console.log("block.timestamp BEFORE WARP", block.timestamp);
         vm.warp(block.timestamp + 100);
+        console.log("block.timestamp AFTER WARP", block.timestamp);
         tokenIn.forceApprove(maker, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
+        console.log("block.timestamp BEFORE `order`", block.timestamp);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withOfferer(address(maker)),
             startTime: block.timestamp - 100,

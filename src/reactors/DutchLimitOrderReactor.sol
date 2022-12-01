@@ -6,6 +6,7 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import "forge-std/console.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
@@ -37,7 +38,7 @@ contract DutchLimitOrderReactor is BaseReactor {
                 revert IncorrectAmounts();
             }
             uint256 decayedOutput = _getDecayedAmount(
-                output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.info.deadline
+                output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
             );
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
         }
@@ -46,7 +47,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             dutchLimitOrder.input.startAmount,
             dutchLimitOrder.input.endAmount,
             dutchLimitOrder.startTime,
-            dutchLimitOrder.info.deadline
+            dutchLimitOrder.endTime
         );
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
@@ -102,6 +103,12 @@ contract DutchLimitOrderReactor is BaseReactor {
         view
         returns (uint256 decayedAmount)
     {
+        console.log("inside _getDecayedAmount():");
+        console.log("block.timestamp", block.timestamp);
+        console.log("startAmount", startAmount);
+        console.log("endAmount", endAmount);
+        console.log("startTime", startTime);
+        console.log("endTime", endTime);
         if (endTime == block.timestamp || startAmount == endAmount) {
             decayedAmount = endAmount;
         } else if (startTime >= block.timestamp) {
@@ -110,11 +117,14 @@ contract DutchLimitOrderReactor is BaseReactor {
             unchecked {
                 uint256 elapsed = block.timestamp - startTime;
                 uint256 duration = endTime - startTime;
+                console.log("elapsed", elapsed);
+                console.log("duration", duration);
                 if (endAmount < startAmount) {
                     decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
                 } else {
                     decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
                 }
+                console.log("decayedAmount", decayedAmount);
             }
         }
     }
