@@ -11,7 +11,9 @@ contract LimitOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using LimitOrderLib for LimitOrder;
 
-    constructor(address _permit2) BaseReactor(_permit2) {}
+    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
+        BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
+    {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)

@@ -15,6 +15,9 @@ import {MockDirectTaker} from "../util/mock/users/MockDirectTaker.sol";
 contract DirectTakerExecutorTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
+
     uint256 takerPrivateKey;
     uint256 makerPrivateKey;
     MockERC20 tokenIn;
@@ -43,7 +46,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
         // Instantiate relevant contracts
         directTakerExecutor = new DirectTakerExecutor(taker);
         permit2 = new Permit2();
-        dloReactor = new DutchLimitOrderReactor(address(permit2));
+        dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals
         tokenOut.forceApprove(taker, address(directTakerExecutor), type(uint256).max);

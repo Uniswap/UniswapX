@@ -8,17 +8,20 @@ import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
+import {IPSFees} from "../base/IPSFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
-abstract contract BaseReactor is IReactor, ReactorEvents {
+abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using OrderInfoLib for OrderInfo;
 
     ISignatureTransfer public immutable permit2;
 
-    constructor(address _permit2) {
+    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
+        IPSFees(_protocolFeeBps, _protocolFeeRecipient)
+    {
         permit2 = ISignatureTransfer(_permit2);
     }
 
@@ -47,6 +50,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
+                _takeFees(order);
                 order.info.validate();
                 transferInputTokens(order, fillContract);
             }
