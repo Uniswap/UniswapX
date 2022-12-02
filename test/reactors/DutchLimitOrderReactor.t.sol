@@ -222,6 +222,25 @@ contract DutchLimitOrderReactorValidationTest is Test {
         assertEq(resolvedOrder.input.token, address(0));
     }
 
+    function testOutputDecaysCorrectlyWhenEndtimeEqNowLtDeadline() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
+            50,
+            100,
+            DutchInput(address(0), 0, 0),
+            dutchOutputs
+        );
+        bytes memory sig = hex"1234";
+        vm.warp(100);
+        ResolvedOrder memory resolvedOrder = reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.outputs[0].amount, 900);
+        assertEq(resolvedOrder.input.amount, 0);
+        assertEq(resolvedOrder.input.token, address(0));
+    }
+
     function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
         public
     {
