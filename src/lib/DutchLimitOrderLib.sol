@@ -13,6 +13,8 @@ struct DutchOutput {
     uint256 endAmount;
     // The address who must receive the tokens to satisfy the order
     address recipient;
+    // True if this output represents a fee
+    bool isFeeOutput;
 }
 
 /// @dev An amount of input tokens that increases linearly over time

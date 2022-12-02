@@ -17,7 +17,9 @@ contract DutchLimitOrderReactor is BaseReactor {
     error InputAndOutputDecay();
     error IncorrectAmounts();
 
-    constructor(address _permit2) BaseReactor(_permit2) {}
+    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
+        BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
+    {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder memory signedOrder)
@@ -39,7 +41,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             uint256 decayedOutput = _getDecayedAmount(
                 output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
             );
-            outputs[i] = OutputToken(output.token, decayedOutput, output.recipient);
+            outputs[i] = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
         }
 
         uint256 decayedInput = _getDecayedAmount(
