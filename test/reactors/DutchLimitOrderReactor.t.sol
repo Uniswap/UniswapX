@@ -169,6 +169,21 @@ contract DutchLimitOrderReactorValidationTest is Test {
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
+    function testValidateEndTimeAfterDeadline() public {
+        vm.expectRevert(DutchLimitOrderReactor.DeadlineBeforeEndTime.selector);
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
+        DutchLimitOrder memory dlo = DutchLimitOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(100),
+            50,
+            101,
+            DutchInput(address(0), 0, 0),
+            dutchOutputs
+        );
+        bytes memory sig = hex"1234";
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+    }
+
     function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
         public
     {
