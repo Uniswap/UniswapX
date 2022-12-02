@@ -34,6 +34,7 @@ struct OutputToken {
     address token;
     uint256 amount;
     address recipient;
+    bool isFeeOutput;
 }
 
 /// @dev generic concrete order that specifies exact tokens which need to be sent and received

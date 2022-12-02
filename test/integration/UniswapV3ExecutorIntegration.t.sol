@@ -14,9 +14,12 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
-    address weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    address swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address constant swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+
     address maker;
     uint256 makerPrivateKey;
     UniswapV3Executor uniswapV3Executor;
@@ -29,7 +32,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
         uniswapV3Executor = new UniswapV3Executor(swapRouter02, address(this));
         permit2 = new Permit2();
-        dloReactor = new DutchLimitOrderReactor(address(permit2));
+        dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Maker max approves permit post
         vm.prank(maker);
