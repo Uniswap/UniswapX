@@ -166,7 +166,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStart.selector);
+        vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStartTime.selector);
         quoter.quote(abi.encode(order), sig);
     }
 }
