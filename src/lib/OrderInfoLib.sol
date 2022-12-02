@@ -7,7 +7,7 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 library OrderInfoLib {
     error InvalidReactor();
     error DeadlinePassed();
-    error InvalidOrder();
+    error ValidationFailed();
 
     /// @notice Validates an order, reverting if invalid
     /// @param info The order to validate
@@ -21,7 +21,7 @@ library OrderInfoLib {
         }
 
         if (info.validationContract != address(0) && !IValidationCallback(info.validationContract).validate(info)) {
-            revert InvalidOrder();
+            revert ValidationFailed();
         }
     }
 }

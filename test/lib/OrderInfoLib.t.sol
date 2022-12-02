@@ -40,7 +40,7 @@ contract OrderInfoLibTest is Test {
     function testValidationContractInvalid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
-        vm.expectRevert(OrderInfoLib.InvalidOrder.selector);
+        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
         orderInfoLib.validate(info);
