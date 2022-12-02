@@ -26,7 +26,10 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-    function getReactor(bytes memory order) private pure returns (address reactor) {
+    /// @notice Return the reactor of a given order (abi.encoded bytes).
+    /// @param order abi-encoded order, including `reactor` as the first encoded struct member
+    /// @return reactor
+    function getReactor(bytes memory order) public pure returns (address reactor) {
         assembly {
             let reactorOffset := mload(add(order, ORDER_INFO_OFFSET))
             reactor := mload(add(order, add(reactorOffset, REACTOR_OFFSET)))
