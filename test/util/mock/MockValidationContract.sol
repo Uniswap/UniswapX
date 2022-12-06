@@ -1,7 +1,7 @@
 pragma solidity ^0.8.16;
 
 import {IValidationCallback} from "../../../src/interfaces/IValidationCallback.sol";
-import {OrderInfo} from "../../../src/base/ReactorStructs.sol";
+import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 
 contract MockValidationContract is IValidationCallback {
     bool public valid;
@@ -10,7 +10,7 @@ contract MockValidationContract is IValidationCallback {
         valid = _valid;
     }
 
-    function validate(OrderInfo memory) external view returns (bool) {
+    function validate(OrderInfo memory, address filler, ResolvedOrder memory resolvedOrder) external view returns (bool) {
         return valid;
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
@@ -12,6 +12,7 @@ contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
     MockOrderInfoLib private orderInfoLib;
+    ResolvedOrder private mockResolvedOrder;
 
     function setUp() public {
         orderInfoLib = new MockOrderInfoLib();
@@ -21,7 +22,7 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info = OrderInfoBuilder.init(address(0));
 
         vm.expectRevert(OrderInfoLib.InvalidReactor.selector);
-        orderInfoLib.validate(info);
+        orderInfoLib.validate(info, address(0), mockResolvedOrder);
     }
 
     function testDeadlinePassed() public {
@@ -30,11 +31,11 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
 
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
-        orderInfoLib.validate(info);
+        orderInfoLib.validate(info, address(0), mockResolvedOrder);
     }
 
     function testValid() public view {
-        orderInfoLib.validate(OrderInfoBuilder.init(address(orderInfoLib)));
+        orderInfoLib.validate(OrderInfoBuilder.init(address(orderInfoLib)), address(0), mockResolvedOrder);
     }
 
     function testValidationContractInvalid() public {
@@ -43,7 +44,7 @@ contract OrderInfoLibTest is Test {
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(info);
+        orderInfoLib.validate(info, address(0), mockResolvedOrder);
     }
 
     function testValidationContractValid() public {
@@ -51,6 +52,6 @@ contract OrderInfoLibTest is Test {
         validationContract.setValid(true);
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(info);
+        orderInfoLib.validate(info, address(0), mockResolvedOrder);
     }
 }
