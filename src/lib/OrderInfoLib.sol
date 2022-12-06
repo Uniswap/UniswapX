@@ -20,7 +20,10 @@ library OrderInfoLib {
             revert DeadlinePassed();
         }
 
-        if (info.validationContract != address(0) && !IValidationCallback(info.validationContract).validate(info, filler, resolvedOrder)) {
+        if (
+            info.validationContract != address(0)
+                && !IValidationCallback(info.validationContract).validate(info, filler, resolvedOrder)
+        ) {
             revert ValidationFailed();
         }
     }
