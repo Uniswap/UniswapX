@@ -8,10 +8,7 @@ import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol"
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders
 contract OrderQuoter is IReactorCallback {
-    // OrderInfo struct is dynamic so this is the offset to the tail pointer
     uint256 constant ORDER_INFO_OFFSET = 64;
-    // Offset to reactor field in OrderInfo struct
-    uint256 constant REACTOR_OFFSET = 64;
 
     /// @notice Quote the given order, returning the ResolvedOrder object which defines
     /// the current input and output token amounts required to satisfy it
@@ -31,8 +28,8 @@ contract OrderQuoter is IReactorCallback {
     /// @return reactor
     function getReactor(bytes memory order) public pure returns (address reactor) {
         assembly {
-            let reactorOffset := mload(add(order, ORDER_INFO_OFFSET))
-            reactor := mload(add(order, add(reactorOffset, REACTOR_OFFSET)))
+            let orderInfoOffsetPointer := add(order, ORDER_INFO_OFFSET)
+            reactor := mload(add(orderInfoOffsetPointer, mload(orderInfoOffsetPointer)))
         }
     }
 
