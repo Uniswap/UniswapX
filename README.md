@@ -56,7 +56,7 @@ FOUNDRY_PROFILE=integration forge test
 
 Orders created by Uniswap Labs products will be stored in a private Order Pool. Fillers can query for open orders in this pool with the following endpoint:
 
-**API Docs:**  [https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs)
+**API Docs:**  [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs)
 
 ## Useful Integration Links
 
