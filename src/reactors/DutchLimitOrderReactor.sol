@@ -73,8 +73,8 @@ contract DutchLimitOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
-    /// - deadline must be greater or equal than endTime
-    /// - endTime must be greater than startTime
+    /// - deadline must be greater than or equal than endTime
+    /// - endTime must be greater than or equal to startTime
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid

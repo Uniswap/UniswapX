@@ -32,7 +32,7 @@ struct DutchLimitOrder {
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
     uint256 startTime;
-    // The time at which the DutchOutputs start decaying
+    // The time at which price becomes static
     uint256 endTime;
     // The tokens that the offerer will provide when settling the order
     DutchInput input;
