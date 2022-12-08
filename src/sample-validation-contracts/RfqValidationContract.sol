@@ -5,7 +5,6 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
 
 contract RfqValidationContract is IValidationCallback {
-    error InvalidFiller();
 
     constructor() {}
 

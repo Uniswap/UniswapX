@@ -7,6 +7,7 @@ import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
+import {RfqValidationContract} from "../../src/sample-validation-contracts/RfqValidationContract.sol";
 
 contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -53,5 +54,15 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
         orderInfoLib.validate(info, address(0), mockResolvedOrder);
+    }
+
+    function testRfqValidationContractInvalidFiller() public {
+        vm.warp(900);
+        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
+            address(rfqValidationContract)
+        ).withValidationData(abi.encode(address(0x123), 1000));
+        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
 }
