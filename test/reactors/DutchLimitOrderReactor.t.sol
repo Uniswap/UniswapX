@@ -522,6 +522,7 @@ contract RfqValidationContractTest is Test, PermitSignature {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
+    // The filler is incorrectly address(0x123)
     function testRfqValidationFails() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
@@ -547,5 +548,36 @@ contract RfqValidationContractTest is Test, PermitSignature {
             address(fillContract),
             bytes("")
         );
+    }
+
+    // Ensure a different filler (not the one encoded in validationData) is able to execute after last exclusive
+    // timestamp
+    function testRfqValidationSucceedsPastExclusiveTimestamp() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        vm.warp(1000);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                abi.encode(address(this), block.timestamp - 50)
+                ),
+            startTime: block.timestamp,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.prank(address(0x123));
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 }
