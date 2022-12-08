@@ -20,6 +20,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
+import {RfqValidationContract} from "../../src/sample-validation-contracts/RfqValidationContract.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test {
@@ -461,5 +462,62 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             bytes memory sig = signOrder(makerPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
+    }
+}
+
+// This suite of tests test RfqValidationContract
+contract RfqValidationContractTest is Test, PermitSignature {
+    using OrderInfoBuilder for OrderInfo;
+    using DutchLimitOrderLib for DutchLimitOrder;
+
+    address constant PROTOCOL_FEE_RECIPIENT = address(1);
+    uint256 constant PROTOCOL_FEE_BPS = 5000;
+
+    MockFillContract fillContract;
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+    uint256 makerPrivateKey;
+    address maker;
+    DutchLimitOrderReactor reactor;
+    Permit2 permit2;
+
+    function setUp() public {
+        fillContract = new MockFillContract();
+        tokenIn = new MockERC20("Input", "IN", 18);
+        tokenOut = new MockERC20("Output", "OUT", 18);
+        makerPrivateKey = 0x12341234;
+        maker = vm.addr(makerPrivateKey);
+        permit2 = new Permit2();
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+    }
+
+    // Test RFQ validation contract succeeds
+    function testRfqValidationSucceeds() public {
+        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                abi.encode(address(this), block.timestamp + 50)
+                ),
+            startTime: block.timestamp,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 }
