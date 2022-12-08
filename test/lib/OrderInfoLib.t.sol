@@ -65,4 +65,15 @@ contract OrderInfoLibTest is Test {
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
+
+    // The filler is not the same filler as the filler encoded in validationData, but we are past the last
+    // exclusive timestamp, so it will not revert.
+    function testRfqValidationContractInvalidFillerPastTimestamp() public {
+        vm.warp(900);
+        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
+            address(rfqValidationContract)
+        ).withValidationData(abi.encode(address(0x123), 888));
+        orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
+    }
 }
