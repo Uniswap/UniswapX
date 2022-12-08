@@ -76,4 +76,14 @@ contract OrderInfoLibTest is Test {
         ).withValidationData(abi.encode(address(0x123), 888));
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
+
+    // Kind of a pointless test, but ensure the specified filler can fill after last exclusive timestamp still.
+    function testRfqValidationContractValidFillerPastTimestamp() public {
+        vm.warp(900);
+        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
+            address(rfqValidationContract)
+        ).withValidationData(abi.encode(address(0x123), 1000));
+        orderInfoLib.validate(info, address(0x123), mockResolvedOrder);
+    }
 }
