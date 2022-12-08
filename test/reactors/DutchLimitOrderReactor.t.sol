@@ -21,6 +21,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {RfqValidationContract} from "../../src/sample-validation-contracts/RfqValidationContract.sol";
+import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test {
@@ -480,6 +481,7 @@ contract RfqValidationContractTest is Test, PermitSignature {
     address maker;
     DutchLimitOrderReactor reactor;
     Permit2 permit2;
+    RfqValidationContract rfqValidationContract;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -489,12 +491,11 @@ contract RfqValidationContractTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         permit2 = new Permit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        rfqValidationContract = new RfqValidationContract();
     }
 
     // Test RFQ validation contract succeeds
     function testRfqValidationSucceeds() public {
-        RfqValidationContract rfqValidationContract = new RfqValidationContract();
-
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -519,5 +520,32 @@ contract RfqValidationContractTest is Test, PermitSignature {
         );
         assertEq(tokenOut.balanceOf(maker), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testRfqValidationFails() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                abi.encode(address(this), block.timestamp + 50)
+                ),
+            startTime: block.timestamp,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.prank(address(0x123));
+        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
     }
 }
