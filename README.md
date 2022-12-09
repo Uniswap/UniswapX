@@ -56,15 +56,15 @@ FOUNDRY_PROFILE=integration forge test
 
 Orders created by Uniswap Labs products will be stored in a private Order Pool. Fillers can query for open orders in this pool with the following endpoint:
 
-**API Docs:**  [https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs)
+**API Docs:**  [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs)
 
 ## Useful Integration Links
 
 - Protocol Source: https://github.com/Uniswap/gouda
     - Example executor contracts: [https://github.com/Uniswap/gouda/tree/main/src/sample-executors](https://github.com/Uniswap/gouda/tree/main/src/sample-executors)
 - Example end to end filler bot: https://github.com/Uniswap/gouda-bot
-- Order API: [https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders](https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders?limit=100)
-- Swagger: [https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://xmj8fkst53.execute-api.us-east-2.amazonaws.com/prod/api-docs)
+- Order API: [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders?limit=100](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders?limit=100)
+- Swagger: [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs)
 - Smart Contract Addresses:
 
 
