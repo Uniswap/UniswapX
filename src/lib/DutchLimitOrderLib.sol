@@ -32,8 +32,8 @@ struct DutchLimitOrder {
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
     uint256 startTime;
-    // endTime is implicitly info.deadline
-
+    // The time at which price becomes static
+    uint256 endTime;
     // The tokens that the offerer will provide when settling the order
     DutchInput input;
     // The tokens that must be received to satisfy the order
@@ -53,6 +53,7 @@ library DutchLimitOrderLib {
         "uint256 nonce,",
         "uint256 deadline,",
         "uint256 startTime,",
+        "uint256 endTime,",
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
@@ -91,6 +92,7 @@ library DutchLimitOrderLib {
                 order.info.nonce,
                 order.info.deadline,
                 order.startTime,
+                order.endTime,
                 order.input.token,
                 order.input.startAmount,
                 order.input.endAmount,
