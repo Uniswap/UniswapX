@@ -466,7 +466,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     }
 }
 
-// This suite of tests test RfqValidationContract
+// This suite of tests test ExclusiveFillerValidation
 contract ExclusiveFillerValidationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
@@ -481,7 +481,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
     address maker;
     DutchLimitOrderReactor reactor;
     Permit2 permit2;
-    ExclusiveFillerValidation rfqValidationContract;
+    ExclusiveFillerValidation exclusiveFillerValidation;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -491,11 +491,11 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         permit2 = new Permit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
-        rfqValidationContract = new ExclusiveFillerValidation();
+        exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
 
-    // Test RFQ validation contract succeeds
-    function testRfqValidationSucceeds() public {
+    // Test exclusive filler validation contract succeeds
+    function testExclusiveFillerSucceeds() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -505,7 +505,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
@@ -523,7 +523,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
     }
 
     // The filler is incorrectly address(0x123)
-    function testRfqValidationFails() public {
+    function testExclusiveFillerFails() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -533,7 +533,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
@@ -552,7 +552,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
 
     // Ensure a different filler (not the one encoded in validationData) is able to execute after last exclusive
     // timestamp
-    function testRfqValidationSucceedsPastExclusiveTimestamp() public {
+    function testExclusiveFillerSucceedsPastExclusiveTimestamp() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -563,7 +563,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(rfqValidationContract)).withValidationData(
+                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp - 50)
                 ),
             startTime: block.timestamp,

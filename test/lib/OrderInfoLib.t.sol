@@ -58,9 +58,9 @@ contract OrderInfoLibTest is Test {
 
     function testExclusiveFillerValidationInvalidFiller() public {
         vm.warp(900);
-        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
-            address(rfqValidationContract)
+            address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 1000));
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
@@ -70,9 +70,9 @@ contract OrderInfoLibTest is Test {
     // exclusive timestamp, so it will not revert.
     function testExclusiveFillerValidationInvalidFillerPastTimestamp() public {
         vm.warp(900);
-        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
-            address(rfqValidationContract)
+            address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 888));
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
@@ -80,9 +80,9 @@ contract OrderInfoLibTest is Test {
     // Kind of a pointless test, but ensure the specified filler can fill after last exclusive timestamp still.
     function testExclusiveFillerValidationValidFillerPastTimestamp() public {
         vm.warp(900);
-        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
-            address(rfqValidationContract)
+            address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 1000));
         orderInfoLib.validate(info, address(0x123), mockResolvedOrder);
     }
