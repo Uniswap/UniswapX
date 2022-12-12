@@ -187,6 +187,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(0x2345)),
             startTime: block.timestamp + 1000,
+            endTime: block.timestamp + 1100,
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
