@@ -20,7 +20,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {RfqValidationContract} from "../../src/sample-validation-contracts/RfqValidationContract.sol";
+import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 
 // This suite of tests test validation and resolves.
@@ -467,7 +467,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 }
 
 // This suite of tests test RfqValidationContract
-contract RfqValidationContractTest is Test, PermitSignature {
+contract ExclusiveFillerValidationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
@@ -481,7 +481,7 @@ contract RfqValidationContractTest is Test, PermitSignature {
     address maker;
     DutchLimitOrderReactor reactor;
     Permit2 permit2;
-    RfqValidationContract rfqValidationContract;
+    ExclusiveFillerValidation rfqValidationContract;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -491,7 +491,7 @@ contract RfqValidationContractTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         permit2 = new Permit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
-        rfqValidationContract = new RfqValidationContract();
+        rfqValidationContract = new ExclusiveFillerValidation();
     }
 
     // Test RFQ validation contract succeeds

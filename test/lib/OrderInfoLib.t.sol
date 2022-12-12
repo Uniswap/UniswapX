@@ -7,7 +7,7 @@ import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
-import {RfqValidationContract} from "../../src/sample-validation-contracts/RfqValidationContract.sol";
+import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 
 contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -56,9 +56,9 @@ contract OrderInfoLibTest is Test {
         orderInfoLib.validate(info, address(0), mockResolvedOrder);
     }
 
-    function testRfqValidationContractInvalidFiller() public {
+    function testExclusiveFillerValidationInvalidFiller() public {
         vm.warp(900);
-        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(rfqValidationContract)
         ).withValidationData(abi.encode(address(0x123), 1000));
@@ -68,9 +68,9 @@ contract OrderInfoLibTest is Test {
 
     // The filler is not the same filler as the filler encoded in validationData, but we are past the last
     // exclusive timestamp, so it will not revert.
-    function testRfqValidationContractInvalidFillerPastTimestamp() public {
+    function testExclusiveFillerValidationInvalidFillerPastTimestamp() public {
         vm.warp(900);
-        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(rfqValidationContract)
         ).withValidationData(abi.encode(address(0x123), 888));
@@ -78,9 +78,9 @@ contract OrderInfoLibTest is Test {
     }
 
     // Kind of a pointless test, but ensure the specified filler can fill after last exclusive timestamp still.
-    function testRfqValidationContractValidFillerPastTimestamp() public {
+    function testExclusiveFillerValidationValidFillerPastTimestamp() public {
         vm.warp(900);
-        RfqValidationContract rfqValidationContract = new RfqValidationContract();
+        ExclusiveFillerValidation rfqValidationContract = new ExclusiveFillerValidation();
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(rfqValidationContract)
         ).withValidationData(abi.encode(address(0x123), 1000));
