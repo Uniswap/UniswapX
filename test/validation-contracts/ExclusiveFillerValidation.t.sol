@@ -72,7 +72,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
     }
 
     // The filler is incorrectly address(0x123)
-    function testExclusiveFillerFails() public {
+    function testNonExclusiveFillerFails() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -101,7 +101,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
 
     // Ensure a different filler (not the one encoded in validationData) is able to execute after last exclusive
     // timestamp
-    function testExclusiveFillerSucceedsPastExclusiveTimestamp() public {
+    function testNonExclusiveFillerSucceedsPastExclusiveTimestamp() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -128,5 +128,33 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
         );
         assertEq(tokenOut.balanceOf(maker), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    // Test non exclusive filler cannot fill exactly on last exclusive timestamp
+    function testNonExclusiveFillerFailsOnLastExclusiveTimestamp() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                abi.encode(address(this), block.timestamp)
+                ),
+            startTime: block.timestamp,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.prank(address(0x123));
+        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
     }
 }
