@@ -20,7 +20,6 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 
 // This suite of tests test validation and resolves.
