@@ -12,7 +12,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 
-contract ExclusiveFillerValidationTest is Test, PermitSignature {
+contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
@@ -58,11 +58,15 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
+        // Below snapshot can be compared to `DutchExecuteSingle.snap` to compare an execute with and without
+        // exclusive filler validation
+        snapStart("testExclusiveFillerSucceeds");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
+        snapEnd();
         assertEq(tokenOut.balanceOf(maker), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
