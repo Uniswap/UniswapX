@@ -38,6 +38,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(deployment.reactor)).withOfferer(address(maker)),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(deployment.tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
