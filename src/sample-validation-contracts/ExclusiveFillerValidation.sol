@@ -13,6 +13,6 @@ contract ExclusiveFillerValidation is IValidationCallback {
         returns (bool)
     {
         (address exclusiveFiller, uint256 lastExclusiveTimestamp) = abi.decode(order.validationData, (address, uint256));
-        return lastExclusiveTimestamp < block.timestamp || filler == exclusiveFiller;
+        return lastExclusiveTimestamp <= block.timestamp || filler == exclusiveFiller;
     }
 }
