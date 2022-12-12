@@ -54,6 +54,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -86,6 +87,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -116,6 +118,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
                 abi.encode(address(this), block.timestamp - 50)
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -145,6 +148,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
                 abi.encode(address(this), block.timestamp)
                 ),
             startTime: block.timestamp,
+            endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
