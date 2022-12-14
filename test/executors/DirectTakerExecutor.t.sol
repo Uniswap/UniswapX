@@ -6,13 +6,14 @@ import {DirectTakerExecutor} from "../../src/sample-executors/DirectTakerExecuto
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {Permit2} from "permit2/Permit2.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MockDirectTaker} from "../util/mock/users/MockDirectTaker.sol";
 
-contract DirectTakerExecutorTest is Test, PermitSignature {
+contract DirectTakerExecutorTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
@@ -26,7 +27,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
     address maker;
     DirectTakerExecutor directTakerExecutor;
     DutchLimitOrderReactor dloReactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     uint256 constant ONE = 10 ** 18;
 
@@ -45,7 +46,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature {
 
         // Instantiate relevant contracts
         directTakerExecutor = new DirectTakerExecutor(taker);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals
