@@ -16,13 +16,14 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
-import {Permit2} from "permit2/Permit2.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
-contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
+contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 takerPrivateKey;
@@ -34,7 +35,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
     UniswapV3Executor uniswapV3Executor;
     MockSwapRouter mockSwapRouter;
     DutchLimitOrderReactor reactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
@@ -61,7 +62,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot {
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
         uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals
