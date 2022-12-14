@@ -148,7 +148,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         MockERC20 tokenMid = new MockERC20("Middle", "MID", 18);
 
         vm.recordLogs();
-        snapStart("DutchUniswapV3ExecuteSingle");
+        snapStart("DutchUniswapV3ExecuteSingleTwoHop");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
