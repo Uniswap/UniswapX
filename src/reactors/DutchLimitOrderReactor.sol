@@ -34,7 +34,8 @@ contract DutchLimitOrderReactor is BaseReactor {
         _validateOrder(dutchLimitOrder);
 
         OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength;) {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             if (output.startAmount < output.endAmount) {
                 revert IncorrectAmounts();
@@ -43,6 +44,9 @@ contract DutchLimitOrderReactor is BaseReactor {
                 output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
             );
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
+            unchecked {
+                i++;
+            }
         }
 
         uint256 decayedInput = _getDecayedAmount(
