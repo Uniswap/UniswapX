@@ -1,6 +1,6 @@
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {Permit2} from "permit2/Permit2.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -11,8 +11,9 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
 
-contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
+contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
@@ -25,7 +26,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
     uint256 makerPrivateKey;
     address maker;
     DutchLimitOrderReactor reactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
     ExclusiveFillerValidation exclusiveFillerValidation;
 
     function setUp() public {
@@ -34,7 +35,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot {
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
