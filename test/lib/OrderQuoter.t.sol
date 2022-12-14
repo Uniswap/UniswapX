@@ -2,11 +2,12 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {Permit2} from "permit2/Permit2.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -21,7 +22,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
+contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
@@ -35,7 +36,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
     address maker;
     LimitOrderReactor limitOrderReactor;
     DutchLimitOrderReactor dutchOrderReactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     function setUp() public {
         quoter = new OrderQuoter();
@@ -44,7 +45,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents {
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         tokenIn.mint(address(maker), ONE);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
