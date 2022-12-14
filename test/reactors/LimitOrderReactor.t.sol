@@ -2,13 +2,12 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {Permit2} from "permit2/Permit2.sol";
-import {SignatureVerification} from "permit2/libraries/SignatureVerification.sol";
-import {InvalidNonce} from "permit2/PermitErrors.sol";
 import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
@@ -16,9 +15,12 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
+contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using LimitOrderLib for LimitOrder;
+
+    error InvalidNonce();
+    error InvalidSigner();
 
     uint256 constant ONE = 10 ** 18;
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
@@ -31,7 +33,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
     uint256 makerPrivateKey;
     address maker;
     LimitOrderReactor reactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -41,7 +43,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         maker = vm.addr(makerPrivateKey);
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
@@ -108,7 +110,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             makerPrivateKey, address(permit2), order.info, address(tokenIn), ONE / 2, LIMIT_ORDER_TYPE_HASH, orderHash
         );
 
-        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
+        vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -131,7 +133,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
             orderHash
         );
 
-        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
+        vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
@@ -147,7 +149,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents {
         bytes memory sig = signOrder(
             makerPrivateKey, address(permit2), order.info, address(tokenOut), ONE, LIMIT_ORDER_TYPE_HASH, orderHash
         );
-        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
+        vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 }

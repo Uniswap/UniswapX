@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {ISignatureTransfer} from "permit2/interfaces/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "../external/ISignatureTransfer.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
