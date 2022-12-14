@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
@@ -6,12 +7,13 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {Permit2} from "permit2/Permit2.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 
 // This set of tests will use a mainnet fork to test integration.
-contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
+contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
@@ -23,7 +25,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
     address maker;
     uint256 makerPrivateKey;
     UniswapV3Executor uniswapV3Executor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
     DutchLimitOrderReactor dloReactor;
 
     function setUp() public {
@@ -31,7 +33,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
         uniswapV3Executor = new UniswapV3Executor(swapRouter02, address(this));
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Maker max approves permit post

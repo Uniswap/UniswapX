@@ -3,7 +3,8 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {Permit2} from "permit2/Permit2.sol";
+import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
@@ -22,17 +23,17 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 
 // This suite of tests test validation and resolves.
-contract DutchLimitOrderReactorValidationTest is Test {
+contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockDutchLimitOrderReactor reactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     function setUp() public {
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         reactor = new MockDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
@@ -384,7 +385,7 @@ contract DutchLimitOrderReactorValidationTest is Test {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot {
+contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
@@ -397,7 +398,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     uint256 makerPrivateKey;
     address maker;
     DutchLimitOrderReactor reactor;
-    Permit2 permit2;
+    ISignatureTransfer permit2;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -405,7 +406,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
-        permit2 = new Permit2();
+        permit2 = deployPermit2();
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
