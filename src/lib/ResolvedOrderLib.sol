@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {OrderInfo, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
-library OrderInfoLib {
+library ResolvedOrderLib {
     error InvalidReactor();
     error DeadlinePassed();
     error ValidationFailed();

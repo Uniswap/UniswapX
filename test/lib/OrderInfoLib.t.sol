@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
-import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
+import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -21,7 +21,7 @@ contract OrderInfoLibTest is Test {
     function testInvalidReactor() public {
         mockResolvedOrder.info = OrderInfoBuilder.init(address(0));
 
-        vm.expectRevert(OrderInfoLib.InvalidReactor.selector);
+        vm.expectRevert(ResolvedOrderLib.InvalidReactor.selector);
         orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -30,7 +30,7 @@ contract OrderInfoLibTest is Test {
         vm.warp(timestamp + 100);
         mockResolvedOrder.info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
 
-        vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
+        vm.expectRevert(ResolvedOrderLib.DeadlinePassed.selector);
         orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -42,7 +42,7 @@ contract OrderInfoLibTest is Test {
     function testValidationContractInvalid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
-        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         mockResolvedOrder.info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
         orderInfoLib.validate(mockResolvedOrder, address(0));

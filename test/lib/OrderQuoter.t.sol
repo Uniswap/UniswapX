@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
+import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
@@ -140,7 +140,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
+        vm.expectRevert(ResolvedOrderLib.DeadlinePassed.selector);
         quoter.quote(abi.encode(order), sig);
     }
 
