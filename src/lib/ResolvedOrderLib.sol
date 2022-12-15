@@ -9,7 +9,7 @@ library ResolvedOrderLib {
     error DeadlinePassed();
     error ValidationFailed();
 
-    /// @notice Validates an order, reverting if invalid
+    /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
     function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
         if (address(this) != resolvedOrder.info.reactor) {
