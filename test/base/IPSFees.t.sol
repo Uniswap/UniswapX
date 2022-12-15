@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
-import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
+import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -12,7 +12,7 @@ import {MockIPSFees} from "../util/mock/MockIPSFees.sol";
 
 contract IPSFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
-    using OrderInfoLib for OrderInfo;
+    using ResolvedOrderLib for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
     address constant INTERFACE_FEE_RECIPIENT = address(10);
