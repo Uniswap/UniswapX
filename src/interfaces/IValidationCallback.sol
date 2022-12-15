@@ -9,8 +9,5 @@ interface IValidationCallback {
     /// @param filler The filler of the order
     /// @param resolvedOrder The resolved order to fill
     /// @return true if valid, else false
-    function validate(address filler, ResolvedOrder calldata resolvedOrder)
-        external
-        view
-        returns (bool);
+    function validate(address filler, ResolvedOrder calldata resolvedOrder) external view returns (bool);
 }
