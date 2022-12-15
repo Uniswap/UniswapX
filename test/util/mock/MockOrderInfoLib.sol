@@ -4,9 +4,9 @@ import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {OrderInfoLib} from "../../../src/lib/OrderInfoLib.sol";
 
 contract MockOrderInfoLib {
-    using OrderInfoLib for OrderInfo;
+    using OrderInfoLib for ResolvedOrder;
 
-    function validate(OrderInfo memory order, address filler, ResolvedOrder memory resolvedOrder) external view {
-        order.validate(filler, resolvedOrder);
+    function validate(ResolvedOrder memory resolvedOrder, address filler) external view {
+        resolvedOrder.validate(filler);
     }
 }

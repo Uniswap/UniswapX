@@ -10,19 +10,19 @@ library OrderInfoLib {
     error ValidationFailed();
 
     /// @notice Validates an order, reverting if invalid
-    /// @param info The order to validate
-    function validate(OrderInfo memory info, address filler, ResolvedOrder memory resolvedOrder) internal view {
-        if (address(this) != info.reactor) {
+    /// @param filler The filler of the order
+    function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
+        if (address(this) != resolvedOrder.info.reactor) {
             revert InvalidReactor();
         }
 
-        if (block.timestamp > info.deadline) {
+        if (block.timestamp > resolvedOrder.info.deadline) {
             revert DeadlinePassed();
         }
 
         if (
-            info.validationContract != address(0)
-                && !IValidationCallback(info.validationContract).validate(filler, resolvedOrder)
+            resolvedOrder.info.validationContract != address(0)
+                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
         ) {
             revert ValidationFailed();
         }

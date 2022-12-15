@@ -20,22 +20,25 @@ contract OrderInfoLibTest is Test {
 
     function testInvalidReactor() public {
         OrderInfo memory info = OrderInfoBuilder.init(address(0));
+        mockResolvedOrder.info = info;
 
         vm.expectRevert(OrderInfoLib.InvalidReactor.selector);
-        orderInfoLib.validate(info, address(0), mockResolvedOrder);
+        orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
     function testDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
+        mockResolvedOrder.info = info;
 
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
-        orderInfoLib.validate(info, address(0), mockResolvedOrder);
+        orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
-    function testValid() public view {
-        orderInfoLib.validate(OrderInfoBuilder.init(address(orderInfoLib)), address(0), mockResolvedOrder);
+    function testValid() public {
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(orderInfoLib));
+        orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractInvalid() public {
@@ -44,7 +47,8 @@ contract OrderInfoLibTest is Test {
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(info, address(0), mockResolvedOrder);
+        mockResolvedOrder.info = info;
+        orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractValid() public {
@@ -52,6 +56,7 @@ contract OrderInfoLibTest is Test {
         validationContract.setValid(true);
         OrderInfo memory info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(info, address(0), mockResolvedOrder);
+        mockResolvedOrder.info = info;
+        orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 }

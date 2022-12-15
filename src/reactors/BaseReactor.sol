@@ -15,7 +15,7 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "..
 ///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
-    using OrderInfoLib for OrderInfo;
+    using OrderInfoLib for ResolvedOrder;
 
     ISignatureTransfer public immutable permit2;
 
@@ -51,7 +51,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _takeFees(order);
-                order.info.validate(msg.sender, order);
+                order.validate(msg.sender);
                 transferInputTokens(order, fillContract);
             }
         }
