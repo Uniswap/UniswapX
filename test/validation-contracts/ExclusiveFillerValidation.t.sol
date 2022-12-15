@@ -10,7 +10,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
-import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
+import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
 
 contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -94,7 +94,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         });
 
         vm.prank(address(0x123));
-        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
@@ -155,7 +155,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         });
 
         vm.prank(address(0x123));
-        vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
+        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
