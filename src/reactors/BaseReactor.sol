@@ -5,7 +5,7 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ISignatureTransfer} from "../external/ISignatureTransfer.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
-import {OrderInfoLib} from "../lib/OrderInfoLib.sol";
+import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
@@ -15,7 +15,7 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "..
 ///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
-    using OrderInfoLib for OrderInfo;
+    using ResolvedOrderLib for ResolvedOrder;
 
     ISignatureTransfer public immutable permit2;
 
@@ -51,7 +51,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _takeFees(order);
-                order.info.validate(msg.sender, order);
+                order.validate(msg.sender);
                 transferInputTokens(order, fillContract);
             }
         }
