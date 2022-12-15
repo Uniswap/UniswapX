@@ -19,8 +19,7 @@ contract OrderInfoLibTest is Test {
     }
 
     function testInvalidReactor() public {
-        OrderInfo memory info = OrderInfoBuilder.init(address(0));
-        mockResolvedOrder.info = info;
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(0));
 
         vm.expectRevert(OrderInfoLib.InvalidReactor.selector);
         orderInfoLib.validate(mockResolvedOrder, address(0));
@@ -29,8 +28,7 @@ contract OrderInfoLibTest is Test {
     function testDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
-        OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
-        mockResolvedOrder.info = info;
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
 
         vm.expectRevert(OrderInfoLib.DeadlinePassed.selector);
         orderInfoLib.validate(mockResolvedOrder, address(0));
@@ -45,18 +43,16 @@ contract OrderInfoLibTest is Test {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
-        OrderInfo memory info =
+        mockResolvedOrder.info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        mockResolvedOrder.info = info;
         orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractValid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
-        OrderInfo memory info =
+        mockResolvedOrder.info =
             OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        mockResolvedOrder.info = info;
         orderInfoLib.validate(mockResolvedOrder, address(0));
     }
 }
