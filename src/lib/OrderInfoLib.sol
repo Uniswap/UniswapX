@@ -22,7 +22,7 @@ library OrderInfoLib {
 
         if (
             info.validationContract != address(0)
-                && !IValidationCallback(info.validationContract).validate(info, filler, resolvedOrder)
+                && !IValidationCallback(info.validationContract).validate(filler, resolvedOrder)
         ) {
             revert ValidationFailed();
         }
