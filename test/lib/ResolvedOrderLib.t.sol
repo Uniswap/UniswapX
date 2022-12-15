@@ -8,35 +8,35 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockResolvedOrderLib} from "../util/mock/MockResolvedOrderLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 
-contract OrderInfoLibTest is Test {
+contract ResolvedOrderLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
-    MockResolvedOrderLib private orderInfoLib;
+    MockResolvedOrderLib private resolvedOrderLib;
     ResolvedOrder private mockResolvedOrder;
 
     function setUp() public {
-        orderInfoLib = new MockResolvedOrderLib();
+        resolvedOrderLib = new MockResolvedOrderLib();
     }
 
     function testInvalidReactor() public {
         mockResolvedOrder.info = OrderInfoBuilder.init(address(0));
 
         vm.expectRevert(ResolvedOrderLib.InvalidReactor.selector);
-        orderInfoLib.validate(mockResolvedOrder, address(0));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
     function testDeadlinePassed() public {
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(orderInfoLib)).withDeadline(block.timestamp - 1);
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withDeadline(block.timestamp - 1);
 
         vm.expectRevert(ResolvedOrderLib.DeadlinePassed.selector);
-        orderInfoLib.validate(mockResolvedOrder, address(0));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValid() public {
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(orderInfoLib));
-        orderInfoLib.validate(mockResolvedOrder, address(0));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractInvalid() public {
@@ -44,15 +44,15 @@ contract OrderInfoLibTest is Test {
         validationContract.setValid(false);
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(mockResolvedOrder, address(0));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractValid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(address(validationContract));
-        orderInfoLib.validate(mockResolvedOrder, address(0));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 }
