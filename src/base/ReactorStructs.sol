@@ -15,6 +15,10 @@ struct OrderInfo {
     uint256 nonce;
     // The timestamp after which this order is no longer valid
     uint256 deadline;
+    // Custom validation contract
+    address validationContract;
+    // Encoded validation params for validationContract
+    bytes validationData;
 }
 
 /// @dev tokens that need to be sent from the offerer in order to satisfy an order

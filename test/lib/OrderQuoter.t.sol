@@ -11,6 +11,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockOrder} from "../util/mock/MockOrderStruct.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {
     DutchLimitOrderReactor,
@@ -169,5 +170,46 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
         vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStartTime.selector);
         quoter.quote(abi.encode(order), sig);
+    }
+
+    function testGetReactorLimitOrder() public {
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(0x1234)),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        });
+        address reactor = quoter.getReactor(abi.encode(order));
+        assertEq(reactor, address(0x1234));
+    }
+
+    function testGetReactorDutchOrder() public {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(0x2345)),
+            startTime: block.timestamp + 1000,
+            endTime: block.timestamp + 1100,
+            input: DutchInput(address(tokenIn), ONE, ONE),
+            outputs: dutchOutputs
+        });
+        address reactor = quoter.getReactor(abi.encode(order));
+        assertEq(reactor, address(0x2345));
+    }
+
+    function testGetReactorMockOrder() public {
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(0x3456)),
+            mockField1: 0,
+            mockField2: 0,
+            mockField3: 0,
+            mockField4: 0,
+            mockField5: 0,
+            mockField6: 0,
+            mockField7: 0,
+            mockField8: 0,
+            mockField9: 0
+        });
+        address reactor = quoter.getReactor(abi.encode(order));
+        assertEq(reactor, address(0x3456));
     }
 }
