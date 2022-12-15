@@ -62,6 +62,7 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 1000));
+        mockResolvedOrder.info = info;
         vm.expectRevert(OrderInfoLib.ValidationFailed.selector);
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
@@ -74,6 +75,7 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 888));
+        mockResolvedOrder.info = info;
         orderInfoLib.validate(info, address(0x234), mockResolvedOrder);
     }
 
@@ -84,6 +86,7 @@ contract OrderInfoLibTest is Test {
         OrderInfo memory info = OrderInfoBuilder.init(address(orderInfoLib)).withValidationContract(
             address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 1000));
+        mockResolvedOrder.info = info;
         orderInfoLib.validate(info, address(0x123), mockResolvedOrder);
     }
 }
