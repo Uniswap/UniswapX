@@ -5,17 +5,17 @@ import {Test} from "forge-std/Test.sol";
 import {OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {MockOrderInfoLib} from "../util/mock/MockOrderInfoLib.sol";
+import {MockResolvedOrderLib} from "../util/mock/MockResolvedOrderLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 
 contract OrderInfoLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
 
-    MockOrderInfoLib private orderInfoLib;
+    MockResolvedOrderLib private orderInfoLib;
     ResolvedOrder private mockResolvedOrder;
 
     function setUp() public {
-        orderInfoLib = new MockOrderInfoLib();
+        orderInfoLib = new MockResolvedOrderLib();
     }
 
     function testInvalidReactor() public {
