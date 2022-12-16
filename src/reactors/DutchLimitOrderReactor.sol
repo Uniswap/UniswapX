@@ -23,7 +23,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     {}
 
     /// @inheritdoc BaseReactor
-    function resolve(SignedOrder memory signedOrder)
+    function resolve(SignedOrder calldata signedOrder)
         internal
         view
         virtual
