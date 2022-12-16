@@ -34,7 +34,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) public override {
+    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
 
         unchecked {
