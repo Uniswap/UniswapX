@@ -7,6 +7,7 @@ import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockResolvedOrderLib} from "../util/mock/MockResolvedOrderLib.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
+import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 
 contract ResolvedOrderLibTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -54,5 +55,36 @@ contract ResolvedOrderLibTest is Test {
         mockResolvedOrder.info =
             OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
+    }
+
+    function testExclusiveFillerValidationInvalidFiller() public {
+        vm.warp(900);
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
+            address(exclusiveFillerValidation)
+        ).withValidationData(abi.encode(address(0x123), 1000));
+        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
+    }
+
+    // The filler is not the same filler as the filler encoded in validationData, but we are past the last
+    // exclusive timestamp, so it will not revert.
+    function testExclusiveFillerValidationInvalidFillerPastTimestamp() public {
+        vm.warp(900);
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
+            address(exclusiveFillerValidation)
+        ).withValidationData(abi.encode(address(0x123), 888));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
+    }
+
+    // Kind of a pointless test, but ensure the specified filler can fill after last exclusive timestamp still.
+    function testExclusiveFillerValidationValidFillerPastTimestamp() public {
+        vm.warp(900);
+        ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
+            address(exclusiveFillerValidation)
+        ).withValidationData(abi.encode(address(0x123), 1000));
+        resolvedOrderLib.validate(mockResolvedOrder, address(0x123));
     }
 }

@@ -39,7 +39,7 @@ library OrderInfoBuilder {
         return info;
     }
 
-    function withValidationData(OrderInfo memory info, bytes calldata _validationData)
+    function withValidationData(OrderInfo memory info, bytes memory _validationData)
         internal
         pure
         returns (OrderInfo memory)
