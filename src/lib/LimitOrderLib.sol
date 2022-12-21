@@ -66,7 +66,7 @@ library LimitOrderLib {
                 order.info.nonce,
                 order.info.deadline,
                 order.info.validationContract,
-                order.info.validationData,
+                keccak256(order.info.validationData),
                 order.input.token,
                 order.input.amount,
                 hash(order.outputs)

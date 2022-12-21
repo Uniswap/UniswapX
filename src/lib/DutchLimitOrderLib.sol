@@ -101,7 +101,7 @@ library DutchLimitOrderLib {
                 order.info.nonce,
                 order.info.deadline,
                 order.info.validationContract,
-                order.info.validationData,
+                keccak256(order.info.validationData),
                 order.startTime,
                 order.endTime,
                 order.input.token,
