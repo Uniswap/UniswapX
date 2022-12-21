@@ -6,6 +6,7 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import "forge-std/console.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
@@ -121,7 +122,9 @@ contract DutchLimitOrderReactor is BaseReactor {
                 uint256 elapsed = block.timestamp - startTime;
                 uint256 duration = endTime - startTime;
                 if (endAmount < startAmount) {
+                    console.log("before mulDivDown");
                     decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+                    console.log("after mulDivDown");
                 } else {
                     decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
                 }
