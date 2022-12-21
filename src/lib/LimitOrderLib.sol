@@ -15,7 +15,8 @@ struct LimitOrder {
 
 /// @notice helpers for handling limit order objects
 library LimitOrderLib {
-    bytes private constant OUTPUT_TOKEN_TYPE = "OutputToken(address token,uint256 amount,address recipient)";
+    bytes private constant OUTPUT_TOKEN_TYPE =
+        "OutputToken(address token,uint256 amount,address recipient,bool isFeeOutput)";
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
@@ -39,7 +40,9 @@ library LimitOrderLib {
 
     /// @notice returns the hash of an output token struct
     function hash(OutputToken memory output) private pure returns (bytes32) {
-        return keccak256(abi.encode(OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.recipient));
+        return keccak256(
+            abi.encode(OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.recipient, output.isFeeOutput)
+        );
     }
 
     /// @notice returns the hash of an output token struct
