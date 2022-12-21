@@ -95,13 +95,11 @@ contract DutchLimitOrderReactor is BaseReactor {
             if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
                 revert IncorrectAmounts();
             }
-            uint256 outputsLength = dutchLimitOrder.outputs.length;
-            for (uint256 i = 0; i < outputsLength;) {
-                if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
-                    revert InputAndOutputDecay();
-                }
-                unchecked {
-                    i++;
+            unchecked {
+                for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                    if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                        revert InputAndOutputDecay();
+                    }
                 }
             }
         }
