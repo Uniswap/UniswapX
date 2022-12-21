@@ -8,6 +8,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
@@ -27,6 +28,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
+    MockValidationContract validationContract;
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
@@ -41,6 +43,8 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
+        validationContract = new MockValidationContract();
+        validationContract.setValid(true);
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
         permit2 = deployPermit2();
@@ -71,6 +75,54 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
         assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    }
+
+    function testExecuteWithValidationContract() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
+        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
+        uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
+        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), order.info.nonce, maker);
+
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+
+        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    }
+
+    function testExecuteWithValidationContractChangeSig() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        // change validation contract, ensure that sig fails
+        order.info.validationContract = address(0);
+        orderHash = order.hash();
+
+        vm.expectRevert(InvalidSigner.selector);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteNonceReuse() public {

@@ -24,6 +24,8 @@ library LimitOrderLib {
         "address offerer,",
         "uint256 nonce,",
         "uint256 deadline,",
+        "uint256 validationContract,",
+        "uint256 validationData,",
         "address inputToken,",
         "uint256 inputAmount,",
         "OutputToken[] outputs)",
@@ -60,6 +62,8 @@ library LimitOrderLib {
                 order.info.offerer,
                 order.info.nonce,
                 order.info.deadline,
+                order.info.validationContract,
+                order.info.validationData,
                 order.input.token,
                 order.input.amount,
                 hash(order.outputs)
