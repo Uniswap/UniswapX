@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.16;
+
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";

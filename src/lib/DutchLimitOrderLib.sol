@@ -43,7 +43,7 @@ struct DutchLimitOrder {
 /// @notice helpers for handling dutch limit order objects
 library DutchLimitOrderLib {
     bytes private constant DUTCH_OUTPUT_TYPE =
-        "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
+        "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient,bool isFeeOutput)";
     bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
@@ -52,6 +52,8 @@ library DutchLimitOrderLib {
         "address offerer,",
         "uint256 nonce,",
         "uint256 deadline,",
+        "address validationContract,",
+        "bytes validationData,",
         "uint256 startTime,",
         "uint256 endTime,",
         "address inputToken,",
@@ -68,7 +70,14 @@ library DutchLimitOrderLib {
 
     function hash(DutchOutput memory output) private pure returns (bytes32) {
         return keccak256(
-            abi.encode(DUTCH_OUTPUT_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
+            abi.encode(
+                DUTCH_OUTPUT_TYPE_HASH,
+                output.token,
+                output.startAmount,
+                output.endAmount,
+                output.recipient,
+                output.isFeeOutput
+            )
         );
     }
 
@@ -93,6 +102,8 @@ library DutchLimitOrderLib {
                 order.info.offerer,
                 order.info.nonce,
                 order.info.deadline,
+                order.info.validationContract,
+                keccak256(order.info.validationData),
                 order.startTime,
                 order.endTime,
                 order.input.token,
