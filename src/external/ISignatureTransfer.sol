@@ -131,4 +131,5 @@ interface ISignatureTransfer {
     function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
 
     function transferFrom(address from, address to, uint160 amount, address token) external;
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external;
 }
