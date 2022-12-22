@@ -47,28 +47,44 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory order = orders[i];
-                _takeFees(order);
-                order.validate(msg.sender);
-                transferInputTokens(order, fillContract);
-            }
-        }
-
-        IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
-
-        unchecked {
-            // transfer output tokens to their respective recipients
-            for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory resolvedOrder = orders[i];
-
-                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
-                    OutputToken memory output = resolvedOrder.outputs[j];
-                    ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+        if (fillContract == address(1)) {
+            unchecked {
+                for (uint256 i = 0; i < orders.length; i++) {
+                    ResolvedOrder memory order = orders[i];
+                    _takeFees(order);
+                    order.validate(msg.sender);
+                    transferInputTokens(order, msg.sender);
+                    for (uint256 j = 0; j < order.outputs.length; j++) {
+                        OutputToken memory output = order.outputs[j];
+                        permit2.transferFrom(msg.sender, output.recipient, uint160(output.amount), output.token);
+                    }
+                    emit Fill(orders[i].hash, msg.sender, order.info.nonce, order.info.offerer);
                 }
+            }
+        } else {
+            unchecked {
+                for (uint256 i = 0; i < orders.length; i++) {
+                    ResolvedOrder memory order = orders[i];
+                    _takeFees(order);
+                    order.validate(msg.sender);
+                    transferInputTokens(order, fillContract);
+                }
+            }
 
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.nonce, resolvedOrder.info.offerer);
+            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
+
+            unchecked {
+                // transfer output tokens to their respective recipients
+                for (uint256 i = 0; i < orders.length; i++) {
+                    ResolvedOrder memory resolvedOrder = orders[i];
+
+                    for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
+                        OutputToken memory output = resolvedOrder.outputs[j];
+                        ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+                    }
+
+                    emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.nonce, resolvedOrder.info.offerer);
+                }
             }
         }
     }

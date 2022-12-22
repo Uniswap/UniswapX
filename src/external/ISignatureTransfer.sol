@@ -129,4 +129,6 @@ interface ISignatureTransfer {
     /// @param wordPos A number to index the nonceBitmap at
     /// @param mask A bitmap masked against msg.sender's current bitmap at the word position
     function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
+
+    function transferFrom(address from, address to, uint160 amount, address token) external;
 }
