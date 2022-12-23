@@ -122,5 +122,11 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         snapStart("DirectTakerFillMacroTwoOrders");
         reactor.executeBatch(signedOrders, address(1), bytes(""));
         snapEnd();
+
+        assertEq(tokenOut1.balanceOf(maker1), 2 * ONE);
+        assertEq(tokenOut1.balanceOf(maker2), ONE);
+        assertEq(tokenOut2.balanceOf(maker2), 3 * ONE);
+        assertEq(tokenIn1.balanceOf(directTaker), ONE);
+        assertEq(tokenIn2.balanceOf(directTaker), 3 * ONE);
     }
 }
