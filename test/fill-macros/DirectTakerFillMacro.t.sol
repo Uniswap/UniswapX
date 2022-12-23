@@ -18,7 +18,7 @@ import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrder
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-// This suite of tests test execution with a mock fill contract.
+// This suite of tests test the direct taker fill macro, ie fillContract == address(1)
 contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
