@@ -6,6 +6,7 @@ import {OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchInput} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
+import "forge-std/console.sol";
 
 contract DutchLimitOrderLibTest is Test {
     using DutchLimitOrderLib for DutchLimitOrder;
@@ -21,13 +22,22 @@ contract DutchLimitOrderLibTest is Test {
         vm.warp(1000);
     }
 
-    function testHash() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+    function testHashChangesWhenInputAmountChanges(uint256 inputAmount, uint256 inputAmountAddition) public {
+        vm.assume(inputAmount + inputAmountAddition < type(uint256).max);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(TOKEN_IN, ONE, ONE),
+            input: DutchInput(TOKEN_IN, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(TOKEN_OUT, ONE, 0, MAKER)
         });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(TOKEN_IN, inputAmount + inputAmountAddition, inputAmount + inputAmountAddition),
+            outputs: OutputsBuilder.singleDutch(TOKEN_OUT, ONE, 0, MAKER)
+        });
+        console.logBytes32(order1.hash());
     }
 }
