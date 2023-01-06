@@ -23,7 +23,7 @@ contract DutchLimitOrderLibTest is Test {
     }
 
     function testHashChangesWhenInputAmountChanges(uint256 inputAmount, uint256 inputAmountAddition) public {
-        vm.assume(inputAmount + inputAmountAddition < type(uint256).max);
+        vm.assume(type(uint256).max - inputAmountAddition > inputAmount);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
