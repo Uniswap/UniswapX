@@ -10,5 +10,5 @@ contract ReactorEvents {
     /// @param filler The address which executed the fill
     /// @param nonce The nonce of the filled order
     /// @param offerer The offerer of the filled order
-    event Fill(bytes32 indexed orderHash, address indexed filler, uint256 nonce, address indexed offerer);
+    event Fill(bytes32 indexed orderHash, address indexed filler, address indexed offerer, uint256 nonce);
 }

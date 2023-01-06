@@ -71,7 +71,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                 }
 
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.nonce, resolvedOrder.info.offerer);
+                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
             }
         }
     }
