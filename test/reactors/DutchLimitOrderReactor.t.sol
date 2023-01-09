@@ -428,7 +428,7 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(order.hash(), address(this), order.info.nonce, maker);
+        emit Fill(order.hash(), address(this), maker, order.info.nonce);
         snapStart("DutchExecuteSingle");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
@@ -469,9 +469,9 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         });
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[0].hash(), address(this), orders[0].info.nonce, maker);
+        emit Fill(orders[0].hash(), address(this), maker, orders[0].info.nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[1].hash(), address(this), orders[1].info.nonce, maker);
+        emit Fill(orders[1].hash(), address(this), maker, orders[1].info.nonce);
         snapStart("DutchExecuteBatch");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
         snapEnd();
@@ -542,11 +542,11 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
         signedOrders[2].sig = signOrder(makerPrivateKey2, address(permit2), orders[2]);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[0].hash(), address(this), orders[0].info.nonce, maker);
+        emit Fill(orders[0].hash(), address(this), maker, orders[0].info.nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[1].hash(), address(this), orders[1].info.nonce, maker);
+        emit Fill(orders[1].hash(), address(this), maker, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[2].hash(), address(this), orders[2].info.nonce, maker2);
+        emit Fill(orders[2].hash(), address(this), maker2, orders[2].info.nonce);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
