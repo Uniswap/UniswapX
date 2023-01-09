@@ -24,6 +24,7 @@ contract DutchLimitOrderLibTest is Test {
 
     function testHashChangesWhenInputAmountChanges(uint256 inputAmount, uint256 inputAmountAddition) public {
         vm.assume(type(uint256).max - inputAmountAddition > inputAmount);
+        vm.assume(inputAmountAddition > 0);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
@@ -38,6 +39,6 @@ contract DutchLimitOrderLibTest is Test {
             input: DutchInput(TOKEN_IN, inputAmount + inputAmountAddition, inputAmount + inputAmountAddition),
             outputs: OutputsBuilder.singleDutch(TOKEN_OUT, ONE, 0, MAKER)
         });
-        console.logBytes32(order1.hash());
+        assertTrue(order1.hash() != order2.hash());
     }
 }
