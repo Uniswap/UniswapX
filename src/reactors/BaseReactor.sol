@@ -26,7 +26,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder memory order, address fillContract, bytes calldata fillData) external override {
+    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
@@ -34,7 +34,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] memory orders, address fillContract, bytes calldata fillData) public override {
+    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
+        external
+        override
+    {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
 
         unchecked {
@@ -68,7 +71,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                 }
 
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.nonce, resolvedOrder.info.offerer);
+                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
             }
         }
     }
@@ -77,7 +80,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder memory order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers tokens to the fillContract
     /// @param order The encoded order to transfer tokens for

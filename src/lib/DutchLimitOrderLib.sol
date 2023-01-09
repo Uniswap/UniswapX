@@ -83,8 +83,10 @@ library DutchLimitOrderLib {
 
     function hash(DutchOutput[] memory outputs) private pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
-            outputHashes[i] = hash(outputs[i]);
+        unchecked {
+            for (uint256 i = 0; i < outputs.length; i++) {
+                outputHashes[i] = hash(outputs[i]);
+            }
         }
         return keccak256(abi.encodePacked(outputHashes));
     }
