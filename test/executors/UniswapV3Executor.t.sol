@@ -44,7 +44,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
     uint256 constant PROTOCOL_FEE_BPS = 5000;
     bytes32 constant TRANSFER_EVENT_SIG = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
     bytes32 constant APPROVAL_EVENT_SIG = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
-    bytes32 constant FILL_EVENT_SIG = 0xb7425f63eb6d6633896fb37a17c56e098d84542b065fb929e1e65eac5d8c96ba;
+    bytes32 constant FILL_EVENT_SIG = 0x78ad7ec0e9f89e74012afa58738b6b661c024cb0fd185ee2f616c0a28924bd66;
 
     function setUp() public {
         vm.warp(1660671678);
