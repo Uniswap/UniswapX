@@ -61,7 +61,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                         OutputToken memory output = order.outputs[j];
                         permit2.transferFrom(msg.sender, output.recipient, uint160(output.amount), output.token);
                     }
-                    emit Fill(orders[i].hash, msg.sender, order.info.nonce, order.info.offerer);
+                    emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
                 }
             }
         } else {
@@ -86,7 +86,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                         ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                     }
 
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
+                    emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
+                }
             }
         }
     }
