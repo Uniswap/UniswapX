@@ -1,7 +1,7 @@
 pragma solidity ^0.8.16;
 
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Path} from "../lib/Path.sol";
 import {IUniV3SwapRouter} from "../../../src/external/IUniV3SwapRouter.sol";
 

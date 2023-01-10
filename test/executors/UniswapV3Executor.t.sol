@@ -12,11 +12,11 @@ import {
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";

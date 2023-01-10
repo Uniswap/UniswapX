@@ -2,12 +2,12 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";

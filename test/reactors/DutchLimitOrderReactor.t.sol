@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     DutchLimitOrderReactor,
