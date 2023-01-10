@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Script} from "forge-std/Script.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 contract DeployPermit2 is Script {
     address constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
