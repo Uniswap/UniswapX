@@ -28,8 +28,10 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
     MockERC20 tokenIn1;
     MockERC20 tokenIn2;
+    MockERC20 tokenIn3;
     MockERC20 tokenOut1;
     MockERC20 tokenOut2;
+    MockERC20 tokenOut3;
     uint256 makerPrivateKey1;
     address maker1;
     uint256 makerPrivateKey2;
@@ -41,8 +43,10 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
         tokenIn2 = new MockERC20("tokenIn2", "IN2", 18);
+        tokenIn3 = new MockERC20("tokenIn3", "IN3", 18);
         tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
         tokenOut2 = new MockERC20("tokenOut2", "OUT2", 18);
+        tokenOut3 = new MockERC20("tokenOut3", "OUT3", 18);
         makerPrivateKey1 = 0x12341234;
         maker1 = vm.addr(makerPrivateKey1);
         makerPrivateKey2 = 0x12341235;
@@ -52,12 +56,16 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
+        tokenIn3.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenOut1.forceApprove(directTaker, address(permit2), type(uint256).max);
         tokenOut2.forceApprove(directTaker, address(permit2), type(uint256).max);
+        tokenOut3.forceApprove(directTaker, address(permit2), type(uint256).max);
         vm.prank(directTaker);
         permit2.approve(address(tokenOut1), address(reactor), type(uint160).max, type(uint48).max);
         vm.prank(directTaker);
         permit2.approve(address(tokenOut2), address(reactor), type(uint160).max, type(uint48).max);
+        vm.prank(directTaker);
+        permit2.approve(address(tokenOut3), address(reactor), type(uint160).max, type(uint48).max);
     }
 
     // Execute a single order made by maker1, input = 1 tokenIn1 and outputs = [2 tokenOut1].
@@ -158,6 +166,76 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(tokenOut2.balanceOf(maker2), 3 * ONE);
         assertEq(tokenIn1.balanceOf(directTaker), ONE);
         assertEq(tokenIn2.balanceOf(directTaker), 3 * ONE);
+    }
+
+    // Execute 3 orders, all with 10% fees
+    // 1st order by maker1, input = 1 tokenIn1 and outputs = [1 tokenOut1]
+    // 2nd order by maker2, input = 2 tokenIn2 and outputs = [2 tokenOut2]
+    // 2nd order by maker2, input = 3 tokenIn3 and outputs = [3 tokenOut3]
+    function testThreeOrdersWithFees() public {
+        uint256 ONE = 10 ** 18;
+
+        tokenIn1.mint(address(maker1), ONE);
+        tokenIn2.mint(address(maker2), ONE * 2);
+        tokenIn3.mint(address(maker2), ONE * 3);
+        tokenOut1.mint(directTaker, ONE);
+        tokenOut2.mint(directTaker, ONE * 2);
+        tokenOut3.mint(directTaker, ONE * 3);
+
+        DutchOutput[] memory dutchOutputs1 = new DutchOutput[](2);
+        dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, maker1, false);
+        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, maker1, true);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: dutchOutputs1
+        });
+
+        DutchOutput[] memory dutchOutputs2 = new DutchOutput[](2);
+        dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, maker2, false);
+        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, maker2, true);
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn2), ONE * 2, ONE * 2),
+            outputs: dutchOutputs2
+        });
+
+        DutchOutput[] memory dutchOutputs3 = new DutchOutput[](2);
+        dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, maker2, false);
+        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, maker2, true);
+        DutchLimitOrder memory order3 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn3), ONE * 3, ONE * 3),
+            outputs: dutchOutputs3
+        });
+
+        SignedOrder[] memory signedOrders = new SignedOrder[](3);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
+        signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
+        vm.prank(directTaker);
+        snapStart("DirectTakerFillMacroThreeOrdersWithFees");
+        reactor.executeBatch(signedOrders, address(1), bytes(""));
+        snapEnd();
+
+        assertEq(tokenOut1.balanceOf(maker1), ONE * 9 / 10);
+        assertEq(tokenOut1.balanceOf(address(reactor)), ONE / 10);
+        assertEq(tokenOut2.balanceOf(maker2), ONE * 2 * 9 / 10);
+        assertEq(tokenOut2.balanceOf(address(reactor)), ONE * 2 / 10);
+        assertEq(tokenOut3.balanceOf(maker2), ONE * 3 * 9 / 10);
+        assertEq(tokenOut3.balanceOf(address(reactor)), ONE * 3 / 10);
+
+        assertEq(tokenIn1.balanceOf(directTaker), ONE);
+        assertEq(tokenIn2.balanceOf(directTaker), 2 * ONE);
+        assertEq(tokenIn3.balanceOf(directTaker), 3 * ONE);
     }
 
     // Same test as `testSingleOrder`, but mint filler insufficient output
