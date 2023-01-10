@@ -86,6 +86,36 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
     }
 
+    // The same as testSingleOrder, but with a 10% fee.
+    function testSingleOrderWithFee() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(maker1), inputAmount);
+        tokenOut1.mint(directTaker, outputAmount);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1, false);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, maker1, true);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: dutchOutputs
+        });
+
+        vm.prank(directTaker);
+        snapStart("DirectTakerFillMacroSingleOrderWithFee");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+        );
+        snapEnd();
+        assertEq(tokenOut1.balanceOf(maker1), outputAmount * 9 / 10);
+        assertEq(tokenOut1.balanceOf(address(reactor)), outputAmount / 10);
+        assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
+    }
+
     // Execute two orders.
     // 1st order by maker1, input = 1 tokenIn1 and outputs = [2 tokenOut1]
     // 2nd order by maker2, input = 3 tokenIn2 and outputs = [1 tokenOut1, 3 tokenOut2]
