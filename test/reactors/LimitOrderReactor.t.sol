@@ -67,7 +67,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
 
         vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), order.info.nonce, maker);
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
 
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 
@@ -95,7 +95,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
 
         vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), order.info.nonce, maker);
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
 
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 
@@ -140,7 +140,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
 
         vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), order.info.nonce, maker);
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
 
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
 

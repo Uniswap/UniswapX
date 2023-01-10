@@ -49,7 +49,8 @@ abstract contract IPSFees {
     /// @dev Note: the fee output is defined as the last output in the order
     /// @param order The encoded order to take fees from
     function _takeFees(ResolvedOrder memory order) internal {
-        for (uint256 i = 0; i < order.outputs.length;) {
+        uint256 orderOutputsLength = order.outputs.length;
+        for (uint256 i = 0; i < orderOutputsLength;) {
             OutputToken memory output = order.outputs[i];
 
             if (output.isFeeOutput) {

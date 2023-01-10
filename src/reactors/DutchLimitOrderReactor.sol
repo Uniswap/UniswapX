@@ -23,7 +23,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     {}
 
     /// @inheritdoc BaseReactor
-    function resolve(SignedOrder memory signedOrder)
+    function resolve(SignedOrder calldata signedOrder)
         internal
         view
         virtual
@@ -34,7 +34,8 @@ contract DutchLimitOrderReactor is BaseReactor {
         _validateOrder(dutchLimitOrder);
 
         OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength;) {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             if (output.startAmount < output.endAmount) {
                 revert IncorrectAmounts();
@@ -43,6 +44,9 @@ contract DutchLimitOrderReactor is BaseReactor {
                 output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
             );
             outputs[i] = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
+            unchecked {
+                i++;
+            }
         }
 
         uint256 decayedInput = _getDecayedAmount(
@@ -91,9 +95,11 @@ contract DutchLimitOrderReactor is BaseReactor {
             if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
                 revert IncorrectAmounts();
             }
-            for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
-                if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
-                    revert InputAndOutputDecay();
+            unchecked {
+                for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
+                    if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                        revert InputAndOutputDecay();
+                    }
                 }
             }
         }
