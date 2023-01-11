@@ -57,10 +57,16 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     _takeFees(order);
                     order.validate(msg.sender);
                     transferInputTokens(order, msg.sender);
+                    ISignatureTransfer.AllowanceTransferDetails[] memory transferDetails =
+                        new ISignatureTransfer.AllowanceTransferDetails[](order.outputs.length);
                     for (uint256 j = 0; j < order.outputs.length; j++) {
                         OutputToken memory output = order.outputs[j];
-                        permit2.transferFrom(msg.sender, output.recipient, uint160(output.amount), output.token);
+                        transferDetails[j] = ISignatureTransfer.AllowanceTransferDetails(
+                            msg.sender, output.recipient, uint160(output.amount), output.token
+                        );
+                        // permit2.transferFrom(msg.sender, output.recipient, uint160(output.amount), output.token);
                     }
+                    permit2.transferFrom(transferDetails);
                     emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
                 }
             }

@@ -132,11 +132,13 @@ interface ISignatureTransfer {
 
     function transferFrom(address from, address to, uint160 amount, address token) external;
     function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+
     struct AllowanceTransferDetails {
         address from;
         address to;
         uint160 amount;
         address token;
     }
+
     function transferFrom(AllowanceTransferDetails[] calldata transferDetails) external;
 }
