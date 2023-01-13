@@ -18,6 +18,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using ResolvedOrderLib for ResolvedOrder;
 
     address public immutable permit2;
+    address public constant DIRECT_TAKER_FILL = address(1);
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         IPSFees(_protocolFeeBps, _protocolFeeRecipient)
@@ -50,7 +51,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        bool directTaker = fillContract == address(1);
+        bool directTaker = fillContract == DIRECT_TAKER_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
