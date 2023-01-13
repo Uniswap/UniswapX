@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console2.sol";
 import "forge-std/Script.sol";
-import {ISignatureTransfer} from "../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DutchLimitOrderReactor} from "../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 import {DeployPermit2} from "../test/util/DeployPermit2.sol";

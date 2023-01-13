@@ -6,7 +6,7 @@ import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStruct
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";

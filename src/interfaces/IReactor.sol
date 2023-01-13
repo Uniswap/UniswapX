@@ -5,9 +5,6 @@ import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Interface for order execution reactors
 interface IReactor {
-    /// @notice error thrown when the specified sender doesn't match the signer
-    error InvalidSender();
-
     /// @notice Execute a single order using the given fill specification
     /// @param order The order definition and valid signature to execute
     /// @param fillContract The contract which will fill the order
