@@ -3,7 +3,8 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {ISignatureTransfer} from "../../src/external/ISignatureTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     DutchLimitOrderReactor,
@@ -38,7 +39,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     address maker2;
     address directTaker;
     DutchLimitOrderReactor reactor;
-    ISignatureTransfer permit2;
+    IAllowanceTransfer permit2;
 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
@@ -52,7 +53,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         makerPrivateKey2 = 0x12341235;
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
-        permit2 = deployPermit2();
+        permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);

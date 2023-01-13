@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
@@ -17,12 +17,12 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
-    ISignatureTransfer public immutable permit2;
+    address public immutable permit2;
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         IPSFees(_protocolFeeBps, _protocolFeeRecipient)
     {
-        permit2 = ISignatureTransfer(_permit2);
+        permit2 = _permit2;
     }
 
     /// @inheritdoc IReactor
@@ -69,7 +69,9 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     if (directTaker) {
-                        permit2.transferFrom(msg.sender, output.recipient, uint160(output.amount), output.token);
+                        IAllowanceTransfer(permit2).transferFrom(
+                            msg.sender, output.recipient, uint160(output.amount), output.token
+                        );
                     } else {
                         ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                     }

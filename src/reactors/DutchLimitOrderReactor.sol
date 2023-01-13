@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
@@ -66,7 +67,7 @@ contract DutchLimitOrderReactor is BaseReactor {
 
     /// @inheritdoc BaseReactor
     function transferInputTokens(ResolvedOrder memory order, address to) internal override {
-        permit2.permitWitnessTransferFrom(
+        ISignatureTransfer(permit2).permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),
             order.info.offerer,

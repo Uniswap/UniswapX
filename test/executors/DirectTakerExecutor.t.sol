@@ -46,7 +46,7 @@ contract DirectTakerExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         // Instantiate relevant contracts
         directTakerExecutor = new DirectTakerExecutor(taker);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals

@@ -38,7 +38,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
