@@ -261,4 +261,30 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );
     }
+
+    // Same test as `testSingleOrder`, but filler lacks approval for tokenOut1
+    function testFillerLacksApproval() public {
+        vm.prank(directTaker);
+        permit2.approve(address(tokenOut1), address(reactor), 0, type(uint48).max);
+
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(maker1), inputAmount);
+        tokenOut1.mint(directTaker, outputAmount);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, maker1)
+        });
+
+        vm.prank(directTaker);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientAllowance(uint256)", 0));
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+        );
+    }
 }
