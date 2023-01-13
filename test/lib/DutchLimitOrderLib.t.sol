@@ -180,4 +180,26 @@ contract DutchLimitOrderLibTest is Test {
         });
         assertTrue(order1.hash() != order2.hash());
     }
+
+    function testHashChangesWhenOutputAmountChanges(uint256 outputAmount, uint256 outputAmountAddition) public {
+        vm.assume(type(uint256).max - outputAmountAddition > outputAmount);
+        vm.assume(outputAmountAddition > 0);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(TOKEN_IN, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(TOKEN_OUT, outputAmount, outputAmount, MAKER)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(REACTOR).withOfferer(MAKER).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(TOKEN_IN, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(
+                TOKEN_OUT, outputAmount + outputAmountAddition, outputAmount + outputAmountAddition, MAKER
+                )
+        });
+        assertTrue(order1.hash() != order2.hash());
+    }
 }
