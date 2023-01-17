@@ -5,15 +5,15 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SettlementEvents} from "../base/SettlementEvents.sol";
-import {ISettlementOracle} from "../interfaces/ISettlementOracle.sol";
-import {ICrossChainListener, SettlementFillInfo} from "../interfaces/ICrossChainListener.sol";
+import {IOrderSettler} from "../interfaces/IOrderSettler.sol";
+import {ISettlementOracle, SettlementFillInfo} from "../interfaces/ISettlementOracle.sol";
 import {ResolvedOrder, SettlementInfo, OutputToken, OrderStatus} from "../base/SettlementStructs.sol";
 import {SignedOrder, InputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 
 /// @notice Generic cross-chain reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
-abstract contract SettlementOracle is ISettlementOracle, SettlementEvents {
+abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
@@ -25,7 +25,7 @@ abstract contract SettlementOracle is ISettlementOracle, SettlementEvents {
         permit2 = ISignatureTransfer(_permit2);
     }
 
-    /// @inheritdoc ISettlementOracle
+    /// @inheritdoc IOrderSettler
     function initiateSettlement(SignedOrder calldata order, address fillRecipient) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order, fillRecipient);
@@ -46,7 +46,7 @@ abstract contract SettlementOracle is ISettlementOracle, SettlementEvents {
         }
     }
 
-    /// @inheritdoc ISettlementOracle
+    /// @inheritdoc IOrderSettler
     function cancelSettlement(bytes32 settlementId) external override {
         ResolvedOrder storage order = settlements[settlementId];
         if (order.status == OrderStatus.Pending && order.settlementDeadline > block.timestamp) {
@@ -56,12 +56,12 @@ abstract contract SettlementOracle is ISettlementOracle, SettlementEvents {
         }
     }
 
-    /// @inheritdoc ISettlementOracle
+    /// @inheritdoc IOrderSettler
     function finalizeSettlement(bytes32 settlementId) external override {
         ResolvedOrder storage order = settlements[settlementId];
         if (order.status == OrderStatus.Pending && order.settlementDeadline <= block.timestamp) {
             SettlementFillInfo[] memory fillInfo =
-                ICrossChainListener(order.info.crossChainListener).getSettlementFillInfo(settlementId);
+                ISettlementOracle(order.info.crossChainListener).getSettlementFillInfo(settlementId);
             // somehow check that fillInfo array meets all the requirements of output tokens array
             // transfer collateral & swap escrow to filler
         }
