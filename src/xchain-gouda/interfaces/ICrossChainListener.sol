@@ -5,11 +5,11 @@ import {ResolvedOrder} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 struct SettlementFillInfo {
-  uint32 chainId;
-  address filler;
-  address recipient;
-  address token;
-  uint256 amount;
+    uint32 chainId;
+    address filler;
+    address recipient;
+    address token;
+    uint256 amount;
 }
 
 /// @notice Interface for cross chain listeners for gouda
