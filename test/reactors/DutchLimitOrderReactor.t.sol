@@ -389,6 +389,8 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
+    error InvalidNonce();
+
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
@@ -585,6 +587,55 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+    }
+
+    function testExecuteNonceReuse() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+        
+        // Construct a new order with the same nonce (0)
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor))
+                .withOfferer(maker)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(0),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+        vm.expectRevert(InvalidNonce.selector);
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
     }
 
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {
