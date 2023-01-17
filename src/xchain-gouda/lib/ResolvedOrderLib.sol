@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ResolvedXOrder} from "../base/XReactorStructs.sol";
+import {ResolvedOrder} from "../base/SettlementStructs.sol";
 import {OrderInfo} from "../../base/ReactorStructs.sol";
-import {IXValidationCallback} from "../interfaces/IXValidationCallback.sol";
+import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
-library ResolvedXOrderLib {
+library ResolvedOrderLib {
     error InvalidReactor();
     error DeadlinePassed();
     error ValidationFailed();
 
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
-    function validate(ResolvedXOrder memory resolvedOrder, address filler) internal view {
-        if (address(this) != resolvedOrder.info.reactor) {
+    function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
+        if (address(this) != resolvedOrder.info.settlementOracle) {
             revert InvalidReactor();
         }
 
@@ -23,7 +23,7 @@ library ResolvedXOrderLib {
 
         if (
             resolvedOrder.info.validationContract != address(0)
-                && !IXValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
+                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
         ) {
             revert ValidationFailed();
         }
