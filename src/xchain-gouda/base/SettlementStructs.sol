@@ -4,9 +4,9 @@ pragma solidity ^0.8.16;
 import {InputToken} from "../../base/ReactorStructs.sol";
 
 enum OrderStatus {
-  Pending,
-  Cancelled,
-  Success
+    Pending,
+    Cancelled,
+    Success
 }
 
 /// @dev generic cross-chain order information
@@ -31,8 +31,8 @@ struct SettlementInfo {
 }
 
 struct CollateralToken {
-  address token;
-  uint256 amount;
+    address token;
+    uint256 amount;
 }
 
 /// @dev tokens that need to be received by the recipient on another chain in order to satisfy an order

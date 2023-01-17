@@ -39,36 +39,43 @@ abstract contract SettlementOracle is ISettlementOracle, SettlementEvents {
                 order.validate(msg.sender);
                 transferEscrowTokens(order);
                 settlements[order.hash] = order;
-                emit InitiateSettlement(order.hash, msg.sender, order.info.crossChainListener, order.info.nonce, order.settlementDeadline);
+                emit InitiateSettlement(
+                    order.hash, msg.sender, order.info.crossChainListener, order.info.nonce, order.settlementDeadline
+                    );
             }
         }
     }
 
     /// @inheritdoc ISettlementOracle
     function cancelSettlement(bytes32 settlementId) external override {
-      ResolvedOrder storage order = settlements[settlementId];
-      if (order.status == OrderStatus.Pending && order.settlementDeadline > block.timestamp) {
-        order.status = OrderStatus.Cancelled;
-        ERC20(order.input.token).safeTransfer(order.info.offerer, order.input.amount);
-        ERC20(order.collateral.token).safeTransfer(order.info.offerer, order.input.amount);
-      }
+        ResolvedOrder storage order = settlements[settlementId];
+        if (order.status == OrderStatus.Pending && order.settlementDeadline > block.timestamp) {
+            order.status = OrderStatus.Cancelled;
+            ERC20(order.input.token).safeTransfer(order.info.offerer, order.input.amount);
+            ERC20(order.collateral.token).safeTransfer(order.info.offerer, order.input.amount);
+        }
     }
 
     /// @inheritdoc ISettlementOracle
     function finalizeSettlement(bytes32 settlementId) external override {
-      ResolvedOrder storage order = settlements[settlementId];
-      if (order.status == OrderStatus.Pending && order.settlementDeadline <= block.timestamp) {
-        SettlementFillInfo[] memory fillInfo = ICrossChainListener(order.info.crossChainListener).getSettlementFillInfo(settlementId);
-        // somehow check that fillInfo array meets all the requirements of output tokens array
-        // transfer collateral & swap escrow to filler
-      }
+        ResolvedOrder storage order = settlements[settlementId];
+        if (order.status == OrderStatus.Pending && order.settlementDeadline <= block.timestamp) {
+            SettlementFillInfo[] memory fillInfo =
+                ICrossChainListener(order.info.crossChainListener).getSettlementFillInfo(settlementId);
+            // somehow check that fillInfo array meets all the requirements of output tokens array
+            // transfer collateral & swap escrow to filler
+        }
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder calldata order, address fillRecipient) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder calldata order, address fillRecipient)
+        internal
+        view
+        virtual
+        returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers swapper input tokens as well as collateral tokens of filler
     /// @param order The encoded order to transfer tokens for

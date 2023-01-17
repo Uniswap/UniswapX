@@ -10,5 +10,11 @@ contract SettlementEvents {
     /// @param offerer The offerer of the filled order
     /// @param crossChainListener The cross chain listener which provides information on the cross chain order fulfillment
     /// @param nonce The nonce of the filled order
-    event InitiateSettlement(bytes32 indexed orderHash, address indexed offerer, address indexed crossChainListener, uint256 nonce, uint256 settlementDeadline);
+    event InitiateSettlement(
+        bytes32 indexed orderHash,
+        address indexed offerer,
+        address indexed crossChainListener,
+        uint256 nonce,
+        uint256 settlementDeadline
+    );
 }
