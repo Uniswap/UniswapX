@@ -31,7 +31,7 @@ struct InputToken {
     uint256 maxAmount;
 }
 
-/// @dev tokens that need to be received by the recipient on another chain in order to satisfy an order
+/// @dev tokens that need to be received by the recipient in order to satisfy an order
 struct OutputToken {
     address token;
     uint256 amount;

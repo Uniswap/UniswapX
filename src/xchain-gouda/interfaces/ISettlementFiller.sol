@@ -3,10 +3,10 @@ pragma solidity ^0.8.16;
 
 import {ResolvedOrder} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
-import {SettlementFillInfo} from "./ICrossChainListener.sol.";
+import {SettlementFillInfo} from "./ISettlementOracle.sol";
 
 /// @notice Interface for cross chain fillers for gouda
-interface ICrossChainFiller {
+interface ISettlementFiller {
     /// @notice Fills an order and transmits a message to the origin chain about the details of the fulfillment
     /// @param orderId The cross-chain orderId
     /// @param recipient The recipient of the funds
@@ -14,7 +14,7 @@ interface ICrossChainFiller {
     /// @param amount The amount of token to send to the recipient
     /// @param orderId The cross-chain orderId
     /// @return settlementInfo The settlmentInfo that was passed to the cross-chain listener from a valid source
-    function fillAndTransmitSettlementInfo(bytes32 orderId, address recipient, address, token, address amount)
+    function fillAndTransmitSettlementInfo(bytes32 orderId, address recipient, address, address token, address amount)
         external
         view
         returns (SettlementFillInfo[] calldata);
