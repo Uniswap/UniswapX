@@ -6,41 +6,58 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SettlementEvents} from "../base/SettlementEvents.sol";
 import {IOrderSettler} from "../interfaces/IOrderSettler.sol";
-import {ISettlementOracle, SettlementFillInfo} from "../interfaces/ISettlementOracle.sol";
-import {ResolvedOrder, SettlementInfo, OutputToken, OrderStatus} from "../base/SettlementStructs.sol";
+import {ISettlementOracle} from "../interfaces/ISettlementOracle.sol";
+import {
+    ResolvedOrder, SettlementInfo, ActiveSettlement, OutputToken, OrderStatus
+} from "../base/SettlementStructs.sol";
 import {SignedOrder, InputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 
 /// @notice Generic cross-chain reactor logic for settling off-chain signed orders
-///     using arbitrary fill methods specified by a taker
+/// using arbitrary fill methods specified by a taker
 abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
     ISignatureTransfer public immutable permit2;
 
-    mapping(bytes32 => ResolvedOrder) settlements;
+    mapping(bytes32 => ActiveSettlement) settlements;
 
     constructor(address _permit2) {
         permit2 = ISignatureTransfer(_permit2);
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateSettlement(SignedOrder calldata order, address fillRecipient) external override {
+    function initiateSettlement(SignedOrder calldata order) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        resolvedOrders[0] = resolve(order, fillRecipient);
-        _initiateEscrow(resolvedOrders);
+        resolvedOrders[0] = resolve(order);
+        _initiateSettlements(resolvedOrders);
     }
 
-    function _initiateEscrow(ResolvedOrder[] memory orders) internal {
+    function _initiateSettlements(ResolvedOrder[] memory orders) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 order.validate(msg.sender);
                 transferEscrowTokens(order);
-                settlements[order.hash] = order;
+
+                settlements[order.hash] = ActiveSettlement({
+                    status: OrderStatus.Pending,
+                    offerer: order.info.offerer,
+                    fillRecipient: msg.sender,
+                    settlementOracle: order.info.settlementOracle,
+                    deadline: block.timestamp + order.info.settlementPeriod,
+                    input: order.input,
+                    collateral: order.collateral,
+                    outputs: order.outputs
+                });
+
                 emit InitiateSettlement(
-                    order.hash, msg.sender, order.info.crossChainListener, order.info.nonce, order.settlementDeadline
+                    order.hash,
+                    msg.sender,
+                    order.info.settlementOracle,
+                    order.info.nonce,
+                    block.timestamp + order.info.settlementPeriod
                     );
             }
         }
@@ -48,22 +65,24 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     /// @inheritdoc IOrderSettler
     function cancelSettlement(bytes32 settlementId) external override {
-        ResolvedOrder storage order = settlements[settlementId];
-        if (order.status == OrderStatus.Pending && order.settlementDeadline > block.timestamp) {
-            order.status = OrderStatus.Cancelled;
-            ERC20(order.input.token).safeTransfer(order.info.offerer, order.input.amount);
-            ERC20(order.collateral.token).safeTransfer(order.info.offerer, order.input.amount);
+        ActiveSettlement storage settlement = settlements[settlementId];
+        if (settlement.status == OrderStatus.Pending && settlement.deadline > block.timestamp) {
+            settlement.status = OrderStatus.Cancelled;
+
+            // transfer tokens and collateral back to offerer
+            ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
+            ERC20(settlement.collateral.token).safeTransfer(settlement.offerer, settlement.input.amount);
         }
     }
 
     /// @inheritdoc IOrderSettler
     function finalizeSettlement(bytes32 settlementId) external override {
-        ResolvedOrder storage order = settlements[settlementId];
-        if (order.status == OrderStatus.Pending && order.settlementDeadline <= block.timestamp) {
-            SettlementFillInfo[] memory fillInfo =
-                ISettlementOracle(order.info.crossChainListener).getSettlementFillInfo(settlementId);
-            // somehow check that fillInfo array meets all the requirements of output tokens array
-            // transfer collateral & swap escrow to filler
+        ActiveSettlement storage settlement = settlements[settlementId];
+        if (settlement.status == OrderStatus.Pending) {
+            OutputToken[] memory receivedOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(settlementId);
+            for (uint256 i; i < receivedOutputs.length; i++) {
+
+            }
         }
     }
 
@@ -71,7 +90,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder calldata order, address fillRecipient)
+    function resolve(SignedOrder calldata order)
         internal
         view
         virtual
