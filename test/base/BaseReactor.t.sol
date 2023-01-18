@@ -47,7 +47,6 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        reactor = createReactor();
         (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
@@ -76,7 +75,6 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        reactor = createReactor();
         (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true, address(reactor));
