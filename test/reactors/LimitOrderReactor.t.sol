@@ -64,34 +64,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         return (order, sig, orderHash);
     }
 
-    // function testExecute() public {
-    //     tokenIn.forceApprove(maker, address(permit2), ONE);
-
-    //     LimitOrder memory order = createOrder(
-    //         OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-    //         InputToken(address(tokenIn), ONE, ONE),
-    //         OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-    //     );
-
-    //     bytes32 orderHash = order.hash();
-    //     bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-
-    //     uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
-    //     uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
-    //     uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
-    //     uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
-
-    //     vm.expectEmit(false, false, false, true, address(reactor));
-    //     emit Fill(orderHash, address(this), maker, order.info.nonce);
-
-    //     reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-
-    //     assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
-    //     assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
-    //     assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
-    //     assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
-    // }
-
     function testExecuteWithValidationContract() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
