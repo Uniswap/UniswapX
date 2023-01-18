@@ -39,7 +39,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
     // function createAndSignOrder() virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
     function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
 
-    function testExecute() virtual public {
+    function testBaseExecute() virtual public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
@@ -68,7 +68,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
     }
 
-    function testExecuteSignatureReplay() virtual public {
+    function testBaseExecuteSignatureReplay() virtual public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;

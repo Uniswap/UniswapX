@@ -424,8 +424,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
     }
 
     // Execute a single order, input = 1 and outputs = [2].
-    /// @dev override here to get gas snapshot for now
-    function testExecute() override public {
+    function testExecute() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
