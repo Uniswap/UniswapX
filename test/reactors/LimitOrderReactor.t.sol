@@ -60,6 +60,26 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         return (abi.encode(order), sig, orderHash, order.info);
     }
 
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+        abiEncodedOrders = new bytes[](inputAmounts.length);
+        sigs = new bytes[](inputAmounts.length);
+        orderHashes = new bytes32[](inputAmounts.length);
+        orderInfos = new OrderInfo[](inputAmounts.length);
+        for (uint256 i = 0; i < inputAmounts.length; i++) {
+            LimitOrder memory order = LimitOrder({
+                info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(i),
+                input: InputToken(address(tokenIn), inputAmounts[i], inputAmounts[i]),
+                // No multiple outputs supported for limitOrder
+                outputs: OutputsBuilder.single(address(tokenOut), outputAmounts[i][0], address(maker))
+            });
+            orderHashes[i] = order.hash();
+            orderInfos[i] = order.info;
+            sigs[i] = signOrder(makerPrivateKey, address(permit2), order);
+            abiEncodedOrders[i] = abi.encode(order);
+        }
+        return (abiEncodedOrders, sigs, orderHashes, orderInfos);
+    }
+
     function testExecuteWithValidationContract() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({

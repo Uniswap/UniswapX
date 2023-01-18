@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
+import "forge-std/console.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
@@ -421,6 +422,38 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
         orderHash = order.hash();
         sig = signOrder(makerPrivateKey, address(permit2), order);
         return (abi.encode(order), sig, orderHash, order.info);
+    }
+
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+        // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
+        assertEq(inputAmounts.length, outputAmounts.length);
+
+        abiEncodedOrders = new bytes[](inputAmounts.length);
+        sigs = new bytes[](inputAmounts.length);
+        orderHashes = new bytes32[](inputAmounts.length);
+        orderInfos = new OrderInfo[](inputAmounts.length);
+
+        for (uint256 i = 0; i < inputAmounts.length; i++) {
+            DutchOutput[] memory dutchOutput;
+            if(outputAmounts[i].length == 1) {
+                dutchOutput = OutputsBuilder.singleDutch(address(tokenOut), outputAmounts[i][0], outputAmounts[i][0], maker);
+            }
+            else {
+                dutchOutput = OutputsBuilder.multipleDutch(address(tokenOut), outputAmounts[i], outputAmounts[i], maker);
+            }
+            DutchLimitOrder memory order = DutchLimitOrder({
+                info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(i),
+                startTime: block.timestamp,
+                endTime: block.timestamp + 100,
+                input: DutchInput(address(tokenIn), inputAmounts[i], inputAmounts[i]),
+                outputs: dutchOutput
+            });
+            orderHashes[i] = order.hash();
+            sigs[i] = signOrder(makerPrivateKey, address(permit2), order);
+            abiEncodedOrders[i] = abi.encode(order);
+            orderInfos[i] = order.info;
+        }
+        return (abiEncodedOrders, sigs, orderHashes, orderInfos);
     }
 
     // Execute a single order, input = 1 and outputs = [2].

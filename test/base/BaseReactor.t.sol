@@ -39,6 +39,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
     // function createAndSignOrder() virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
     function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
 
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
+
     function testBaseExecute() virtual public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
@@ -91,5 +93,56 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
 
         vm.expectRevert(InvalidNonce.selector);
         reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+    }
+
+    // Two orders: 1. inputs = 1, outputs = 2, 2. inputs = 2, outputs = 4
+    function testBaseExecuteBatch() virtual public {
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount * 3);
+        tokenOut.mint(address(fillContract), 6 * 10 ** 18);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        uint256[] memory inputAmounts = new uint256[](2);
+        inputAmounts[0] = inputAmount;
+        inputAmounts[1] = 2 * inputAmount;
+
+        // I dislike arrays in solidity ... there must be a better way to make a 2D array
+        uint256[][] memory outputAmounts = new uint256[][](2);
+        uint256[] memory o1 = new uint256[](1);
+        uint256[] memory o2 = new uint256[](1);
+        o1[0] = outputAmount;
+        o2[0] = 2 * outputAmount;
+        outputAmounts[0] = o1;
+        outputAmounts[1] = o2;
+        // This is very inefficient and we can add manually but I think it adds more clarify
+        uint256 totalOutputAmount;
+        for (uint256 i = 0; i < outputAmounts.length; i++) {
+            for (uint256 j = 0; j < outputAmounts[i].length; j++) {
+                totalOutputAmount += outputAmounts[i][j];
+            }
+        }
+        uint256 totalInputAmount;
+        for (uint256 i = 0; i < inputAmounts.length; i++) {
+            totalInputAmount += inputAmounts[i];
+        }
+
+        (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) 
+            = createAndSignBatchOrders(inputAmounts, outputAmounts);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(orderHashes[0], address(this), maker, orderInfos[0].nonce);
+        vm.expectEmit(false, false, false, true);
+        emit Fill(orderHashes[1], address(this), maker, orderInfos[1].nonce);
+
+        SignedOrder[] memory signedOrders = new SignedOrder[](abiEncodedOrders.length);
+        for (uint256 i = 0; i < abiEncodedOrders.length; i++) {
+            signedOrders[i] = SignedOrder(abiEncodedOrders[i], sigs[i]);
+        }
+
+        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+
+        assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
     }
 }
