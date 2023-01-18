@@ -10,7 +10,8 @@ import {
     DutchLimitOrder,
     ResolvedOrder,
     DutchOutput,
-    DutchInput
+    DutchInput,
+    BaseReactor
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -21,6 +22,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
+import {BaseReactorTest} from '../base/BaseReactor.t.sol';
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
@@ -385,42 +387,30 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEvents, GasSnapshot, DeployPermit2 {
+contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
-
-    error InvalidNonce();
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
-    MockFillContract fillContract;
-    MockERC20 tokenIn;
-    MockERC20 tokenOut;
-    uint256 makerPrivateKey;
-    address maker;
-    DutchLimitOrderReactor reactor;
-    ISignatureTransfer permit2;
-
-    function setUp() public {
+    function setUp() public override {
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         permit2 = deployPermit2();
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        createReactor();
     }
 
-    // Execute a single order, input = 1 and outputs = [2].
-    function testExecute() public {
-        uint256 inputAmount = 10 ** 18;
-        uint256 outputAmount = 2 * inputAmount;
+    function createReactor() public override returns (BaseReactor) {
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        return reactor;
+    }
 
-        tokenIn.mint(address(maker), inputAmount);
-        tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-
+    /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
+    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -428,12 +418,28 @@ contract DutchLimitOrderReactorExecuteTest is Test, PermitSignature, ReactorEven
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
+        orderHash = order.hash();
+        sig = signOrder(makerPrivateKey, address(permit2), order);
+        return (abi.encode(order), sig, orderHash, order.info);
+    }
+
+    // Execute a single order, input = 1 and outputs = [2].
+    /// @dev override here to get gas snapshot for now
+    function testExecute() override public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
         snapStart("DutchExecuteSingle");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            SignedOrder(abiEncodedOrder, sig),
             address(fillContract),
             bytes("")
         );

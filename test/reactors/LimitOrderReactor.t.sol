@@ -16,7 +16,7 @@ import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {BaseReactorTest, IGenericOrder} from '../base/BaseReactor.t.sol';
+import {BaseReactorTest} from '../base/BaseReactor.t.sol';
 
 contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
@@ -29,8 +29,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockValidationContract validationContract;
-    uint256 makerPrivateKey;
-
     function setUp() public override {
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -51,11 +49,11 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
-    function createAndSignOrder() public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
+    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, address(maker))
         });
         orderHash = order.hash();
         sig = signOrder(makerPrivateKey, address(permit2), order);
