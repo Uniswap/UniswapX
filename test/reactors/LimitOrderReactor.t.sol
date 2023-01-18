@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
@@ -12,11 +12,13 @@ import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
+import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {BaseReactorTest, IGenericOrder} from '../base/BaseReactor.t.sol';
 
-contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPermit2 {
+contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using LimitOrderLib for LimitOrder;
 
@@ -29,15 +31,9 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockValidationContract validationContract;
-    MockFillContract fillContract;
-    MockERC20 tokenIn;
-    MockERC20 tokenOut;
     uint256 makerPrivateKey;
-    address maker;
-    LimitOrderReactor reactor;
-    ISignatureTransfer permit2;
 
-    function setUp() public {
+    function setUp() public override {
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
@@ -48,11 +44,16 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
         permit2 = deployPermit2();
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        createReactor();
     }
 
-    function testExecute() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
+    function createReactor() public override returns (BaseReactor) {
+        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        return reactor;
+    }
+
+    // TODO: I'm not sure how to use a generic order struct type here w/ the base test contract
+    function createOrder() public view override returns (LimitOrder memory, bytes memory, bytes32) {
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -60,22 +61,36 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         });
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-
-        uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
-        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
-        uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
-        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
-
-        vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, order.info.nonce);
-
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-
-        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
-        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
-        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
-        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+        return (order, sig, orderHash);
     }
+
+    // function testExecute() public {
+    //     tokenIn.forceApprove(maker, address(permit2), ONE);
+
+    //     LimitOrder memory order = createOrder(
+    //         OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+    //         InputToken(address(tokenIn), ONE, ONE),
+    //         OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+    //     );
+
+    //     bytes32 orderHash = order.hash();
+    //     bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+    //     uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
+    //     uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
+    //     uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
+    //     uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+    //     vm.expectEmit(false, false, false, true, address(reactor));
+    //     emit Fill(orderHash, address(this), maker, order.info.nonce);
+
+    //     reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+
+    //     assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
+    //     assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
+    //     assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
+    //     assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    // }
 
     function testExecuteWithValidationContract() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
