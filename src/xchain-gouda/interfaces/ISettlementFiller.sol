@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ResolvedOrder} from "../base/SettlementStructs.sol";
+import {OutputToken} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
-import {SettlementFillInfo} from "./ISettlementOracle.sol";
 
 /// @notice Interface for cross chain fillers for gouda
 interface ISettlementFiller {
@@ -17,5 +16,5 @@ interface ISettlementFiller {
     function fillAndTransmitSettlementInfo(bytes32 orderId, address recipient, address, address token, address amount)
         external
         view
-        returns (SettlementFillInfo[] calldata);
+        returns (OutputToken[] calldata);
 }
