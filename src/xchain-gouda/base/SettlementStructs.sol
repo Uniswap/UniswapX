@@ -13,17 +13,17 @@ enum OrderStatus {
 ///  should be included as the first field in any concrete cross-chain order types
 struct SettlementInfo {
     // The address of the settlementoracle that this order is targeting
-    address settlementOracle;
+    address settlerContract;
     // The address of the user which created the order
     address offerer;
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
     // The timestamp after which this order is no longer valid to initiateSettlement
     uint256 fillDeadline;
-    // The duration in seconds that the filler has to settle an order after initiating it before it may be cancelled
+    // The time period in seconds for which the settlement cannot be cancelled, giving the filler time to fill the order
     uint256 settlementPeriod;
     // Contract that receives information about cross chain transactions
-    address crossChainListener;
+    address settlementOracle;
     // Custom validation contract
     address validationContract;
     // Encoded validation params for validationContract
@@ -43,15 +43,23 @@ struct OutputToken {
     uint256 chainId;
 }
 
-/// @dev generic concrete cross-chain order that specifies exact tokens which need to be sent and received
-struct ResolvedOrder {
-    SettlementInfo info;
-    uint256 settlementDeadline;
+struct ActiveSettlement {
+    OrderStatus status;
+    address offerer;
+    address fillRecipient;
+    address settlementOracle;
+    uint256 deadline;
     InputToken input;
     CollateralToken collateral;
     OutputToken[] outputs;
-    address fillRecipient;
-    OrderStatus status;
+}
+
+/// @dev generic concrete cross-chain order that specifies exact tokens which need to be sent and received
+struct ResolvedOrder {
+    SettlementInfo info;
+    InputToken input;
+    CollateralToken collateral;
+    OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
 }
