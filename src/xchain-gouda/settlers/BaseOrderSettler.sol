@@ -28,20 +28,23 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateSettlement(SignedOrder calldata order) external override {
+    function initiateSettlement(SignedOrder calldata order, address crossChainFiller) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
-        _initiateSettlements(resolvedOrders);
+        _initiateSettlements(resolvedOrders, crossChainFiller);
     }
 
-    function _initiateSettlements(ResolvedOrder[] memory orders) internal {
+    function _initiateSettlements(ResolvedOrder[] memory orders, address crossChainFiller) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 order.validate(msg.sender);
                 transferEscrowTokens(order);
 
-                settlements[order.hash] = ActiveSettlement({
+                // settlementId: hash the order hash with the crossChainFiller address so the filler may have exclusive access
+                // to this settlement. Valid cross-chain fill contracts must transmit a settlement fill by keccak256-ing
+                // the msg.sender with an order hash. This prevents spam.
+                settlements[keccak256(abi.encode(order.hash, crossChainFiller))] = ActiveSettlement({
                     status: OrderStatus.Pending,
                     offerer: order.info.offerer,
                     fillRecipient: msg.sender,
@@ -54,9 +57,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
                 emit InitiateSettlement(
                     order.hash,
+                    order.info.offerer,
                     msg.sender,
+                    crossChainFiller,
                     order.info.settlementOracle,
-                    order.info.nonce,
                     block.timestamp + order.info.settlementPeriod
                     );
             }
@@ -79,10 +83,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function finalizeSettlement(bytes32 settlementId) external override {
         ActiveSettlement storage settlement = settlements[settlementId];
         if (settlement.status == OrderStatus.Pending) {
-            OutputToken[] memory receivedOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(settlementId);
-            for (uint256 i; i < receivedOutputs.length; i++) {
-
-            }
+            OutputToken[] memory receivedOutputs =
+                ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(settlementId);
+            for (uint256 i; i < receivedOutputs.length; i++) {}
         }
     }
 
@@ -90,11 +93,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder calldata order)
-        internal
-        view
-        virtual
-        returns (ResolvedOrder memory resolvedOrder);
+    function resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers swapper input tokens as well as collateral tokens of filler
     /// @param order The encoded order to transfer tokens for

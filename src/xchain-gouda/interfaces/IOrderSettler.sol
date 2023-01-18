@@ -8,7 +8,7 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 interface IOrderSettler {
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
-    function initiateSettlement(SignedOrder calldata order) external;
+    function initiateSettlement(SignedOrder calldata order, address crossChainFiller) external;
 
     /// @notice Finalize a settlement by confirming the cross-chain fill has happened and transferring input tokens and
     /// collateral to fill recipient

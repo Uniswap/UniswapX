@@ -6,15 +6,12 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Interface for cross chain fillers for gouda
 interface ISettlementFiller {
-    /// @notice Fills an order and transmits a message to the origin chain about the details of the fulfillment
+    /// @notice Fills an order and transmits a message to the origin chain about the details of the fulfillment including
+    /// the settlementId and the outputs
+    /// @dev This function must form the settlementId by keccak256-ing the orderId and msg.sender together to guarantee
+    /// exclusive access to this settlement from the expected filler
     /// @param orderId The cross-chain orderId
-    /// @param recipient The recipient of the funds
-    /// @param token The address of the token being spent
-    /// @param amount The amount of token to send to the recipient
-    /// @param orderId The cross-chain orderId
-    /// @return settlementInfo The settlmentInfo that was passed to the cross-chain listener from a valid source
-    function fillAndTransmitSettlementInfo(bytes32 orderId, address recipient, address, address token, address amount)
-        external
-        view
-        returns (OutputToken[] calldata);
+    /// @param outputs The outputs associated with the corresponding settlement. The outputs MUST be in the same order
+    /// as they are in the original order.
+    function fillAndTransmitSettlementOutputs(bytes32 orderId, OutputToken[] calldata outputs) external;
 }
