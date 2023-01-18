@@ -10,7 +10,6 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 
 struct IGenericOrder {
     OrderInfo info;
@@ -19,7 +18,6 @@ struct IGenericOrder {
 }
 
 abstract contract BaseReactorTest is ReactorEvents, Test {
-    using LimitOrderLib for LimitOrder;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     MockFillContract fillContract;
@@ -36,18 +34,19 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
 
     function createReactor() virtual public returns (BaseReactor) {}
 
-    /// @dev returns (order, signature, orderHash)
-    function createOrder() virtual public returns (LimitOrder memory, bytes memory, bytes32) {}
+    /// @dev returns (order, signature, orderHash, OrderInfo)
+    function createAndSignOrder() virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
 
     function testExecute() public {
         uint256 ONE = 10 ** 18;
-        LimitOrder memory order;
+        bytes memory abiEncodedOrder;
         bytes memory sig;
         bytes32 orderHash;
+        OrderInfo memory orderInfo;
 
         tokenIn.forceApprove(maker, address(permit2), ONE);
         reactor = createReactor();
-        (order, sig, orderHash) = createOrder();
+        (abiEncodedOrder, sig, orderHash, orderInfo) = createAndSignOrder();
         // execute order
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
@@ -57,8 +56,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
 
         // TODO: expand to allow for custom fillData in 3rd param
         vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, order.info.nonce);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);

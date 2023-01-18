@@ -53,15 +53,15 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     // TODO: I'm not sure how to use a generic order struct type here w/ the base test contract
-    function createOrder() public view override returns (LimitOrder memory, bytes memory, bytes32) {
+    function createAndSignOrder() public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        bytes32 orderHash = order.hash();
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        return (order, sig, orderHash);
+        orderHash = order.hash();
+        sig = signOrder(makerPrivateKey, address(permit2), order);
+        return (abi.encode(order), sig, orderHash, order.info);
     }
 
     function testExecuteWithValidationContract() public {
