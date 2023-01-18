@@ -6,15 +6,18 @@ pragma solidity ^0.8.16;
 /// @dev and for reactors which dont use base
 contract SettlementEvents {
     /// @notice emitted when a settlement is initiated
-    /// @param orderHash The hash of the order that was filled
+    /// @param orderHash The hash of the order to be filled
     /// @param offerer The offerer of the filled order
-    /// @param crossChainListener The cross chain listener which provides information on the cross chain order fulfillment
-    /// @param nonce The nonce of the filled order
+    /// @param fillRecipient The address to receive the input tokens once the order is filled
+    /// @param crossChainFiller The cross chain listener which provides information on the cross chain order fulfillment
+    /// @param settlementOracle The settlementOracle to be used to determine fulfillment of order
+    /// @param settlementDeadline The timestamp starting at which the settlement may be cancelled if not filled
     event InitiateSettlement(
         bytes32 indexed orderHash,
+        address indexed fillRecipient,
         address indexed offerer,
-        address indexed crossChainListener,
-        uint256 nonce,
+        address crossChainFiller,
+        address settlementOracle,
         uint256 settlementDeadline
     );
 }
