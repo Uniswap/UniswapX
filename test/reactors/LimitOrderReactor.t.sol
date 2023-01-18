@@ -22,10 +22,8 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     using OrderInfoBuilder for OrderInfo;
     using LimitOrderLib for LimitOrder;
 
-    error InvalidNonce();
     error InvalidSigner();
 
-    uint256 constant ONE = 10 ** 18;
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
@@ -52,7 +50,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         return reactor;
     }
 
-    // TODO: I'm not sure how to use a generic order struct type here w/ the base test contract
+    /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
     function createAndSignOrder() public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),

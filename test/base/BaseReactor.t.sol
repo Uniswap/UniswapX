@@ -18,17 +18,17 @@ struct IGenericOrder {
 }
 
 abstract contract BaseReactorTest is ReactorEvents, Test {
+    uint256 constant ONE = 10 ** 18;
+
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     MockFillContract fillContract;
     ISignatureTransfer permit2;
-    address maker;
-    
-    // TODO: make new generic type?
     BaseReactor reactor;
-    
-    // IMockGenericOrder , constructor can create limit order
+    address maker;
 
+    error InvalidNonce();
+    
     /// @dev 
     function setUp() virtual public {}
 
@@ -38,16 +38,9 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
     function createAndSignOrder() virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
 
     function testExecute() public {
-        uint256 ONE = 10 ** 18;
-        bytes memory abiEncodedOrder;
-        bytes memory sig;
-        bytes32 orderHash;
-        OrderInfo memory orderInfo;
-
         tokenIn.forceApprove(maker, address(permit2), ONE);
         reactor = createReactor();
-        (abiEncodedOrder, sig, orderHash, orderInfo) = createAndSignOrder();
-        // execute order
+        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder();
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -57,6 +50,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         // TODO: expand to allow for custom fillData in 3rd param
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        // execute order
         reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
@@ -65,5 +59,25 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
     }
 
-    // for signature re-use, call execute, listen for fill event, call again, expect fail
+    function testExecuteSignatureReplay() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        reactor = createReactor();
+
+        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder();
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+
+        tokenIn.mint(address(maker), ONE);
+        tokenOut.mint(address(fillContract), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+
+        // Create a new order, but use the previous signature
+        bytes memory unusedSignature;
+        (abiEncodedOrder, unusedSignature, orderHash, orderInfo) = createAndSignOrder();
+
+        vm.expectRevert(InvalidNonce.selector);
+        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+    }
 }
