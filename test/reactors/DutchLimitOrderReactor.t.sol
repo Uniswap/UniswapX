@@ -424,6 +424,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
         return (abi.encode(order), sig, orderHash, order.info);
     }
 
+    /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
     function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
         // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
         assertEq(inputAmounts.length, outputAmounts.length);

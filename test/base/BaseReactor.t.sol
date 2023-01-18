@@ -41,6 +41,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
 
     function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
 
+    /// @dev Basic execute test, checks balance before and after
     function testBaseExecute() virtual public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
@@ -69,32 +70,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
     }
 
-    function testBaseExecuteSignatureReplay() virtual public {
-        // Seed both maker and fillContract with enough tokens (important for dutch order)
-        uint256 inputAmount = ONE;
-        uint256 outputAmount = ONE * 2;
-        tokenIn.mint(address(maker), inputAmount * 100);
-        tokenOut.mint(address(fillContract), outputAmount * 100);
-        tokenIn.forceApprove(maker, address(permit2), inputAmount);
-
-        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
-
-        vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
-        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
-
-        tokenIn.mint(address(maker), inputAmount);
-        tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), inputAmount);
-
-        // Create a new order, but use the previous signature
-        bytes memory unusedSignature;
-        (abiEncodedOrder, unusedSignature, orderHash, orderInfo) = createAndSignOrder(inputAmount, outputAmount);
-
-        vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
-    }
-
+    /// @dev Basic batch execute test
     // Two orders: 1. inputs = 1, outputs = 2, 2. inputs = 2, outputs = 4
     function testBaseExecuteBatch() virtual public {
         uint256 inputAmount = ONE;
@@ -145,4 +121,32 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
     }
+
+    /// @dev Base test preventing signatures from being reused
+    function testBaseExecuteSignatureReplay() virtual public {
+        // Seed both maker and fillContract with enough tokens (important for dutch order)
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = ONE * 2;
+        tokenIn.mint(address(maker), inputAmount * 100);
+        tokenOut.mint(address(fillContract), outputAmount * 100);
+        tokenIn.forceApprove(maker, address(permit2), inputAmount);
+
+        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(maker, address(permit2), inputAmount);
+
+        // Create a new order, but use the previous signature
+        bytes memory unusedSignature;
+        (abiEncodedOrder, unusedSignature, orderHash, orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+
+        vm.expectRevert(InvalidNonce.selector);
+        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+    }
+
 }
