@@ -43,26 +43,28 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         createReactor();
     }
 
+    function name() public pure override returns (string memory) {
+        return "LimitOrderReactor";
+    }
+
     function createReactor() public override returns (BaseReactor) {
         reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         return reactor;
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
+    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, address(maker))
         });
         orderHash = order.hash();
-        sig = signOrder(makerPrivateKey, address(permit2), order);
-        return (abi.encode(order), sig, orderHash, order.info);
+        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash, order.info);
     }
 
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
-        abiEncodedOrders = new bytes[](inputAmounts.length);
-        sigs = new bytes[](inputAmounts.length);
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+        signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
         orderInfos = new OrderInfo[](inputAmounts.length);
         for (uint256 i = 0; i < inputAmounts.length; i++) {
@@ -74,10 +76,9 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             });
             orderHashes[i] = order.hash();
             orderInfos[i] = order.info;
-            sigs[i] = signOrder(makerPrivateKey, address(permit2), order);
-            abiEncodedOrders[i] = abi.encode(order);
+            signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
         }
-        return (abiEncodedOrders, sigs, orderHashes, orderInfos);
+        return (signedOrders, orderHashes, orderInfos);
     }
 
     function testExecuteWithValidationContract() public {

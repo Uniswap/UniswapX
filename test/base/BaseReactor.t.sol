@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -11,13 +12,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {SignedOrder} from "../../src/base/ReactorStructs.sol";
 
-struct IGenericOrder {
-    OrderInfo info;
-    InputToken input;
-    OutputToken[] outputs;
-}
-
-abstract contract BaseReactorTest is ReactorEvents, Test {
+abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn;
@@ -29,6 +24,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
     address maker;
 
     error InvalidNonce();
+
+    function name() virtual public returns (string memory) {}
     
     /// @dev 
     function setUp() virtual public {}
@@ -36,10 +33,10 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
     function createReactor() virtual public returns (BaseReactor) {}
 
     /// @dev returns (order, signature, orderHash, OrderInfo)
-    // function createAndSignOrder() virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) virtual public returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {}
+    // function createAndSignOrder() virtual public returns (SignedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {}
+    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {}
 
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
 
     /// @dev Basic execute test, checks balance before and after
     function testBaseExecute() virtual public {
@@ -50,7 +47,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -61,8 +58,9 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
         // execute order
-        // TODO: allow for doing gas snapshot tests here custom to implementation
-        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+        snapStart(string.concat(name(), "BaseExecuteSingle"));
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        snapEnd();
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -104,19 +102,16 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
             totalInputAmount += inputAmounts[i];
         }
 
-        (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) 
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) 
             = createAndSignBatchOrders(inputAmounts, outputAmounts);
         vm.expectEmit(false, false, false, true);
         emit Fill(orderHashes[0], address(this), maker, orderInfos[0].nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orderHashes[1], address(this), maker, orderInfos[1].nonce);
 
-        SignedOrder[] memory signedOrders = new SignedOrder[](abiEncodedOrders.length);
-        for (uint256 i = 0; i < abiEncodedOrders.length; i++) {
-            signedOrders[i] = SignedOrder(abiEncodedOrders[i], sigs[i]);
-        }
-
+        snapStart(string.concat(name(), "BaseExecuteBatch"));
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        snapEnd();
 
         assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -124,29 +119,30 @@ abstract contract BaseReactorTest is ReactorEvents, Test {
 
     /// @dev Base test preventing signatures from being reused
     function testBaseExecuteSignatureReplay() virtual public {
-        // Seed both maker and fillContract with enough tokens (important for dutch order)
+        // Seed both maker and fillContract with enough tokens
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
         tokenIn.mint(address(maker), inputAmount * 100);
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
-        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
 
         tokenIn.mint(address(maker), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        // Create a new order, but use the previous signature
-        bytes memory unusedSignature;
-        (abiEncodedOrder, unusedSignature, orderHash, orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        bytes memory oldSignature = signedOrder.sig;
+        // Create a new order, but use the previous signature (TODO: should use different nonce here?)
+        (signedOrder, orderHash, orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        signedOrder.sig = oldSignature;
 
         vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(SignedOrder(abiEncodedOrder, sig), address(fillContract), bytes(""));
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
     }
 
 }

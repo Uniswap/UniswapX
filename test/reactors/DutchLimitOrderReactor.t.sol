@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -388,7 +387,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
 }
 
 // This suite of tests test execution with a mock fill contract.
-contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, DeployPermit2, BaseReactorTest {
+contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
@@ -405,13 +404,17 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
         createReactor();
     }
 
+    function name() public override pure returns (string memory) {
+        return "DutchLimitOrder";
+    }
+
     function createReactor() public override returns (BaseReactor) {
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         return reactor;
     }
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) {
+    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -420,17 +423,15 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orderHash = order.hash();
-        sig = signOrder(makerPrivateKey, address(permit2), order);
-        return (abi.encode(order), sig, orderHash, order.info);
+        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash, order.info);
     }
 
     /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (bytes[] memory abiEncodedOrders, bytes[] memory sigs, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
         // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
         assertEq(inputAmounts.length, outputAmounts.length);
 
-        abiEncodedOrders = new bytes[](inputAmounts.length);
-        sigs = new bytes[](inputAmounts.length);
+        signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
         orderInfos = new OrderInfo[](inputAmounts.length);
 
@@ -450,11 +451,10 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
                 outputs: dutchOutput
             });
             orderHashes[i] = order.hash();
-            sigs[i] = signOrder(makerPrivateKey, address(permit2), order);
-            abiEncodedOrders[i] = abi.encode(order);
+            signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
             orderInfos[i] = order.info;
         }
-        return (abiEncodedOrders, sigs, orderHashes, orderInfos);
+        return (signedOrders, orderHashes, orderInfos);
     }
 
     // Execute a single order, input = 1 and outputs = [2].
@@ -466,13 +466,13 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, GasSnapshot, Depl
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
-        (bytes memory abiEncodedOrder, bytes memory sig, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true);
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
         snapStart("DutchExecuteSingle");
         reactor.execute(
-            SignedOrder(abiEncodedOrder, sig),
+            signedOrder,
             address(fillContract),
             bytes("")
         );
