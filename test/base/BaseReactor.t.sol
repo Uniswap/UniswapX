@@ -39,7 +39,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
 
     /// @dev Basic execute test, checks balance before and after
-    function testBaseExecute() virtual public {
+    function testBaseExecute() public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
@@ -70,7 +70,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
 
     /// @dev Basic batch execute test
     // Two orders: 1. inputs = 1, outputs = 2, 2. inputs = 2, outputs = 4
-    function testBaseExecuteBatch() virtual public {
+    function testBaseExecuteBatch() public {
         uint256 inputAmount = ONE;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -118,7 +118,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     }
 
     /// @dev Base test preventing signatures from being reused
-    function testBaseExecuteSignatureReplay() virtual public {
+    function testBaseExecuteSignatureReplay() public {
         // Seed both maker and fillContract with enough tokens
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
@@ -144,5 +144,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         vm.expectRevert(InvalidNonce.selector);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
     }
+
+    /// @dev Base test preventing nonce reuse
+    // TODO: once using ResolvedOrder is supported which allows for custom nonce setting
+    function testBaseNonceReuse() public {}
 
 }
