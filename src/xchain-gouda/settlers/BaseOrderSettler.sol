@@ -43,7 +43,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 order.validate(msg.sender);
-                transferEscrowTokens(order);
+                collectEscrowTokens(order);
 
                 // settlementId: hash the order hash with the crossChainFiller address so the filler may have exclusive access
                 // to this settlement. Valid SettlementFiller contracts must transmit the settlementId by keccak256-ing
@@ -115,7 +115,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @dev should revert on any order-type-specific validation errors
     function resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
-    /// @notice Transfers swapper input tokens as well as collateral tokens of filler
+    /// @notice Collects swapper input tokens as well as collateral tokens of filler to escrow them until settlement is
+    /// finalized or cancelled
     /// @param order The encoded order to transfer tokens for
-    function transferEscrowTokens(ResolvedOrder memory order) internal virtual;
+    function collectEscrowTokens(ResolvedOrder memory order) internal virtual;
 }
