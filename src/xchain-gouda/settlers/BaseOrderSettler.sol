@@ -8,12 +8,16 @@ import {SettlementEvents} from "../base/SettlementEvents.sol";
 import {IOrderSettler} from "../interfaces/IOrderSettler.sol";
 import {ISettlementOracle} from "../interfaces/ISettlementOracle.sol";
 import {
-    ResolvedOrder, SettlementInfo, ActiveSettlement, OutputToken, OrderStatus
+    ResolvedOrder,
+    SettlementInfo,
+    ActiveSettlement,
+    OutputToken,
+    SettlementStatus
 } from "../base/SettlementStructs.sol";
 import {SignedOrder, InputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 
-/// @notice Generic cross-chain reactor logic for settling off-chain signed orders
+/// @notice Generic cross-chain settler logic for settling off-chain signed orders
 /// using arbitrary fill methods specified by a taker
 abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     using SafeTransferLib for ERC20;
@@ -42,10 +46,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                 transferEscrowTokens(order);
 
                 // settlementId: hash the order hash with the crossChainFiller address so the filler may have exclusive access
-                // to this settlement. Valid cross-chain fill contracts must transmit a settlement fill by keccak256-ing
-                // the msg.sender with an order hash. This prevents spam.
+                // to this settlement. Valid SettlementFiller contracts must transmit the settlementId by keccak256-ing
+                // the msg.sender with the order hash. This ensures sole access of this order to the crossChainFiller.
                 settlements[keccak256(abi.encode(order.hash, crossChainFiller))] = ActiveSettlement({
-                    status: OrderStatus.Pending,
+                    status: SettlementStatus.Pending,
                     offerer: order.info.offerer,
                     fillRecipient: msg.sender,
                     settlementOracle: order.info.settlementOracle,
@@ -70,8 +74,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function cancelSettlement(bytes32 settlementId) external override {
         ActiveSettlement storage settlement = settlements[settlementId];
-        if (settlement.status == OrderStatus.Pending && settlement.deadline > block.timestamp) {
-            settlement.status = OrderStatus.Cancelled;
+        if (settlement.status == SettlementStatus.Pending && settlement.deadline > block.timestamp) {
+            settlement.status = SettlementStatus.Cancelled;
 
             // transfer tokens and collateral back to offerer
             ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
@@ -81,11 +85,27 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     /// @inheritdoc IOrderSettler
     function finalizeSettlement(bytes32 settlementId) external override {
-        ActiveSettlement storage settlement = settlements[settlementId];
-        if (settlement.status == OrderStatus.Pending) {
-            OutputToken[] memory receivedOutputs =
+        ActiveSettlement memory settlement = settlements[settlementId];
+        if (settlement.status == SettlementStatus.Pending) {
+            OutputToken[] memory filledOutputs =
                 ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(settlementId);
-            for (uint256 i; i < receivedOutputs.length; i++) {}
+
+            // validate outputs
+            for (uint16 i; i < filledOutputs.length; i++) {
+                OutputToken memory expectedOutput = settlement.outputs[i];
+                OutputToken memory receivedOutput = filledOutputs[i];
+                if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(settlementId, i);
+                if (expectedOutput.token != receivedOutput.token) revert InvalidToken(settlementId, i);
+                if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(settlementId, i);
+                if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(settlementId, i);
+            }
+
+            // compensate filler
+            settlements[settlementId].status = SettlementStatus.Filled;
+            ERC20(settlement.input.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
+            ERC20(settlement.collateral.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
+        } else {
+            revert SettlementAlreadyCompleted(settlement.status);
         }
     }
 
