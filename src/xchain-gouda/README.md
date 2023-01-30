@@ -1,2 +1,2 @@
 # Cross Chain Gouda
-![CrossChainGoudaa](https://user-images.githubusercontent.com/5539720/215593906-bdc37c97-02d2-462e-9c31-63a3235a66bb.png)
+![1CrossChainGouda](https://user-images.githubusercontent.com/5539720/215596767-46ac34dd-c6f8-49fa-aa55-c24c98e8ddf4.png)
