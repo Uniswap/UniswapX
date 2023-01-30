@@ -455,30 +455,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         return (signedOrders, orderHashes);
     }
 
-    // Execute a single order, input = 1 and outputs = [2].
-    function testExecute() public {
-        uint256 inputAmount = 10 ** 18;
-        uint256 outputAmount = 2 * inputAmount;
-
-        tokenIn.mint(address(maker), inputAmount);
-        tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-
-        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
-
-        vm.expectEmit(false, false, false, true);
-        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
-        snapStart("DutchExecuteSingle");
-        reactor.execute(
-            signedOrder,
-            address(fillContract),
-            bytes("")
-        );
-        snapEnd();
-        assertEq(tokenOut.balanceOf(maker), outputAmount);
-        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
-    }
-
     // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
     // has input = 2, outputs = [4].
     function testExecuteBatch() public {

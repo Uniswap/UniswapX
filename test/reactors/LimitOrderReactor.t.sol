@@ -53,32 +53,30 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash) {
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
+            info: _info,
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, address(maker))
         });
         orderHash = order.hash();
-        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash, order.info);
+        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash);
     }
 
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
         signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
-        orderInfos = new OrderInfo[](inputAmounts.length);
         for (uint256 i = 0; i < inputAmounts.length; i++) {
             LimitOrder memory order = LimitOrder({
-                info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(i),
+                info: _infos[i], // nonce is specified already in _infos
                 input: InputToken(address(tokenIn), inputAmounts[i], inputAmounts[i]),
                 // No multiple outputs supported for limitOrder
                 outputs: OutputsBuilder.single(address(tokenOut), outputAmounts[i][0], address(maker))
             });
             orderHashes[i] = order.hash();
-            orderInfos[i] = order.info;
             signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
         }
-        return (signedOrders, orderHashes, orderInfos);
+        return (signedOrders, orderHashes);
     }
 
     function testExecuteWithValidationContract() public {

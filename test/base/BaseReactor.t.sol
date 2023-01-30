@@ -14,6 +14,7 @@ import {SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
+    using OrderInfoBuilder for OrderInfo;
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn;
@@ -48,9 +49,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        OrderInfo memory _info = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
-        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(
-            _info,
+        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
+            orderInfo,
             inputAmount, 
             outputAmount
         );
@@ -112,16 +113,16 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         infos[0] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(0);
         infos[1] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1);
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) 
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) 
             = createAndSignBatchOrders(
                 infos,
                 inputAmounts,
                 outputAmounts
             );
         vm.expectEmit(false, false, false, true);
-        emit Fill(orderHashes[0], address(this), maker, orderInfos[0].nonce);
+        emit Fill(orderHashes[0], address(this), maker, infos[0].nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orderHashes[1], address(this), maker, orderInfos[1].nonce);
+        emit Fill(orderHashes[1], address(this), maker, infos[1].nonce);
 
         snapStart(string.concat(name(), "BaseExecuteBatch"));
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
@@ -140,7 +141,12 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
+            orderInfo,
+            inputAmount, 
+            outputAmount
+        );
 
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
@@ -152,7 +158,11 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
 
         bytes memory oldSignature = signedOrder.sig;
         // Create a new order, but use the previous signature (TODO: should use different nonce here?)
-        (signedOrder, orderHash, orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        (signedOrder, orderHash) = createAndSignOrder(
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            inputAmount, 
+            outputAmount
+        );
         signedOrder.sig = oldSignature;
 
         vm.expectRevert(InvalidNonce.selector);
