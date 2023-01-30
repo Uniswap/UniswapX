@@ -30,15 +30,17 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
 
     function name() virtual public returns (string memory) {}
     
-    /// @dev 
+    /// @dev Virtual function to set up the test and state variables
     function setUp() virtual public {}
 
+    /// @dev Virtual function to create the specific reactor in state
     function createReactor() virtual public returns (BaseReactor) {}
 
-    /// @dev returns (order, signature, orderHash, OrderInfo)
-    // function createAndSignOrder() virtual public returns (SignedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {}
+    /// @dev Create a signed order and return the order and orderHash
     function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash) {}
 
+    /// @dev Create many signed orders and return
+    /// supports orders with multiple outputs 
     function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
 
     /// @dev Basic execute test, checks balance before and after
