@@ -3,16 +3,16 @@ pragma solidity ^0.8.16;
 
 import {InputToken} from "../../base/ReactorStructs.sol";
 
-enum OrderStatus {
+enum SettlementStatus {
     Pending,
     Cancelled,
-    Success
+    Filled
 }
 
 /// @dev generic cross-chain order information
 ///  should be included as the first field in any concrete cross-chain order types
 struct SettlementInfo {
-    // The address of the settlementoracle that this order is targeting
+    // The address of the settler that this order is targeting
     address settlerContract;
     // The address of the user which created the order
     address offerer;
@@ -37,14 +37,14 @@ struct CollateralToken {
 
 /// @dev tokens that need to be received by the recipient on another chain in order to satisfy an order
 struct OutputToken {
+    address recipient;
     address token;
     uint256 amount;
-    address recipient;
     uint256 chainId;
 }
 
 struct ActiveSettlement {
-    OrderStatus status;
+    SettlementStatus status;
     address offerer;
     address fillRecipient;
     address settlementOracle;

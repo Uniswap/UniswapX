@@ -4,17 +4,16 @@ pragma solidity ^0.8.16;
 import {OutputToken} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
-/// @notice Interface for cross chain listeners for gouda
+/// @notice Interface for cross chain listener oracles for cross-chain gouda
 interface ISettlementOracle {
-    /// @notice Get the settlementInfo associated with an orderId.
-    /// @param orderId The cross-chain orderId
-    /// @return settlementInfo The settlmentInfo that was passed to the cross-chain listener from a valid source
-    function getSettlementFillInfo(bytes32 orderId) external view returns (OutputToken[] calldata);
+    /// @notice Get the output tokens filled associated with a settlementId
+    /// @param settlementId The cross-chain settlementId which is a hash of the orderId and crossChainFiller address
+    function getSettlementFillInfo(bytes32 settlementId) external view returns (OutputToken[] calldata);
 
-    /// @notice Logs the settlement info given for an orderId
-    /// @dev Access to this function must be restricted to valid message bridges and must verify that chainId corresponds
-    /// to the correct bridge.
-    /// @param outputs The settlmentInfo that should be logged for a given orderId
-    /// @param settlementId The cross-chain orderId
+    /// @notice Logs the settlement info given for a settlementId
+    /// @dev Access to this function must be restricted to valid message bridges, and must verify that the cross chain
+    /// message was sent by a valid SettlementFiller on the target chain of output tokens.
+    /// @param outputs The output tokens that were filled on the target chain.
+    /// @param settlementId The cross-chain settlementId which is a hash of the orderId and crossChainFiller address
     function logSettlementFillInfo(OutputToken[] calldata outputs, bytes32 settlementId) external;
 }
