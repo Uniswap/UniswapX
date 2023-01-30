@@ -20,4 +20,10 @@ contract SettlementEvents {
         address settlementOracle,
         uint256 settlementDeadline
     );
+
+    /// @notice emitted when a settlement has been filled successfully
+    event FinalizeSettlement(bytes32 indexed orderId);
+
+    /// @notice emitted when a settlement has been cancelled
+    event CancelSettlement(bytes32 indexed orderId);
 }

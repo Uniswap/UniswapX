@@ -26,5 +26,5 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
         }
     }
 
-    function transmitSettlementOutputs(bytes32 settlementId, OutputToken[] calldata outputs) internal virtual;
+    function transmitSettlementOutputs(bytes32 orderId, OutputToken[] calldata outputs) internal virtual;
 }
