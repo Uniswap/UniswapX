@@ -16,7 +16,7 @@ import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {BaseReactorTest} from '../base/BaseReactor.t.sol';
+import {BaseReactorTest} from "../base/BaseReactor.t.sol";
 
 contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
@@ -27,6 +27,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockValidationContract validationContract;
+
     function setUp() public override {
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -51,7 +52,12 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
-    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash) {
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
         LimitOrder memory order = LimitOrder({
             info: _info,
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -61,7 +67,11 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash);
     }
 
-    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
+    function createAndSignBatchOrders(
+        OrderInfo[] memory _infos,
+        uint256[] memory inputAmounts,
+        uint256[][] memory outputAmounts
+    ) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
         signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
         for (uint256 i = 0; i < inputAmounts.length; i++) {

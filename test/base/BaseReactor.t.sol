@@ -6,7 +6,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {SignedOrder, OrderInfo, InputToken, OutputToken} from '../../src/base/ReactorStructs.sol';
+import {SignedOrder, OrderInfo, InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -14,6 +14,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     using OrderInfoBuilder for OrderInfo;
+
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn;
@@ -27,22 +28,30 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     error InvalidNonce();
     error InvalidSigner();
 
-    function name() virtual public returns (string memory) {}
-    
+    function name() public virtual returns (string memory) {}
+
     /// @dev Virtual function to set up the test and state variables
-    function setUp() virtual public {}
+    function setUp() public virtual {}
 
     /// @dev Virtual function to create the specific reactor in state
-    function createReactor() virtual public returns (BaseReactor) {}
+    function createReactor() public virtual returns (BaseReactor) {}
 
     /// @dev Create a signed order and return the order and orderHash
     /// @param _info OrderInfo, uint256 inputAmount, uint256 outputAmount
-    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash) {}
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount)
+        public
+        virtual
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {}
 
     /// @dev Create many signed orders and return
     /// @param _infos OrderInfo[], uint256[] inputAmounts, uint256[][] outputAmounts
-    /// supports orders with multiple outputs 
-    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
+    /// supports orders with multiple outputs
+    function createAndSignBatchOrders(
+        OrderInfo[] memory _infos,
+        uint256[] memory inputAmounts,
+        uint256[][] memory outputAmounts
+    ) public virtual returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
 
     /// @dev Basic execute test, checks balance before and after
     function testBaseExecute() public {
@@ -53,12 +62,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
-            orderInfo,
-            inputAmount, 
-            outputAmount
-        );
+        OrderInfo memory orderInfo =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(orderInfo, inputAmount, outputAmount);
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -114,15 +120,13 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         }
 
         OrderInfo[] memory infos = new OrderInfo[](2);
-        infos[0] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(0);
-        infos[1] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1);
+        infos[0] =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(0);
+        infos[1] =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1);
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) 
-            = createAndSignBatchOrders(
-                infos,
-                inputAmounts,
-                outputAmounts
-            );
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) =
+            createAndSignBatchOrders(infos, inputAmounts, outputAmounts);
         vm.expectEmit(false, false, false, true);
         emit Fill(orderHashes[0], address(this), maker, infos[0].nonce);
         vm.expectEmit(false, false, false, true);
@@ -145,12 +149,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
-            orderInfo,
-            inputAmount, 
-            outputAmount
-        );
+        OrderInfo memory orderInfo =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(orderInfo, inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
@@ -164,7 +165,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         // Create a new order, but use the previous signature
         (signedOrder, orderHash) = createAndSignOrder(
             OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
-            inputAmount, 
+            inputAmount,
             outputAmount
         );
         signedOrder.sig = oldSignature;
@@ -182,23 +183,18 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         // approve for 2 orders here
         tokenIn.forceApprove(maker, address(permit2), inputAmount * 2);
 
-        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(123);
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
-            orderInfo,
-            inputAmount, 
-            outputAmount
-        );
+        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(
+            block.timestamp + 100
+        ).withNonce(123);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(orderInfo, inputAmount, outputAmount);
 
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, orderInfo.nonce);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
 
-        orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(123);
-        (signedOrder, orderHash) = createAndSignOrder(
-            orderInfo,
-            inputAmount, 
-            outputAmount
-        );
+        orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+            .withNonce(123);
+        (signedOrder, orderHash) = createAndSignOrder(orderInfo, inputAmount, outputAmount);
         vm.expectRevert(InvalidNonce.selector);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
     }

@@ -22,7 +22,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {BaseReactorTest} from '../base/BaseReactor.t.sol';
+import {BaseReactorTest} from "../base/BaseReactor.t.sol";
 
 // This suite of tests test validation and resolves.
 contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
@@ -404,7 +404,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         createReactor();
     }
 
-    function name() public override pure returns (string memory) {
+    function name() public pure override returns (string memory) {
         return "DutchLimitOrder";
     }
 
@@ -415,7 +415,12 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
     /// TODO: Support creating a single dutch order with multiple outputs
-    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash) {
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: _info,
             startTime: block.timestamp,
@@ -428,7 +433,11 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     }
 
     /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
-    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
+    function createAndSignBatchOrders(
+        OrderInfo[] memory _infos,
+        uint256[] memory inputAmounts,
+        uint256[][] memory outputAmounts
+    ) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
         // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
         assertEq(inputAmounts.length, outputAmounts.length);
 
@@ -437,10 +446,10 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         for (uint256 i = 0; i < inputAmounts.length; i++) {
             DutchOutput[] memory dutchOutput;
-            if(outputAmounts[i].length == 1) {
-                dutchOutput = OutputsBuilder.singleDutch(address(tokenOut), outputAmounts[i][0], outputAmounts[i][0], maker);
-            }
-            else {
+            if (outputAmounts[i].length == 1) {
+                dutchOutput =
+                    OutputsBuilder.singleDutch(address(tokenOut), outputAmounts[i][0], outputAmounts[i][0], maker);
+            } else {
                 dutchOutput = OutputsBuilder.multipleDutch(address(tokenOut), outputAmounts[i], outputAmounts[i], maker);
             }
             DutchLimitOrder memory order = DutchLimitOrder({
