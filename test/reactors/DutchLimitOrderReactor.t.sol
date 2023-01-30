@@ -414,26 +414,25 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     }
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) public view override returns (SignedOrder memory signedOrder, bytes32 orderHash) {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: _info,
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         orderHash = order.hash();
-        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash, order.info);
+        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash);
     }
 
     /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {
+    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
         // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
         assertEq(inputAmounts.length, outputAmounts.length);
 
         signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
-        orderInfos = new OrderInfo[](inputAmounts.length);
 
         for (uint256 i = 0; i < inputAmounts.length; i++) {
             DutchOutput[] memory dutchOutput;
@@ -444,7 +443,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 dutchOutput = OutputsBuilder.multipleDutch(address(tokenOut), outputAmounts[i], outputAmounts[i], maker);
             }
             DutchLimitOrder memory order = DutchLimitOrder({
-                info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(i),
+                info: _infos[i],
                 startTime: block.timestamp,
                 endTime: block.timestamp + 100,
                 input: DutchInput(address(tokenIn), inputAmounts[i], inputAmounts[i]),
@@ -452,9 +451,8 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             });
             orderHashes[i] = order.hash();
             signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
-            orderInfos[i] = order.info;
         }
-        return (signedOrders, orderHashes, orderInfos);
+        return (signedOrders, orderHashes);
     }
 
     // Execute a single order, input = 1 and outputs = [2].

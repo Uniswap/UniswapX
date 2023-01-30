@@ -11,6 +11,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     uint256 constant ONE = 10 ** 18;
@@ -34,9 +35,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
 
     /// @dev returns (order, signature, orderHash, OrderInfo)
     // function createAndSignOrder() virtual public returns (SignedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {}
-    function createAndSignOrder(uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) {}
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash) {}
 
-    function createAndSignBatchOrders(uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) {}
+    function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
 
     /// @dev Basic execute test, checks balance before and after
     function testBaseExecute() public {
@@ -47,7 +48,12 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenOut.mint(address(fillContract), outputAmount * 100);
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(inputAmount, outputAmount);
+        OrderInfo memory _info = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100);
+        (SignedOrder memory signedOrder, bytes32 orderHash, OrderInfo memory orderInfo) = createAndSignOrder(
+            _info,
+            inputAmount, 
+            outputAmount
+        );
 
         uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
         uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
@@ -102,8 +108,16 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
             totalInputAmount += inputAmounts[i];
         }
 
+        OrderInfo[] memory infos = new OrderInfo[](2);
+        infos[0] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(0);
+        infos[1] = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1);
+
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes, OrderInfo[] memory orderInfos) 
-            = createAndSignBatchOrders(inputAmounts, outputAmounts);
+            = createAndSignBatchOrders(
+                infos,
+                inputAmounts,
+                outputAmounts
+            );
         vm.expectEmit(false, false, false, true);
         emit Fill(orderHashes[0], address(this), maker, orderInfos[0].nonce);
         vm.expectEmit(false, false, false, true);
