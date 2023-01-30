@@ -6,12 +6,11 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {OrderInfo, InputToken, OutputToken} from '../../src/base/ReactorStructs.sol';
+import {SignedOrder, OrderInfo, InputToken, OutputToken} from '../../src/base/ReactorStructs.sol';
 import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     using OrderInfoBuilder for OrderInfo;
@@ -37,9 +36,11 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     function createReactor() virtual public returns (BaseReactor) {}
 
     /// @dev Create a signed order and return the order and orderHash
+    /// @param _info OrderInfo, uint256 inputAmount, uint256 outputAmount
     function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount) virtual public returns (SignedOrder memory signedOrder, bytes32 orderHash) {}
 
     /// @dev Create many signed orders and return
+    /// @param _infos OrderInfo[], uint256[] inputAmounts, uint256[][] outputAmounts
     /// supports orders with multiple outputs 
     function createAndSignBatchOrders(OrderInfo[] memory _infos, uint256[] memory inputAmounts, uint256[][] memory outputAmounts) virtual public returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
 
@@ -92,7 +93,6 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         inputAmounts[0] = inputAmount;
         inputAmounts[1] = 2 * inputAmount;
 
-        // I dislike arrays in solidity ... there must be a better way to make a 2D array
         uint256[][] memory outputAmounts = new uint256[][](2);
         uint256[] memory o1 = new uint256[](1);
         uint256[] memory o2 = new uint256[](1);
@@ -100,7 +100,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         o2[0] = 2 * outputAmount;
         outputAmounts[0] = o1;
         outputAmounts[1] = o2;
-        // This is very inefficient and we can add manually but I think it adds more clarify
+
+        // inefficient, but makes the balance check clear
         uint256 totalOutputAmount;
         for (uint256 i = 0; i < outputAmounts.length; i++) {
             for (uint256 j = 0; j < outputAmounts[i].length; j++) {
