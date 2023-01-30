@@ -19,14 +19,19 @@ contract Runner is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
+    uint256 constant ONE = 10 ** 18;
+
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     uint256 maker1pk = 0x100001;
     address maker1 = vm.addr(maker1pk);
+    uint256 maker1Nonce;
     DutchLimitOrderReactor reactor;
     ISignatureTransfer permit2;
-    uint256 constant ONE = 10 ** 18;
+
+    SignedOrder[] signedOrders;
+    bool[] signedOrdersFilled;
 
     constructor(ISignatureTransfer _permit2) {
         permit2 = _permit2;
@@ -34,18 +39,35 @@ contract Runner is Test, PermitSignature {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         reactor = new DutchLimitOrderReactor(address(permit2), 5000, address(888));
+
+        tokenIn.mint(address(maker1), ONE * 999999);
+        tokenOut.mint(address(fillContract), ONE * 999999);
     }
 
     function makerCreatesOrder() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(maker1Nonce),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker1))
         });
-        bytes memory encodedOrder = abi.encode(order);
-        bytes memory orderSig = signOrder(maker1pk, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(maker1pk, address(permit2), order));
+        signedOrders.push(signedOrder);
+        signedOrdersFilled.push(false);
+        maker1Nonce++;
+    }
+
+    function fillerExecutesOrder(uint256 index) public {
+        if (signedOrdersFilled[index % signedOrders.length]) {
+            return;
+        }
+        reactor.execute(
+            signedOrders[index % signedOrders.length],
+            address(fillContract),
+            bytes("")
+        );
+        signedOrdersFilled[index % signedOrders.length] = true;
     }
 }
 
