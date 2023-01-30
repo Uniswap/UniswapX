@@ -26,6 +26,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     address maker;
 
     error InvalidNonce();
+    error InvalidSigner();
 
     function name() virtual public returns (string memory) {}
     
@@ -157,20 +158,45 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenIn.forceApprove(maker, address(permit2), inputAmount);
 
         bytes memory oldSignature = signedOrder.sig;
-        // Create a new order, but use the previous signature (TODO: should use different nonce here?)
+        // Create a new order, but use the previous signature
         (signedOrder, orderHash) = createAndSignOrder(
-            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1),
             inputAmount, 
             outputAmount
         );
         signedOrder.sig = oldSignature;
 
-        vm.expectRevert(InvalidNonce.selector);
+        vm.expectRevert(InvalidSigner.selector);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
     }
 
     /// @dev Base test preventing nonce reuse
-    // TODO: once using ResolvedOrder is supported which allows for custom nonce setting
-    function testBaseNonceReuse() public {}
+    function testBaseNonceReuse() public {
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = ONE * 2;
+        tokenIn.mint(address(maker), inputAmount * 100);
+        tokenOut.mint(address(fillContract), outputAmount * 100);
+        // approve for 2 orders here
+        tokenIn.forceApprove(maker, address(permit2), inputAmount * 2);
 
+        OrderInfo memory orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(123);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(
+            orderInfo,
+            inputAmount, 
+            outputAmount
+        );
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+
+        orderInfo = OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(123);
+        (signedOrder, orderHash) = createAndSignOrder(
+            orderInfo,
+            inputAmount, 
+            outputAmount
+        );
+        vm.expectRevert(InvalidNonce.selector);
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+    }
 }

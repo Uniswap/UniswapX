@@ -22,8 +22,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     using OrderInfoBuilder for OrderInfo;
     using LimitOrderLib for LimitOrder;
 
-    error InvalidSigner();
-
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
@@ -166,30 +164,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
         vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-    }
-
-    function testExecuteNonceReuse() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
-        uint256 nonce = 1234;
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-
-        tokenIn.mint(address(maker), ONE * 2);
-        tokenOut.mint(address(fillContract), ONE * 2);
-        tokenIn.forceApprove(maker, address(permit2), ONE * 2);
-        LimitOrder memory order2 = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
-        });
-        bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
-        vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
     function testExecuteInsufficientPermit() public {
