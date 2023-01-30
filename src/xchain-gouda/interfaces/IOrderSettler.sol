@@ -5,7 +5,9 @@ import {ResolvedOrder, SettlementStatus} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Interface for cross-chain order settlers. These contracts collect escrow tokens from the swapper and filler
-/// and consult an oracle to determine whether the cross-chain fill is completed within the valid fill timeframe.
+/// and consult an oracle to determine whether the cross-chain fill is completed within the valid fill timeframe. OrderSettlers
+/// will vary by order type (i.e. dutch limit order) but one OrderSettler may receive orders for any target chain since
+/// cross-chain SettlementOracles are outsourced to oracles of the swappers choice.
 interface IOrderSettler {
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
     /// @param orderId The order hash to identify the order
