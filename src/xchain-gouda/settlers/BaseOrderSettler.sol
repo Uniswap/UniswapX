@@ -45,13 +45,11 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                 order.validate(msg.sender);
                 collectEscrowTokens(order);
 
-                // settlementId: hash the order hash with the crossChainFiller address so the filler may have exclusive access
-                // to this settlement. Valid SettlementFiller contracts must transmit the settlementId by keccak256-ing
-                // the msg.sender with the order hash. This ensures sole access of this order to the crossChainFiller.
-                settlements[keccak256(abi.encode(order.hash, crossChainFiller))] = ActiveSettlement({
+                settlements[order.hash] = ActiveSettlement({
                     status: SettlementStatus.Pending,
                     offerer: order.info.offerer,
                     fillRecipient: msg.sender,
+                    crossChainFiller: crossChainFiller,
                     settlementOracle: order.info.settlementOracle,
                     deadline: block.timestamp + order.info.settlementPeriod,
                     input: order.input,
@@ -72,40 +70,45 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function cancelSettlement(bytes32 settlementId) external override {
-        ActiveSettlement storage settlement = settlements[settlementId];
+    function cancelSettlement(bytes32 orderId) external override {
+        ActiveSettlement storage settlement = settlements[orderId];
         if (settlement.status == SettlementStatus.Pending && settlement.deadline > block.timestamp) {
             settlement.status = SettlementStatus.Cancelled;
 
             // transfer tokens and collateral back to offerer
             ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
             ERC20(settlement.collateral.token).safeTransfer(settlement.offerer, settlement.input.amount);
+            emit CancelSettlement(orderId);
+        } else {
+            revert UnableToCancel(orderId);
         }
     }
 
     /// @inheritdoc IOrderSettler
-    function finalizeSettlement(bytes32 settlementId) external override {
-        ActiveSettlement memory settlement = settlements[settlementId];
+    function finalizeSettlement(bytes32 orderId) external override {
+        ActiveSettlement memory settlement = settlements[orderId];
         if (settlement.status == SettlementStatus.Pending) {
-            OutputToken[] memory filledOutputs =
-                ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(settlementId);
+            OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(
+                orderId, settlement.crossChainFiller
+            );
 
             // validate outputs
             for (uint16 i; i < filledOutputs.length; i++) {
                 OutputToken memory expectedOutput = settlement.outputs[i];
                 OutputToken memory receivedOutput = filledOutputs[i];
-                if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(settlementId, i);
-                if (expectedOutput.token != receivedOutput.token) revert InvalidToken(settlementId, i);
-                if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(settlementId, i);
-                if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(settlementId, i);
+                if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
+                if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
+                if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
+                if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
             }
 
             // compensate filler
-            settlements[settlementId].status = SettlementStatus.Filled;
+            settlements[orderId].status = SettlementStatus.Filled;
             ERC20(settlement.input.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
             ERC20(settlement.collateral.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
+            emit FinalizeSettlement(orderId);
         } else {
-            revert SettlementAlreadyCompleted(settlement.status);
+            revert SettlementAlreadyCompleted(orderId, settlement.status);
         }
     }
 

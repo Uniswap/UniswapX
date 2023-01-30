@@ -47,6 +47,7 @@ struct ActiveSettlement {
     SettlementStatus status;
     address offerer;
     address fillRecipient;
+    address crossChainFiller;
     address settlementOracle;
     uint256 deadline;
     InputToken input;

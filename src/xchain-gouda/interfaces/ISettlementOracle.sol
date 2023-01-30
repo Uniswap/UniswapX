@@ -6,14 +6,21 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Interface for cross chain listener oracles for cross-chain gouda
 interface ISettlementOracle {
-    /// @notice Get the output tokens filled associated with a settlementId
-    /// @param settlementId The cross-chain settlementId which is a hash of the orderId and crossChainFiller address
-    function getSettlementFillInfo(bytes32 settlementId) external view returns (OutputToken[] calldata);
+    /// @notice Get the output tokens filled associated with a orderId
+    /// @param orderId The order hash that identifies the order that was filled
+    /// @param crossChainFiller The address on the target chain that is responsible for filling the order
+    /// @return filledOutputs An array of all the output tokens that were filled on the target chain
+    function getSettlementFillInfo(bytes32 orderId, address crossChainFiller)
+        external
+        view
+        returns (OutputToken[] calldata filledOutputs);
 
-    /// @notice Logs the settlement info given for a settlementId
+    /// @notice Logs the settlement info given for a orderId
     /// @dev Access to this function must be restricted to valid message bridges, and must verify that the cross chain
     /// message was sent by a valid SettlementFiller on the target chain of output tokens.
+    /// @param orderId The order hash that identifies the order that was filled
+    /// @param crossChainFiller The address that initiated the fill on SettlementFiller
     /// @param outputs The output tokens that were filled on the target chain.
-    /// @param settlementId The cross-chain settlementId which is a hash of the orderId and crossChainFiller address
-    function logSettlementFillInfo(OutputToken[] calldata outputs, bytes32 settlementId) external;
+    function logSettlementFillInfo(bytes32 orderId, address crossChainFiller, OutputToken[] calldata outputs)
+        external;
 }
