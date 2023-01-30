@@ -8,28 +8,34 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 /// and consult an oracle to determine whether the cross-chain fill is completed within the valid fill timeframe.
 interface IOrderSettler {
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
+    /// @param orderId The order hash to identify the order
     /// @param currentStatus The actual status of the settlement (either Filled or Cancelled)
-    error SettlementAlreadyCompleted(SettlementStatus currentStatus);
+    error SettlementAlreadyCompleted(bytes32 orderId, SettlementStatus currentStatus);
+
+    /// @notice Thrown when trying to cancen an order that cannot be cancelled because deadline has not passed, or the
+    /// order is already completed
+    /// @param orderId The order hash to identify the order
+    error UnableToCancel(bytes32 orderId);
 
     /// @notice Thrown when validating a settlement fill but the recipient does not match the expected recipient
-    /// @param settlementId The settlementId
+    /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
-    error InvalidRecipient(bytes32 settlementId, uint16 outputIndex);
+    error InvalidRecipient(bytes32 orderId, uint16 outputIndex);
 
     /// @notice Thrown when validating a settlement fill but the token does not match the expected token
-    /// @param settlementId The settlementId
+    /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
-    error InvalidToken(bytes32 settlementId, uint16 outputIndex);
+    error InvalidToken(bytes32 orderId, uint16 outputIndex);
 
     /// @notice Thrown when validating a settlement fill but the amount does not match the expected amount
-    /// @param settlementId The settlementId
+    /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
-    error InvalidAmount(bytes32 settlementId, uint16 outputIndex);
+    error InvalidAmount(bytes32 orderId, uint16 outputIndex);
 
     /// @notice Thrown when validating a settlement fill but the chainId does not match the expected chainId
-    /// @param settlementId The settlementId
+    /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
-    error InvalidChain(bytes32 settlementId, uint16 outputIndex);
+    error InvalidChain(bytes32 orderId, uint16 outputIndex);
 
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
@@ -38,11 +44,11 @@ interface IOrderSettler {
 
     /// @notice Finalize a settlement by first: confirming the cross-chain fill has happened and second: transferring
     /// input tokens and collateral to the filler
-    /// @param settlementId The id that identifies the current settlement in progress
-    function finalizeSettlement(bytes32 settlementId) external;
+    /// @param orderId The order hash that identifies the order settlement to finalize
+    function finalizeSettlement(bytes32 orderId) external;
 
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper
-    /// @param settlementId The id that identifies the settlement to cancel
-    function cancelSettlement(bytes32 settlementId) external;
+    /// @param orderId The order hash that identifies the order settlement to cancel
+    function cancelSettlement(bytes32 orderId) external;
 }
