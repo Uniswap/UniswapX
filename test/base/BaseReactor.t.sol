@@ -129,6 +129,43 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
     }
 
+    /// @dev Execute batch with multiple outputs
+    /// Order 1: (inputs = 1, outputs = [2, 1]),
+    /// Order 2: (inputs = 2, outputs = [3])
+    function testBaseExecuteBatchMultipleOutputs() public {
+        uint256[] memory inputAmounts = ArrayBuilder.fill(1, ONE).push(2 * ONE);
+        uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
+        uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE);
+        uint256[][] memory outputAmounts = ArrayBuilder.initNested(2).set(0, output1).set(1, output2);
+
+        uint256 totalOutputAmount = outputAmounts.sum();
+        uint256 totalInputAmount = inputAmounts.sum();
+
+        tokenIn.mint(address(maker), totalInputAmount);
+        tokenOut.mint(address(fillContract), totalOutputAmount);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        OrderInfo[] memory infos = new OrderInfo[](2);
+        infos[0] =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(0);
+        infos[1] =
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(1);
+
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) =
+            createAndSignBatchOrders(infos, inputAmounts, outputAmounts);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[0], address(this), maker, infos[0].nonce);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[1], address(this), maker, infos[1].nonce);
+
+        snapStart(string.concat(name(), "BaseExecuteBatchMultipleOutputs"));
+        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        snapEnd();
+
+        assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+    }
+
     /// @dev Base test preventing signatures from being reused
     function testBaseExecuteSignatureReplay() public {
         // Seed both maker and fillContract with enough tokens

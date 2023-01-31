@@ -75,11 +75,16 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         signedOrders = new SignedOrder[](inputAmounts.length);
         orderHashes = new bytes32[](inputAmounts.length);
         for (uint256 i = 0; i < inputAmounts.length; i++) {
+            OutputToken[] memory outputs;
+            if (outputAmounts[i].length == 1) {
+                outputs = OutputsBuilder.single(address(tokenOut), outputAmounts[i][0], address(maker));
+            } else {
+                outputs = OutputsBuilder.multiple(address(tokenOut), outputAmounts[i], address(maker));
+            }
             LimitOrder memory order = LimitOrder({
                 info: _infos[i], // nonce is specified already in _infos
                 input: InputToken(address(tokenIn), inputAmounts[i], inputAmounts[i]),
-                // No multiple outputs supported for limitOrder
-                outputs: OutputsBuilder.single(address(tokenOut), outputAmounts[i][0], address(maker))
+                outputs: outputs
             });
             orderHashes[i] = order.hash();
             signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
