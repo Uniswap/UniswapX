@@ -45,8 +45,8 @@ interface IOrderSettler {
 
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
-    /// @param crossChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller
-    function initiateSettlement(SignedOrder calldata order, address crossChainFiller) external;
+    /// @param targetChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller
+    function initiateSettlement(SignedOrder calldata order, address targetChainFiller) external;
 
     /// @notice Finalize a settlement by first: confirming the cross-chain fill has happened and second: transferring
     /// input tokens and collateral to the filler

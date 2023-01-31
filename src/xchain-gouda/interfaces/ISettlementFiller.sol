@@ -4,8 +4,9 @@ pragma solidity ^0.8.16;
 import {OutputToken} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
-/// @notice Interface for cross chain fillers for gouda. A SettlementFiller exists on the target chain, and carries out
-/// transfers from the crossChainFiller to the output recipients in order to verify the stated outputs were filled successfully
+/// @notice Interface for target chain fillers for gouda. A SettlementFiller exists on the target chain, and carries out
+/// transfers from the targetChainFiller to the output recipients in order to verify the stated outputs were filled successfully.
+/// A SettlementFiller is associated with the swapper-selected SettlementOracle on the origin chain.
 interface ISettlementFiller {
     /// @notice Fills an order on the target chain and transmits a message to the origin chain about the details of the
     /// fulfillment including the orderId and the outputs

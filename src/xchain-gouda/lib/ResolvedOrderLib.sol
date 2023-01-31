@@ -7,25 +7,20 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 library ResolvedOrderLib {
     error InvalidReactor();
-    error DeadlinePassed();
+    error InitiateFillDeadlinePassed();
     error ValidationFailed();
 
     /// @notice Validates a resolved order, reverting if invalid
-    /// @param filler The filler of the order
-    function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
-        if (address(this) != resolvedOrder.info.settlerContract) {
-            revert InvalidReactor();
-        }
+    /// @param originChainFiller The filler that initiated the settlement on the origin chain
+    function validate(ResolvedOrder memory resolvedOrder, address originChainFiller) internal view {
+        if (address(this) != resolvedOrder.info.settlerContract) revert InvalidReactor();
+        if (block.timestamp > resolvedOrder.info.initiateFillDeadline) revert InitiateFillDeadlinePassed();
 
-        if (block.timestamp > resolvedOrder.info.fillDeadline) {
-            revert DeadlinePassed();
-        }
-
-        if (
-            resolvedOrder.info.validationContract != address(0)
-                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
-        ) {
-            revert ValidationFailed();
+        if (resolvedOrder.info.validationContract != address(0)) {
+            if (!IValidationCallback(resolvedOrder.info.validationContract).validate(originChainFiller, resolvedOrder))
+            {
+                revert ValidationFailed();
+            }
         }
     }
 }
