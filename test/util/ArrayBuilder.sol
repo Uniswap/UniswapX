@@ -27,7 +27,7 @@ library ArrayBuilder {
     /// @dev Fill a uint256[] with a single value
     /// @param length uint256
     /// @param amount uint256
-    function fill(uint256 length, uint256 amount) external pure returns (uint256[] memory amounts) {
+    function fill(uint256 length, uint256 amount) internal pure returns (uint256[] memory amounts) {
         amounts = new uint256[](length);
         for (uint256 i = 0; i < length; ++i) {
             amounts[i] = amount;
