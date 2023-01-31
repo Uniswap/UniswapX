@@ -62,7 +62,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
         uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
         // Do appropriate max approvals
