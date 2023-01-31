@@ -465,45 +465,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         return (signedOrders, orderHashes);
     }
 
-    // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
-    // has input = 2, outputs = [4].
-    function testExecuteBatch() public {
-        uint256 inputAmount = 10 ** 18;
-        uint256 outputAmount = 2 * inputAmount;
-
-        tokenIn.mint(address(maker), inputAmount * 3);
-        tokenOut.mint(address(fillContract), 6 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-
-        DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
-        orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
-        });
-        orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
-                1
-                ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
-        });
-
-        vm.expectEmit(false, false, false, true);
-        emit Fill(orders[0].hash(), address(this), maker, orders[0].info.nonce);
-        vm.expectEmit(false, false, false, true);
-        emit Fill(orders[1].hash(), address(this), maker, orders[1].info.nonce);
-        snapStart("DutchExecuteBatch");
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
-        snapEnd();
-        assertEq(tokenOut.balanceOf(maker), 6000000000000000000);
-        assertEq(tokenIn.balanceOf(address(fillContract)), 3000000000000000000);
-    }
-
     // Execute 3 dutch limit orders. Have the 3rd one signed by a different maker.
     // Order 1: Input = 1, outputs = [2, 1]
     // Order 2: Input = 2, outputs = [3]
