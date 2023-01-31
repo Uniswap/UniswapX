@@ -18,12 +18,6 @@ library ArrayBuilder {
         }
     }
 
-    /// @dev Initialize a uint256[][] with length `m`
-    /// @param m uint256
-    function initNested(uint256 m) internal pure returns (uint256[][] memory amounts) {
-        amounts = new uint256[][](m);
-    }
-
     /// @dev Fill a uint256[] with a single value
     /// @param length uint256
     /// @param amount uint256

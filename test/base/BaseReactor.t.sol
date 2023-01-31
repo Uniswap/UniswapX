@@ -101,7 +101,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         uint256[] memory inputAmounts = ArrayBuilder.fill(1, inputAmount).push(2 * inputAmount);
-        uint256[][] memory outputAmounts = ArrayBuilder.initNested(2).set(0, ArrayBuilder.fill(1, outputAmount)).set(
+        uint256[][] memory outputAmounts = ArrayBuilder.init(2, 1).set(0, ArrayBuilder.fill(1, outputAmount)).set(
             1, ArrayBuilder.fill(1, 2 * outputAmount)
         );
 
@@ -136,7 +136,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         uint256[] memory inputAmounts = ArrayBuilder.fill(1, ONE).push(2 * ONE);
         uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
         uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE);
-        uint256[][] memory outputAmounts = ArrayBuilder.initNested(2).set(0, output1).set(1, output2);
+        uint256[][] memory outputAmounts = ArrayBuilder.init(2, 1).set(0, output1).set(1, output2);
 
         uint256 totalOutputAmount = outputAmounts.sum();
         uint256 totalInputAmount = inputAmounts.sum();
