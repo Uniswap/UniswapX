@@ -6,7 +6,6 @@ no_match_path = "*/integration/*"
 ffi = true
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 optimizer_runs = 1000000
-fail_on_revert = true
 
 [profile.integration]
 no_match_path = ""
@@ -15,3 +14,6 @@ match_path = "*/integration/*"
 [profile.lite.optimizer_details.yulDetails]
 stackAllocation = true
 optimizerSteps = 'xca'
+
+[invariant]
+fail_on_revert = true
