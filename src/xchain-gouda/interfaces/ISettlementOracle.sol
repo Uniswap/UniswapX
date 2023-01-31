@@ -8,9 +8,9 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 interface ISettlementOracle {
     /// @notice Get the output tokens filled associated with a orderId
     /// @param orderId The order hash that identifies the order that was filled
-    /// @param crossChainFiller The address on the target chain that is responsible for filling the order
+    /// @param targetChainFiller The address on the target chain that is responsible for filling the order
     /// @return filledOutputs An array of all the output tokens that were filled on the target chain
-    function getSettlementFillInfo(bytes32 orderId, address crossChainFiller)
+    function getSettlementFillInfo(bytes32 orderId, address targetChainFiller)
         external
         view
         returns (OutputToken[] calldata filledOutputs);
@@ -19,8 +19,8 @@ interface ISettlementOracle {
     /// @dev Access to this function must be restricted to valid message bridges, and must verify that the cross chain
     /// message was sent by a valid SettlementFiller on the target chain of output tokens.
     /// @param orderId The order hash that identifies the order that was filled
-    /// @param crossChainFiller The address that initiated the fill on SettlementFiller
+    /// @param targetChainFiller The address that initiated the fill on SettlementFiller
     /// @param outputs The output tokens that were filled on the target chain.
-    function logSettlementFillInfo(bytes32 orderId, address crossChainFiller, OutputToken[] calldata outputs)
+    function logSettlementFillInfo(bytes32 orderId, address targetChainFiller, OutputToken[] calldata outputs)
         external;
 }

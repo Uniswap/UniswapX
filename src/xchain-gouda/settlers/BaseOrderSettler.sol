@@ -32,26 +32,26 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateSettlement(SignedOrder calldata order, address crossChainFiller) external override {
+    function initiateSettlement(SignedOrder calldata order, address targetChainFiller) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
-        _initiateSettlements(resolvedOrders, crossChainFiller);
+        _initiateSettlements(resolvedOrders, targetChainFiller);
     }
 
-    function _initiateSettlements(ResolvedOrder[] memory orders, address crossChainFiller) internal {
+    function _initiateSettlements(ResolvedOrder[] memory orders, address targetChainFiller) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 order.validate(msg.sender);
                 collectEscrowTokens(order);
 
-                if (settlements[order.hash].offerer != address(0)) revert SettlementAlreadyInitiated(order.hash);
+                if (settlements[order.hash].deadline != 0) revert SettlementAlreadyInitiated(order.hash);
 
                 settlements[order.hash] = ActiveSettlement({
                     status: SettlementStatus.Pending,
                     offerer: order.info.offerer,
-                    fillRecipient: msg.sender,
-                    crossChainFiller: crossChainFiller,
+                    originChainFiller: msg.sender,
+                    targetChainFiller: targetChainFiller,
                     settlementOracle: order.info.settlementOracle,
                     deadline: block.timestamp + order.info.settlementPeriod,
                     input: order.input,
@@ -63,7 +63,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                     order.hash,
                     order.info.offerer,
                     msg.sender,
-                    crossChainFiller,
+                    targetChainFiller,
                     order.info.settlementOracle,
                     block.timestamp + order.info.settlementPeriod
                     );
@@ -91,7 +91,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         ActiveSettlement memory settlement = settlements[orderId];
         if (settlement.status == SettlementStatus.Pending) {
             OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(
-                orderId, settlement.crossChainFiller
+                orderId, settlement.targetChainFiller
             );
 
             // validate outputs
@@ -106,8 +106,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
             // compensate filler
             settlements[orderId].status = SettlementStatus.Filled;
-            ERC20(settlement.input.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
-            ERC20(settlement.collateral.token).safeTransfer(settlement.fillRecipient, settlement.input.amount);
+            ERC20(settlement.input.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
+            ERC20(settlement.collateral.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
             emit FinalizeSettlement(orderId);
         } else {
             revert SettlementAlreadyCompleted(orderId, settlement.status);
