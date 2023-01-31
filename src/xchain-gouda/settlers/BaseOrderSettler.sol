@@ -45,6 +45,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                 order.validate(msg.sender);
                 collectEscrowTokens(order);
 
+                if (settlements[order.hash].offerer != address(0)) revert SettlementAlreadyInitiated(order.hash);
+
                 settlements[order.hash] = ActiveSettlement({
                     status: SettlementStatus.Pending,
                     offerer: order.info.offerer,
