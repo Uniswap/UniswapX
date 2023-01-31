@@ -35,7 +35,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
     ISignatureTransfer permit2;
 
     function setUp() public {
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         reactor = new MockDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
@@ -400,7 +400,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         createReactor();
     }
 

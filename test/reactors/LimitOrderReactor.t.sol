@@ -38,7 +38,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         validationContract.setValid(true);
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         createReactor();
     }
 
