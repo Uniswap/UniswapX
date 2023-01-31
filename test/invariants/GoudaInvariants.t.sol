@@ -42,6 +42,7 @@ contract Runner is Test, PermitSignature {
 
         tokenIn.mint(address(maker1), ONE * 999999);
         tokenOut.mint(address(fillContract), ONE * 999999);
+        tokenIn.forceApprove(maker1, address(permit2), type(uint256).max);
     }
 
     function makerCreatesOrder() public {
@@ -59,6 +60,9 @@ contract Runner is Test, PermitSignature {
     }
 
     function fillerExecutesOrder(uint256 index) public {
+        if (signedOrders.length == 0) {
+            return;
+        }
         if (signedOrdersFilled[index % signedOrders.length]) {
             return;
         }
