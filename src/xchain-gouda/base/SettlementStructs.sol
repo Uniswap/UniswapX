@@ -19,7 +19,7 @@ struct SettlementInfo {
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
     // The timestamp after which this order is no longer valid to initiateSettlement
-    uint256 fillDeadline;
+    uint256 initiateFillDeadline;
     // The time period in seconds for which the settlement cannot be cancelled, giving the filler time to fill the order
     uint256 settlementPeriod;
     // Contract that receives information about cross chain transactions
@@ -46,8 +46,8 @@ struct OutputToken {
 struct ActiveSettlement {
     SettlementStatus status;
     address offerer;
-    address fillRecipient;
-    address crossChainFiller;
+    address originChainFiller;
+    address targetChainFiller;
     address settlementOracle;
     uint256 deadline;
     InputToken input;
