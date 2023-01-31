@@ -46,7 +46,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         tokenIn.mint(address(maker), ONE);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }

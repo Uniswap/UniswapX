@@ -47,7 +47,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         validationContract.setValid(true);
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
-        permit2 = deployPermit2();
+        permit2 = ISignatureTransfer(deployPermit2());
         reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
     }
 
