@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
@@ -71,7 +72,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     if (directTaker) {
                         IAllowanceTransfer(permit2).transferFrom(
-                            msg.sender, output.recipient, uint160(output.amount), output.token
+                            msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
                         );
                     } else {
                         ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
