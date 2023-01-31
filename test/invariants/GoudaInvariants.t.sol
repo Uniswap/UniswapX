@@ -28,21 +28,21 @@ contract Runner is Test, PermitSignature {
     address maker1 = vm.addr(maker1pk);
     uint256 maker1Nonce;
     DutchLimitOrderReactor reactor;
-    ISignatureTransfer permit2;
+    address permit2;
 
     SignedOrder[] signedOrders;
     bool[] signedOrdersFilled;
 
-    constructor(ISignatureTransfer _permit2) {
+    constructor(address _permit2) {
         permit2 = _permit2;
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
-        reactor = new DutchLimitOrderReactor(address(permit2), 5000, address(888));
+        reactor = new DutchLimitOrderReactor(permit2, 5000, address(888));
 
         tokenIn.mint(address(maker1), ONE * 999999);
         tokenOut.mint(address(fillContract), ONE * 999999);
-        tokenIn.forceApprove(maker1, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(maker1, permit2, type(uint256).max);
     }
 
     function makerCreatesOrder() public {
@@ -53,7 +53,7 @@ contract Runner is Test, PermitSignature {
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker1))
         });
-        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(maker1pk, address(permit2), order));
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(maker1pk, permit2, order));
         signedOrders.push(signedOrder);
         signedOrdersFilled.push(false);
         maker1Nonce++;
@@ -76,7 +76,7 @@ contract Runner is Test, PermitSignature {
 }
 
 contract GoudaInvariants is Test, InvariantTest, DeployPermit2 {
-    ISignatureTransfer permit2;
+    address permit2;
     Runner runner;
 
     function setUp() public {
