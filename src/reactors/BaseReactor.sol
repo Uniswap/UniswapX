@@ -18,7 +18,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using ResolvedOrderLib for ResolvedOrder;
 
     address public immutable permit2;
-    address public constant DIRECT_TAKER_FILL = address(1);
+    address internal constant DIRECT_TAKER_FILL = address(1);
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         IPSFees(_protocolFeeBps, _protocolFeeRecipient)
