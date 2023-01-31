@@ -9,6 +9,10 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 /// will vary by order type (i.e. dutch limit order) but one OrderSettler may receive orders for any target chain since
 /// cross-chain SettlementOracles are outsourced to oracles of the swappers choice.
 interface IOrderSettler {
+    /// @notice Thrown when trying to initiate a settlement that's already initiated
+    /// @param orderId The order hash to identify the order
+    error SettlementAlreadyInitiated(bytes32 orderId);
+
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
     /// @param orderId The order hash to identify the order
     /// @param currentStatus The actual status of the settlement (either Filled or Cancelled)

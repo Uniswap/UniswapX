@@ -19,12 +19,14 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
         unchecked {
             for (uint256 i = 0; i < outputs.length; i++) {
                 OutputToken memory output = outputs[i];
-                if (output.chainId == block.chainid) revert InvalidChainId(output.chainId);
+                if (output.chainId != block.chainid) revert InvalidChainId(output.chainId);
                 ERC20(output.token).safeTransferFrom(msg.sender, output.recipient, output.amount);
             }
-            transmitSettlementOutputs(keccak256(abi.encode(orderId, msg.sender)), outputs);
+            transmitSettlementOutputs(orderId, msg.sender, outputs);
         }
     }
 
-    function transmitSettlementOutputs(bytes32 orderId, OutputToken[] calldata outputs) internal virtual;
+    function transmitSettlementOutputs(bytes32 orderId, address filler, OutputToken[] calldata outputs)
+        internal
+        virtual;
 }
