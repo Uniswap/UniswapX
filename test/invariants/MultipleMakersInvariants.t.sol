@@ -14,6 +14,11 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
+struct SignedOrderWithMaker {
+    SignedOrder signedOrder;
+    address maker;
+}
+
 contract Runner is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
@@ -24,13 +29,16 @@ contract Runner is Test, PermitSignature {
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
-    uint256 makerPk = 0x100001;
-    address maker = vm.addr(makerPk);
-    uint256 makerNonce;
+    uint256 maker1Pk = 0x100001;
+    address maker1 = vm.addr(maker1Pk);
+    uint256 maker1Nonce;
+    uint256 maker2Pk = 0x100002;
+    address maker2 = vm.addr(maker2Pk);
+    uint256 maker2Nonce;
     DutchLimitOrderReactor reactor;
     address permit2;
 
-    SignedOrder[] signedOrders;
+    SignedOrderWithMaker[] signedOrders;
     bool[] signedOrdersFilled;
     uint256 numOrdersFilled;
 
@@ -41,25 +49,28 @@ contract Runner is Test, PermitSignature {
         tokenOut = new MockERC20("Output", "OUT", 18);
         reactor = new DutchLimitOrderReactor(permit2, 5000, address(888));
 
-        tokenIn.mint(address(maker), INITIAL_BALANCE);
+        tokenIn.mint(address(maker1), INITIAL_BALANCE);
+        tokenIn.mint(address(maker2), INITIAL_BALANCE);
         tokenOut.mint(address(fillContract), INITIAL_BALANCE);
-        tokenIn.forceApprove(maker, permit2, type(uint256).max);
+        tokenIn.forceApprove(maker1, permit2, type(uint256).max);
+        tokenIn.forceApprove(maker2, permit2, type(uint256).max);
     }
 
-    function makerCreatesOrder() public {
+    function makerCreatesOrder(bool useMaker1) public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
-                makerNonce
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
+                maker1Nonce
                 ),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker))
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker1))
         });
-        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(makerPk, permit2, order));
+        SignedOrderWithMaker memory signedOrder =
+            SignedOrderWithMaker(SignedOrder(abi.encode(order), signOrder(maker1Pk, permit2, order)), maker1);
         signedOrders.push(signedOrder);
         signedOrdersFilled.push(false);
-        makerNonce++;
+        maker1Nonce++;
     }
 
     function fillerExecutesOrder(uint256 index) public {
@@ -69,7 +80,7 @@ contract Runner is Test, PermitSignature {
         if (signedOrdersFilled[index % signedOrders.length]) {
             return;
         }
-        reactor.execute(signedOrders[index % signedOrders.length], address(fillContract), bytes(""));
+        reactor.execute(signedOrders[index % signedOrders.length].signedOrder, address(fillContract), bytes(""));
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
     }
@@ -81,17 +92,17 @@ contract Runner is Test, PermitSignature {
         if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
             return false;
         }
-        if (tokenIn.balanceOf(maker) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+        if (tokenIn.balanceOf(maker1) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
             return false;
         }
-        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
+        if (tokenOut.balanceOf(maker1) != numOrdersFilled * ONE) {
             return false;
         }
         return true;
     }
 }
 
-contract SingleMakerInvariants is Test, InvariantTest, DeployPermit2 {
+contract MultipleMakersInvariants is Test, InvariantTest, DeployPermit2 {
     address permit2;
     Runner runner;
 
