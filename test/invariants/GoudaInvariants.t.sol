@@ -20,18 +20,20 @@ contract Runner is Test, PermitSignature {
     using DutchLimitOrderLib for DutchLimitOrder;
 
     uint256 constant ONE = 10 ** 18;
+    uint256 constant INITIAL_BALANCE = ONE * 999999;
 
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
-    uint256 maker1pk = 0x100001;
-    address maker1 = vm.addr(maker1pk);
-    uint256 maker1Nonce;
+    uint256 makerPk = 0x100001;
+    address maker = vm.addr(makerPk);
+    uint256 makerNonce;
     DutchLimitOrderReactor reactor;
     address permit2;
 
     SignedOrder[] signedOrders;
     bool[] signedOrdersFilled;
+    uint256 numOrdersFilled;
 
     constructor(address _permit2) {
         permit2 = _permit2;
@@ -40,23 +42,23 @@ contract Runner is Test, PermitSignature {
         tokenOut = new MockERC20("Output", "OUT", 18);
         reactor = new DutchLimitOrderReactor(permit2, 5000, address(888));
 
-        tokenIn.mint(address(maker1), ONE * 999999);
-        tokenOut.mint(address(fillContract), ONE * 999999);
-        tokenIn.forceApprove(maker1, permit2, type(uint256).max);
+        tokenIn.mint(address(maker), INITIAL_BALANCE);
+        tokenOut.mint(address(fillContract), INITIAL_BALANCE);
+        tokenIn.forceApprove(maker, permit2, type(uint256).max);
     }
 
     function makerCreatesOrder() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(maker1Nonce),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(makerNonce),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker1))
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker))
         });
-        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(maker1pk, permit2, order));
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(makerPk, permit2, order));
         signedOrders.push(signedOrder);
         signedOrdersFilled.push(false);
-        maker1Nonce++;
+        makerNonce++;
     }
 
     function fillerExecutesOrder(uint256 index) public {
@@ -72,6 +74,23 @@ contract Runner is Test, PermitSignature {
             bytes("")
         );
         signedOrdersFilled[index % signedOrders.length] = true;
+        numOrdersFilled++;
+    }
+
+    function balancesAreCorrect() public returns (bool) {
+        if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
+            return false;
+        }
+        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+            return false;
+        }
+        if (tokenIn.balanceOf(maker) !=  (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+            return false;
+        }
+        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
+            return false;
+        }
+        return true;
     }
 }
 
@@ -86,7 +105,7 @@ contract GoudaInvariants is Test, InvariantTest, DeployPermit2 {
         addTargetContract(address(runner));
     }
 
-    function invariant_sanityCheck() public {
-        assertEq(uint(1), uint(1));
+    function invariant_balancesAreCorrect() public {
+        assertTrue(runner.balancesAreCorrect());
     }
 }
