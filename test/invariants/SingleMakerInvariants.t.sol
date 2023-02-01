@@ -12,7 +12,6 @@ import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrder
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 contract Runner is Test, PermitSignature {
