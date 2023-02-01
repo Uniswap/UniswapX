@@ -112,6 +112,7 @@ contract SingleMakerInvariants is Test, InvariantTest, DeployPermit2 {
     }
 
     function invariant_balancesAreCorrect() public {
+        console.log("invariant_balancesAreCorrect()");
         assertTrue(runner.balancesAreCorrect());
     }
 }
