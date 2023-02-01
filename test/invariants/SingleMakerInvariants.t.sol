@@ -14,6 +14,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import "forge-std/console.sol";
 
 contract Runner is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -45,6 +46,7 @@ contract Runner is Test, PermitSignature {
         tokenIn.mint(address(maker), INITIAL_BALANCE);
         tokenOut.mint(address(fillContract), INITIAL_BALANCE);
         tokenIn.forceApprove(maker, permit2, type(uint256).max);
+        console.log("Runner constructor");
     }
 
     function makerCreatesOrder() public {
@@ -59,6 +61,7 @@ contract Runner is Test, PermitSignature {
         signedOrders.push(signedOrder);
         signedOrdersFilled.push(false);
         makerNonce++;
+        console.log("makerCreatesOrder()");
     }
 
     function fillerExecutesOrder(uint256 index) public {
@@ -75,9 +78,11 @@ contract Runner is Test, PermitSignature {
         );
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
+        console.log("numOrdersFilled", numOrdersFilled);
     }
 
     function balancesAreCorrect() public returns (bool) {
+        console.log("balancesAreCorrect");
         if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
             return false;
         }
@@ -103,6 +108,7 @@ contract SingleMakerInvariants is Test, InvariantTest, DeployPermit2 {
         permit2 = deployPermit2();
         runner = new Runner(permit2);
         addTargetContract(address(runner));
+        console.log("SingleMakerInvariants setup()");
     }
 
     function invariant_balancesAreCorrect() public {
