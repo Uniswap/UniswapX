@@ -94,7 +94,7 @@ contract Runner is Test, PermitSignature {
     }
 }
 
-contract GoudaInvariants is Test, InvariantTest, DeployPermit2 {
+contract SingleMakerInvariants is Test, InvariantTest, DeployPermit2 {
     address permit2;
     Runner runner;
 
