@@ -56,7 +56,6 @@ See [Filler Integration Guide](integration_guide.md)
 
 | Name  | Description | Link |
 | --- | --- | --- |
-| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod |
 | Gouda Orders Endpoint Docs | Docs showing the available fields to query for the Gouda Orders Endpoint. | https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs |
 | Permit2 | Uniswap’s permit protocol used by offerers to sign orders.  | https://github.com/Uniswap/permit2 |
 
