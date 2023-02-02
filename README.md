@@ -35,22 +35,6 @@ The **[Dutch Limit Order Reactor](https://github.com/Uniswap/gouda/blob/main/src
 
 **[Order Executors](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol)** (called **[ReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol))** are contracts created by fillers that defines their individual execution strategy which will be called by the reactor, in order to execute requested orders (you can find sample executor contracts [here](https://github.com/Uniswap/gouda/tree/main/src/sample-executors))
 
-# Usage
-
-```
-# install dependencies
-forge install
-
-# compile contracts
-forge build
-
-# run unit tests
-forge test
-
-# run integration tests
-FOUNDRY_PROFILE=integration forge test
-```
-
 # Integrating with Gouda
 See [Filler Integration Guide](integration_guide.md)
 
@@ -70,5 +54,21 @@ See [Filler Integration Guide](integration_guide.md)
 | Dutch Limit Order Reactor | https://etherscan.io/address/0x8Cc1AaF08Ce7F48E4104196753bB1daA80E3530f | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
 | Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
 
+
+# Usage
+
+```
+# install dependencies
+forge install
+
+# compile contracts
+forge build
+
+# run unit tests
+forge test
+
+# run integration tests
+FOUNDRY_PROFILE=integration forge test
+```
 # Disclaimer
 This is EXPERIMENTAL, UNAUDITED code. Do not use in production.
