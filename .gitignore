@@ -8,3 +8,4 @@ out/
 /broadcast/*/31337/
 
 .idea/
+.env
