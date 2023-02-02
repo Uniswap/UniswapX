@@ -6,7 +6,7 @@
 <img width="575" alt="image" src="https://user-images.githubusercontent.com/8218221/216129758-df0ae2a3-05a7-44a2-bd79-0c7b1c10b8cb.png">
 </p>
 
-“Fillers” read these orders and execute them, taking input assets from the offerer and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders. [Filler Integration Guide](integration_guide.md).
+“Fillers” read these orders and execute them, taking input assets from the offerer and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders. [Build a filler integration](integration_guide.md).
 
 ## Gouda Order Flow:
 
