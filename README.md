@@ -1,10 +1,12 @@
 # What is Gouda?
 
 [Gouda](https://github.com/uniswap/gouda) is an off-chain order execution protocol meant to generalize token swaps across liquidity sources and provide price improvement for users. “Offerers” generate signed messages specifying the terms of their trade, in the form of a linear-decay Dutch order. 
+
 <p align="center">
 <img width="575" alt="image" src="https://user-images.githubusercontent.com/8218221/216129758-df0ae2a3-05a7-44a2-bd79-0c7b1c10b8cb.png">
 </p>
-“Fillers” read these orders and execute them, taking input assets from the offerer and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders.
+
+“Fillers” read these orders and execute them, taking input assets from the offerer and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders. [Filler Integration Guide](integration_guide.md).
 
 ## Gouda Order Flow:
 
@@ -56,8 +58,10 @@ See [Filler Integration Guide](integration_guide.md)
 
 | Name  | Description | Link |
 | --- | --- | --- |
-| Gouda Orders Endpoint Docs | Docs showing the available fields to query for the Gouda Orders Endpoint. | https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs |
+| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | [https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs) |
+| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. | https://gouda-ui-zachyang-uniswaporg.vercel.app/#/swap |
 | Permit2 | Uniswap’s permit protocol used by offerers to sign orders.  | https://github.com/Uniswap/permit2 |
+
 
 # Deployment Addresses
 
