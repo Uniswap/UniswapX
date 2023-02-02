@@ -83,6 +83,31 @@ There is a latency requirement on responses from registered endpoints. Currently
 
 Once this server is stood up and available, message your Uniswap Labs contact with its available URL to onboard it to Gouda RFQ and start receiving quote requests. 
 
+### (Optional) Signed Order Webhook Notifications
+
+Signed open orders can always be fetched via the Gouda API, but to provide improved latency there is the option to register for webhook notifications. Fillers can register an endpoint with a filter, and receive notifications for every newly posted order that matches the filter. 
+
+**Filter**
+
+Orders can be filtered by various fields, but most relevant here is `filler`. When registering your webhook notification endpoint, you must provide the `filler` address that you plan to use to execute orders and to receive the last-look exclusivity period.
+
+**Notification**
+
+Order notifications will be sent to the registered endpoint as http requests as follows:
+
+```jsx
+method: POST
+content-type: application/json
+data: {
+     orderHash: "the hash identifier for the order", 
+    createdAt: "timestamp at which the order was posted",
+    signature: "the offerer signature to include with order execution",
+    offerer: "the offerer address",
+    orderStatus: "current order status (always should be `active` upon receiving notification)",
+    encodedOrder: "The abi-encoded order to include with order execution. This can be decoded using the Gouda-SDK (https://github.com/uniswap/gouda-sdk) to verify order fields and signature"
+}
+```
+
 # Helpful Links
 
 | Name  | Description | Link |
