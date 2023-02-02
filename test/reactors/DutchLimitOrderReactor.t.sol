@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import "forge-std/console.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
