@@ -87,8 +87,8 @@ Once this server is stood up and available, message your Uniswap Labs contact wi
 
 | Name  | Description | Link |
 | --- | --- | --- |
-| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod |
-| Gouda Orders Endpoint Docs | Docs showing the available fields to query for the Gouda Orders Endpoint. | https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs |
+| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | [https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs) |
+| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. | https://gouda-ui-zachyang-uniswaporg.vercel.app/#/swap |
 | Permit2 | Uniswap’s permit protocol used by offerers to sign orders.  | https://github.com/Uniswap/permit2 |
 
 # Deployment Addresses
