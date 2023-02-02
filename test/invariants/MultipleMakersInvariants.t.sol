@@ -130,10 +130,10 @@ contract Runner is Test, PermitSignature {
             console.log("numOrdersChosen", numOrdersChosen);
             console.log("randomIndex", randomIndex);
             counter++;
-//            if (counter == 15) {
-//                console.log("!!!!MANUAL REVERT!!!!!");
-//                revert("Manual revert");
-//            }
+            //            if (counter == 15) {
+            //                console.log("!!!!MANUAL REVERT!!!!!");
+            //                revert("Manual revert");
+            //            }
             if (signedOrdersFilled[randomIndex]) {
                 randomIndex = uint256(keccak256(abi.encode(randomIndex + counter))) % signedOrders.length;
                 continue;
@@ -176,7 +176,7 @@ contract MultipleMakersInvariants is Test, InvariantTest, DeployPermit2 {
     }
 
     function invariant_balancesAreCorrect() public {
-//        assertTrue(runner.balancesAreCorrect());
+        //        assertTrue(runner.balancesAreCorrect());
         assertTrue(true);
     }
 }
