@@ -13,6 +13,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import "forge-std/console.sol";
 
 struct SignedOrderWithMaker {
     SignedOrder signedOrder;
@@ -97,6 +98,53 @@ contract Runner is Test, PermitSignature {
         reactor.execute(signedOrders[index % signedOrders.length].signedOrder, address(fillContract), bytes(""));
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
+    }
+
+    function fillerBatchExecutesOrders(uint256 numOrdersChosenSeed, uint256 randomIndexSeed) public {
+        // This counter is used to introduce randomness in interative hashing
+        uint256 counter;
+
+        uint256 numUnfilledOrders;
+        for (uint256 i = 0; i < signedOrdersFilled.length; i++) {
+            if (!signedOrdersFilled[i]) {
+                numUnfilledOrders++;
+            }
+        }
+        // Ensure there are at least 4 unfilled orders
+        if (numUnfilledOrders < 4) {
+            console.log("SKIPPING - less than 4 numUnfilledOrders");
+            return;
+        }
+        console.log("*****NEW RUN*****");
+        console.log("length signedOrders", signedOrders.length);
+        console.log("length signedOrdersFilled", signedOrdersFilled.length);
+        console.log("numUnfilledOrders", numUnfilledOrders);
+        // Batch together either 2, 3, or 4 orders
+        uint256 numOrdersToFill = (numOrdersChosenSeed % 3) + 2;
+        console.log("numOrdersToFill", numOrdersToFill);
+        SignedOrder[] memory signedOrdersToFill = new SignedOrder[](numOrdersToFill);
+        uint256 numOrdersChosen;
+        uint256 randomIndex = randomIndexSeed % signedOrders.length;
+        while (numOrdersChosen < numOrdersToFill) {
+            console.log("counter", counter);
+            console.log("numOrdersChosen", numOrdersChosen);
+            console.log("randomIndex", randomIndex);
+            counter++;
+//            if (counter == 15) {
+//                console.log("!!!!MANUAL REVERT!!!!!");
+//                revert("Manual revert");
+//            }
+            if (signedOrdersFilled[randomIndex]) {
+                randomIndex = uint256(keccak256(abi.encode(randomIndex + counter))) % signedOrders.length;
+                continue;
+            }
+            signedOrdersFilled[randomIndex] = true;
+            randomIndex = uint256(keccak256(abi.encode(randomIndex + counter))) % signedOrders.length;
+            signedOrdersToFill[numOrdersChosen] = signedOrders[randomIndex].signedOrder;
+            numOrdersChosen++;
+        }
+        console.log("FINISHED: length of signedOrdersToFill = ", signedOrdersToFill.length);
+        console.log("*****END RUN*****");
     }
 
     function balancesAreCorrect() public returns (bool) {
