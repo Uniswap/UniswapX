@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderInfo, InputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
@@ -12,32 +12,23 @@ import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
+import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {BaseReactorTest} from "../base/BaseReactor.t.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPermit2 {
+contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using LimitOrderLib for LimitOrder;
 
-    error InvalidNonce();
-    error InvalidSigner();
-
-    uint256 constant ONE = 10 ** 18;
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockValidationContract validationContract;
-    MockFillContract fillContract;
-    MockERC20 tokenIn;
-    MockERC20 tokenOut;
-    uint256 makerPrivateKey;
-    address maker;
-    LimitOrderReactor reactor;
-    ISignatureTransfer permit2;
 
-    function setUp() public {
+    function setUp() public override {
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
@@ -48,33 +39,57 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
         tokenIn.mint(address(maker), ONE);
         tokenOut.mint(address(fillContract), ONE);
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        createReactor();
     }
 
-    function testExecute() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
+    function name() public pure override returns (string memory) {
+        return "LimitOrderReactor";
+    }
+
+    function createReactor() public override returns (BaseReactor) {
+        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        return reactor;
+    }
+
+    /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
+    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            info: _info,
+            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, address(maker))
         });
-        bytes32 orderHash = order.hash();
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        orderHash = order.hash();
+        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash);
+    }
 
-        uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
-        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
-        uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
-        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
-
-        vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, order.info.nonce);
-
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-
-        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
-        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
-        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
-        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    function createAndSignBatchOrders(
+        OrderInfo[] memory _infos,
+        uint256[] memory inputAmounts,
+        uint256[][] memory outputAmounts
+    ) public view override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
+        signedOrders = new SignedOrder[](inputAmounts.length);
+        orderHashes = new bytes32[](inputAmounts.length);
+        for (uint256 i = 0; i < inputAmounts.length; i++) {
+            OutputToken[] memory outputs;
+            if (outputAmounts[i].length == 1) {
+                outputs = OutputsBuilder.single(address(tokenOut), outputAmounts[i][0], address(maker));
+            } else {
+                outputs = OutputsBuilder.multiple(address(tokenOut), outputAmounts[i], address(maker));
+            }
+            LimitOrder memory order = LimitOrder({
+                info: _infos[i], // nonce is specified already in _infos
+                input: InputToken(address(tokenIn), inputAmounts[i], inputAmounts[i]),
+                outputs: outputs
+            });
+            orderHashes[i] = order.hash();
+            signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
+        }
+        return (signedOrders, orderHashes);
     }
 
     function testExecuteWithValidationContract() public {
@@ -164,30 +179,6 @@ contract LimitOrderReactorTest is Test, PermitSignature, ReactorEvents, DeployPe
 
         vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-    }
-
-    function testExecuteNonceReuse() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
-        uint256 nonce = 1234;
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-
-        tokenIn.mint(address(maker), ONE * 2);
-        tokenOut.mint(address(fillContract), ONE * 2);
-        tokenIn.forceApprove(maker, address(permit2), ONE * 2);
-        LimitOrder memory order2 = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withNonce(nonce),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
-        });
-        bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
-        vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(SignedOrder(abi.encode(order2), sig2), address(fillContract), bytes(""));
     }
 
     function testExecuteInsufficientPermit() public {

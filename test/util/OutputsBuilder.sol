@@ -11,6 +11,19 @@ library OutputsBuilder {
         return result;
     }
 
+    /// TODO: Support multiple tokens + recipients
+    function multiple(address token, uint256[] memory amounts, address recipient)
+        internal
+        pure
+        returns (OutputToken[] memory)
+    {
+        OutputToken[] memory result = new OutputToken[](amounts.length);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            result[i] = OutputToken(token, amounts[i], recipient, false);
+        }
+        return result;
+    }
+
     function singleDutch(address token, uint256 startAmount, uint256 endAmount, address recipient)
         internal
         pure
@@ -22,7 +35,7 @@ library OutputsBuilder {
     }
 
     // Returns array of dutch outputs. <startAmounts> and <endAmounts> have same length.
-    // All dutch outputs will be of the same <token> and have the same <recipient>.
+    /// TODO: Support multiple tokens + recipients
     function multipleDutch(address token, uint256[] memory startAmounts, uint256[] memory endAmounts, address recipient)
         internal
         pure
