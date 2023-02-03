@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -17,6 +18,7 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "..
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
+    using FixedPointMathLib for uint256;
 
     address public immutable permit2;
     address internal constant DIRECT_TAKER_FILL = address(1);
@@ -56,7 +58,13 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
-                order.validate(msg.sender);
+                uint256 outputIncrease = order.validate(msg.sender);
+                // Increase order's output amounts by `outputIncrease` basis points
+                if (outputIncrease != 0) {
+                    for (uint256 j = 0; j < order.outputs.length; j++) {
+                        order.outputs[j].amount = order.outputs[j].amount.mulDivDown(10000 + outputIncrease, 10000);
+                    }
+                }
                 _takeFees(order);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
             }
