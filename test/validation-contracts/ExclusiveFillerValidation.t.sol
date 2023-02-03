@@ -55,7 +55,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
-                abi.encode(address(this), block.timestamp + 50)
+                abi.encode(address(this), block.timestamp + 50, 0)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -88,7 +88,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
-                abi.encode(address(this), block.timestamp + 50)
+                abi.encode(address(this), block.timestamp + 50, 0)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -119,7 +119,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
-                abi.encode(address(this), block.timestamp - 50)
+                abi.encode(address(this), block.timestamp - 50, 0)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -149,7 +149,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
-                abi.encode(address(this), block.timestamp)
+                abi.encode(address(this), block.timestamp, 0)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
