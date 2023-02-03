@@ -11,7 +11,11 @@ library ResolvedOrderLib {
 
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
-    function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
+    function validate(ResolvedOrder memory resolvedOrder, address filler)
+        internal
+        view
+        returns (uint256 outputIncrease)
+    {
         if (address(this) != resolvedOrder.info.reactor) {
             revert InvalidReactor();
         }
@@ -20,11 +24,8 @@ library ResolvedOrderLib {
             revert DeadlinePassed();
         }
 
-        if (
-            resolvedOrder.info.validationContract != address(0)
-                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
-        ) {
-            revert ValidationFailed();
+        if (resolvedOrder.info.validationContract != address(0)) {
+            outputIncrease = IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder);
         }
     }
 }
