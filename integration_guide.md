@@ -62,10 +62,10 @@ content-type: application/json
 data: {
     requestId: "string uuid - a unique identifier for this quote request", 
     chainId: "number - the chainId that the order is meant to be executed on",
-    offerer: "string address - The offerer’s EOA address that will sign the order"
-    tokenIn: "string address - The ERC20 token that the offerer will provide",
-    amountIn: "string number - The amount of `tokenIn` that the offerer will provide",
-    tokenOut: "string address - The ERC20 token that the offerer will receive"
+    offerer: "string address - The swapper’s EOA address that will sign the order"
+    tokenIn: "string address - The ERC20 token that the swapper will provide",
+    amountIn: "string number - The amount of `tokenIn` that the swapper will provide",
+    tokenOut: "string address - The ERC20 token that the swapper will receive"
 }
 ```
 
