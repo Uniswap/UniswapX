@@ -1,7 +1,61 @@
-# Gouda
-A generic off-chain order execution protocol.
+# What is Gouda?
 
-## Usage
+[Gouda](https://github.com/uniswap/gouda) is an off-chain order execution protocol meant to generalize token swaps across liquidity sources and provide price improvement for users. “Swappers” generate signed messages specifying the terms of their trade, in the form of a linear-decay Dutch order. 
+
+<p align="center">
+<img width="575" alt="image" src="https://user-images.githubusercontent.com/8218221/216129758-df0ae2a3-05a7-44a2-bd79-0c7b1c10b8cb.png">
+</p>
+
+“Fillers" read these orders and execute them, taking input assets from the swapper and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders. [Build a filler integration](integration_guide.md).
+
+## Gouda Order ***REMOVED***:
+
+To Swappers on the Uniswap front end, Gouda orders look just like any other Uniswap order but behind the scenes they have a completely different flow. 
+<p align="center">
+<img width="787" alt="image" src="https://user-images.githubusercontent.com/8218221/216479887-9f2ae4b3-9225-4ee3-86d4-797118082c88.png">
+</p>
+
+1. A Gouda order starts with a swapper on a Uniswap front end requesting a quote by entering two tokens and an input or output amount
+2. That request is sent to Gouda’s private network of RFQ Fillers who provide quotes for the proposed order. The best quote provided, is returned to the swapper on the Uniswap front end
+3. The quote is transformed into a decaying Dutch Order by the Uniswap front end. It will decay over a preset number of blocks from the winning RFQ quote to Uniswap router price. If the swapper accepts the order they will sign it. 
+4. The signed order is first broadcast to the winner of the RFQ. They will have a set a number of blocks to fill at their winning bid price
+5. If the RFQ winner fades, the signed order is then broadcast publicly. Any filler is then able to compete to fill the order at the given price in its decay curve. 
+
+## Gouda Protocol Architecture:
+
+The Gouda Protocol uses two types of contract, **Order Reactors** and **Order Executors,** to allow a network of Fillers to execute signed orders created through the Uniswap front end and signed via [Permit2](https://github.com/Uniswap/permit2): 
+
+<p align="center">
+<img width="850" alt="image" src="https://user-images.githubusercontent.com/8218221/216130577-e7f9263b-b5a7-463a-b082-6b8bc4d7d41c.png">
+</p>
+  
+**[Order Reactors](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactor.sol)** are contracts that take in a specific type of order objects (like Dutch Orders), validate them, convert them to generic orders, and then execute them against a Filler’s Executor contract. 
+
+The **[Dutch Limit Order Reactor](https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol)** is Uniswaps Labs currently deployed reactor that allows execution of decaying Dutch Limit Orders created through Uniswaps interface. 
+
+**[Order Executors](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol)** (called **[ReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol))** are contracts created by fillers that defines their individual execution strategy which will be called by the reactor, in order to execute requested orders (you can find sample executor contracts [here](https://github.com/Uniswap/gouda/tree/main/src/sample-executors))
+
+# Integrating with Gouda
+See [Filler Integration Guide](integration_guide.md)
+
+# Helpful Links
+
+| Name  | Description | Link |
+| --- | --- | --- |
+| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | [https://***REMOVED***.execute-api.us-east-2.amazonaws.com/prod](https://***REMOVED***.execute-api.us-east-2.amazonaws.com/prod/api-docs) |
+| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. | https://gouda-ui-zachyang-uniswaporg.vercel.app/#/swap |
+| Permit2 | Uniswap’s permit protocol used by swappers to sign orders.  | https://github.com/Uniswap/permit2 |
+
+
+# Deployment Addresses
+
+| Contract | Address | Source |
+| --- | --- | --- |
+| Dutch Limit Order Reactor | https://etherscan.io/address/0x8Cc1AaF08Ce7F48E4104196753bB1daA80E3530f | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
+| Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
+
+
+# Usage
 
 ```
 # install dependencies
@@ -16,62 +70,5 @@ forge test
 # run integration tests
 FOUNDRY_PROFILE=integration forge test
 ```
-
-## Protocol
-<img width="1087" alt="Untitled" src="https://user-images.githubusercontent.com/8218221/197440654-ead0fe75-2d4c-4f93-a7ff-b995481cf545.png">
-
-# Integration Overview
-
-- **Agents:**
-    - **Swappers:** Users who submit signed Orders to exchange one asset for another through the Uniswap UI, for example
-    - **Fillers:** Discover signed Orders from swappers, and execute custom strategies to fill them profitably
-- **Components:**
-    - *[Order Reactors](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactor.sol)*:  Contracts that take in a specific type of order objects (like Dutch Orders), validate them, convert them to generic orders, and then execute them against a Filler’s Executor contract
-        - *[Dutch Order Reactor](https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol)*: The specific reactor contract that allows the filling of decaying Dutch Limit Orders.
-    - *Order Executor (called [ReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol)):* Contract that defines the Filler’s execution strategy. This will be called by the reactor, after orders are validated to execute them.
-    - *[Permit2](https://github.com/Uniswap/permit2):* Allows users to approve contracts to move tokens on their behalf using signed messages.
-    - *Uniswap Order Pool:* A service that stores orders created by Uniswap Labs products.
-- **End to End Dutch Limit Order ***REMOVED***:**
-    1. A *Swapper* goes to an interface like Uniswap and creates and signs a Dutch Order transaction using Permit2.
-        1. This order specifies a Token and Amount in, a Token Out, a Minimum and Maximum Amount out and an expiration.
-        2. This order will decay linearly from creation to expiry from the Maximum Tokens Out to the Minimum Tokens Out
-    2. The signed order is stored in an Order Pool (see Uniswap's Order Pool API below)
-    3. A *Filler*, queries the *Order Pool* for unfilled orders. They compare them against the filling strategy defined in their *Order Executor.*
-    4. If the trade can be profitably executed, they submit that order object and a pointer to their *Order Executor* to the *Dutch Limit Order Reactor*
-    5. The *Dutch Limit Order Reactor* validates the order using *Permit2* then passes control of the input tokens to the *Order Executor* contract to be used execute the fill strategy.
-    6.  The *Dutch Limit Order Reactor* takes the Output Tokens from the filler contract and sends them to the *Swapper*
-
-## Building a Filler Contract
-
-1. Define an executor or filler ([interface](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol)) contract that implements `IReactorCallback`
-    1. The `reactorCallback` method takes in a list of orders, which contain input token and amount and output tokens and amount. By the end of the function, the caller should have access to the amount of `outputToken` defined in the list of orders.
-    2. Some basic example `Executors` can be found in this [repo](https://github.com/Uniswap/gouda/tree/main/src/sample-executors)
-2. Find profitable, `SignedOrder`'s ([link](https://github.com/Uniswap/gouda/blob/c4b95723fa4b9e30533d50e931591b2a20d91767/src/base/ReactorStructs.sol#L36)) from the `Order API`
-    1. Call the `GET Orders` method from the API to get open orders
-    2. Assess them against your `Executor` to see if they would be profitable to complete
-    3. If they are, send them to the `execute` or `executeBatch` methods on the `DutchLimitOrderReactor` along with your `fillContract` (executor) address, and any extra calldata your executor needs to perform the transaction
-3. If all goes correctly, the Reactor will validate the orders you sent, call your `reactorCallback` to execute your strategy, pass you the `inputTokens` from the order and retrieve the `outputTokens` from your `executor` contract
-
-## Integrating with the Order Pool API
-
-Orders created by Uniswap Labs products will be stored in a private Order Pool. Fillers can query for open orders in this pool with the following endpoint:
-
-**API Docs:**  [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs)
-
-## Useful Integration Links
-
-- Protocol Source: https://github.com/Uniswap/gouda
-    - Example executor contracts: [https://github.com/Uniswap/gouda/tree/main/src/sample-executors](https://github.com/Uniswap/gouda/tree/main/src/sample-executors)
-- Example end to end filler bot: https://github.com/Uniswap/gouda-bot
-- Order API: [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders?limit=100](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/dutch-auction/orders?limit=100)
-- Swagger: [https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs](https://4udxja5431.execute-api.us-east-2.amazonaws.com/prod/api-docs)
-- Smart Contract Addresses:
-
-
-| Contract                  | Address                                    | GH Link                                                                            |
-| ---                       | ---                                        | ---                                                                                |
-| Dutch Limit Order Reactor | ---                                        | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
-| Permit2                   | 0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2                                                 |
-
-## Disclaimer
+# Disclaimer
 This is EXPERIMENTAL, UNAUDITED code. Do not use in production.
