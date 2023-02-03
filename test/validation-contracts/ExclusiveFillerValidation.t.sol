@@ -165,4 +165,34 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             bytes("")
         );
     }
+
+    // Test non exclusive filler can fill an exclusiver order by overriding output amount
+    function testNonExclusiveFillerFillsWithOverride() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 101 / 100);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                // override increase set to 100 bps, so filler must pay 1% more output
+                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                abi.encode(address(0x80085), block.timestamp + 50, 100)
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount * 101 / 100);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
 }
