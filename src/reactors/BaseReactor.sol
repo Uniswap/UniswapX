@@ -56,8 +56,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
-                _takeFees(order);
                 order.validate(msg.sender);
+                _takeFees(order);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
             }
         }
