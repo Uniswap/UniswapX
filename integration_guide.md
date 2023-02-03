@@ -1,39 +1,28 @@
 # Integrating as a Filler
 
-There are three components to integrating as a filler: creating an executor contract, retrieving & executing discovered orders and enrolling in the Gouda RFQ program.
+There are three components to integrating as a filler: defining a filler execution strategy, retrieving & executing discovered orders and enrolling in the Gouda RFQ program.
 
-## 1. Create an Executor Contract
+## 1. Defining a Filler Execution Strategy
 
-To actually execute discovered Gouda orders each filler will need to create and deploy their own Executor contracts. These contracts define a filler’s custom fill strategy. The contract should implement the [IReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol) interface, which takes in an order with input tokens and returns the allotted number of output tokens to the caller. 
+To execute a discovered order, a filler needs to call one of the `execute` methods ([source](https://github.com/Uniswap/gouda/blob/de36900fa074784bda215b902d4854bdffab09ba/src/reactors/BaseReactor.sol#L31)) of the [Dutch Limit Order Reactor](https://etherscan.io/address/0x8Cc1AaF08Ce7F48E4104196753bB1daA80E3530f), providing it with the orders to execute along with the address of the executor contract that defines their fill strategy.
 
-The most basic implementation of an executor simply accepts the input tokens from an order and returns the sender the requested number of output tokens ([source](https://github.com/Uniswap/gouda/blob/main/src/sample-executors/DirectTakerExecutor.sol) below), but can be designed with arbitrarily complex execution strategies:
+The simplest fill strategy is called `Direct Taker`, where the trade is executed directly against tokens held in the fillers address. To use this strategy, we’ve provided a short cut so fillers do not need to deploy an executor contract. They can simply call `execute` with filler address `address(1)` to fill against themselves (see [source](https://github.com/Uniswap/gouda/blob/de36900fa074784bda215b902d4854bdffab09ba/src/reactors/BaseReactor.sol#L73)):
 
 ```solidity
-contract DirectTakerExecutor is IReactorCallback, Owned {
-    using SafeTransferLib for ERC20;
-
-    constructor(address _owner) Owned(_owner) {}
-
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address taker, bytes calldata) external {
-        // Only handle 1 resolved order
-        require(resolvedOrders.length == 1, "resolvedOrders.length != 1");
-
-        uint256 totalOutputAmount;
-        // transfer output tokens from taker to this
-        for (uint256 i = 0; i < resolvedOrders[0].outputs.length; i++) {
-            OutputToken memory output = resolvedOrders[0].outputs[i];
-            ERC20(output.token).safeTransferFrom(taker, address(this), output.amount);
-            totalOutputAmount += output.amount;
-        }
-        // Assumed that all outputs are of the same token
-        ERC20(resolvedOrders[0].outputs[0].token).approve(msg.sender, totalOutputAmount);
-        // transfer input tokens from this to taker
-        ERC20(resolvedOrders[0].input.token).safeTransfer(taker, resolvedOrders[0].input.amount);
-    }
-}
+// Execute direct taker order
+DutchLimitOrderReactor.execute(order, address(1)); 
 ```
 
-When a filler goes to execute a profitable order, they will submit a transaction containing the order and a pointer to their deployed Executor to execute the order.  
+More sophisticated fillers can implement arbitrarily complex strategies by deploying their own Executor contracts. This contract should implement the [IReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol) interface, which takes in an order with input tokens and returns the allotted number of output tokens to the caller. To use an executor contract, fillers simply specify it’s address when calling `execute`:
+
+```solidity
+// Execute custom fill strategy
+address executor = /* Address of deployed executor contract */ ;
+bytes fillData = /* Call data to be sent to your executor contract */; 
+DutchLimitOrderReactor.execute(order, executor, fillData); 
+```
+
+For convenience, we’ve provided an [example Executor Contract](https://github.com/Uniswap/gouda/blob/main/src/sample-executors/UniswapV3Executor.sol) which demonstrates how a filler could implement a strategy that executes a Gouda order against a Uniswap V3 pool.
 
 ## 2. Retrieve & Execute Signed Orders
 
