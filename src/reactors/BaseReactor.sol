@@ -17,6 +17,8 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "..
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
+    using ResolvedOrderLib for ResolvedOrder[];
+    using ResolvedOrderLib for ResolvedOrderLib.AddressBalance[];
 
     address public immutable permit2;
     address internal constant DIRECT_TAKER_FILL = address(1);
@@ -59,28 +61,28 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 _takeFees(order);
                 order.validate(msg.sender);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
+
+                // Batch fills are all-or-nothing so emit fill events now to save a loop
+                emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
             }
         }
-        if (!directTaker) {
+
+        ResolvedOrderLib.AddressBalance[] memory expectedBalances = orders.getExpectedBalances();
+        if (directTaker) {
+            for (uint256 i = 0; i < orders.length; i++) {
+                ResolvedOrder memory order = orders[i];
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    OutputToken memory output = order.outputs[j];
+                    IAllowanceTransfer(permit2).transferFrom(
+                        msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
+                    );
+                }
+            }
+        } else {
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
         }
-        unchecked {
-            // transfer output tokens to their respective recipients
-            for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory resolvedOrder = orders[i];
-                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
-                    OutputToken memory output = resolvedOrder.outputs[j];
-                    if (directTaker) {
-                        IAllowanceTransfer(permit2).transferFrom(
-                            msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
-                        );
-                    } else {
-                        ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
-                    }
-                }
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
-            }
-        }
+
+        expectedBalances.check();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.

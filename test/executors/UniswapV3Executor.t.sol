@@ -99,14 +99,13 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         Vm.Log[] memory entries = vm.getRecordedLogs();
         // There will be 7 events in the following order: Transfer, Approval, Transfer,
         // Transfer, Approval, Transfer, Fill
-        assertEq(entries.length, 7);
+        assertEq(entries.length, 6);
         assertEq(entries[0].topics[0], TRANSFER_EVENT_SIG);
-        assertEq(entries[1].topics[0], APPROVAL_EVENT_SIG);
+        assertEq(entries[1].topics[0], FILL_EVENT_SIG);
         assertEq(entries[2].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[3].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[4].topics[0], APPROVAL_EVENT_SIG);
         assertEq(entries[5].topics[0], TRANSFER_EVENT_SIG);
-        assertEq(entries[6].topics[0], FILL_EVENT_SIG);
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);

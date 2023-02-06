@@ -568,7 +568,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert();
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
