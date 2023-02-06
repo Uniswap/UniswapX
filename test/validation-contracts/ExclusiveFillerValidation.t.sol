@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {IPSFees} from "../../src/base/IPSFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib, DutchOutput} from "../../src/lib/DutchLimitOrderLib.sol";
@@ -20,7 +21,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     using DutchLimitOrderLib for DutchLimitOrder;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    uint256 constant PROTOCOL_FEE_BPS = 500;
 
     MockFillContract fillContract;
     MockERC20 tokenIn;
@@ -254,6 +255,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
+    // Test that a non exclusive filler succeeds with 1% output override, output decay, and a fee.
     function testNonExclusiveFillerSucceedsWithOverrideIncludingFeesAndDecay() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
@@ -265,7 +267,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         vm.warp(1000);
         DutchOutput[] memory outputsWithFeeAndDecay = new DutchOutput[](2);
         outputsWithFeeAndDecay[0] = DutchOutput(address(tokenOut), outputAmount, outputAmount * 9 / 10, maker, false);
-        outputsWithFeeAndDecay[1] = DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
+        outputsWithFeeAndDecay[1] =
+            DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation))
@@ -283,9 +286,14 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             bytes("")
         );
         // Output decay reduces output amount by 5%. RFQ override increases output amount by 1%
-        assertEq(tokenOut.balanceOf(maker), outputAmount * 95 / 100 * 101 / 100);
+        uint256 adjustedOutputAmount = outputAmount * 95 / 100 * 101 / 100;
+        assertEq(tokenOut.balanceOf(maker), adjustedOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
         // Fees collected are 5% of 1st output, and will remain in the reactor
-        assertEq(tokenOut.balanceOf(address(reactor)), outputAmount * 95 / 100 * 101 / 100 / 20);
+        assertEq(tokenOut.balanceOf(address(reactor)), adjustedOutputAmount / 20);
+        // 5% of the fee will go to protocol
+        assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), address(0)), adjustedOutputAmount / 20 / 20);
+        // 95% of the fee will go to interface (we set to maker in this case)
+        assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), maker), adjustedOutputAmount / 20 * 19 / 20);
     }
 }
