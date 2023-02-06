@@ -282,7 +282,10 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             address(fillContract),
             bytes("")
         );
-        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        // Output decay reduces output amount by 5%. RFQ override increases output amount by 1%
+        assertEq(tokenOut.balanceOf(maker), outputAmount * 95 / 100 * 101 / 100);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+        // Fees collected are 5% of 1st output, and will remain in the reactor
+        assertEq(tokenOut.balanceOf(address(reactor)), outputAmount * 95 / 100 * 101 / 100 / 20);
     }
 }
