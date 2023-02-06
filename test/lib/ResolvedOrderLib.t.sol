@@ -43,7 +43,7 @@ contract ResolvedOrderLibTest is Test {
     function testValidationContractInvalid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(MockValidationContract.ValidationFailed.selector);
         mockResolvedOrder.info =
             OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
@@ -63,7 +63,7 @@ contract ResolvedOrderLibTest is Test {
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
             address(exclusiveFillerValidation)
         ).withValidationData(abi.encode(address(0x123), 1000, 0));
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(MockValidationContract.ValidationFailed.selector);
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
 
