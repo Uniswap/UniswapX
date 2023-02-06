@@ -8,7 +8,7 @@ import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/rea
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
+import {DutchLimitOrder, DutchLimitOrderLib, DutchOutput} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -243,6 +243,38 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testNonExclusiveFillerSucceedsWithOverrideIncludingFeesAndDecay() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 2);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        vm.warp(1000);
+        DutchOutput[] memory outputsWithFeeAndDecay = new DutchOutput[](2);
+        outputsWithFeeAndDecay[0] = DutchOutput(address(tokenOut), outputAmount, outputAmount * 9 / 10, maker, false);
+        outputsWithFeeAndDecay[1] = DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation))
+                // override increase set to 100 bps, so filler must pay 1% more output
+                .withValidationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: outputsWithFeeAndDecay
         });
 
         reactor.execute(
