@@ -288,6 +288,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // Output decay reduces output amount by 5%. RFQ override increases output amount by 1%
         uint256 adjustedOutputAmount = outputAmount * 95 / 100 * 101 / 100;
         assertEq(tokenOut.balanceOf(maker), adjustedOutputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), 2 * outputAmount - (adjustedOutputAmount * 21 / 20));
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
         // Fees collected are 5% of 1st output, and will remain in the reactor
         assertEq(tokenOut.balanceOf(address(reactor)), adjustedOutputAmount / 20);
