@@ -249,6 +249,10 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         reactor.execute(signedOrder, address(fillContract), bytes(""));
     }
 
+    function unpackOutputToken(OutputToken memory _output) internal returns (address, uint256, uint256, address) {
+        return (_output.token, _output.amount, _output.minReturn, _output.flags);
+    }
+
     function _checkpointBalances()
         internal
         view

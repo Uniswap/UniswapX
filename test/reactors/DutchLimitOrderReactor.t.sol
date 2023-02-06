@@ -437,7 +437,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         uint256[] memory inputAmounts,
         uint256[][] memory outputAmounts
     ) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
-        // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
         assertEq(inputAmounts.length, outputAmounts.length);
 
         signedOrders = new SignedOrder[](inputAmounts.length);

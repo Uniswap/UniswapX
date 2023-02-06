@@ -21,10 +21,13 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
+    using ArrayBuilder for uint256[];
+    using ArrayBuilder for address[];
 
     uint256 takerPrivateKey;
     uint256 makerPrivateKey;
@@ -231,18 +234,16 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
     // in mockSwapRouter and 3 tokenOut in maker.
     function testExecuteMultipleOutputs() public {
         uint256 inputAmount = ONE * 4;
-        uint256[] memory startAmounts = new uint256[](3);
-        startAmounts[0] = ONE * 2;
-        startAmounts[1] = ONE;
-        startAmounts[2] = ONE;
-        uint256[] memory endAmounts = new uint256[](3);
-        endAmounts[0] = startAmounts[0];
-        endAmounts[1] = startAmounts[1];
-        endAmounts[2] = startAmounts[2];
+        uint256[] memory startAmounts = ArrayBuilder.init(3).push(ONE * 2).push(ONE).push(ONE);
+        uint256[] memory endAmounts = ArrayBuilder.init(3).push(ONE * 2).push(ONE).push(ONE);
+
+        address[] memory tokens = ArrayBuilder.fill(3, address(tokenOut));
+        // Set last token to go to router w/ address(1)
+        address[] memory recipients = ArrayBuilder.fill(2, address(maker)).push(address(1));
+
         DutchOutput[] memory outputs =
-            OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
+            OutputsBuilder.multipleDutch(tokens, startAmounts, endAmounts, recipients);
         // fee output
-        outputs[2].recipient = address(1);
         outputs[2].isFeeOutput = true;
 
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -279,18 +280,17 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
     // tries to withdraw the second output of 1 from the fill contract.
     function testExecuteMultipleOutputsInsufficientInput() public {
         uint256 inputAmount = ONE * 2;
-        uint256[] memory startAmounts = new uint256[](2);
-        startAmounts[0] = ONE * 2;
-        startAmounts[1] = ONE;
-        uint256[] memory endAmounts = new uint256[](2);
-        endAmounts[0] = startAmounts[0];
-        endAmounts[1] = startAmounts[1];
+        uint256[] memory startAmounts = ArrayBuilder.init(2).push(ONE * 2).push(ONE);
+        uint256[] memory endAmounts = ArrayBuilder.init(2).push(ONE * 2).push(ONE);
+        address[] memory tokens = ArrayBuilder.fill(2, address(tokenOut));
+        address[] memory recipients = ArrayBuilder.fill(2, address(maker));
+
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker))
+            outputs: OutputsBuilder.multipleDutch(tokens, startAmounts, endAmounts, recipients)
         });
 
         tokenIn.mint(maker, inputAmount);

@@ -34,16 +34,19 @@ library OutputsBuilder {
         return result;
     }
 
-    // Returns array of dutch outputs. <startAmounts> and <endAmounts> have same length.
-    /// TODO: Support multiple tokens + recipients
-    function multipleDutch(address token, uint256[] memory startAmounts, uint256[] memory endAmounts, address recipient)
+    // Returns array of dutch outputs. all parameters must have the same length.
+    function multipleDutch(address[] memory tokens, uint256[] memory startAmounts, uint256[] memory endAmounts, address[] memory recipients)
         internal
         pure
         returns (DutchOutput[] memory)
     {
-        DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
-        for (uint256 i = 0; i < startAmounts.length; i++) {
-            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient, false);
+        require(tokens.length == startAmounts.length, "OutputsBuilder: token.length != startAmounts.length");
+        require(tokens.length == endAmounts.length, "OutputsBuilder: token.length != endAmounts.length");
+        require(tokens.length == recipients.length, "OutputsBuilder: token.length != recipient.length");
+        
+        DutchOutput[] memory result = new DutchOutput[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            result[i] = DutchOutput(tokens[i], startAmounts[i], endAmounts[i], recipients[i], false);
         }
         return result;
     }
