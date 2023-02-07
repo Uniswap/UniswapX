@@ -187,11 +187,14 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
+        // Can be compared to DutchLimitOrderBaseExecuteSingle.snap
+        snapStart("testNonExclusiveFillerFillsWithOverride");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
+        snapEnd();
         assertEq(tokenOut.balanceOf(maker), outputAmount * 101 / 100);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
