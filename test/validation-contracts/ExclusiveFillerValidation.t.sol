@@ -297,4 +297,48 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // 95% of the fee will go to interface (we set to maker in this case)
         assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), maker), adjustedOutputAmount / 20 * 19 / 20);
     }
+
+    // Test that RFQ winner can fill. Use same details as the test above,
+    // testNonExclusiveFillerSucceedsWithOverrideIncludingFeesAndDecay
+    function testRfqWinnerSucceedsWithOverrideIncludingFeesAndDecay() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 2);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        vm.warp(1000);
+        DutchOutput[] memory outputsWithFeeAndDecay = new DutchOutput[](2);
+        outputsWithFeeAndDecay[0] = DutchOutput(address(tokenOut), outputAmount, outputAmount * 9 / 10, maker, false);
+        outputsWithFeeAndDecay[1] =
+            DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation))
+                // Set the RFQ winner to this contract
+                .withValidationData(abi.encode(address(this), block.timestamp + 50, 100)),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: outputsWithFeeAndDecay
+        });
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        // Output decay reduces output amount by 5%
+        uint256 adjustedOutputAmount = outputAmount * 95 / 100;
+        assertEq(tokenOut.balanceOf(maker), adjustedOutputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), 2 * outputAmount - (adjustedOutputAmount * 21 / 20));
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+        // Fees collected are 5% of 1st output, and will remain in the reactor
+        assertEq(tokenOut.balanceOf(address(reactor)), adjustedOutputAmount / 20);
+        // 5% of the fee will go to protocol
+        assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), address(0)), adjustedOutputAmount / 20 / 20);
+        // 95% of the fee will go to interface (we set to maker in this case)
+        assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), maker), adjustedOutputAmount / 20 * 19 / 20);
+    }
 }
