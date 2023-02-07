@@ -15,6 +15,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
@@ -399,5 +400,36 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             address(fillContract),
             bytes("")
         );
+    }
+
+    // Test that direct taker fill macro works with output override
+    function testDirectTakerFillMacroWithOverride() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(this), outputAmount * 102 / 100);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation))
+                // override increase set to 200 bps, so filler must pay 2% more output
+                .withValidationData(abi.encode(address(0x80085), block.timestamp + 50, 200)),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        tokenOut.forceApprove(address(this), address(permit2), type(uint256).max);
+        IAllowanceTransfer(address(permit2)).approve(
+            address(tokenOut), address(reactor), type(uint160).max, type(uint48).max
+        );
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), address(1), bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount * 102 / 100);
+        assertEq(tokenIn.balanceOf(address(this)), inputAmount);
     }
 }
