@@ -9,20 +9,28 @@ import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback, Owned {
+    error FillerNotOwner();
+    error CallerNotReactor();
+
     address public immutable swapRouter;
+    address public immutable reactor;
 
     using SafeTransferLib for ERC20;
 
-    constructor(address _swapRouter, address _owner) Owned(_owner) {
+    constructor(address _reactor, address _swapRouter, address _owner) Owned(_owner) {
+        reactor = _reactor;
         swapRouter = _swapRouter;
     }
 
     /// @dev Can handle multiple resolvedOrders, but the input tokens and output tokens must be the same.
-    function reactorCallback(
-        ResolvedOrder[] calldata resolvedOrders,
-        address, //filler
-        bytes calldata path
-    ) external {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata path) external {
+        if (filler != owner) {
+            revert FillerNotOwner();
+        }
+        if (msg.sender != reactor) {
+            revert CallerNotReactor();
+        }
+
         // assume for now only single input / output token
         address inputToken = resolvedOrders[0].input.token;
         uint256 inputTokenBalance = ERC20(inputToken).balanceOf(address(this));
