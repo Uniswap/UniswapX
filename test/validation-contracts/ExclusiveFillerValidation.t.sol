@@ -341,4 +341,34 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // 95% of the fee will go to interface (we set to maker in this case)
         assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), maker), adjustedOutputAmount / 20 * 19 / 20);
     }
+
+    // Very similar to testNonExclusiveFillerFillsWithOverride, but with input decay
+    function testNonExclusiveFillerFillsWithOverrideWithInputDecay() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 101 / 100);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        vm.warp(1000);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation))
+                // override increase set to 100 bps, so filler must pay 1% more output
+                .withValidationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount / 2, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenOut.balanceOf(maker), outputAmount * 101 / 100);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount * 3 / 4);
+    }
 }
