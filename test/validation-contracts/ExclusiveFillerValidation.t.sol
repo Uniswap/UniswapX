@@ -298,7 +298,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         assertEq(IPSFees(address(reactor)).feesOwed(address(tokenOut), maker), adjustedOutputAmount / 20 * 19 / 20);
     }
 
-    // Test that RFQ winner can fill. Use same details as the test above,
+    // Test that RFQ winner can fill an order with override. Use same details as the test above,
     // testNonExclusiveFillerSucceedsWithOverrideIncludingFeesAndDecay
     function testRfqWinnerSucceedsWithOverrideIncludingFeesAndDecay() public {
         uint256 inputAmount = 10 ** 18;
@@ -370,5 +370,34 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         );
         assertEq(tokenOut.balanceOf(maker), outputAmount * 101 / 100);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount * 3 / 4);
+    }
+
+    // Test that a revert will occur if output amount is too high and will overflow when multiplying by 10000 in
+    // `BaseReactor._fill()`
+    function testNonExclusiveFillerFailsWithOverrideBecauseOverflow() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = type(uint256).max / 1000;
+
+        tokenIn.mint(address(maker), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 101 / 100);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+                .withValidationContract(address(exclusiveFillerValidation))
+                // override increase set to 100 bps, so filler must pay 1% more output
+                .withValidationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+
+        vm.expectRevert(bytes(""));
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
     }
 }
