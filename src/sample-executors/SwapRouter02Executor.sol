@@ -6,7 +6,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
-//import {ISwapRouter02} from "swap-router-contracts/contracts/interfaces/ISwapRouter02.sol";
+import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
