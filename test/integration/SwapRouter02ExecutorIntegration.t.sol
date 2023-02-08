@@ -29,7 +29,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         makerPrivateKey = 0xbabe;
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
-        swapRouter02Executor = new SwapRouter02Executor(address(0), address(0));
+        swapRouter02Executor = new SwapRouter02Executor(address(this), address(this));
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
 
         // Maker max approves permit post
