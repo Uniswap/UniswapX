@@ -10,7 +10,7 @@ interface ISettlementOracle {
     /// @param orderId The order hash that identifies the order that was filled
     /// @param targetChainFiller The address on the target chain that is responsible for filling the order
     /// @return filledOutputs An array of all the output tokens that were filled on the target chain
-    function getSettlementFillInfo(bytes32 orderId, address targetChainFiller)
+    function getSettlementInfo(bytes32 orderId, address targetChainFiller)
         external
         view
         returns (OutputToken[] calldata filledOutputs);
@@ -21,6 +21,6 @@ interface ISettlementOracle {
     /// @param orderId The order hash that identifies the order that was filled
     /// @param targetChainFiller The address that initiated the fill on SettlementFiller
     /// @param outputs The output tokens that were filled on the target chain.
-    function logSettlementFillInfo(bytes32 orderId, address targetChainFiller, OutputToken[] calldata outputs)
+    function logSettlementInfo(bytes32 orderId, address targetChainFiller, OutputToken[] calldata outputs)
         external;
 }
