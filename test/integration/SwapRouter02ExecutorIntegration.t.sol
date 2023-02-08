@@ -9,6 +9,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -41,8 +42,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20(WETH).transfer(maker, 2 * ONE);
     }
 
-    // Maker's order consists of input = 2 WETH & output = 3000 USDC. There will be 7560391
-    // excess wei of USDC in uniswapV3Executor.
+    // Maker's order consists of input = 2 WETH & output = 3000 DAI. There will be 7560391
+    // excess wei of DAI in SwapRouter02Executor.
     function testSwap2WethToUsdc() public {
         uint256 inputAmount = 2 * ONE;
 
@@ -56,7 +57,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         address[] memory tokensToApprove = new address[](1);
         tokensToApprove[0] = WETH;
         bytes[] memory multicallData = new bytes[](1);
-        multicallData[0] = bytes("");
+
+        //        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle, );
 
         assertEq(ERC20(WETH).balanceOf(maker), 2 * ONE);
         assertEq(ERC20(DAI).balanceOf(maker), 0);
