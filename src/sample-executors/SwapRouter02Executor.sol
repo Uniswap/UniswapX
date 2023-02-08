@@ -21,15 +21,19 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     /// @dev Can handle multiple resolvedOrders, but the input tokens and output tokens must be the same.
-    function reactorCallback(
-        ResolvedOrder[] calldata resolvedOrders,
-        address filler, //filler
-        bytes calldata fillData
-    ) external {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
+        external
+    {
         if (filler != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
         (address[] memory tokensToApprove, bytes[] memory multicallData) = abi.decode(fillData, (address[], bytes[]));
+        if (tokensToApprove.length > 0) {
+            for (uint256 i = 0; i < tokensToApprove.length; i++) {
+                ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
+            }
+        }
+        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
 
     /// @notice tranfer any earned tokens to the owner
