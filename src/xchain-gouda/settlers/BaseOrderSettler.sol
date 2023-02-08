@@ -74,7 +74,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function cancelSettlement(bytes32 orderId) external override {
         ActiveSettlement storage settlement = settlements[orderId];
-        if (settlement.status == SettlementStatus.Pending && settlement.deadline > block.timestamp) {
+        if (settlement.deadline == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.status == SettlementStatus.Pending && settlement.deadline < block.timestamp) {
             settlement.status = SettlementStatus.Cancelled;
 
             // transfer tokens and collateral back to offerer
@@ -89,10 +90,13 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function finalizeSettlement(bytes32 orderId) external override {
         ActiveSettlement memory settlement = settlements[orderId];
+        if (settlement.deadline == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.status == SettlementStatus.Pending) {
-            OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(
+            OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementInfo(
                 orderId, settlement.targetChainFiller
             );
+
+            if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
 
             // validate outputs
             for (uint16 i; i < filledOutputs.length; i++) {

@@ -23,6 +23,14 @@ interface IOrderSettler {
     /// @param orderId The order hash to identify the order
     error UnableToCancel(bytes32 orderId);
 
+    /// @notice Thrown when trying to interact with a settlement that does not exist
+    /// @param orderId The order hash to identify the order of the settlement
+    error SettlementDoesNotExist(bytes32 orderId);
+
+    /// @notice Thrown when confirming outputs of an order are filled, but the amount of output tokens filled does not
+    /// match the expected amount of output tokens
+    error OutputsLengthMismatch(bytes32 orderId);
+
     /// @notice Thrown when validating a settlement fill but the recipient does not match the expected recipient
     /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
