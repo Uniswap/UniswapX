@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -8,12 +9,22 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
+struct ClaimToken {
+    ERC20 token;
+    uint256 minOutput;
+    bytes path;
+}
+
 contract UniswapV3Executor is IReactorCallback, Owned {
-    address public immutable swapRouter;
+    error TransferFailed();
 
     using SafeTransferLib for ERC20;
 
-    constructor(address _swapRouter, address _owner) Owned(_owner) {
+    address private immutable swapRouter;
+    WETH private immutable weth;
+
+    constructor(address _weth, address _swapRouter, address _owner) Owned(_owner) {
+        weth = WETH(payable(_weth));
         swapRouter = _swapRouter;
     }
 
@@ -47,7 +58,34 @@ contract UniswapV3Executor is IReactorCallback, Owned {
     }
 
     /// @notice tranfer any earned tokens to the owner
-    function claimTokens(ERC20 token) external onlyOwner {
-        token.safeTransfer(owner, token.balanceOf(address(this)));
+    function claimFees(address to, ClaimToken[] calldata claims) external onlyOwner {
+        for (uint256 i = 0; i < claims.length; i++) {
+            ClaimToken calldata claim = claims[i];
+
+            uint256 balance = claim.token.balanceOf(address(this));
+            if (claim.token.allowance(address(this), swapRouter) < balance) {
+                claim.token.approve(swapRouter, type(uint256).max);
+            }
+
+            IUniV3SwapRouter(swapRouter).exactInput(
+                IUniV3SwapRouter.ExactInputParams({
+                    path: claim.path,
+                    recipient: address(this),
+                    amountIn: balance,
+                    amountOutMinimum: claim.minOutput
+                })
+            );
+        }
+
+        // assumption is that the claims swap to WETH
+        uint256 amount = weth.balanceOf(address(this));
+        weth.withdraw(amount);
+
+        (bool success,) = to.call{value: amount}("");
+        if (!success) {
+            revert TransferFailed();
+        }
     }
+
+    receive() external payable {}
 }

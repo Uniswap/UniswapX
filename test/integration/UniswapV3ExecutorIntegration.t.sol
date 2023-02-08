@@ -32,7 +32,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, DeployPermit
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 15327550);
-        uniswapV3Executor = new UniswapV3Executor(swapRouter02, address(this));
+        uniswapV3Executor = new UniswapV3Executor(weth, swapRouter02, address(this));
         permit2 = ISignatureTransfer(deployPermit2());
         dloReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 

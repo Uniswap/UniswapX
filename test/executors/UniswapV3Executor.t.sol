@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
+import {UniswapV3Executor, ClaimToken} from "../../src/sample-executors/UniswapV3Executor.sol";
 import {
     DutchLimitOrderReactor,
     DutchLimitOrder,
@@ -36,6 +37,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
     MockSwapRouter mockSwapRouter;
     DutchLimitOrderReactor reactor;
     ISignatureTransfer permit2;
+    WETH weth;
 
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
@@ -60,8 +62,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         maker = vm.addr(makerPrivateKey);
 
         // Instantiate relevant contracts
+        weth = new WETH();
         mockSwapRouter = new MockSwapRouter();
-        uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
+        uniswapV3Executor = new UniswapV3Executor(address(weth), address(mockSwapRouter), taker);
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
 
@@ -363,6 +366,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
 
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE);
+        weth.deposit{value: ONE}();
+        weth.transfer(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
         reactor.execute(
@@ -375,11 +380,38 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE / 2);
         assertEq(tokenOut.balanceOf(taker), 0);
 
+        ClaimToken memory claim =
+            ClaimToken({token: tokenOut, minOutput: ONE / 2, path: abi.encodePacked(tokenOut, FEE, address(weth))});
+        ClaimToken[] memory claims = new ClaimToken[](1);
+        claims[0] = claim;
+
+        uint256 takerBalanceBefore = taker.balance;
         vm.prank(taker);
-        uniswapV3Executor.claimTokens(tokenOut);
+        uniswapV3Executor.claimFees(taker, claims);
 
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
-        assertEq(tokenOut.balanceOf(taker), ONE / 2);
+        assertEq(taker.balance - takerBalanceBefore, ONE / 2);
+    }
+
+    function testClaimMultipleTokens() public {
+        tokenIn.mint(address(uniswapV3Executor), ONE);
+        tokenOut.mint(address(uniswapV3Executor), ONE);
+        weth.deposit{value: ONE * 2}();
+        weth.transfer(address(mockSwapRouter), ONE * 2);
+
+        ClaimToken[] memory claims = new ClaimToken[](2);
+        claims[0] =
+            ClaimToken({token: tokenOut, minOutput: ONE / 2, path: abi.encodePacked(tokenOut, FEE, address(weth))});
+
+        claims[1] =
+            ClaimToken({token: tokenIn, minOutput: ONE / 2, path: abi.encodePacked(tokenIn, FEE, address(weth))});
+
+        uint256 takerBalanceBefore = taker.balance;
+        vm.prank(taker);
+        uniswapV3Executor.claimFees(taker, claims);
+
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+        assertEq(taker.balance - takerBalanceBefore, ONE * 2);
     }
 
     function testClaimTokensNotOwner() public {
@@ -403,12 +435,17 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
+        ClaimToken memory claim =
+            ClaimToken({token: tokenOut, minOutput: ONE / 2, path: abi.encodePacked(tokenOut, FEE, address(weth))});
+        ClaimToken[] memory claims = new ClaimToken[](1);
+        claims[0] = claim;
+
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE / 2);
         assertEq(tokenOut.balanceOf(taker), 0);
 
         vm.expectRevert("UNAUTHORIZED");
-        uniswapV3Executor.claimTokens(tokenOut);
+        uniswapV3Executor.claimFees(taker, claims);
     }
 
     // This test doesn't relate to UniswapV3Executor per se, but I wanted an additional
