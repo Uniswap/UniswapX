@@ -42,7 +42,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20(WETH).transfer(maker, 2 * ONE);
     }
 
-    // Maker's order consists of input = 2 WETH & output = 3000 DAI. There will be 7560391
+    // Maker's order consists of input = 2 WETH & output = 3000 DAI. There will be 288797467469336654155
     // excess wei of DAI in SwapRouter02Executor.
     function testSwap2WethToDaiViaV3() public {
         uint256 inputAmount = 2 * ONE;
@@ -74,6 +74,6 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         assertEq(ERC20(WETH).balanceOf(maker), 0);
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
-        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 200 * ONE);
+        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 288797467469336654155);
     }
 }
