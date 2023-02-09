@@ -90,19 +90,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function finalizeSettlement(bytes32 orderId) external override {
         ActiveSettlement memory settlement = settlements[orderId];
         if (settlement.status == SettlementStatus.Pending) {
-            OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementFillInfo(
-                orderId, settlement.targetChainFiller
-            );
+            bool isSettled = ISettlementOracle(settlement.settlementOracle).settled(orderId);
 
-            // validate outputs
-            for (uint16 i; i < filledOutputs.length; i++) {
-                OutputToken memory expectedOutput = settlement.outputs[i];
-                OutputToken memory receivedOutput = filledOutputs[i];
-                if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
-                if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
-                if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
-                if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
-            }
+            if (!isSettled) revert SettlementIncomplete(orderId);
 
             // compensate filler
             settlements[orderId].status = SettlementStatus.Filled;

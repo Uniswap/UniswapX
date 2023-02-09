@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ResolvedOrder, SettlementStatus} from "../base/SettlementStructs.sol";
+import {ResolvedOrder, SettlementStatus, ActiveSettlement} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Interface for cross-chain order settlers. These contracts collect escrow tokens from the swapper and filler
@@ -13,6 +13,8 @@ interface IOrderSettler {
     /// @param orderId The order hash to identify the order
     error SettlementAlreadyInitiated(bytes32 orderId);
 
+    error SettlementIncomplete(bytes32 orderId);
+
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
     /// @param orderId The order hash to identify the order
     /// @param currentStatus The actual status of the settlement (either Filled or Cancelled)
@@ -22,11 +24,6 @@ interface IOrderSettler {
     /// order is already completed
     /// @param orderId The order hash to identify the order
     error UnableToCancel(bytes32 orderId);
-
-    /// @notice Thrown when validating a settlement fill but the recipient does not match the expected recipient
-    /// @param orderId The order hash
-    /// @param outputIndex The index of the invalid settlement output
-    error InvalidRecipient(bytes32 orderId, uint16 outputIndex);
 
     /// @notice Thrown when validating a settlement fill but the token does not match the expected token
     /// @param orderId The order hash
@@ -57,4 +54,6 @@ interface IOrderSettler {
     /// are returned to swapper
     /// @param orderId The order hash that identifies the order settlement to cancel
     function cancelSettlement(bytes32 orderId) external;
+
+    function settlements(bytes32 orderId) external returns (ActiveSettlement memory);
 }
