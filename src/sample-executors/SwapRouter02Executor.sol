@@ -22,7 +22,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         reactor = _reactor;
     }
 
-    /// @dev Can handle multiple resolvedOrders, but the input tokens and output tokens must be the same.
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
         external
     {
