@@ -30,7 +30,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         makerPrivateKey = 0xbabe;
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
-        swapRouter02Executor = new SwapRouter02Executor(address(this), address(this));
+        swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this));
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
 
         // Maker max approves permit post
@@ -54,8 +54,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             input: DutchInput(address(WETH), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(maker))
         });
-        address[] memory tokensToApprove = new address[](1);
-        tokensToApprove[0] = WETH;
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = WETH;
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = DAI;
         bytes[] memory multicallData = new bytes[](1);
 
         ExactInputSingleParams memory params =
@@ -68,7 +70,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApprove, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(ERC20(WETH).balanceOf(maker), 0);
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
