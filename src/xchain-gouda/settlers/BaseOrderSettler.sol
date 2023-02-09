@@ -92,9 +92,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         ActiveSettlement memory settlement = settlements[orderId];
         if (settlement.deadline == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.status == SettlementStatus.Pending) {
-            OutputToken[] memory filledOutputs = ISettlementOracle(settlement.settlementOracle).getSettlementInfo(
-                orderId, settlement.targetChainFiller
-            );
+            OutputToken[] memory filledOutputs =
+                ISettlementOracle(settlement.settlementOracle).getSettlementInfo(orderId, settlement.targetChainFiller);
 
             if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
 
