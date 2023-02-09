@@ -44,7 +44,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
     // Maker's order consists of input = 2 WETH & output = 3000 DAI. There will be 7560391
     // excess wei of DAI in SwapRouter02Executor.
-    function testSwap2WethToUsdc() public {
+    function testSwap2WethToDaiViaV3() public {
         uint256 inputAmount = 2 * ONE;
 
         DutchLimitOrder memory order = DutchLimitOrder({
@@ -58,7 +58,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         tokensToApprove[0] = WETH;
         bytes[] memory multicallData = new bytes[](1);
 
-        //        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle, );
+        ExactInputSingleParams memory params =
+            ExactInputSingleParams(WETH, DAI, 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params);
 
         assertEq(ERC20(WETH).balanceOf(maker), 2 * ONE);
         assertEq(ERC20(DAI).balanceOf(maker), 0);
