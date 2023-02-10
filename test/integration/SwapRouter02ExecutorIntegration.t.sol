@@ -129,6 +129,36 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
     }
 
+    // Exact same test as testSwapWethToDaiViaV2, but the order requests 4000 DAI output, which is too much for
+    // given 2 WETH input. Should revert with "Too little received".
+    function testSwapWethToDaiViaV2InsufficientOutput() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
+            outputs: OutputsBuilder.singleDutch(address(DAI), 4000 * ONE, 4000 * ONE, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = WETH;
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = DAI;
+        bytes[] memory multicallData = new bytes[](1);
+        address[] memory path = new address[](2);
+        path[0] = WETH;
+        path[1] = DAI;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 4000 * ONE, path, address(swapRouter02Executor)
+        );
+        vm.expectRevert("Too little received");
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+    }
+
     // Test SwapRouter02Executor reverts correctly with `CallerNotWhitelisted`
     function testNotWhitelistedCaller() public {
         DutchLimitOrder memory order = DutchLimitOrder({
