@@ -17,6 +17,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
     address constant SWAPROUTER02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 constant ONE = 1000000000000000000;
@@ -187,5 +188,32 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             address(swapRouter02Executor),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+    }
+
+    function testConvertERC20sToEth() public {
+        // Transfer 1000 DAI and 1000 UNI to swapRouter02Executor
+        vm.prank(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
+        ERC20(DAI).transfer(address(swapRouter02Executor), 1000 * ONE);
+        vm.prank(0x47173B170C64d16393a52e6C480b3Ad8c302ba1e);
+        ERC20(UNI).transfer(address(swapRouter02Executor), 1000 * ONE);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](2);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        tokensToApproveForSwapRouter02[1] = UNI;
+        bytes[] memory multicallData = new bytes[](3);
+        address[] memory daiToEthPath = new address[](2);
+        daiToEthPath[0] = DAI;
+        daiToEthPath[1] = WETH;
+        address[] memory uniToEthPath = new address[](2);
+        uniToEthPath[0] = UNI;
+        uniToEthPath[1] = WETH;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, daiToEthPath, address(swapRouter02Executor)
+        );
+        multicallData[1] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(swapRouter02Executor)
+        );
+        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+        swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
     }
 }
