@@ -46,8 +46,15 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
 
-    /// @notice tranfer any earned tokens to the owner
-    function claimTokens(ERC20 token) external onlyOwner {
-        token.safeTransfer(owner, token.balanceOf(address(this)));
+    function multicall(address[] calldata tokensToApproveForSwapRouter02, bytes[] calldata multicallData)
+        external
+        onlyOwner
+    {
+        if (tokensToApproveForSwapRouter02.length > 0) {
+            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
+                ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
+            }
+        }
+        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
 }
