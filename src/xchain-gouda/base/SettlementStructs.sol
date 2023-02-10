@@ -19,7 +19,7 @@ struct SettlementInfo {
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
     // The timestamp after which this order is no longer valid to initiateSettlement
-    uint256 initiateFillDeadline;
+    uint256 initiateDeadline;
     // The time period in seconds for which the settlement cannot be cancelled, giving the filler time to fill the order
     uint256 settlementPeriod;
     // Contract that receives information about cross chain transactions
