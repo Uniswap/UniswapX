@@ -57,4 +57,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         }
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
+
+    receive() external payable {}
 }

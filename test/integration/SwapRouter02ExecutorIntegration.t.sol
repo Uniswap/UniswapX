@@ -208,12 +208,13 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         uniToEthPath[0] = UNI;
         uniToEthPath[1] = WETH;
         multicallData[0] = abi.encodeWithSelector(
-            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, daiToEthPath, address(swapRouter02Executor)
+            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, daiToEthPath, address(2)
         );
         multicallData[1] = abi.encodeWithSelector(
-            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(swapRouter02Executor)
+            ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(2)
         );
         multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
         swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
+        assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
 }
