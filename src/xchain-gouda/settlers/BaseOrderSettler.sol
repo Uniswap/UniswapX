@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {console} from "forge-std/console.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -47,17 +48,18 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
                 if (settlements[order.hash].deadline != 0) revert SettlementAlreadyInitiated(order.hash);
 
-                settlements[order.hash] = ActiveSettlement({
-                    status: SettlementStatus.Pending,
-                    offerer: order.info.offerer,
-                    originChainFiller: msg.sender,
-                    targetChainFiller: targetChainFiller,
-                    settlementOracle: order.info.settlementOracle,
-                    deadline: block.timestamp + order.info.settlementPeriod,
-                    input: order.input,
-                    collateral: order.collateral,
-                    outputs: order.outputs
-                });
+                ActiveSettlement storage settlement = settlements[order.hash];
+                settlement.status = SettlementStatus.Pending;
+                settlement.offerer = order.info.offerer;
+                settlement.originChainFiller = msg.sender;
+                settlement.targetChainFiller = targetChainFiller;
+                settlement.settlementOracle = order.info.settlementOracle;
+                settlement.deadline = block.timestamp + order.info.settlementPeriod;
+                settlement.input = order.input;
+                settlement.collateral = order.collateral;
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    settlement.outputs.push(order.outputs[j]);
+                }
 
                 emit InitiateSettlement(
                     order.hash,
@@ -92,13 +94,14 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         ActiveSettlement memory settlement = settlements[orderId];
         if (settlement.deadline == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.status == SettlementStatus.Pending) {
+            // TODO: WFT
             OutputToken[] memory filledOutputs =
                 ISettlementOracle(settlement.settlementOracle).getSettlementInfo(orderId, settlement.targetChainFiller);
 
             if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
 
             // validate outputs
-            for (uint16 i; i < filledOutputs.length; i++) {
+            for (uint16 i; i < settlement.outputs.length; i++) {
                 OutputToken memory expectedOutput = settlement.outputs[i];
                 OutputToken memory receivedOutput = filledOutputs[i];
                 if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
@@ -115,6 +118,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         } else {
             revert SettlementAlreadyCompleted(orderId, settlement.status);
         }
+    }
+
+    function getSettlement(bytes32 orderHash) external view returns (ActiveSettlement memory) {
+        return settlements[orderHash];
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
