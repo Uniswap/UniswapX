@@ -8,6 +8,7 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
+/// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
 
@@ -22,6 +23,12 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         reactor = _reactor;
     }
 
+    /// @param resolvedOrders The orders to fill
+    /// @param filler This filler must be `whitelistedCaller`
+    /// @param fillData It has the below encoded:
+    /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
+    /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
+    /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
         external
     {
