@@ -128,4 +128,33 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
     }
+
+    function testNotWhitelistedCaller() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
+            outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = WETH;
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = DAI;
+        bytes[] memory multicallData = new bytes[](1);
+        address[] memory path = new address[](2);
+        path[0] = WETH;
+        path[1] = DAI;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 3000 * ONE, path, address(swapRouter02Executor)
+        );
+        vm.prank(address(0xbeef));
+        vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+    }
 }
