@@ -129,6 +129,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
     }
 
+    // Test SwapRouter02Executor reverts correctly with `CallerNotWhitelisted`
     function testNotWhitelistedCaller() public {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
