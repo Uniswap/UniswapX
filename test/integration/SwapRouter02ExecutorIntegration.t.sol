@@ -190,6 +190,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
     }
 
+    // There is 1000 DAI and 1000 UNI in swapRouter02Executor. Test that we can convert it to ETH
+    // successfully.
     function testConvertERC20sToEth() public {
         // Transfer 1000 DAI and 1000 UNI to swapRouter02Executor
         vm.prank(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
