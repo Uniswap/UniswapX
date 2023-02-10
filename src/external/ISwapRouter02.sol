@@ -14,4 +14,8 @@ struct ExactInputSingleParams {
 interface ISwapRouter02 {
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
     function multicall(uint256 deadline, bytes[] calldata data) external payable returns (bytes[] memory results);
+    function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] calldata path, address to)
+        external
+        payable
+        returns (uint256 amountOut);
 }
