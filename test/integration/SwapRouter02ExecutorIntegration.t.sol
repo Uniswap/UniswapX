@@ -219,4 +219,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
         assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
+
+    function testMulticallOnlyOwner() public {
+        vm.prank(address(0xbeef));
+        vm.expectRevert("UNAUTHORIZED");
+        swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+    }
 }
