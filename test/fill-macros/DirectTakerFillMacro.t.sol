@@ -18,7 +18,6 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import "forge-std/console.sol";
 
 // This suite of tests test the direct taker fill macro, ie fillContract == address(1)
 contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -294,6 +293,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn1.mint(address(maker1), inputAmount);
+        vm.deal(directTaker, outputAmount);
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
@@ -303,11 +303,11 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker1)
         });
 
-        console.log("directTaker.balance", directTaker.balance);
         vm.prank(directTaker);
-        reactor.execute(
+        reactor.execute{value: outputAmount}(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
+        assertEq(maker1.balance, outputAmount);
     }
 }
