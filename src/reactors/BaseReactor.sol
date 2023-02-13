@@ -12,6 +12,8 @@ import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
+address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
@@ -28,7 +30,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external override {
+    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
+        external
+        payable
+        override
+    {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
@@ -38,6 +44,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
         external
+        payable
         override
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
@@ -65,15 +72,21 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
         }
         unchecked {
+            uint256 msgValue = msg.value;
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory resolvedOrder = orders[i];
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     if (directTaker) {
-                        IAllowanceTransfer(permit2).transferFrom(
-                            msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
-                        );
+                        if (output.token == ETH_ADDRESS) {
+                            output.recipient.call{value: output.amount}("");
+                            msgValue -= output.amount;
+                        } else {
+                            IAllowanceTransfer(permit2).transferFrom(
+                                msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
+                            );
+                        }
                     } else {
                         ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                     }
