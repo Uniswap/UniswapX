@@ -215,7 +215,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[1] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(2)
         );
-        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0);
         swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
         assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
