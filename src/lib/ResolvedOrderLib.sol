@@ -48,9 +48,7 @@ library ResolvedOrderLib {
         unchecked {
             uint256 outputCount = 0;
             for (uint256 i = 0; i < orders.length; i++) {
-                for (uint256 j = 0; j < orders[i].outputs.length; j++) {
-                    outputCount++;
-                }
+                outputCount += orders[i].outputs.length;
             }
             expectedBalances = new AddressBalance[](outputCount);
         }
