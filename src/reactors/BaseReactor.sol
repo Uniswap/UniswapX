@@ -10,9 +10,7 @@ import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
-
-address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken, ETH_ADDRESS} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker

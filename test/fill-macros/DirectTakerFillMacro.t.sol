@@ -12,12 +12,13 @@ import {
     DutchInput,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import "forge-std/console.sol";
 
 // This suite of tests test the direct taker fill macro, ie fillContract == address(1)
 contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -286,5 +287,27 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );
+    }
+
+    function testEthOutput() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(maker1), inputAmount);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker1)
+        });
+
+        console.log("directTaker.balance", directTaker.balance);
+        vm.prank(directTaker);
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+        );
+        assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
     }
 }
