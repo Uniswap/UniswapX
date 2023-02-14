@@ -402,7 +402,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
     }
 
-    // Fill 2 orders:
+    // Fill 2 orders, with ETH and ERC20 outputs:
     // 1st order: from maker1, input = 1 tokenIn1, output = 1 tokenOut1
     // 2nd order: from maker2, input = 1 tokenIn1, output = [1 ETH, 0.05 ETH (fee)]
     function testEthOutputMixedOutputsAndFees() public {
