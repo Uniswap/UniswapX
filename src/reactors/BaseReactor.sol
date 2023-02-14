@@ -19,7 +19,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using ResolvedOrderLib for ResolvedOrder;
 
     error EtherSendFail();
-    error InsufficientMsgValue();
+    error InsufficientEth();
 
     address public immutable permit2;
     address internal constant DIRECT_TAKER_FILL = address(1);
@@ -91,7 +91,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                             if (msgValue >= output.amount) {
                                 msgValue -= output.amount;
                             } else {
-                                revert InsufficientMsgValue();
+                                revert InsufficientEth();
                             }
                         } else {
                             IAllowanceTransfer(permit2).transferFrom(
@@ -107,7 +107,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                             if (ethGainedFromReactorCallback >= output.amount) {
                                 ethGainedFromReactorCallback -= output.amount;
                             } else {
-                                revert InsufficientMsgValue();
+                                revert InsufficientEth();
                             }
                         } else {
                             ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);

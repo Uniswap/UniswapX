@@ -369,7 +369,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     // The same setup as testEth2Outputs, but filler sends insufficient eth. However, there was already ETH in
-    // the reactor to cover the difference, so the revert we expect is `InsufficientMsgValue` instead of `EtherSendFail`.
+    // the reactor to cover the difference, so the revert we expect is `InsufficientEth` instead of `EtherSendFail`.
     function testEth2OutputsInsufficientEthSentButEthInReactor() public {
         uint256 inputAmount = 10 ** 18;
 
@@ -398,7 +398,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
 
         vm.prank(directTaker);
-        vm.expectRevert(BaseReactor.InsufficientMsgValue.selector);
+        vm.expectRevert(BaseReactor.InsufficientEth.selector);
         reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
     }
 
