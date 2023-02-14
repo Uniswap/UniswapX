@@ -9,7 +9,7 @@ library SettlementInfoBuilder {
             settlerContract: settler,
             offerer: address(0),
             nonce: 0,
-            initiateDeadline: block.timestamp + 10000,
+            initiateDeadline: block.timestamp + 100,
             settlementPeriod: 100,
             settlementOracle: address(0),
             validationContract: address(0),
