@@ -312,6 +312,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(maker1.balance, outputAmount);
     }
 
+    // The same as testEth1Output, but reverts because directTaker doesn't send enough ether
     function testEth1OutputInsufficientEthSent() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
