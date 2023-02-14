@@ -381,5 +381,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(address(reactor).balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
+        assertEq(IPSFees(reactor).feesOwed(ETH_ADDRESS, maker2), 25000000000000000);
     }
 }
