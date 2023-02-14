@@ -43,6 +43,8 @@ abstract contract IPSFees {
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
+    receive() external payable {}
+
     /// @notice Takes fees from the order
     /// @dev modifies the fee output recipient to be this contract
     /// @dev stores state to allow fee recipients to claim later

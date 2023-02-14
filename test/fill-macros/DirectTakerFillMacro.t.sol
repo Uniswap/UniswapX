@@ -58,6 +58,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
+        tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn3.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenOut1.forceApprove(directTaker, address(permit2), type(uint256).max);
@@ -341,5 +342,43 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.executeBatch{value: ONE * 3}(signedOrders, address(1), bytes(""));
         assertEq(tokenIn1.balanceOf(directTaker), 2 * inputAmount);
         assertEq(maker1.balance, 3 * ONE);
+    }
+
+    // Fill 2 orders:
+    // 1st order: from maker1, input = 1 tokenIn1, output = 1 tokenOut1
+    // 2nd order: from maker2, input = 1 tokenIn1, output = [1 ETH, 0.05 ETH (fee)]
+    function testEthOutputMixedOutputsAndFees() public {
+        tokenIn1.mint(address(maker1), ONE);
+        tokenIn1.mint(address(maker2), ONE);
+        tokenOut1.mint(address(directTaker), ONE);
+        vm.deal(directTaker, 2 * ONE);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE, ONE, maker1)
+        });
+        DutchOutput[] memory order2DutchOutputs = new DutchOutput[](2);
+        order2DutchOutputs[0] = DutchOutput(ETH_ADDRESS, ONE, ONE, maker2, false);
+        order2DutchOutputs[1] = DutchOutput(ETH_ADDRESS, ONE / 20, ONE / 20, maker2, true);
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: order2DutchOutputs
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
+
+        vm.prank(directTaker);
+        reactor.executeBatch{value: ONE * 21 / 20}(signedOrders, address(1), bytes(""));
+        assertEq(tokenIn1.balanceOf(directTaker), 2 * ONE);
+        assertEq(maker2.balance, ONE);
+        assertEq(address(reactor).balance, ONE / 20);
+        assertEq(tokenOut1.balanceOf(maker1), ONE);
     }
 }

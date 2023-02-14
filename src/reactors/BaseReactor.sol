@@ -78,7 +78,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     if (directTaker) {
                         if (output.token == ETH_ADDRESS) {
-                            (bool sent, ) = output.recipient.call{value: output.amount}("");
+                            (bool sent,) = output.recipient.call{value: output.amount}("");
                             require(sent, "Failed to send Ether");
                             msgValue -= output.amount;
                         } else {
