@@ -22,35 +22,37 @@ import {
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
-import {MockValidationContract} from "../../util/mock/MockValidationContract.sol";
+import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockSettlementOracle} from "../util/mock/MockSettlementOracle.sol";
 import {LimitOrderSettler} from "../../../src/xchain-gouda/settlers/LimitOrderSettler.sol";
 import {SettlementInfoBuilder} from "../util/SettlementInfoBuilder.sol";
 import {OutputsBuilder} from "../../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract LimitOrderReactorTest is Test, PermitSignature, SettlementEvents, DeployPermit2 {
+contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEvents, DeployPermit2 {
     using SettlementInfoBuilder for SettlementInfo;
     using CrossChainLimitOrderLib for CrossChainLimitOrder;
 
-    error InvalidNonce();
-    error InvalidSigner();
+    error InvalidSettler();
+    error InitiateDeadlinePassed();
+    error ValidationFailed();
 
-    uint160 constant ONE = 10 ** 18;
-    string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
+    uint160 constant ONE = 1 ether;
+    string constant LIMIT_ORDER_TYPE_NAME = "CrossChainLimitOrder";
 
     MockValidationContract validationContract;
     ISettlementOracle settlementOracle;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
+    MockERC20 tokenOut2;
     MockERC20 tokenCollateral;
     uint256 makerPrivateKey;
     uint256 takerPrivateKey;
     address maker;
     address taker;
     LimitOrderSettler settler;
-    address permit2;
     CrossChainLimitOrder order;
+    address permit2;
     bytes signature;
 
     function setUp() public {
@@ -71,9 +73,11 @@ contract LimitOrderReactorTest is Test, PermitSignature, SettlementEvents, Deplo
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenCollateral = new MockERC20("Collateral", "CLTRL", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        tokenOut2 = new MockERC20("Output", "OUT", 18);
         tokenIn.mint(maker, ONE);
         tokenCollateral.mint(taker, ONE);
         tokenOut.mint(taker, ONE);
+        tokenOut2.mint(taker, ONE);
         tokenIn.forceApprove(maker, permit2, ONE);
         tokenCollateral.forceApprove(taker, permit2, ONE);
         vm.prank(taker);
@@ -87,6 +91,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, SettlementEvents, Deplo
         order.input = InputToken(address(tokenIn), ONE, ONE);
         order.collateral = CollateralToken(address(tokenCollateral), ONE);
         order.outputs.push(OutputToken(address(2), address(tokenOut), 100, 69));
+        order.outputs.push(OutputToken(address(3), address(tokenOut2), 200, 70));
         signature = signOrder(makerPrivateKey, permit2, order);
     }
 
@@ -112,6 +117,7 @@ contract LimitOrderReactorTest is Test, PermitSignature, SettlementEvents, Deplo
 
     function testInitiateSettlementStoresTheActiveSettlement() public {
         vm.prank(taker);
+
         settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
         ActiveSettlement memory settlement = settler.getSettlement(order.hash());
 
@@ -129,5 +135,36 @@ contract LimitOrderReactorTest is Test, PermitSignature, SettlementEvents, Deplo
         assertEq(settlement.outputs[0].amount, order.outputs[0].amount);
         assertEq(settlement.outputs[0].recipient, order.outputs[0].recipient);
         assertEq(settlement.outputs[0].chainId, order.outputs[0].chainId);
+        assertEq(settlement.outputs[1].token, order.outputs[1].token);
+        assertEq(settlement.outputs[1].amount, order.outputs[1].amount);
+        assertEq(settlement.outputs[1].recipient, order.outputs[1].recipient);
+        assertEq(settlement.outputs[1].chainId, order.outputs[1].chainId);
+    }
+
+    function testInitiateSettlementRevertsOnInvalidSettlerContract() public {
+        order.info.settlerContract = address(1);
+        signature = signOrder(makerPrivateKey, permit2, order);
+
+        vm.expectRevert(InvalidSettler.selector);
+        vm.prank(taker);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+    }
+
+    function testInitiateSettlementRevertsWhenDeadlinePassed() public {
+        vm.warp(block.timestamp + 101);
+        vm.expectRevert(InitiateDeadlinePassed.selector);
+        vm.prank(taker);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+    }
+
+    function testInitiateSettlementRevertsWhenCustomValidationFails() public {
+        order.info.validationContract = address(validationContract);
+        signature = signOrder(makerPrivateKey, permit2, order);
+
+        validationContract.setValid(false);
+
+        vm.expectRevert(ValidationFailed.selector);
+        vm.prank(taker);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
     }
 }
