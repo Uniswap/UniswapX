@@ -69,10 +69,13 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
             }
         }
+        uint256 ethBalanceBeforeReactorCallback = address(this).balance;
         if (!directTaker) {
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
         }
+        uint256 ethGainedFromReactorCallback = address(this).balance - ethBalanceBeforeReactorCallback;
         unchecked {
+            // `msgValue` is only used in directTaker + ETH output scenario
             uint256 msgValue = msg.value;
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
@@ -96,7 +99,19 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                             );
                         }
                     } else {
-                        ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+                        if (output.token == ETH_ADDRESS) {
+                            (bool sent,) = output.recipient.call{value: output.amount}("");
+                            if (!sent) {
+                                revert EtherSendFail();
+                            }
+                            if (ethGainedFromReactorCallback >= output.amount) {
+                                ethGainedFromReactorCallback -= output.amount;
+                            } else {
+                                revert InsufficientMsgValue();
+                            }
+                        } else {
+                            ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+                        }
                     }
                 }
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
