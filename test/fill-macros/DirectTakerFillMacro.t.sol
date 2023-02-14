@@ -368,6 +368,40 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(maker1.balance, 3 * ONE);
     }
 
+    // The same setup as testEth2Outputs, but filler sends insufficient eth. However, there was already ETH in
+    // the reactor to cover the difference, so the revert we expect is `InsufficientMsgValue` instead of `EtherSendFail`.
+    function testEth2OutputsInsufficientEthSentButEthInReactor() public {
+        uint256 inputAmount = 10 ** 18;
+
+        tokenIn1.mint(address(maker1), inputAmount * 2);
+        vm.deal(directTaker, ONE * 3);
+        vm.deal(address(reactor), ONE);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, maker1)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE * 2, ONE * 2, maker1)
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
+
+        vm.prank(directTaker);
+        vm.expectRevert(BaseReactor.InsufficientMsgValue.selector);
+        reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
+    }
+
     // Fill 2 orders:
     // 1st order: from maker1, input = 1 tokenIn1, output = 1 tokenOut1
     // 2nd order: from maker2, input = 1 tokenIn1, output = [1 ETH, 0.05 ETH (fee)]

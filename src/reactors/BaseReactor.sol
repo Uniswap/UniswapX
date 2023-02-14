@@ -19,6 +19,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using ResolvedOrderLib for ResolvedOrder;
 
     error EtherSendFail();
+    error InsufficientMsgValue();
 
     address public immutable permit2;
     address internal constant DIRECT_TAKER_FILL = address(1);
@@ -84,7 +85,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                             if (!sent) {
                                 revert EtherSendFail();
                             }
-                            msgValue -= output.amount;
+                            if (msgValue >= output.amount) {
+                                msgValue -= output.amount;
+                            } else {
+                                revert InsufficientMsgValue();
+                            }
                         } else {
                             IAllowanceTransfer(permit2).transferFrom(
                                 msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
