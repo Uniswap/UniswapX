@@ -18,6 +18,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
+    error EtherSendFail();
+
     address public immutable permit2;
     address internal constant DIRECT_TAKER_FILL = address(1);
 
@@ -79,7 +81,9 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                     if (directTaker) {
                         if (output.token == ETH_ADDRESS) {
                             (bool sent,) = output.recipient.call{value: output.amount}("");
-                            require(sent, "Failed to send Ether");
+                            if (!sent) {
+                                revert EtherSendFail();
+                            }
                             msgValue -= output.amount;
                         } else {
                             IAllowanceTransfer(permit2).transferFrom(

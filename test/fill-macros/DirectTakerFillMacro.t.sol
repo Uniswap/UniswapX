@@ -17,6 +17,7 @@ import {IPSFees} from "../../src/base/IPSFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
+import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
@@ -309,6 +310,28 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         );
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
         assertEq(maker1.balance, outputAmount);
+    }
+
+    function testEth1OutputInsufficientEthSent() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(maker1), inputAmount);
+        vm.deal(directTaker, outputAmount);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker1)
+        });
+
+        vm.prank(directTaker);
+        vm.expectRevert(BaseReactor.EtherSendFail.selector);
+        reactor.execute{value: outputAmount - 1}(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+        );
     }
 
     // Fill 2 orders, both from `maker1`, one with output = 1 ETH and another with output = 2 ETH.
