@@ -13,6 +13,7 @@ import {
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {IPSFees} from "../../src/base/IPSFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
@@ -26,6 +27,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
+    uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
     MockERC20 tokenIn2;
@@ -129,8 +131,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     // 1st order by maker1, input = 1 tokenIn1 and outputs = [2 tokenOut1]
     // 2nd order by maker2, input = 3 tokenIn2 and outputs = [1 tokenOut1, 3 tokenOut2]
     function testTwoOrders() public {
-        uint256 ONE = 10 ** 18;
-
         tokenIn1.mint(address(maker1), ONE);
         tokenIn2.mint(address(maker2), ONE * 3);
         tokenOut1.mint(directTaker, ONE * 3);
@@ -174,8 +174,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     // 2nd order by maker2, input = 2 tokenIn2 and outputs = [2 tokenOut2]
     // 2nd order by maker2, input = 3 tokenIn3 and outputs = [3 tokenOut3]
     function testThreeOrdersWithFees() public {
-        uint256 ONE = 10 ** 18;
-
         tokenIn1.mint(address(maker1), ONE);
         tokenIn2.mint(address(maker2), ONE * 2);
         tokenIn3.mint(address(maker2), ONE * 3);
@@ -288,7 +286,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         );
     }
 
-    function testEthOutput() public {
+    // Fill 1 order with requested output = 2 ETH.
+    function testEth1Output() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -309,5 +308,38 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         );
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
         assertEq(maker1.balance, outputAmount);
+    }
+
+    // Fill 2 orders, both from `maker1`, one with output = 1 ETH and another with output = 2 ETH.
+    function testEth2Outputs() public {
+        uint256 inputAmount = 10 ** 18;
+
+        tokenIn1.mint(address(maker1), inputAmount * 2);
+        vm.deal(directTaker, ONE * 3);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, maker1)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE * 2, ONE * 2, maker1)
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
+
+        vm.prank(directTaker);
+        reactor.executeBatch{value: ONE * 3}(signedOrders, address(1), bytes(""));
+        assertEq(tokenIn1.balanceOf(directTaker), 2 * inputAmount);
+        assertEq(maker1.balance, 3 * ONE);
     }
 }
