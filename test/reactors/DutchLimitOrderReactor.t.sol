@@ -12,7 +12,7 @@ import {
     DutchInput,
     BaseReactor
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {OrderInfo, InputToken, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
