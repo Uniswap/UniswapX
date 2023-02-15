@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -21,7 +22,7 @@ import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 // This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
 // Note that this contract only tests ETH outputs when NOT using direct taker. The ETH output tests when using direct taker
 // are in `DirectTakerFillMacro.t.sol`.
-contract EthOutputTest is Test, DeployPermit2, PermitSignature {
+contract EthOutputTest is Test, DeployPermit2, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
@@ -65,11 +66,13 @@ contract EthOutputTest is Test, DeployPermit2, PermitSignature {
             input: DutchInput(address(tokenIn1), ONE, ONE),
             outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, 0, maker1)
         });
+        snapStart("EthOutputTestEthOutput");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
+        snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
         // There is 0.5 ETH remaining in the fillContract as output has decayed to 0.5 ETH
         assertEq(address(fillContract).balance, ONE / 2);
@@ -117,8 +120,9 @@ contract EthOutputTest is Test, DeployPermit2, PermitSignature {
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
+        snapStart("EthOutputTest3OrdersWithEthAndERC20Outputs");
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
-
+        snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), 3 * ONE);
         assertEq(maker1.balance, 2 * ONE);
         assertEq(maker2.balance, 3 * ONE);
