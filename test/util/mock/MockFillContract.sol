@@ -20,6 +20,6 @@ contract MockFillContract is IReactorCallback {
             }
         }
         (bool sent,) = msg.sender.call{value: ethToSendToReactor}("");
-        require(sent, "Insufficient ETH");
+        require(sent, "MockFillContract has insufficient ETH");
     }
 }
