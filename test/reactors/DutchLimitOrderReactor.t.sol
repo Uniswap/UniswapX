@@ -572,6 +572,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
+    // Fill a single order, with input = 1 tokenIn and output = 0.5 ETH (will decay to this).
     function testEthOutput() public {
         tokenIn.mint(address(maker), ONE);
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
