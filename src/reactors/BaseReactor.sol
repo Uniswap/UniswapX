@@ -18,7 +18,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
+    // Occurs when an output = ETH and the reactor lacks enough ETH OR output recipient cannot receive ETH
     error EtherSendFail();
+    // Occurs when an output = ETH and the reactor does contain enough ETH but either 1) the direct taker did not include
+    // enough ETH in their call to execute/executeBatch or 2) the fillContract did not send enough ETH to the reactor
     error InsufficientEth();
 
     address public immutable permit2;
