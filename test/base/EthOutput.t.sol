@@ -72,4 +72,55 @@ contract EthOutputTest is Test, DeployPermit2, PermitSignature {
         assertEq(address(fillContract).balance, ONE / 2);
         assertEq(address(maker1).balance, ONE / 2);
     }
+
+    // Fill 3 orders
+    // order 1: by maker1, input = 1 tokenIn1, output = [2 ETH, 3 tokenOut1]
+    // order 2: by maker2, input = 2 tokenIn1, output = [3 ETH]
+    // order 3: by maker2, input = 3 tokenIn1, output = [4 tokenOut1]
+    function test3OrdersWithEthAndERC20Outputs() public {
+        tokenIn1.mint(address(maker1), ONE);
+        tokenIn1.mint(address(maker2), ONE * 5);
+        tokenOut1.mint(address(fillContract), ONE * 7);
+        vm.deal(address(fillContract), ONE * 5);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(ETH_ADDRESS, 2 * ONE, 2 * ONE, maker1, false);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, maker1, false);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: dutchOutputs
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), 2 * ONE, 2 * ONE),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, 3 * ONE, 3 * ONE, maker2)
+        });
+        DutchLimitOrder memory order3 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), 3 * ONE, 3 * ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut1), 4 * ONE, 4 * ONE, maker2)
+        });
+
+        SignedOrder[] memory signedOrders = new SignedOrder[](3);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
+        signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
+        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+
+        assertEq(tokenOut1.balanceOf(maker1), 3 * ONE);
+        assertEq(maker1.balance, 2 * ONE);
+        assertEq(maker2.balance, 3 * ONE);
+        assertEq(tokenOut1.balanceOf(maker2), 4 * ONE);
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 6 * ONE);
+        assertEq(address(fillContract).balance, 0);
+    }
 }
