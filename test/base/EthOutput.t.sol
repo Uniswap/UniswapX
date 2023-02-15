@@ -18,6 +18,8 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 // This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
+// Note that this contract only tests ETH outputs when NOT using direct taker. The ETH output tests when using direct taker
+// are in `DirectTakerFillMacro.t.sol`.
 contract EthOutputTest is Test, DeployPermit2, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
