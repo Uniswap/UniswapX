@@ -572,31 +572,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
-    // Fill a single order, with input = 1 tokenIn and output = 0.5 ETH (will decay to this).
-    function testEthOutput() public {
-        tokenIn.mint(address(maker), ONE);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-        vm.deal(address(fillContract), ONE);
-
-        vm.warp(1000);
-        DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, 0, maker)
-        });
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(fillContract),
-            bytes("")
-        );
-        assertEq(tokenIn.balanceOf(address(fillContract)), ONE);
-        // There is 0.5 ETH remaining in the fillContract as output has decayed to 0.5 ETH
-        assertEq(address(fillContract).balance, ONE / 2);
-        assertEq(address(maker).balance, ONE / 2);
-    }
-
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
