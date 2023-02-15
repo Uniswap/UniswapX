@@ -306,9 +306,11 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         });
 
         vm.prank(directTaker);
+        snapStart("DirectTakerFillMacroTestEth1Output");
         reactor.execute{value: outputAmount}(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );
+        snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
         assertEq(maker1.balance, outputAmount);
     }
@@ -364,7 +366,9 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
 
         vm.prank(directTaker);
+        snapStart("DirectTakerFillMacroTestEth2Outputs");
         reactor.executeBatch{value: ONE * 3}(signedOrders, address(1), bytes(""));
+        snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * inputAmount);
         assertEq(maker1.balance, 3 * ONE);
     }
@@ -434,7 +438,9 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
 
         vm.prank(directTaker);
+        snapStart("DirectTakerFillMacroTestEthOutputMixedOutputsAndFees");
         reactor.executeBatch{value: ONE * 21 / 20}(signedOrders, address(1), bytes(""));
+        snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * ONE);
         assertEq(maker2.balance, ONE);
         assertEq(address(reactor).balance, ONE / 20);
