@@ -72,6 +72,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
             }
         }
+        // `ethBalanceBeforeReactorCallback` and `ethGainedFromReactorCallback` are only used in non direct taker +
+        // ETH output scenario
         uint256 ethBalanceBeforeReactorCallback = address(this).balance;
         if (!directTaker) {
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
