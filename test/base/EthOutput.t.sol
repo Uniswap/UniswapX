@@ -16,6 +16,7 @@ import {
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 
 // This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
 // Note that this contract only tests ETH outputs when NOT using direct taker. The ETH output tests when using direct taker
@@ -126,7 +127,8 @@ contract EthOutputTest is Test, DeployPermit2, PermitSignature {
         assertEq(address(fillContract).balance, 0);
     }
 
-    // Same as `test3OrdersWithEthAndERC20Outputs` but the fillContract does not have enough ETH.
+    // Same as `test3OrdersWithEthAndERC20Outputs` but the fillContract does not have enough ETH. The reactor does
+    // not have enough ETH to cover the remainder, so we will revert with `EtherSendFail()`.
     function test3OrdersWithEthAndERC20OutputsWithInsufficientEth() public {
         tokenIn1.mint(address(maker1), ONE);
         tokenIn1.mint(address(maker2), ONE * 5);
@@ -165,7 +167,7 @@ contract EthOutputTest is Test, DeployPermit2, PermitSignature {
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
-        vm.expectRevert("MockFillContract has insufficient ETH");
+        vm.expectRevert(BaseReactor.EtherSendFail.selector);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
     }
 }
