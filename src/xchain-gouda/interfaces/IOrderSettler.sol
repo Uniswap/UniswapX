@@ -15,13 +15,11 @@ interface IOrderSettler {
 
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
     /// @param orderId The order hash to identify the order
-    /// @param currentStatus The actual status of the settlement (either Filled or Cancelled)
-    error SettlementAlreadyCompleted(bytes32 orderId, SettlementStatus currentStatus);
+    error SettlementAlreadyCompleted(bytes32 orderId);
 
-    /// @notice Thrown when trying to cancen an order that cannot be cancelled because deadline has not passed, or the
-    /// order is already completed
+    /// @notice Thrown when trying to cancen an order that cannot be cancelled because deadline has not passed
     /// @param orderId The order hash to identify the order
-    error UnableToCancel(bytes32 orderId);
+    error CannotCancelBeforeDeadline(bytes32 orderId);
 
     /// @notice Thrown when trying to interact with a settlement that does not exist
     /// @param orderId The order hash to identify the order of the settlement
@@ -50,6 +48,10 @@ interface IOrderSettler {
     /// @param orderId The order hash
     /// @param outputIndex The index of the invalid settlement output
     error InvalidChain(bytes32 orderId, uint16 outputIndex);
+
+    /// @notice Thrown when trying to finalize an order before the optimistic deadline period is over
+    /// @param orderId The order hash
+    error CannotFinalizeBeforeDeadline(bytes32 orderId);
 
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute

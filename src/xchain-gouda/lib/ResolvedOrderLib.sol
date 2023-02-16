@@ -6,7 +6,6 @@ import {OrderInfo} from "../../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {console} from "forge-std/console.sol";
 
-
 library ResolvedOrderLib {
     error InvalidSettler();
     error InitiateDeadlinePassed();
@@ -15,7 +14,6 @@ library ResolvedOrderLib {
     /// @notice Validates a resolved order, reverting if invalid
     /// @param originChainFiller The filler that initiated the settlement on the origin chain
     function validate(ResolvedOrder memory resolvedOrder, address originChainFiller) internal view {
-        console.log('here');
         if (address(this) != resolvedOrder.info.settlerContract) revert InvalidSettler();
         if (block.timestamp > resolvedOrder.info.initiateDeadline) revert InitiateDeadlinePassed();
 

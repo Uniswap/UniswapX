@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SettlementInfo, CollateralToken, OutputToken} from "../base/SettlementStructs.sol";
+import {console} from "forge-std/console.sol";
 import {InputToken} from "../../base/ReactorStructs.sol";
 /// @dev External struct used to specify cross chain limit orders
 
@@ -11,7 +12,9 @@ struct CrossChainLimitOrder {
     // The tokens that the offerer will provide when settling the order
     InputToken input;
     // The collateral the filler must put down while the order is being settled
-    CollateralToken collateral;
+    CollateralToken fillerCollateral;
+    // The collateral the challenger must put down if they challenge an optimistic order
+    CollateralToken challengerCollateral;
     // The tokens that must be received to satisfy the order
     OutputToken[] outputs;
 }
@@ -52,7 +55,7 @@ library CrossChainLimitOrderLib {
     }
 
     /// @notice returns the hash of an output token struct
-    function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
+    function hash(OutputToken[] memory outputs) private view returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
             outputHashes[i] = hash(outputs[i]);
@@ -63,24 +66,31 @@ library CrossChainLimitOrderLib {
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
-    function hash(CrossChainLimitOrder memory order) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                ORDER_TYPE_HASH,
-                order.info.settlerContract,
-                order.info.offerer,
-                order.info.nonce,
-                order.info.initiateDeadline,
-                order.info.settlementPeriod,
-                order.info.settlementOracle,
-                order.info.validationContract,
-                keccak256(order.info.validationData),
-                order.input.token,
-                order.input.amount,
-                order.collateral.token,
-                order.collateral.amount,
-                hash(order.outputs)
-            )
+    function hash(CrossChainLimitOrder memory order) internal view returns (bytes32) {
+        bytes memory part1 = abi.encode(
+            ORDER_TYPE_HASH,
+            order.info.settlerContract,
+            order.info.offerer,
+            order.info.nonce,
+            order.info.initiateDeadline,
+            order.info.optimisticSettlementPeriod,
+            order.info.challengePeriod,
+            order.info.settlementOracle,
+            order.info.validationContract
         );
+
+        bytes memory part2 = abi.encode(
+            keccak256(order.info.validationData),
+            order.input.token,
+            order.input.amount,
+            order.fillerCollateral.token,
+            order.fillerCollateral.amount,
+            order.challengerCollateral.token,
+            order.challengerCollateral.amount,
+            hash(order.outputs)
+        );
+
+        // TODO: More elegant solution to this, I don't even think this works
+        return keccak256(abi.encode(part1, part2));
     }
 }

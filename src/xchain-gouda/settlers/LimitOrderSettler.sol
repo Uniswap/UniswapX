@@ -28,7 +28,8 @@ contract LimitOrderSettler is BaseOrderSettler {
         resolvedOrder = ResolvedOrder({
             info: limitOrder.info,
             input: limitOrder.input,
-            collateral: limitOrder.collateral,
+            fillerCollateral: limitOrder.fillerCollateral,
+            challengerCollateral: limitOrder.challengerCollateral,
             outputs: limitOrder.outputs,
             sig: signedOrder.sig,
             hash: limitOrder.hash()
@@ -47,7 +48,7 @@ contract LimitOrderSettler is BaseOrderSettler {
         );
 
         IAllowanceTransfer(address(permit2)).transferFrom(
-            msg.sender, address(this), uint160(order.collateral.amount), order.collateral.token
+            msg.sender, address(this), uint160(order.fillerCollateral.amount), order.fillerCollateral.token
         );
     }
 }
