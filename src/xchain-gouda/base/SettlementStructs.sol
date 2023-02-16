@@ -5,12 +5,13 @@ import {InputToken} from "../../base/ReactorStructs.sol";
 
 enum SettlementStatus {
     Pending,
+    Challenged,
     Cancelled,
-    Filled
+    Success
 }
 
 /// @dev generic cross-chain order information
-///  should be included as the first field in any concrete cross-chain order types
+/// should be included as the first field in any concrete cross-chain order type
 struct SettlementInfo {
     // The address of the settler that this order is targeting
     address settlerContract;
@@ -20,8 +21,13 @@ struct SettlementInfo {
     uint256 nonce;
     // The timestamp after which this order is no longer valid to initiateSettlement
     uint256 initiateDeadline;
-    // The time period in seconds for which the settlement cannot be cancelled, giving the filler time to fill the order
-    uint256 settlementPeriod;
+    // The time period in seconds the filler has to fill the order on the targetChain
+    uint32 fillPeriod;
+    // The time period in seconds when passed the filler may claim input and collateral tokens unless challenged
+    uint32 optimisticSettlementPeriod;
+    // The time period in seconds from the time of the settlement initialization that the filler has to prove a
+    // challenged fill before the settlement can be cancelled
+    uint32 challengePeriod;
     // Contract that receives information about cross chain transactions
     address settlementOracle;
     // Custom validation contract
@@ -49,9 +55,12 @@ struct ActiveSettlement {
     address originChainFiller;
     address targetChainFiller;
     address settlementOracle;
-    uint256 deadline;
+    uint256 fillDeadline;
+    uint256 optimisticDeadline;
+    uint256 challengeDeadline;
     InputToken input;
-    CollateralToken collateral;
+    CollateralToken fillerCollateral;
+    CollateralToken challengerCollateral;
     OutputToken[] outputs;
 }
 
@@ -59,7 +68,8 @@ struct ActiveSettlement {
 struct ResolvedOrder {
     SettlementInfo info;
     InputToken input;
-    CollateralToken collateral;
+    CollateralToken fillerCollateral;
+    CollateralToken challengerCollateral;
     OutputToken[] outputs;
     bytes sig;
     bytes32 hash;

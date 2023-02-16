@@ -11,14 +11,17 @@ contract SettlementEvents {
     /// @param originChainFiller The address that initiates the settlement and recieves input tokens once the order is filled
     /// @param targetChainFiller The address that fills the order on the target chain
     /// @param settlementOracle The settlementOracle to be used to determine fulfillment of order
-    /// @param settlementDeadline The timestamp starting at which the settlement may be cancelled if not filled
+    /// @param optimisticDeadline The timestamp starting at which the settlement may be cancelled if not filled
+    /// @param challengeDeadline The timestamp starting at which the settlement may be cancelled if not filled
     event InitiateSettlement(
         bytes32 indexed orderHash,
         address indexed originChainFiller,
         address indexed offerer,
         address targetChainFiller,
         address settlementOracle,
-        uint256 settlementDeadline
+        uint256 fillDeadline,
+        uint256 optimisticDeadline,
+        uint256 challengeDeadline
     );
 
     /// @notice emitted when a settlement has been filled successfully
