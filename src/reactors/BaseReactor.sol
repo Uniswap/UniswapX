@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
@@ -14,7 +15,7 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken, ETH_ADDR
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
-abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
+abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
 
@@ -37,6 +38,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
         external
         payable
+        nonReentrant
         override
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
@@ -49,6 +51,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
         external
         payable
+        nonReentrant
         override
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
