@@ -29,4 +29,7 @@ contract SettlementEvents {
 
     /// @notice emitted when a settlement has been cancelled
     event CancelSettlement(bytes32 indexed orderId);
+
+    /// @notice emitted when a settlement has been challenged
+    event SettlementChallenged(bytes32 indexed orderId, address indexed challenger);
 }

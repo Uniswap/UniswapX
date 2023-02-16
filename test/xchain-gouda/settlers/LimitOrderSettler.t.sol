@@ -38,6 +38,9 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
     error ValidationFailed();
     error CannotCancelBeforeDeadline(bytes32 orderId);
     error SettlementAlreadyCompleted(bytes32 orderId);
+    error CannotFinalizeBeforeDeadline(bytes32 orderId);
+    error SettlementDoesNotExist(bytes32 orderId);
+    error CanOnlyChallengePendingSettlements(bytes32 orderId);
 
     uint160 constant ONE = 1 ether;
     string constant LIMIT_ORDER_TYPE_NAME = "CrossChainLimitOrder";
@@ -49,10 +52,18 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
     MockERC20 tokenOut2;
     MockERC20 tokenCollateral;
     MockERC20 tokenCollateral2;
+    uint256 tokenInAmount;
+    uint256 tokenOutAmount;
+    uint256 tokenOut2Amount;
+    uint256 tokenCollateralAmount;
+    uint256 tokenCollateral2Amount;
     uint256 swapperPrivateKey;
     uint256 fillerPrivateKey;
+    uint256 challengerPrivateKey;
     address swapper;
     address filler;
+    address targetChainFiller;
+    address challenger;
     LimitOrderSettler settler;
     CrossChainLimitOrder order;
     address permit2;
@@ -71,6 +82,16 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
         swapper = vm.addr(swapperPrivateKey);
         fillerPrivateKey = 0x43214321;
         filler = vm.addr(fillerPrivateKey);
+        challengerPrivateKey = 0x56785678;
+        challenger = vm.addr(challengerPrivateKey);
+        targetChainFiller = address(2);
+
+        // define tokenAmounts
+        tokenInAmount = ONE;
+        tokenOutAmount = ONE * 2;
+        tokenOut2Amount = ONE * 3;
+        tokenCollateralAmount = ONE * 4;
+        tokenCollateral2Amount = ONE * 5;
 
         // seed token balances and token approvals
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -78,25 +99,32 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
         tokenCollateral2 = new MockERC20("Collateral", "CLTRL", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         tokenOut2 = new MockERC20("Output", "OUT", 18);
-        tokenIn.mint(swapper, ONE);
-        tokenCollateral.mint(filler, ONE);
-        tokenOut.mint(filler, ONE);
-        tokenOut2.mint(filler, ONE);
-        tokenIn.forceApprove(swapper, permit2, ONE);
-        tokenCollateral.forceApprove(filler, permit2, ONE);
+        tokenIn.mint(swapper, tokenInAmount);
+        tokenCollateral.mint(filler, tokenCollateralAmount);
+        tokenCollateral2.mint(challenger, tokenCollateral2Amount);
+        tokenOut.mint(filler, tokenOutAmount);
+        tokenOut2.mint(filler, tokenOut2Amount);
+        tokenIn.forceApprove(swapper, permit2, tokenInAmount);
+        tokenCollateral.forceApprove(filler, permit2, tokenCollateralAmount);
+        tokenCollateral2.forceApprove(challenger, permit2, tokenCollateral2Amount);
         vm.prank(filler);
         IAllowanceTransfer(permit2).approve(
-            address(tokenCollateral), address(settler), ONE, uint48(block.timestamp + 1000)
+            address(tokenCollateral), address(settler), uint160(tokenCollateralAmount), uint48(block.timestamp + 1000)
+        );
+
+        vm.prank(challenger);
+        IAllowanceTransfer(permit2).approve(
+            address(tokenCollateral2), address(settler), uint160(tokenCollateral2Amount), uint48(block.timestamp + 1000)
         );
 
         // setup order
         order.info =
             SettlementInfoBuilder.init(address(settler)).withOfferer(swapper).withOracle(address(settlementOracle));
-        order.input = InputToken(address(tokenIn), ONE, ONE);
-        order.fillerCollateral = CollateralToken(address(tokenCollateral), ONE);
-        order.challengerCollateral = CollateralToken(address(tokenCollateral2), ONE);
-        order.outputs.push(OutputToken(address(2), address(tokenOut), 100, 69));
-        order.outputs.push(OutputToken(address(3), address(tokenOut2), 200, 70));
+        order.input = InputToken(address(tokenIn), tokenInAmount, tokenInAmount);
+        order.fillerCollateral = CollateralToken(address(tokenCollateral), tokenCollateralAmount);
+        order.challengerCollateral = CollateralToken(address(tokenCollateral2), tokenCollateral2Amount);
+        order.outputs.push(OutputToken(address(2), address(tokenOut), tokenOutAmount, 69));
+        order.outputs.push(OutputToken(address(3), address(tokenOut2), tokenOut2Amount, 70));
         signature = signOrder(swapperPrivateKey, permit2, order);
     }
 
@@ -111,25 +139,25 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
             order.hash(),
             swapper,
             filler,
-            address(1),
+            targetChainFiller,
             address(settlementOracle),
             block.timestamp + 100,
             block.timestamp + 200,
             block.timestamp + 300
             );
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(1));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
-        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
-        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart + ONE);
-        assertEq(tokenCollateral.balanceOf(address(filler)), fillerCollateralBalanceStart - ONE);
-        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart + ONE);
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - tokenInAmount);
+        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart + tokenInAmount);
+        assertEq(tokenCollateral.balanceOf(address(filler)), fillerCollateralBalanceStart - tokenCollateralAmount);
+        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart + tokenCollateralAmount);
     }
 
     function testInitiateSettlementStoresTheActiveSettlement() public {
         vm.prank(filler);
 
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
         ActiveSettlement memory settlement = settler.getSettlement(order.hash());
 
         assertEq(uint8(settlement.status), uint8(SettlementStatus.Pending));
@@ -160,14 +188,14 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
 
         vm.expectRevert(InvalidSettler.selector);
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
     }
 
     function testInitiateSettlementRevertsWhenDeadlinePassed() public {
         vm.warp(block.timestamp + 101);
         vm.expectRevert(InitiateDeadlinePassed.selector);
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
     }
 
     function testInitiateSettlementRevertsWhenCustomValidationFails() public {
@@ -178,12 +206,60 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
 
         vm.expectRevert(ValidationFailed.selector);
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+    }
+
+    function testChallengeCollectsBondAndUpdatesStatus() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        uint256 challengerCollateralBalanceStart = tokenCollateral2.balanceOf(address(challenger));
+        uint256 settlerCollateralBalanceStart = tokenCollateral2.balanceOf(address(settler));
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        assertEq(tokenCollateral2.balanceOf(address(challenger)), challengerCollateralBalanceStart - tokenCollateral2Amount);
+        assertEq(tokenCollateral2.balanceOf(address(settler)), settlerCollateralBalanceStart + tokenCollateral2Amount);
+    }
+
+    function testChallengeUpdatesSettlementStatusAndEmitsEvent() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.expectEmit(true, true, true, true, address(settler));
+        emit SettlementChallenged(order.hash(), challenger);
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        uint8 newStatus = uint8(settler.getSettlement(order.hash()).status);
+
+        assertEq(newStatus, uint8(SettlementStatus.Challenged));
+    }
+
+    function testChallengeRevertsIfSettlementDoesNotExist() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        vm.prank(challenger);
+        settler.challengeSettlement(keccak256("0x69"));
+    }
+
+    function testChallengeRevertsIfItIsAlreadyChallenged() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+        vm.expectRevert(abi.encodePacked(CanOnlyChallengePendingSettlements.selector, order.hash()));
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
     }
 
     function testCancelSettlementSuccessfullyReturnsInputandCollateral() public {
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
@@ -201,7 +277,7 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
 
     function testCancelSettlementUpdatesSettlementStatus() public {
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Pending));
@@ -211,7 +287,7 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
 
     function testCancelSettlementRevertsBeforeDeadline() public {
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
         vm.expectRevert(abi.encodePacked(CannotCancelBeforeDeadline.selector, order.hash()));
         settler.cancelSettlement(order.hash());
@@ -219,7 +295,7 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
 
     function testCancelSettlementRevertsIfAlreadyCancelled() public {
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
         settler.cancelSettlement(order.hash());
@@ -239,20 +315,65 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
         vm.warp(settler.getSettlement(order.hash()).optimisticDeadline + 1);
         settler.finalizeSettlement(order.hash());
 
-        assertEq(tokenIn.balanceOf(address(filler)), fillerInputBalanceStart + ONE);
-        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - ONE);
-        assertEq(tokenCollateral.balanceOf(address(filler)), fillerCollateralBalanceStart + ONE);
-        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(filler)), fillerInputBalanceStart + tokenInAmount);
+        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - tokenInAmount);
+        assertEq(tokenCollateral.balanceOf(address(filler)), fillerCollateralBalanceStart + tokenCollateralAmount);
+        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - tokenCollateralAmount);
     }
 
     function testFinalizeOptimisticallyUpdatesSettlementStatus() public {
         vm.prank(filler);
-        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), address(2));
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Pending));
         vm.warp(settler.getSettlement(order.hash()).optimisticDeadline + 1);
         settler.finalizeSettlement(order.hash());
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Success));
+    }
+
+    function testFinalizeRevertsIfAlreadyFinalized() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.warp(settler.getSettlement(order.hash()).optimisticDeadline + 1);
+        settler.finalizeSettlement(order.hash());
+
+        vm.expectRevert(abi.encodePacked(SettlementAlreadyCompleted.selector, order.hash()));
+        settler.finalizeSettlement(order.hash());
+    }
+
+    function testFinalizeRevertsIfOptimisticDeadlineHasNotPassed() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.expectRevert(abi.encodePacked(CannotFinalizeBeforeDeadline.selector, order.hash()));
+        settler.finalizeSettlement(order.hash());
+    }
+
+    function testFinalizeChallengedOrderSuccessfullyReturnsFunds() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        settlementOracle.logSettlementInfo(order.hash(), targetChainFiller, order.outputs);
+
+        uint256 fillerInputBalanceStart = tokenIn.balanceOf(address(filler));
+        uint256 fillerCollateralBalanceStart = tokenCollateral.balanceOf(address(filler));
+        uint256 fillerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(filler));
+        uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
+        uint256 settlerCollateralBalanceStart = tokenCollateral.balanceOf(address(settler));
+        uint256 settlerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(settler));
+
+        settler.finalizeSettlement(order.hash());
+
+        assertEq(tokenIn.balanceOf(address(filler)), fillerInputBalanceStart + tokenInAmount);
+        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - tokenInAmount);
+        assertEq(tokenCollateral.balanceOf(address(filler)), fillerCollateralBalanceStart + tokenCollateralAmount);
+        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - tokenCollateralAmount);
+        assertEq(tokenCollateral2.balanceOf(address(filler)), fillerCollateral2BalanceStart + tokenCollateral2Amount);
+        assertEq(tokenCollateral2.balanceOf(address(settler)), settlerCollateral2BalanceStart - tokenCollateral2Amount);
     }
 }

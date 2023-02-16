@@ -53,6 +53,10 @@ interface IOrderSettler {
     /// @param orderId The order hash
     error CannotFinalizeBeforeDeadline(bytes32 orderId);
 
+    /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
+    /// @param orderId The order hash
+    error CanOnlyChallengePendingSettlements(bytes32 orderId);
+    
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
     /// @param targetChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller

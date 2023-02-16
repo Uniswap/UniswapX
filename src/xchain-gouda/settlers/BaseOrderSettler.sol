@@ -119,10 +119,21 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             }
 
             settlements[orderId].status = SettlementStatus.Success;
+            ERC20(settlement.challengerCollateral.token).safeTransfer(settlement.originChainFiller, settlement.challengerCollateral.amount);
             _compensateFiller(orderId, settlement);
         } else {
             revert SettlementAlreadyCompleted(orderId);
         }
+    }
+
+    function challengeSettlement(bytes32 orderId) external {
+        ActiveSettlement memory settlement = settlements[orderId];
+        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.status != SettlementStatus.Pending) revert CanOnlyChallengePendingSettlements(orderId);
+
+        settlements[orderId].status = SettlementStatus.Challenged;
+        collectChallengeBond(settlement);
+        emit SettlementChallenged(orderId, msg.sender);
     }
 
     function _compensateFiller(bytes32 orderId, ActiveSettlement memory settlement) internal {
@@ -146,4 +157,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// finalized or cancelled
     /// @param order The encoded order to transfer tokens for
     function collectEscrowTokens(ResolvedOrder memory order) internal virtual;
+
+    /// @notice Collects swapper input tokens as well as collateral tokens of filler to escrow them until settlement is
+    /// finalized or cancelled
+    /// @param settlement The current information associated with the active settlement
+    function collectChallengeBond(ActiveSettlement memory settlement) internal virtual;
 }
