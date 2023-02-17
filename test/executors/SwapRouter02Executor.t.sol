@@ -20,7 +20,8 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
+import {ISwapRouter02} from "../../src/external/ISwapRouter02.sol";
+import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -78,10 +79,16 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
         address[] memory tokensToApproveForReactor = new address[](1);
         tokensToApproveForReactor[0] = address(tokenOut);
+
         bytes[] memory multicallData = new bytes[](1);
-        ExactInputSingleParams memory exactInputSingleParams =
-            ExactInputSingleParams(address(tokenIn), address(tokenOut), 500, address(swapRouter02Executor), ONE, ONE, 0);
-        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, exactInputSingleParams);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+
         bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
