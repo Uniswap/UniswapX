@@ -44,6 +44,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     address constant PROTOCOL_FEE_RECIPIENT = address(80085);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
+    // to test sweeping ETH
+    receive() external payable {}
+
     function setUp() public {
         vm.warp(1000);
 
@@ -374,5 +377,19 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
         swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+    }
+
+    function testWithdrawETH() public {
+        vm.deal(address(swapRouter02Executor), 1 ether);
+        uint256 balanceBefore = address(this).balance;
+        swapRouter02Executor.withdrawETH(address(this));
+        uint256 balanceAfter = address(this).balance;
+        assertEq(balanceAfter - balanceBefore, 1 ether);
+    }
+
+    function testWithdrawETHNotOwner() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(address(0xbeef));
+        swapRouter02Executor.withdrawETH(address(this));
     }
 }

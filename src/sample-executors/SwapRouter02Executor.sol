@@ -67,5 +67,10 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
 
+    /// @notice Transfer all ETH in this contract to the recipient. Can only be called by owner.
+    /// @param recipient The recipient of the ETH
+    function withdrawETH(address recipient) external onlyOwner {
+        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
     receive() external payable {}
 }
