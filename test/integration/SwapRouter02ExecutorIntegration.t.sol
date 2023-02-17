@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
-import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -195,5 +195,43 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.prank(address(0xbeef));
         vm.expectRevert("UNAUTHORIZED");
         swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+    }
+
+    function testSwapDaiToETHViaV2() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, address(swapRouter02Executor)
+        );
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0);
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        // Transfer 2000 DAI to maker
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+        assertEq(ERC20(WETH).balanceOf(maker), ONE);
+        assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
+        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
     }
 }
