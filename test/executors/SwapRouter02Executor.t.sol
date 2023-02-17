@@ -339,4 +339,40 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
     }
+
+    // Very similar to `testReactorCallback`, but do not vm.prank the reactor when calling `reactorCallback`, so reverts
+    // in
+    function testMsgSenderNotReactor() public {
+        OutputToken[] memory outputs = new OutputToken[](1);
+        outputs[0].token = address(tokenOut);
+        outputs[0].amount = ONE;
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        bytes memory sig = hex"1234";
+        resolvedOrders[0] = ResolvedOrder(
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            InputToken(address(tokenIn), ONE, ONE),
+            outputs,
+            sig,
+            keccak256(abi.encode(1))
+        );
+        tokenIn.mint(address(swapRouter02Executor), ONE);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+        vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
+        swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+    }
 }
