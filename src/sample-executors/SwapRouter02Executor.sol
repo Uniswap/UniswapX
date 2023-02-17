@@ -72,5 +72,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
     }
+
     receive() external payable {}
 }
