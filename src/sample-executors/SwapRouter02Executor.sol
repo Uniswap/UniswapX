@@ -57,6 +57,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
 
+        // Send the appropriate amount of ETH back to reactor, so reactor can distribute to output recipients.
         uint256 ethToSendToReactor;
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
