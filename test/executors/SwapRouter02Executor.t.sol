@@ -43,9 +43,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     uint24 constant FEE = 3000;
     address constant PROTOCOL_FEE_RECIPIENT = address(80085);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
-    bytes32 constant TRANSFER_EVENT_SIG = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
-    bytes32 constant APPROVAL_EVENT_SIG = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
-    bytes32 constant FILL_EVENT_SIG = 0x78ad7ec0e9f89e74012afa58738b6b661c024cb0fd185ee2f616c0a28924bd66;
 
     function setUp() public {
         vm.warp(1000);
@@ -88,8 +85,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
-
         bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
@@ -105,5 +102,46 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
+    }
+
+    // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
+    // There will be 0.5 output token remaining in SwapRouter02Executor.
+    function testExecute() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+
+        tokenIn.mint(maker, ONE);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+
+        assertEq(tokenIn.balanceOf(maker), 0);
+        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(maker), ONE / 2);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE / 2);
     }
 }
