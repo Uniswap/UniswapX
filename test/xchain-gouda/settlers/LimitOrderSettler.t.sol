@@ -219,7 +219,9 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
         vm.prank(challenger);
         settler.challengeSettlement(order.hash());
 
-        assertEq(tokenCollateral2.balanceOf(address(challenger)), challengerCollateralBalanceStart - tokenCollateral2Amount);
+        assertEq(
+            tokenCollateral2.balanceOf(address(challenger)), challengerCollateralBalanceStart - tokenCollateral2Amount
+        );
         assertEq(tokenCollateral2.balanceOf(address(settler)), settlerCollateralBalanceStart + tokenCollateral2Amount);
     }
 
