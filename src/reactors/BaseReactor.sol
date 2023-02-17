@@ -38,8 +38,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
         external
         payable
-        nonReentrant
         override
+        nonReentrant
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
@@ -51,8 +51,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
         external
         payable
-        nonReentrant
         override
+        nonReentrant
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
 
@@ -90,33 +90,30 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                 ResolvedOrder memory resolvedOrder = orders[i];
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-                    if (directTaker) {
-                        if (output.token == ETH_ADDRESS) {
-                            (bool sent,) = output.recipient.call{value: output.amount}("");
-                            if (!sent) {
-                                revert EtherSendFail();
-                            }
+
+                    if (output.token == ETH_ADDRESS) {
+                        (bool sent,) = output.recipient.call{value: output.amount}("");
+                        if (!sent) {
+                            revert EtherSendFail();
+                        }
+                        if (directTaker) {
                             if (msgValue >= output.amount) {
                                 msgValue -= output.amount;
                             } else {
                                 revert InsufficientEth();
                             }
                         } else {
-                            IAllowanceTransfer(permit2).transferFrom(
-                                msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
-                            );
-                        }
-                    } else {
-                        if (output.token == ETH_ADDRESS) {
-                            (bool sent,) = output.recipient.call{value: output.amount}("");
-                            if (!sent) {
-                                revert EtherSendFail();
-                            }
                             if (ethGainedFromReactorCallback >= output.amount) {
                                 ethGainedFromReactorCallback -= output.amount;
                             } else {
                                 revert InsufficientEth();
                             }
+                        }
+                    } else {
+                        if (directTaker) {
+                            IAllowanceTransfer(permit2).transferFrom(
+                                msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
+                            );
                         } else {
                             ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                         }
