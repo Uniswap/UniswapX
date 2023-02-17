@@ -54,8 +54,11 @@ contract LimitOrderSettler is BaseOrderSettler {
 
     /// @inheritdoc BaseOrderSettler
     function collectChallengeBond(ActiveSettlement memory settlement) internal override {
-      IAllowanceTransfer(address(permit2)).transferFrom(
-          msg.sender, address(this), uint160(settlement.challengerCollateral.amount), settlement.challengerCollateral.token
-      );
+        IAllowanceTransfer(address(permit2)).transferFrom(
+            msg.sender,
+            address(this),
+            uint160(settlement.challengerCollateral.amount),
+            settlement.challengerCollateral.token
+        );
     }
 }

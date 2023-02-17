@@ -119,7 +119,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             }
 
             settlements[orderId].status = SettlementStatus.Success;
-            ERC20(settlement.challengerCollateral.token).safeTransfer(settlement.originChainFiller, settlement.challengerCollateral.amount);
+            ERC20(settlement.challengerCollateral.token).safeTransfer(
+                settlement.originChainFiller, settlement.challengerCollateral.amount
+            );
             _compensateFiller(orderId, settlement);
         } else {
             revert SettlementAlreadyCompleted(orderId);
@@ -139,7 +141,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function _compensateFiller(bytes32 orderId, ActiveSettlement memory settlement) internal {
         settlements[orderId].status = SettlementStatus.Success;
         ERC20(settlement.input.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
-        ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
+        ERC20(settlement.fillerCollateral.token).safeTransfer(
+            settlement.originChainFiller, settlement.fillerCollateral.amount
+        );
         emit FinalizeSettlement(orderId);
     }
 
