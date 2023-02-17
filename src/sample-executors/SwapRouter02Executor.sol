@@ -13,6 +13,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
 
     error CallerNotWhitelisted();
+    error MsgSenderNotReactor();
 
     address private constant swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address private immutable whitelistedCaller;
@@ -32,6 +33,9 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
         external
     {
+        if (msg.sender != reactor) {
+            revert MsgSenderNotReactor();
+        }
         if (filler != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
