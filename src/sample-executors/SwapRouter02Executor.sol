@@ -15,13 +15,14 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
 
-    address private constant swapRouter02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address private immutable swapRouter02;
     address private immutable whitelistedCaller;
     address private immutable reactor;
 
-    constructor(address _whitelistedCaller, address _reactor, address _owner) Owned(_owner) {
+    constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
+        swapRouter02 = _swapRouter02;
     }
 
     /// @param resolvedOrders The orders to fill
