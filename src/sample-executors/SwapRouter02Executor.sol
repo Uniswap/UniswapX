@@ -55,16 +55,11 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     /// @notice This function can be used to convert ERC20s to ETH that remains in this contract
-    /// @param tokensToApproveForSwapRouter02 Max approve these tokens to swapRouter02
+    /// @param tokensToApprove Max approve these tokens to swapRouter02
     /// @param multicallData Pass into swapRouter02.multicall()
-    function multicall(address[] calldata tokensToApproveForSwapRouter02, bytes[] calldata multicallData)
-        external
-        onlyOwner
-    {
-        if (tokensToApproveForSwapRouter02.length > 0) {
-            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-                ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
-            }
+    function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
+        for (uint256 i = 0; i < tokensToApprove.length; i++) {
+            ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
         }
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
