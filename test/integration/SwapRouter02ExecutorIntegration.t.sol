@@ -32,8 +32,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
-        swapRouter02Executor =
-        new SwapRouter02Executor(address(this), address(dloReactor), address(this), 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+        swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this), SWAPROUTER02);
 
         // Maker max approves permit post
         vm.prank(maker);
@@ -186,7 +185,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[1] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(2)
         );
-        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0);
+        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
         swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
         assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
@@ -197,6 +196,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         swapRouter02Executor.multicall(new address[](0), new bytes[](0));
     }
 
+    // Maker's order has input = 2000 DAI and output = 1 ETH. 213039886077866602 excess wei of ETH will remain in
+    // swapRouter02Executor.
     function testSwapDaiToETHViaV2() public {
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
@@ -212,10 +213,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         address[] memory path = new address[](2);
         path[0] = DAI;
         path[1] = WETH;
-        multicallData[0] = abi.encodeWithSelector(
-            ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, address(swapRouter02Executor)
-        );
-        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0);
+        multicallData[0] =
+            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
 
         // Maker max approves permit post
         vm.prank(maker);
@@ -230,8 +230,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             address(swapRouter02Executor),
             abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
         );
-        assertEq(ERC20(WETH).balanceOf(maker), ONE);
-        assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
-        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
+        assertEq(ERC20(DAI).balanceOf(maker), 0);
+        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(maker.balance, 1000000000000000000);
+        assertEq(address(swapRouter02Executor).balance, 213039886077866602);
     }
 }
