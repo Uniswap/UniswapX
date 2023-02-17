@@ -242,4 +242,66 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
         assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
     }
+
+    // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3
+    // and outputs = [2]. Mint maker 10 input and mint mockSwapRouter 10 output. After
+    // the execution, maker should have 6 input / 3 output, mockSwapRouter should have
+    // 4 input / 6 output, and swapRouter02Executor should have 0 input / 1 output.
+    function testExecuteBatch() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = inputAmount;
+
+        tokenIn.mint(address(maker), inputAmount * 10);
+        tokenOut.mint(address(mockSwapRouter), outputAmount * 10);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+        });
+        bytes memory sig1 = signOrder(makerPrivateKey, address(permit2), order1);
+        signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
+
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+        });
+        bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
+        signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: inputAmount * 4,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+
+        reactor.executeBatch(
+            signedOrders,
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+        assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+    }
 }
