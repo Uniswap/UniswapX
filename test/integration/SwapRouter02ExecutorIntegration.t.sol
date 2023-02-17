@@ -235,4 +235,40 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(maker.balance, 1000000000000000000);
         assertEq(address(swapRouter02Executor).balance, 213039886077866602);
     }
+
+    // Maker's order has input = 2000 DAI and output = 2 ETH. This is not enough DAI, so revert with "Too little received".
+    function testSwapDaiToEthViaV2ButInsufficientDai() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE * 2, ONE * 2, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] =
+            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, 2 * ONE, path, SWAPROUTER02);
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        // Transfer 2000 DAI to maker
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+
+        vm.expectRevert("Too little received");
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+    }
 }
