@@ -14,6 +14,7 @@ import {
     CollateralToken
 } from "../../../src/xchain-gouda/base/SettlementStructs.sol";
 import {ISettlementOracle} from "../../../src/xchain-gouda/interfaces/ISettlementOracle.sol";
+import {IOrderSettlerErrors} from "../../../src/xchain-gouda/interfaces/IOrderSettlerErrors.sol";
 import {SettlementEvents} from "../../../src/xchain-gouda/base/SettlementEvents.sol";
 import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {
@@ -29,18 +30,19 @@ import {SettlementInfoBuilder} from "../util/SettlementInfoBuilder.sol";
 import {OutputsBuilder} from "../../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
-contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEvents, DeployPermit2 {
+contract CrossChainLimitOrderReactorTest is
+    Test,
+    PermitSignature,
+    SettlementEvents,
+    DeployPermit2,
+    IOrderSettlerErrors
+{
     using SettlementInfoBuilder for SettlementInfo;
     using CrossChainLimitOrderLib for CrossChainLimitOrder;
 
-    error InvalidSettler();
     error InitiateDeadlinePassed();
     error ValidationFailed();
-    error CannotCancelBeforeDeadline(bytes32 orderId);
-    error SettlementAlreadyCompleted(bytes32 orderId);
-    error CannotFinalizeBeforeDeadline(bytes32 orderId);
-    error SettlementDoesNotExist(bytes32 orderId);
-    error CanOnlyChallengePendingSettlements(bytes32 orderId);
+    error InvalidSettler();
 
     uint160 constant ONE = 1 ether;
     string constant LIMIT_ORDER_TYPE_NAME = "CrossChainLimitOrder";
@@ -377,5 +379,27 @@ contract CrossChainLimitOrderReactorTest is Test, PermitSignature, SettlementEve
         assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - tokenCollateralAmount);
         assertEq(tokenCollateral2.balanceOf(address(filler)), fillerCollateral2BalanceStart + tokenCollateral2Amount);
         assertEq(tokenCollateral2.balanceOf(address(settler)), settlerCollateral2BalanceStart - tokenCollateral2Amount);
+    }
+
+    function testFinalizeChallengedOrderRevertsIfNoOutputsSentToOracle() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        vm.expectRevert(abi.encodePacked(OutputsLengthMismatch.selector, order.hash()));
+        settler.finalizeSettlement(order.hash());
+    }
+
+    function testFinalizeChallengedOrderRevertsIfOutputAmountIsIncorrect() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        vm.expectRevert(abi.encodePacked(OutputsLengthMismatch.selector, order.hash()));
+        settler.finalizeSettlement(order.hash());
     }
 }
