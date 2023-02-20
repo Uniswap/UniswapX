@@ -7,20 +7,32 @@ import {ISettlementOracle} from "../../../../src/xchain-gouda/interfaces/ISettle
 
 /// @notice Interface for cross chain listener oracles for cross-chain gouda
 contract MockSettlementOracle is ISettlementOracle {
-    mapping(bytes32 => OutputToken[]) settlementOutputs;
+    struct FillInfo {
+        OutputToken[] outputs;
+        uint256 timestamp;
+    }
+
+    mapping(bytes32 => FillInfo) settlementOutputs;
 
     function getSettlementInfo(bytes32 orderId, address targetChainFiller)
         external
         view
-        returns (OutputToken[] memory filledOutputs)
+        returns (OutputToken[] memory filledOutputs, uint256 fillTimestamp)
     {
-        return settlementOutputs[keccak256(abi.encode(orderId, targetChainFiller))];
+        FillInfo memory settlement = settlementOutputs[keccak256(abi.encode(orderId, targetChainFiller))];
+        return (settlement.outputs, settlement.timestamp);
     }
 
-    function logSettlementInfo(bytes32 orderId, address targetChainFiller, OutputToken[] calldata outputs) external {
-        OutputToken[] storage settlementInfo = settlementOutputs[keccak256(abi.encode(orderId, targetChainFiller))];
+    function logSettlementInfo(
+        bytes32 orderId,
+        address targetChainFiller,
+        uint256 fillTimestamp,
+        OutputToken[] calldata outputs
+    ) external {
+        FillInfo storage settlementInfo = settlementOutputs[keccak256(abi.encode(orderId, targetChainFiller))];
+        settlementInfo.timestamp = fillTimestamp;
         for (uint256 i = 0; i < outputs.length; i++) {
-            settlementInfo.push(outputs[i]);
+            settlementInfo.outputs.push(outputs[i]);
         }
     }
 }

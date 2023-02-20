@@ -54,6 +54,7 @@ struct ActiveSettlement {
     address offerer;
     address originChainFiller;
     address targetChainFiller;
+    address challenger;
     address settlementOracle;
     uint256 fillDeadline;
     uint256 optimisticDeadline;

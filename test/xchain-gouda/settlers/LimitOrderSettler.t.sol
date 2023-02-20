@@ -261,7 +261,39 @@ contract CrossChainLimitOrderReactorTest is
         settler.challengeSettlement(order.hash());
     }
 
-    function testCancelSettlementSuccessfullyReturnsInputandCollateral() public {
+    function testCancelSettlementSuccessfullyReturnsInputandCollateralsToAChallengedOrder() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperCollateralBalanceStart = tokenCollateral.balanceOf(address(swapper));
+        uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
+        uint256 settlerCollateralBalanceStart = tokenCollateral.balanceOf(address(settler));
+        uint256 settlerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(settler));
+        uint256 challengerCollateralBalanceStart = tokenCollateral.balanceOf(address(challenger));
+        uint256 challengerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(challenger));
+
+        vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
+        settler.cancelSettlement(order.hash());
+
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart + tokenInAmount);
+        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - tokenInAmount);
+        // filler's collateral split evenly with challenger
+        assertEq(tokenCollateral.balanceOf(address(swapper)), swapperCollateralBalanceStart + tokenCollateralAmount / 2);
+        assertEq(
+            tokenCollateral.balanceOf(address(challenger)), challengerCollateralBalanceStart + tokenCollateralAmount / 2
+        );
+        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - tokenCollateralAmount);
+        assertEq(
+            tokenCollateral2.balanceOf(address(challenger)), challengerCollateral2BalanceStart + tokenCollateral2Amount
+        );
+        assertEq(tokenCollateral2.balanceOf(address(settler)), settlerCollateral2BalanceStart - tokenCollateral2Amount);
+    }
+
+    function testCancelSettlementSuccessfullyReturnsInputandCollateralToAnUnchallengedOrder() public {
         vm.prank(filler);
         settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
@@ -273,10 +305,10 @@ contract CrossChainLimitOrderReactorTest is
 
         settler.cancelSettlement(order.hash());
 
-        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart + ONE);
-        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - ONE);
-        assertEq(tokenCollateral.balanceOf(address(swapper)), swapperCollateralBalanceStart + ONE);
-        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart + tokenInAmount);
+        assertEq(tokenIn.balanceOf(address(settler)), settlerInputBalanceStart - tokenInAmount);
+        assertEq(tokenCollateral.balanceOf(address(swapper)), swapperCollateralBalanceStart + tokenCollateralAmount);
+        assertEq(tokenCollateral.balanceOf(address(settler)), settlerCollateralBalanceStart - tokenCollateralAmount);
     }
 
     function testCancelSettlementUpdatesSettlementStatus() public {
@@ -355,14 +387,16 @@ contract CrossChainLimitOrderReactorTest is
         settler.finalizeSettlement(order.hash());
     }
 
-    function testFinalizeChallengedOrderSuccessfullyReturnsFunds() public {
+    function testFinalizeChallengedOrderSuccessfullyReturnsFundsIfSettlementWasValid() public {
         vm.prank(filler);
         settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
         vm.prank(challenger);
         settler.challengeSettlement(order.hash());
 
-        settlementOracle.logSettlementInfo(order.hash(), targetChainFiller, order.outputs);
+        settlementOracle.logSettlementInfo(
+            order.hash(), targetChainFiller, settler.getSettlement(order.hash()).fillDeadline, order.outputs
+        );
 
         uint256 fillerInputBalanceStart = tokenIn.balanceOf(address(filler));
         uint256 fillerCollateralBalanceStart = tokenCollateral.balanceOf(address(filler));
@@ -371,6 +405,7 @@ contract CrossChainLimitOrderReactorTest is
         uint256 settlerCollateralBalanceStart = tokenCollateral.balanceOf(address(settler));
         uint256 settlerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(settler));
 
+        vm.warp(settler.getSettlement(order.hash()).challengeDeadline);
         settler.finalizeSettlement(order.hash());
 
         assertEq(tokenIn.balanceOf(address(filler)), fillerInputBalanceStart + tokenInAmount);
@@ -388,6 +423,7 @@ contract CrossChainLimitOrderReactorTest is
         vm.prank(challenger);
         settler.challengeSettlement(order.hash());
 
+        vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
         vm.expectRevert(abi.encodePacked(OutputsLengthMismatch.selector, order.hash()));
         settler.finalizeSettlement(order.hash());
     }
@@ -400,6 +436,21 @@ contract CrossChainLimitOrderReactorTest is
         settler.challengeSettlement(order.hash());
 
         vm.expectRevert(abi.encodePacked(OutputsLengthMismatch.selector, order.hash()));
+        settler.finalizeSettlement(order.hash());
+    }
+
+    function testFinalizeChallengedOrderRevertsIfOrderFilledAfterFillDeadline() public {
+        vm.prank(filler);
+        settler.initiateSettlement(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash());
+
+        settlementOracle.logSettlementInfo(
+            order.hash(), targetChainFiller, settler.getSettlement(order.hash()).fillDeadline + 1, order.outputs
+        );
+
+        vm.expectRevert(abi.encodePacked(OrderFillExceededDeadline.selector, order.hash()));
         settler.finalizeSettlement(order.hash());
     }
 }
