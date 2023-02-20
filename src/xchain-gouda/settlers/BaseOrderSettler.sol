@@ -32,6 +32,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         permit2 = ISignatureTransfer(_permit2);
     }
 
+    function getSettlement(bytes32 orderHash) external view returns (ActiveSettlement memory) {
+        return settlements[orderHash];
+    }
+
     /// @inheritdoc IOrderSettler
     function initiateSettlement(SignedOrder calldata order, address targetChainFiller) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
@@ -82,30 +86,51 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function cancelSettlement(bytes32 orderId) external override {
         ActiveSettlement storage settlement = settlements[orderId];
-        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
-        if (settlement.challengeDeadline > block.timestamp) revert CannotCancelBeforeDeadline(orderId);
-        if (settlement.status > SettlementStatus.Challenged) revert SettlementAlreadyCompleted(orderId);
+
+        verifySettlementInProgress(settlement, orderId);
+        if (settlement.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
 
         settlement.status = SettlementStatus.Cancelled;
+
         ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
-        ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.offerer, settlement.input.amount);
+        if (settlement.challenger != address(0)) {
+            uint256 halfFillerCollateral = settlement.fillerCollateral.amount / 2;
+            ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.offerer, halfFillerCollateral);
+            ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.challenger, halfFillerCollateral);
+            ERC20(settlement.challengerCollateral.token).safeTransfer(
+                settlement.challenger, settlement.challengerCollateral.amount
+            );
+        } else {
+            ERC20(settlement.fillerCollateral.token).safeTransfer(
+                settlement.offerer, settlement.fillerCollateral.amount
+            );
+        }
+
         emit CancelSettlement(orderId);
     }
 
     /// @inheritdoc IOrderSettler
     function finalizeSettlement(bytes32 orderId) external override {
         ActiveSettlement memory settlement = settlements[orderId];
-        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
+        verifySettlementInProgress(settlement, orderId);
 
+        /**
+         * If the settlement has not been challenged
+         */
         if (settlement.status == SettlementStatus.Pending) {
             if (block.timestamp < settlement.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
             settlements[orderId].status = SettlementStatus.Success;
             _compensateFiller(orderId, settlement);
+
+            /**
+             * If the settlement has been challenged
+             */
         } else if (settlement.status == SettlementStatus.Challenged) {
-            OutputToken[] memory filledOutputs =
+            (OutputToken[] memory filledOutputs, uint256 fillTimestamp) =
                 ISettlementOracle(settlement.settlementOracle).getSettlementInfo(orderId, settlement.targetChainFiller);
 
+            if (fillTimestamp > settlement.fillDeadline) revert OrderFillExceededDeadline(orderId);
             if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
 
             // validate outputs
@@ -134,6 +159,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         if (settlement.status != SettlementStatus.Pending) revert CanOnlyChallengePendingSettlements(orderId);
 
         settlements[orderId].status = SettlementStatus.Challenged;
+        settlements[orderId].challenger = msg.sender;
         collectChallengeBond(settlement);
         emit SettlementChallenged(orderId, msg.sender);
     }
@@ -147,8 +173,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function getSettlement(bytes32 orderHash) external view returns (ActiveSettlement memory) {
-        return settlements[orderHash];
+    function verifySettlementInProgress(ActiveSettlement memory settlement, bytes32 orderId) internal {
+        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.status > SettlementStatus.Challenged) revert SettlementAlreadyCompleted(orderId);
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
