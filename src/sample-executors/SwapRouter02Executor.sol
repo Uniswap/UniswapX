@@ -66,9 +66,11 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
                 }
             }
         }
-        (bool sent,) = reactor.call{value: ethToSendToReactor}("");
-        if (!sent) {
-            revert BaseReactor.EtherSendFail();
+        if (ethToSendToReactor > 0) {
+            (bool sent,) = reactor.call{value: ethToSendToReactor}("");
+            if (!sent) {
+                revert BaseReactor.EtherSendFail();
+            }
         }
     }
 
