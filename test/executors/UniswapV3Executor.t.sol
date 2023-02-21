@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
+import {stdError} from "forge-std/StdError.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
@@ -102,9 +103,9 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(entries.length, 6);
         assertEq(entries[0].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[1].topics[0], FILL_EVENT_SIG);
-        assertEq(entries[2].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[2].topics[0], APPROVAL_EVENT_SIG);
         assertEq(entries[3].topics[0], TRANSFER_EVENT_SIG);
-        assertEq(entries[4].topics[0], APPROVAL_EVENT_SIG);
+        assertEq(entries[4].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[5].topics[0], TRANSFER_EVENT_SIG);
 
         assertEq(tokenIn.balanceOf(maker), 0);
@@ -173,10 +174,10 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         // Transfer, Transfer, Fill
         assertEq(entries.length, 5);
         assertEq(entries[0].topics[0], TRANSFER_EVENT_SIG);
-        assertEq(entries[1].topics[0], TRANSFER_EVENT_SIG);
+        assertEq(entries[1].topics[0], FILL_EVENT_SIG);
         assertEq(entries[2].topics[0], TRANSFER_EVENT_SIG);
         assertEq(entries[3].topics[0], TRANSFER_EVENT_SIG);
-        assertEq(entries[4].topics[0], FILL_EVENT_SIG);
+        assertEq(entries[4].topics[0], TRANSFER_EVENT_SIG);
 
         assertEq(tokenIn.balanceOf(maker), 0);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
@@ -200,7 +201,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(stdError.arithmeticError);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
@@ -278,7 +279,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(stdError.arithmeticError);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),

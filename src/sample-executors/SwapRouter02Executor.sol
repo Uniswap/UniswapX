@@ -40,21 +40,21 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         if (filler != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
-        (
-            address[] memory tokensToApproveForSwapRouter02,
-            address[] memory tokensToApproveForReactor,
-            bytes[] memory multicallData
-        ) = abi.decode(fillData, (address[], address[], bytes[]));
+        (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
+            abi.decode(fillData, (address[], bytes[]));
 
         for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
             ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
         }
 
-        for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
-            ERC20(tokensToApproveForReactor[i]).approve(reactor, type(uint256).max);
-        }
-
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
+
+        for (uint256 i = 0; i < resolvedOrders.length; i++) {
+            ResolvedOrder memory order = resolvedOrders[i];
+            for (uint256 j = 0; j < order.outputs.length; j++) {
+                ERC20(order.outputs[j].token).transfer(order.outputs[j].recipient, order.outputs[j].amount);
+            }
+        }
     }
 
     /// @notice This function can be used to convert ERC20s to ETH that remains in this contract

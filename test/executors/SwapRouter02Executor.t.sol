@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
+import {stdError} from "forge-std/StdError.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
 import {
@@ -75,10 +76,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
         outputs[0].amount = ONE;
+        outputs[0].recipient = maker;
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -88,7 +88,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
@@ -104,7 +104,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(address(reactor));
         swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(maker)), ONE);
     }
 
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
@@ -123,8 +124,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -138,7 +137,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
@@ -164,8 +163,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -176,11 +173,11 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(stdError.arithmeticError);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
 
@@ -216,8 +213,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -231,7 +226,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
         assertEq(tokenIn.balanceOf(maker), 0);
@@ -283,8 +278,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -296,9 +289,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
         reactor.executeBatch(
-            signedOrders,
-            address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
@@ -322,8 +313,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -339,7 +328,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
 
@@ -351,8 +340,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         outputs[0].amount = ONE;
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
 
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
@@ -362,7 +349,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
