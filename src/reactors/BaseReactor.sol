@@ -34,6 +34,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         permit2 = _permit2;
     }
 
+    receive() external payable {}
+
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
         external
