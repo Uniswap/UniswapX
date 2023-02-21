@@ -67,7 +67,6 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
             }
         }
 
-        ResolvedOrderLib.AddressBalance[] memory expectedBalances = orders.getExpectedBalances();
         if (directTaker) {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
@@ -79,10 +78,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 }
             }
         } else {
+            ResolvedOrderLib.AddressBalance[] memory expectedBalances = orders.getExpectedBalances();
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
+            expectedBalances.check();
         }
-
-        expectedBalances.check();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
