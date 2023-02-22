@@ -37,13 +37,13 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateSettlement(SignedOrder calldata order, address targetChainFiller) external override {
+    function initiate(SignedOrder calldata order, address targetChainFiller) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
-        _initiateSettlements(resolvedOrders, targetChainFiller);
+        _initiate(resolvedOrders, targetChainFiller);
     }
 
-    function _initiateSettlements(ResolvedOrder[] memory orders, address targetChainFiller) internal {
+    function _initiate(ResolvedOrder[] memory orders, address targetChainFiller) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
@@ -84,7 +84,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function cancelSettlement(bytes32 orderId) external override {
+    function cancel(bytes32 orderId) external override {
         ActiveSettlement storage settlement = settlements[orderId];
 
         verifySettlementInProgress(settlement, orderId);
@@ -110,7 +110,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function finalizeSettlement(bytes32 orderId) external override {
+    function finalize(bytes32 orderId) external override {
         ActiveSettlement memory settlement = settlements[orderId];
         verifySettlementInProgress(settlement, orderId);
 

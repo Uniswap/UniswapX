@@ -19,7 +19,7 @@ struct SettlementInfo {
     address offerer;
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
-    // The timestamp after which this order is no longer valid to initiateSettlement
+    // The timestamp after which this order is no longer valid to initiate
     uint256 initiateDeadline;
     // The time period in seconds the filler has to fill the order on the targetChain
     uint32 fillPeriod;
