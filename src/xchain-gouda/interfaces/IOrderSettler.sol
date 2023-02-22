@@ -15,6 +15,11 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// @param targetChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller
     function initiate(SignedOrder calldata order, address targetChainFiller) external;
 
+    /// @notice Initiate a multiple order settlements using the given fill specification
+    /// @param orders The cross-chain order definitions and valid signatures to execute
+    /// @param targetChainFiller Address reserved as the valid address to initiate the fills on the cross-chain settlementFiller
+    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller) external;
+
     /// @notice Finalize a settlement by first: confirming the cross-chain fill has happened and second: transferring
     /// input tokens and collateral to the filler. Finalize settlement only succeeds if the order has been filled
     /// successfully.

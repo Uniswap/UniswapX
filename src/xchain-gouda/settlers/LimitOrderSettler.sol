@@ -19,7 +19,7 @@ contract LimitOrderSettler is BaseOrderSettler {
     /// @inheritdoc BaseOrderSettler
     function resolve(SignedOrder calldata signedOrder)
         internal
-        view
+        pure
         override
         returns (ResolvedOrder memory resolvedOrder)
     {

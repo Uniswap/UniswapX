@@ -55,7 +55,7 @@ library CrossChainLimitOrderLib {
     }
 
     /// @notice returns the hash of an output token struct
-    function hash(OutputToken[] memory outputs) private view returns (bytes32) {
+    function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
             outputHashes[i] = hash(outputs[i]);
@@ -66,7 +66,7 @@ library CrossChainLimitOrderLib {
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
-    function hash(CrossChainLimitOrder memory order) internal view returns (bytes32) {
+    function hash(CrossChainLimitOrder memory order) internal pure returns (bytes32) {
         bytes memory part1 = abi.encode(
             ORDER_TYPE_HASH,
             order.info.settlerContract,

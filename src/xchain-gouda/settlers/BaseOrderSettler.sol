@@ -43,6 +43,18 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         _initiate(resolvedOrders, targetChainFiller);
     }
 
+    /// @inheritdoc IOrderSettler
+    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller) external override {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+
+        unchecked {
+            for (uint256 i = 0; i < orders.length; i++) {
+                resolvedOrders[i] = resolve(orders[i]);
+            }
+        }
+        _initiate(resolvedOrders, targetChainFiller);
+    }
+
     function _initiate(ResolvedOrder[] memory orders, address targetChainFiller) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
@@ -83,6 +95,14 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         }
     }
 
+    // function cancelBatch(bytes32[] orderIds) external override {
+    //     for (uint256 i = 0; i < orderIds.length; i++) {
+    //       try IOrderSettler(addres(this)).cancel(orderIds[i]) returns (string memory result) {} catch {
+    //         emit Log("external call failed");
+    //       }
+    //     }
+    // }
+
     /// @inheritdoc IOrderSettler
     function cancel(bytes32 orderId) external override {
         ActiveSettlement storage settlement = settlements[orderId];
@@ -121,7 +141,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             if (block.timestamp < settlement.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
             settlements[orderId].status = SettlementStatus.Success;
-            _compensateFiller(orderId, settlement);
+            compensateFiller(orderId, settlement);
 
             /**
              * If the settlement has been challenged
@@ -147,7 +167,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             ERC20(settlement.challengerCollateral.token).safeTransfer(
                 settlement.originChainFiller, settlement.challengerCollateral.amount
             );
-            _compensateFiller(orderId, settlement);
+            compensateFiller(orderId, settlement);
         } else {
             revert SettlementAlreadyCompleted(orderId);
         }
@@ -164,7 +184,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit SettlementChallenged(orderId, msg.sender);
     }
 
-    function _compensateFiller(bytes32 orderId, ActiveSettlement memory settlement) internal {
+    function compensateFiller(bytes32 orderId, ActiveSettlement memory settlement) internal {
         settlements[orderId].status = SettlementStatus.Success;
         ERC20(settlement.input.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
         ERC20(settlement.fillerCollateral.token).safeTransfer(
@@ -173,7 +193,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function verifySettlementInProgress(ActiveSettlement memory settlement, bytes32 orderId) internal {
+    function verifySettlementInProgress(ActiveSettlement memory settlement, bytes32 orderId) internal pure {
         if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.status > SettlementStatus.Challenged) revert SettlementAlreadyCompleted(orderId);
     }
