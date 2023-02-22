@@ -87,7 +87,7 @@ abstract contract IPSFees {
         unchecked {
             if (token == ETH_ADDRESS) {
                 (bool sent,) = msg.sender.call{value: amount - 1}("");
-                require(!sent, "Failed to send ether");
+                require(sent, "Failed to send ether");
             }
             ERC20(token).safeTransfer(msg.sender, amount - 1);
         }

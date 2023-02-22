@@ -168,6 +168,24 @@ contract IPSFeesTest is Test {
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 1);
     }
 
+    function testClaimEthFees() public {
+        fees.takeFees(createOrder(ONE, true));
+        vm.deal(address(fees), ONE);
+
+        uint256 preBalance = address(PROTOCOL_FEE_RECIPIENT).balance;
+        vm.prank(PROTOCOL_FEE_RECIPIENT);
+        fees.claimFees(ETH_ADDRESS);
+        assertEq(address(PROTOCOL_FEE_RECIPIENT).balance, preBalance + ONE / 2 - 1);
+        assertEq(fees.feesOwed(address(ETH_ADDRESS), address(0)), 1);
+
+        preBalance = INTERFACE_FEE_RECIPIENT.balance;
+        vm.prank(INTERFACE_FEE_RECIPIENT);
+        fees.claimFees(ETH_ADDRESS);
+        // subtract one because the reactor keeps one wei for gas savings
+        assertEq(INTERFACE_FEE_RECIPIENT.balance, preBalance + ONE / 2 - 1);
+        assertEq(fees.feesOwed(ETH_ADDRESS, INTERFACE_FEE_RECIPIENT), 1);
+    }
+
     function testSetProtocolFeeRecipient() public {
         assertEq(fees.protocolFeeRecipient(), PROTOCOL_FEE_RECIPIENT);
         vm.prank(PROTOCOL_FEE_RECIPIENT);
