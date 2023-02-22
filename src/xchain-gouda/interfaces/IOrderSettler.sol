@@ -13,16 +13,16 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
     /// @param targetChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller
-    function initiateSettlement(SignedOrder calldata order, address targetChainFiller) external;
+    function initiate(SignedOrder calldata order, address targetChainFiller) external;
 
     /// @notice Finalize a settlement by first: confirming the cross-chain fill has happened and second: transferring
     /// input tokens and collateral to the filler. Finalize settlement only succeeds if the order has been filled
     /// successfully.
     /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalizeSettlement(bytes32 orderId) external;
+    function finalize(bytes32 orderId) external;
 
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper. Half of the filler collateral is shared if a challenger challenged the order.
     /// @param orderId The order hash that identifies the order settlement to cancel
-    function cancelSettlement(bytes32 orderId) external;
+    function cancel(bytes32 orderId) external;
 }
