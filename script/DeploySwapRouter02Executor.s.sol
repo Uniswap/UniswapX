@@ -10,7 +10,6 @@ contract DeploySwapRouter02Executor is Script {
 
     function run() public returns (SwapRouter02Executor executor) {
         uint256 privateKey = vm.envUint("FOUNDRY_PRIVATE_KEY");
-        address deployer = vm.addr(privateKey);
         address reactor = address(0);
 
         vm.startBroadcast(privateKey);
