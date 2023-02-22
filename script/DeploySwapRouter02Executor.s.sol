@@ -10,11 +10,13 @@ contract DeploySwapRouter02Executor is Script {
 
     function run() public returns (SwapRouter02Executor executor) {
         uint256 privateKey = vm.envUint("FOUNDRY_PRIVATE_KEY");
-        address reactor = address(0);
+        address reactor = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_REACTOR");
+        address whitelistedCaller = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WHITELISTED_CALLER");
+        address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
+        address swapRouter02 = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02");
 
         vm.startBroadcast(privateKey);
-        executor =
-        new UniswapV3Executor{salt: 0x00}(address(0), address(0), address(0), 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
+        executor = new SwapRouter02Executor{salt: 0x00}(whitelistedCaller, reactor, owner, swapRouter02);
         vm.stopBroadcast();
 
         console2.log("SwapRouter02Executor", address(executor));
