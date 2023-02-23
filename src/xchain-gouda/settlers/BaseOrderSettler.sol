@@ -64,6 +64,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
                 if (settlements[order.hash].optimisticDeadline != 0) revert SettlementAlreadyInitiated(order.hash);
 
+                uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
+                uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
+                uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
+
                 // TODO: may not be the most gas efficient, look into setting with dynamic array
                 ActiveSettlement storage settlement = settlements[order.hash];
                 settlement.status = SettlementStatus.Pending;
@@ -71,9 +75,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                 settlement.originChainFiller = msg.sender;
                 settlement.targetChainFiller = targetChainFiller;
                 settlement.settlementOracle = order.info.settlementOracle;
-                settlement.fillDeadline = block.timestamp + order.info.fillPeriod;
-                settlement.optimisticDeadline = block.timestamp + order.info.optimisticSettlementPeriod;
-                settlement.challengeDeadline = block.timestamp + order.info.challengePeriod;
+                settlement.fillDeadline = fillDeadline;
+                settlement.optimisticDeadline = optimisticDeadline;
+                settlement.challengeDeadline = challengeDeadline;
                 settlement.input = order.input;
                 settlement.fillerCollateral = order.fillerCollateral;
                 settlement.challengerCollateral = order.challengerCollateral;
@@ -87,9 +91,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
                     msg.sender,
                     targetChainFiller,
                     order.info.settlementOracle,
-                    settlement.fillDeadline,
-                    settlement.optimisticDeadline,
-                    settlement.challengeDeadline
+                    fillDeadline,
+                    optimisticDeadline,
+                    challengeDeadline
                     );
             }
         }

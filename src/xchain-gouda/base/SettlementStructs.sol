@@ -56,9 +56,9 @@ struct ActiveSettlement {
     address targetChainFiller;
     address challenger;
     address settlementOracle;
-    uint256 fillDeadline;
-    uint256 optimisticDeadline;
-    uint256 challengeDeadline;
+    uint32 fillDeadline;
+    uint32 optimisticDeadline;
+    uint32 challengeDeadline;
     InputToken input;
     CollateralToken fillerCollateral;
     CollateralToken challengerCollateral;
