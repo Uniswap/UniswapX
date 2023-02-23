@@ -26,6 +26,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     ISignatureTransfer public immutable permit2;
 
+    event InitiateSettlementFailed(uint256 orderIndex);
+
     mapping(bytes32 => ActiveSettlement) settlements;
 
     constructor(address _permit2) {
@@ -46,7 +48,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller) external override {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                initiate(orders[i], targetChainFiller);
+                address(this).delegatecall(
+                    abi.encodeWithSelector(IOrderSettler.initiate.selector, orders[i], targetChainFiller)
+                );
             }
         }
     }
