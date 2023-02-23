@@ -26,6 +26,9 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
+    error FillerNotOwner();
+    error CallerNotReactor();
+
     uint256 takerPrivateKey;
     uint256 makerPrivateKey;
     MockERC20 tokenIn;
@@ -59,35 +62,15 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         makerPrivateKey = 0x12341235;
         maker = vm.addr(makerPrivateKey);
 
+        vm.startPrank(taker);
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter();
-        uniswapV3Executor = new UniswapV3Executor(address(mockSwapRouter), taker);
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        uniswapV3Executor = new UniswapV3Executor(address(reactor), address(mockSwapRouter), taker);
 
         // Do appropriate max approvals
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-    }
-
-    function testReactorCallback() public {
-        OutputToken[] memory outputs = new OutputToken[](1);
-        outputs[0].token = address(tokenOut);
-        outputs[0].amount = ONE;
-        bytes memory fillData = abi.encodePacked(tokenIn, FEE, tokenOut);
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        bytes memory sig = hex"1234";
-        resolvedOrders[0] = ResolvedOrder(
-            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE, ONE),
-            outputs,
-            sig,
-            keccak256(abi.encode(1))
-        );
-        tokenIn.mint(address(uniswapV3Executor), ONE);
-        tokenOut.mint(address(mockSwapRouter), ONE);
-        uniswapV3Executor.reactorCallback(resolvedOrders, address(this), fillData);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
-        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE);
     }
 
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
@@ -375,7 +358,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), ONE / 2);
         assertEq(tokenOut.balanceOf(taker), 0);
 
-        vm.prank(taker);
         uniswapV3Executor.claimTokens(tokenOut);
 
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
@@ -408,6 +390,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(tokenOut.balanceOf(taker), 0);
 
         vm.expectRevert("UNAUTHORIZED");
+        vm.stopPrank();
+        vm.prank(address(0));
         uniswapV3Executor.claimTokens(tokenOut);
     }
 
@@ -441,5 +425,47 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
         assertEq(tokenOut.balanceOf(maker), ONE / 2);
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
+    }
+
+    function testFillerNotOwner() public {
+        uint256 inputAmount = ONE;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
+        });
+
+        tokenIn.mint(maker, inputAmount);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        vm.expectRevert(FillerNotOwner.selector);
+        vm.stopPrank();
+        vm.prank(address(0));
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            address(uniswapV3Executor),
+            abi.encodePacked(tokenIn, FEE, tokenOut)
+        );
+    }
+
+    function testCallerNotReactor() public {
+        OutputToken[] memory outputs = new OutputToken[](1);
+        outputs[0].token = address(tokenOut);
+        outputs[0].amount = ONE;
+        bytes memory fillData = abi.encodePacked(tokenIn, FEE, tokenOut);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        bytes memory sig = hex"1234";
+        resolvedOrders[0] = ResolvedOrder(
+            OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            InputToken(address(tokenIn), ONE, ONE),
+            outputs,
+            sig,
+            keccak256(abi.encode(1))
+        );
+
+        vm.expectRevert(CallerNotReactor.selector);
+        uniswapV3Executor.reactorCallback(resolvedOrders, taker, fillData);
     }
 }
