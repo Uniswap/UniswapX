@@ -56,46 +56,47 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     function _initiate(ResolvedOrder[] memory orders, address targetChainFiller) internal {
-        unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory order = orders[i];
-                order.validate(msg.sender);
-                collectEscrowTokens(order);
+        for (uint256 i = 0; i < orders.length; i++) {
+            ResolvedOrder memory order = orders[i];
+            order.validate(msg.sender);
+            collectEscrowTokens(order);
 
-                if (settlements[order.hash].optimisticDeadline != 0) revert SettlementAlreadyInitiated(order.hash);
+            if (settlements[order.hash].optimisticDeadline != 0) revert SettlementAlreadyInitiated(order.hash);
 
-                uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
-                uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
-                uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
+            uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
+            uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
+            uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
 
-                // TODO: may not be the most gas efficient, look into setting with dynamic array
-                ActiveSettlement storage settlement = settlements[order.hash];
-                settlement.status = SettlementStatus.Pending;
-                settlement.offerer = order.info.offerer;
-                settlement.originChainFiller = msg.sender;
-                settlement.targetChainFiller = targetChainFiller;
-                settlement.settlementOracle = order.info.settlementOracle;
-                settlement.fillDeadline = fillDeadline;
-                settlement.optimisticDeadline = optimisticDeadline;
-                settlement.challengeDeadline = challengeDeadline;
-                settlement.input = order.input;
-                settlement.fillerCollateral = order.fillerCollateral;
-                settlement.challengerCollateral = order.challengerCollateral;
+            // TODO: may not be the most gas efficient, look into setting with dynamic array
+            ActiveSettlement storage settlement = settlements[order.hash];
+            settlement.status = SettlementStatus.Pending;
+            settlement.offerer = order.info.offerer;
+            settlement.originChainFiller = msg.sender;
+            settlement.targetChainFiller = targetChainFiller;
+            settlement.settlementOracle = order.info.settlementOracle;
+            settlement.fillDeadline = fillDeadline;
+            settlement.optimisticDeadline = optimisticDeadline;
+            settlement.challengeDeadline = challengeDeadline;
+            settlement.input = order.input;
+            settlement.fillerCollateral = order.fillerCollateral;
+            settlement.challengerCollateral = order.challengerCollateral;
+
+            unchecked {
                 for (uint256 j = 0; j < order.outputs.length; j++) {
                     settlement.outputs.push(order.outputs[j]);
                 }
-
-                emit InitiateSettlement(
-                    order.hash,
-                    order.info.offerer,
-                    msg.sender,
-                    targetChainFiller,
-                    order.info.settlementOracle,
-                    fillDeadline,
-                    optimisticDeadline,
-                    challengeDeadline
-                    );
             }
+
+            emit InitiateSettlement(
+                order.hash,
+                order.info.offerer,
+                msg.sender,
+                targetChainFiller,
+                order.info.settlementOracle,
+                fillDeadline,
+                optimisticDeadline,
+                challengeDeadline
+                );
         }
     }
 
