@@ -42,8 +42,8 @@ See [Filler Integration Guide](integration_guide.md)
 
 | Name  | Description | Link |
 | --- | --- | --- |
-| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | [https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs) |
-| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. | https://gouda-ui-zachyang-uniswaporg.vercel.app/#/swap |
+| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | https://nwktw6mvek.execute-api.us-east-2.amazonaws.com/prod/api-docs  |
+| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. |https://interface-gouda.vercel.app/ |
 | Permit2 | Uniswap’s permit protocol used by swappers to sign orders.  | https://github.com/Uniswap/permit2 |
 
 
