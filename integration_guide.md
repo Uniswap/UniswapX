@@ -101,13 +101,15 @@ data: {
 
 | Name  | Description | Link |
 | --- | --- | --- |
-| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | [https://***REMOVED***.execute-api.us-east-2.amazonaws.com/prod](https://***REMOVED***.execute-api.us-east-2.amazonaws.com/prod/api-docs) |
-| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. | https://gouda-ui-zachyang-uniswaporg.vercel.app/#/swap |
-| Permit2 | Uniswap’s permit protocol used by swapper to sign orders.  | https://github.com/Uniswap/permit2 |
+| Gouda Orders Endpoint | Publicly available endpoint for querying open Gouda Orders | https://nwktw6mvek.execute-api.us-east-2.amazonaws.com/prod/api-docs  |
+| Order Creation UI | A test UI that allows you to create, sign and broadcast Gouda orders. |https://interface-gouda.vercel.app/ |
+| Permit2 | Uniswap’s permit protocol used by swappers to sign orders.  | https://github.com/Uniswap/permit2 |
+
+
 
 # Deployment Addresses
 
 | Contract | Address | Source |
 | --- | --- | --- |
-| Dutch Limit Order Reactor | https://etherscan.io/address/0x8Cc1AaF08Ce7F48E4104196753bB1daA80E3530f | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
+| Dutch Limit Order Reactor | [https://etherscan.io/address/0x81f570f48BE8d3D358404f257b5bDC4A88eefA50](https://etherscan.io/address/0x81f570f48BE8d3D358404f257b5bDC4A88eefA50) | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
 | Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
