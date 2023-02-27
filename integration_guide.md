@@ -88,12 +88,13 @@ Order notifications will be sent to the registered endpoint as http requests as 
 method: POST
 content-type: application/json
 data: {
-     orderHash: "the hash identifier for the order", 
+    orderHash: "the hash identifier for the order", 
     createdAt: "timestamp at which the order was posted",
     signature: "the swapper signature to include with order execution",
     offerer: "the swapper address",
     orderStatus: "current order status (always should be `active` upon receiving notification)",
-    encodedOrder: "The abi-encoded order to include with order execution. This can be decoded using the Gouda-SDK (https://github.com/uniswap/gouda-sdk) to verify order fields and signature"
+    encodedOrder: "The abi-encoded order to include with order execution. This can be decoded using the Gouda-SDK (https://github.com/uniswap/gouda-sdk) to verify order fields and signature",
+    chainId: "The chain ID that the order originates from and must be settled on"
 }
 ```
 
