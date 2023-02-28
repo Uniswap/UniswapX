@@ -148,18 +148,28 @@ contract Runner is Test, PermitSignature {
     }
 
     function balancesAreCorrect() public returns (bool) {
+        console.log("inside balancesAreCorrect()");
+        console.log("1st check");
         if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
+            console.log("FALSE: tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE");
             return false;
         }
+        console.log("2nd check");
         if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+            console.log("FALSE: tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)");
             return false;
         }
+        console.log("3rd check");
         if (tokenIn.balanceOf(maker1) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+            console.log("FALSE: tokenIn.balanceOf(maker1) != (INITIAL_BALANCE - numOrdersFilled * ONE)");
             return false;
         }
+        console.log("4th check");
         if (tokenOut.balanceOf(maker1) != numOrdersFilled * ONE) {
+            console.log("FALSE: tokenOut.balanceOf(maker1) != numOrdersFilled * ONE");
             return false;
         }
+        console.log("done all checks!");
         return true;
     }
 }
@@ -176,7 +186,7 @@ contract MultipleMakersInvariants is Test, InvariantTest, DeployPermit2 {
     }
 
     function invariant_balancesAreCorrect() public {
-        //        assertTrue(runner.balancesAreCorrect());
-        assertTrue(true);
+        assertTrue(runner.balancesAreCorrect());
+//        assertTrue(true);
     }
 }
