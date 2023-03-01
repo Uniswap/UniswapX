@@ -77,16 +77,21 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
             }
         }
-        // `ethBalanceBeforeReactorCallback` and `ethGainedFromReactorCallback` are only used in non direct taker +
-        // ETH output scenario
+
         uint256 ethBalanceBeforeReactorCallback = address(this).balance;
         if (!directTaker) {
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
         }
-        uint256 ethGainedFromReactorCallback = address(this).balance - ethBalanceBeforeReactorCallback;
+        // availableEthOutput is the amount of ETH available to distribute as outputs. This amount of
+        // ETH is msg.value if directTaker, otherwise the amount of ETH gained from reactor callback.
+        uint256 availableEthOutput;
+        if (directTaker) {
+            availableEthOutput = msg.value;
+        } else {
+            availableEthOutput = address(this).balance - ethBalanceBeforeReactorCallback;
+        }
+
         unchecked {
-            // `msgValue` is only used in directTaker + ETH output scenario
-            uint256 msgValue = msg.value;
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory resolvedOrder = orders[i];
@@ -98,18 +103,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                         if (!sent) {
                             revert EtherSendFail();
                         }
-                        if (directTaker) {
-                            if (msgValue >= output.amount) {
-                                msgValue -= output.amount;
-                            } else {
-                                revert InsufficientEth();
-                            }
+                        if (availableEthOutput >= output.amount) {
+                            availableEthOutput -= output.amount;
                         } else {
-                            if (ethGainedFromReactorCallback >= output.amount) {
-                                ethGainedFromReactorCallback -= output.amount;
-                            } else {
-                                revert InsufficientEth();
-                            }
+                            revert InsufficientEth();
                         }
                     } else {
                         if (directTaker) {
