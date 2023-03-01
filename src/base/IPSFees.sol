@@ -14,6 +14,7 @@ abstract contract IPSFees {
     error InvalidFee();
     error NoClaimableFees();
     error UnauthorizedFeeRecipient();
+    error FailedToSendEther();
 
     /// @dev The number of basis points per whole
     uint256 private constant BPS = 10000;
@@ -87,7 +88,9 @@ abstract contract IPSFees {
         unchecked {
             if (token == ETH_ADDRESS) {
                 (bool sent,) = msg.sender.call{value: amount - 1}("");
-                require(sent, "Failed to send ether");
+                if (!sent) {
+                    revert FailedToSendEther();
+                }
             }
             ERC20(token).safeTransfer(msg.sender, amount - 1);
         }
