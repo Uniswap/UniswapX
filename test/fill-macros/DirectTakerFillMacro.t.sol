@@ -20,6 +20,7 @@ import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrder
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 
 // This suite of tests test the direct taker fill macro, ie fillContract == address(1). It also contains tests
 // for ETH outputs with direct taker.
@@ -332,7 +333,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         });
 
         vm.prank(directTaker);
-        vm.expectRevert(BaseReactor.EtherSendFail.selector);
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.execute{value: outputAmount - 1}(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );

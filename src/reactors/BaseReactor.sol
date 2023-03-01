@@ -8,6 +8,7 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
@@ -18,6 +19,7 @@ import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken, ETH_ADDR
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
+    using CurrencyLibrary for address;
 
     // Occurs when an output = ETH and the reactor lacks enough ETH OR output recipient cannot receive ETH
     error EtherSendFail();
@@ -26,7 +28,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     error InsufficientEth();
 
     address public immutable permit2;
-    address internal constant DIRECT_TAKER_FILL = address(1);
+    address public constant DIRECT_TAKER_FILL = address(1);
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         IPSFees(_protocolFeeBps, _protocolFeeRecipient)
@@ -97,24 +99,12 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                 ResolvedOrder memory resolvedOrder = orders[i];
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-
+                    output.token.transfer(output.recipient, output.amount, fillContract, IAllowanceTransfer(permit2));
                     if (output.token == ETH_ADDRESS) {
-                        (bool sent,) = output.recipient.call{value: output.amount}("");
-                        if (!sent) {
-                            revert EtherSendFail();
-                        }
                         if (availableEthOutput >= output.amount) {
                             availableEthOutput -= output.amount;
                         } else {
                             revert InsufficientEth();
-                        }
-                    } else {
-                        if (directTaker) {
-                            IAllowanceTransfer(permit2).transferFrom(
-                                msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
-                            );
-                        } else {
-                            ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
                         }
                     }
                 }
