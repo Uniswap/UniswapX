@@ -7,7 +7,6 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder, ETH_ADDRESS} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
-import {BaseReactor} from "../reactors/BaseReactor.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Owned {
@@ -15,6 +14,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
+    error EtherSendFail();
 
     address private immutable swapRouter02;
     address private immutable whitelistedCaller;
@@ -69,7 +69,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         if (ethToSendToReactor > 0) {
             (bool sent,) = reactor.call{value: ethToSendToReactor}("");
             if (!sent) {
-                revert BaseReactor.EtherSendFail();
+                revert EtherSendFail();
             }
         }
     }
