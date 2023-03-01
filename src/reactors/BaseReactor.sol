@@ -81,16 +81,14 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         }
 
         uint256 ethBalanceBeforeReactorCallback = address(this).balance;
-        if (!directTaker) {
-            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
-        }
         // availableEthOutput is the amount of ETH available to distribute as outputs. This amount of
         // ETH is msg.value if directTaker, otherwise the amount of ETH gained from reactor callback.
         uint256 availableEthOutput;
-        if (directTaker) {
-            availableEthOutput = msg.value;
-        } else {
+        if (!directTaker) {
+            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
             availableEthOutput = address(this).balance - ethBalanceBeforeReactorCallback;
+        } else {
+            availableEthOutput = msg.value;
         }
 
         unchecked {
