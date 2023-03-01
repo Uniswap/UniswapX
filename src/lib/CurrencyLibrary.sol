@@ -9,7 +9,7 @@ import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
 /// @title CurrencyLibrary
-/// @dev This library allows for transferring and holding native tokens and ERC20 tokens
+/// @dev This library allows for transferring native ETH and ERC20s via direct taker OR fill contract.
 library CurrencyLibrary {
     using SafeTransferLib for ERC20;
 
