@@ -33,7 +33,6 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     ExclusiveFillerValidation exclusiveFillerValidation;
 
     function setUp() public {
-        fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
@@ -41,6 +40,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
+        fillContract = new MockFillContract(reactor);
     }
 
     // Test exclusive filler validation contract succeeds
@@ -55,7 +55,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
-                abi.encode(address(this), block.timestamp + 50)
+                abi.encode(address(fillContract), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -66,9 +66,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // Below snapshot can be compared to `DutchExecuteSingle.snap` to compare an execute with and without
         // exclusive filler validation
         snapStart("testExclusiveFillerSucceeds");
-        reactor.execute(
+        fillContract.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(fillContract),
             bytes("")
         );
         snapEnd();
@@ -98,9 +97,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
-        reactor.execute(
+        fillContract.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(fillContract),
             bytes("")
         );
     }
@@ -128,9 +126,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         });
 
         vm.prank(address(0x123));
-        reactor.execute(
+        fillContract.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(fillContract),
             bytes("")
         );
         assertEq(tokenOut.balanceOf(maker), outputAmount);
@@ -159,9 +156,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
-        reactor.execute(
+        fillContract.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(fillContract),
             bytes("")
         );
     }

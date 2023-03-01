@@ -28,15 +28,15 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData) external override {
+    function execute(SignedOrder calldata order, bytes calldata fillData) external override {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
-        _fill(resolvedOrders, fillContract, fillData);
+        _fill(resolvedOrders, fillData);
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata fillData)
         external
         override
     {
@@ -47,35 +47,36 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
-        _fill(resolvedOrders, fillContract, fillData);
+        _fill(resolvedOrders, fillData);
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        bool directTaker = fillContract == DIRECT_TAKER_FILL;
+    function _fill(ResolvedOrder[] memory orders, bytes calldata fillData) internal {
+        bool takerIsEOA = address(msg.sender).code.length == 0;
+
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _takeFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, directTaker ? msg.sender : fillContract);
+                transferInputTokens(order, msg.sender);
             }
         }
-        if (!directTaker) {
-            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
-        }
+
+        if (!takerIsEOA) IReactorCallback(msg.sender).reactorCallback(orders, fillData);
+
         unchecked {
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory resolvedOrder = orders[i];
                 for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-                    if (directTaker) {
+                    if (takerIsEOA) {
                         IAllowanceTransfer(permit2).transferFrom(
                             msg.sender, output.recipient, SafeCast.toUint160(output.amount), output.token
                         );
                     } else {
-                        ERC20(output.token).safeTransferFrom(fillContract, output.recipient, output.amount);
+                        ERC20(output.token).safeTransferFrom(msg.sender, output.recipient, output.amount);
                     }
                 }
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
@@ -89,7 +90,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees {
     /// @dev should revert on any order-type-specific validation errors
     function resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
-    /// @notice Transfers tokens to the fillContract
+    /// @notice Transfers tokens to the taker
     /// @param order The encoded order to transfer tokens for
     /// @param to The address to transfer tokens to
     function transferInputTokens(ResolvedOrder memory order, address to) internal virtual;

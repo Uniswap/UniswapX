@@ -5,28 +5,37 @@ import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
+import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback, Owned {
+    using SafeTransferLib for ERC20;
+
     error FillerNotOwner();
     error CallerNotReactor();
 
     address public immutable swapRouter;
     address public immutable reactor;
 
-    using SafeTransferLib for ERC20;
-
     constructor(address _reactor, address _swapRouter, address _owner) Owned(_owner) {
         reactor = _reactor;
         swapRouter = _swapRouter;
     }
 
+    function execute(SignedOrder calldata order, bytes calldata fillData) external {
+        require(msg.sender == owner, "UNAUTHORIZED");
+        IReactor(reactor).execute(order, fillData);
+    }
+
+    function executeBatch(SignedOrder[] calldata order, bytes calldata fillData) external {
+        require(msg.sender == owner, "UNAUTHORIZED");
+        IReactor(reactor).executeBatch(order, fillData);
+    }
+
     /// @dev Can handle multiple resolvedOrders, but the input tokens and output tokens must be the same.
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata path) external {
-        if (filler != owner) {
-            revert FillerNotOwner();
-        }
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata path) external {
+
         if (msg.sender != reactor) {
             revert CallerNotReactor();
         }

@@ -90,9 +90,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingle");
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         snapEnd();
@@ -132,9 +131,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingleTwoHop");
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenMid, FEE, tokenOut)
         );
         snapEnd();
@@ -164,9 +162,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenOut.forceApprove(address(uniswapV3Executor), address(reactor), type(uint256).max);
 
         vm.recordLogs();
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -202,9 +199,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
     }
@@ -239,9 +235,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 4);
 
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
@@ -280,9 +275,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
     }
@@ -323,7 +317,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
 
         snapStart("DutchUniswapV3ExecuteBatch");
-        reactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encodePacked(tokenIn, FEE, tokenOut));
+        uniswapV3Executor.executeBatch(signedOrders, abi.encodePacked(tokenIn, FEE, tokenOut));
         snapEnd();
         assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
         assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
@@ -348,9 +342,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
@@ -379,9 +372,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenOut.mint(address(mockSwapRouter), ONE);
 
         vm.recordLogs();
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
 
@@ -414,9 +406,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
 
         vm.recordLogs();
         snapStart("DutchUniswapV3ExecuteSingleInputDecay");
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
         snapEnd();
@@ -443,9 +434,8 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         vm.expectRevert(FillerNotOwner.selector);
         vm.stopPrank();
         vm.prank(address(0));
-        reactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
     }
@@ -466,6 +456,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         );
 
         vm.expectRevert(CallerNotReactor.selector);
-        uniswapV3Executor.reactorCallback(resolvedOrders, taker, fillData);
+        uniswapV3Executor.reactorCallback(resolvedOrders, fillData);
     }
 }

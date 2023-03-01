@@ -62,9 +62,8 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, DeployPermit
         assertEq(ERC20(weth).balanceOf(maker), 20000000000000000);
         assertEq(ERC20(usdc).balanceOf(maker), 0);
         assertEq(ERC20(weth).balanceOf(address(uniswapV3Executor)), 0);
-        dloReactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
         );
         assertEq(ERC20(weth).balanceOf(maker), 0);
@@ -88,9 +87,8 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, DeployPermit
         });
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        dloReactor.execute(
+        uniswapV3Executor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
             abi.encodePacked(address(weth), fee, address(usdc))
         );
     }

@@ -394,13 +394,13 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     function setUp() public override {
-        fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         makerPrivateKey = 0x12341234;
         maker = vm.addr(makerPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
         createReactor();
+        fillContract = new MockFillContract(reactor);
     }
 
     function name() public pure override returns (string memory) {
@@ -532,7 +532,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         emit Fill(orders[1].hash(), address(this), maker, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), maker2, orders[2].info.nonce);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        fillContract.executeBatch(signedOrders, bytes(""));
         assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
         assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
@@ -569,7 +569,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         });
 
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        fillContract.executeBatch(generateSignedOrders(orders), bytes(""));
     }
 
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {

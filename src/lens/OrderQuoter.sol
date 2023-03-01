@@ -17,7 +17,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param sig The order signature
     /// @return result The ResolvedOrder
     function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
-        try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), address(this), bytes("")) {}
+        try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
         }
@@ -43,8 +43,7 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-    function reactorCallback(ResolvedOrder[] memory resolvedOrders, address filler, bytes memory) external view {
-        require(filler == address(this));
+    function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory) external view {
         bytes memory order = abi.encode(resolvedOrders[0]);
         assembly {
             revert(add(32, order), mload(order))

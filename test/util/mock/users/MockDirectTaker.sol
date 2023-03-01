@@ -10,9 +10,9 @@ contract MockDirectTaker {
         ERC20(token).approve(to, amount);
     }
 
-    function execute(IReactor reactor, SignedOrder memory order, address fillContract, bytes calldata fillData)
+    function execute(IReactor reactor, SignedOrder memory order, bytes calldata fillData)
         external
     {
-        reactor.execute(order, fillContract, fillData);
+        reactor.execute(order, fillData);
     }
 }

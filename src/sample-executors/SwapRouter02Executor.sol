@@ -5,7 +5,8 @@ import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
+import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
@@ -19,27 +20,36 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     address private immutable whitelistedCaller;
     address private immutable reactor;
 
+    modifier onlyWhitelisted() {
+      if (msg.sender != whitelistedCaller) revert CallerNotWhitelisted();
+      _;
+    }
+
     constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
         swapRouter02 = _swapRouter02;
     }
 
-    /// @param resolvedOrders The orders to fill
-    /// @param filler This filler must be `whitelistedCaller`
+    function execute(SignedOrder calldata order, bytes calldata fillData) external onlyWhitelisted {
+        IReactor(reactor).execute(order, fillData);
+    }
+
+    function executeBatch(SignedOrder[] calldata order, bytes calldata fillData) external onlyWhitelisted {
+        IReactor(reactor).executeBatch(order, fillData);
+    }
+
     /// @param fillData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata fillData)
         external
     {
         if (msg.sender != reactor) {
             revert MsgSenderNotReactor();
         }
-        if (filler != whitelistedCaller) {
-            revert CallerNotWhitelisted();
-        }
+
         (
             address[] memory tokensToApproveForSwapRouter02,
             address[] memory tokensToApproveForReactor,

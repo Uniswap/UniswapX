@@ -88,7 +88,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroSingleOrder");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), bytes("")
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), outputAmount);
@@ -117,7 +117,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroSingleOrderWithFee");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), bytes("")
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), outputAmount * 9 / 10);
@@ -159,7 +159,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroTwoOrders");
-        reactor.executeBatch(signedOrders, address(1), bytes(""));
+        reactor.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(maker1), 2 * ONE);
@@ -224,7 +224,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroThreeOrdersWithFees");
-        reactor.executeBatch(signedOrders, address(1), bytes(""));
+        reactor.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(maker1), ONE * 9 / 10);
@@ -258,7 +258,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         vm.expectRevert(bytes("TRANSFER_FROM_FAILED"));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), bytes("")
         );
     }
 
@@ -284,7 +284,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         vm.expectRevert(abi.encodeWithSignature("InsufficientAllowance(uint256)", 0));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), bytes("")
         );
     }
 }

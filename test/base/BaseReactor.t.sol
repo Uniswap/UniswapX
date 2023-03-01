@@ -57,7 +57,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
     ) public virtual returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {}
 
     /// @dev Basic execute test, checks balance before and after
-    function testBaseExecute() public {
+    function testtBaseExecute() public {
         // Seed both maker and fillContract with enough tokens (important for dutch order)
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
@@ -78,10 +78,10 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
 
         // TODO: expand to allow for custom fillData in 3rd param
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
+        emit Fill(orderHash, address(fillContract), maker, orderInfo.nonce);
         // execute order
         snapStart(string.concat(name(), "BaseExecuteSingle"));
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        fillContract.execute(signedOrder, bytes(""));
         snapEnd();
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - inputAmount);
@@ -117,12 +117,12 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) =
             createAndSignBatchOrders(infos, inputAmounts, outputAmounts);
         vm.expectEmit(true, true, true, true);
-        emit Fill(orderHashes[0], address(this), maker, infos[0].nonce);
+        emit Fill(orderHashes[0], address(fillContract), maker, infos[0].nonce);
         vm.expectEmit(true, true, true, true);
-        emit Fill(orderHashes[1], address(this), maker, infos[1].nonce);
+        emit Fill(orderHashes[1], address(fillContract), maker, infos[1].nonce);
 
         snapStart(string.concat(name(), "BaseExecuteBatch"));
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        fillContract.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
@@ -154,12 +154,12 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) =
             createAndSignBatchOrders(infos, inputAmounts, outputAmounts);
         vm.expectEmit(true, true, true, true);
-        emit Fill(orderHashes[0], address(this), maker, infos[0].nonce);
+        emit Fill(orderHashes[0], address(fillContract), maker, infos[0].nonce);
         vm.expectEmit(true, true, true, true);
-        emit Fill(orderHashes[1], address(this), maker, infos[1].nonce);
+        emit Fill(orderHashes[1], address(fillContract), maker, infos[1].nonce);
 
         snapStart(string.concat(name(), "BaseExecuteBatchMultipleOutputs"));
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        fillContract.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut.balanceOf(maker), totalOutputAmount);
@@ -187,8 +187,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         ) = _checkpointBalances();
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        emit Fill(orderHash, address(fillContract), maker, orderInfo.nonce);
+        fillContract.execute(signedOrder, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -209,7 +209,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         signedOrder.sig = oldSignature;
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        fillContract.execute(signedOrder, bytes(""));
     }
 
     /// @dev Base test preventing nonce reuse
@@ -234,8 +234,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
         ) = _checkpointBalances();
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(this), maker, orderInfo.nonce);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        emit Fill(orderHash, address(fillContract), maker, orderInfo.nonce);
+        fillContract.execute(signedOrder, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -246,7 +246,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test {
             .withNonce(123);
         (signedOrder, orderHash) = createAndSignOrder(orderInfo, inputAmount, outputAmount);
         vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        fillContract.execute(signedOrder, bytes(""));
     }
 
     function _checkpointBalances()
