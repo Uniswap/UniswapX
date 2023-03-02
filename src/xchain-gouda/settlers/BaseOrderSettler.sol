@@ -45,11 +45,15 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller) external override returns (uint8[] memory failed) {
+    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller)
+        external
+        override
+        returns (uint8[] memory failed)
+    {
         failed = new uint8[](orders.length);
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                (bool success, ) = address(this).delegatecall(
+                (bool success,) = address(this).delegatecall(
                     abi.encodeWithSelector(IOrderSettler.initiate.selector, orders[i], targetChainFiller)
                 );
                 if (!success) failed[i] = 1;
