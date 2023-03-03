@@ -19,9 +19,15 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     address private immutable swapRouter02;
     address private immutable whitelistedCaller;
     address private immutable reactor;
-    address payable private immutable WETH9; 
+    address payable private immutable WETH9;
 
-    constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02, address payable _WETH9) Owned(_owner) {
+    constructor(
+        address _whitelistedCaller,
+        address _reactor,
+        address _owner,
+        address _swapRouter02,
+        address payable _WETH9
+    ) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
         swapRouter02 = _swapRouter02;
