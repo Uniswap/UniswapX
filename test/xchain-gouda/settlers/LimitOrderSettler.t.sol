@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {console} from "forge-std/console.sol";
 import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {console} from "forge-std/console.sol";
@@ -72,6 +73,7 @@ contract CrossChainLimitOrderReactorTest is
     CrossChainLimitOrder order;
     CrossChainLimitOrder order2; // for batching
     SignedOrder[] signedOrders; // for batching
+    bytes32[] orderIds; // for batching
     bytes signature;
     address permit2;
 
@@ -194,7 +196,7 @@ contract CrossChainLimitOrderReactorTest is
         signedOrders.push(signedOrder2);
 
         vm.prank(filler);
-        snapStart("CrossChainInitiateBath");
+        snapStart("CrossChainInitiateBatch");
         settler.initiateBatch(signedOrders, targetChainFiller);
         snapEnd();
 
@@ -226,7 +228,8 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement2.originChainFiller, filler);
         assertEq(settlement2.targetChainFiller, address(2));
         assertEq(settlement2.settlementOracle, address(settlementOracle));
-        assertEq(settlement2.optimisticDeadline, block.timestamp + order.info.optimisticSettlementPeriod);
+        assertEq(settlement2.optimisticDeadline, block.timestamp + order2.info.optimisticSettlementPeriod);
+        assertEq(settlement2.challengeDeadline, block.timestamp + order2.info.challengePeriod);
         assertEq(settlement2.input.token, order2.input.token);
         assertEq(settlement2.input.amount, order2.input.amount);
         assertEq(settlement2.fillerCollateral.token, order2.fillerCollateral.token);
@@ -237,6 +240,45 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement2.outputs[0].amount, order2.outputs[0].amount);
         assertEq(settlement2.outputs[0].recipient, order2.outputs[0].recipient);
         assertEq(settlement2.outputs[0].chainId, order2.outputs[0].chainId);
+    }
+
+    function testInitiateBatchStoresFirstSettlementIfSecondReverts() public {
+        SignedOrder memory signedOrder2 = generateSecondOrder();
+        signedOrder2.sig = signature; // invalid signatuer
+        signedOrders.push(SignedOrder(abi.encode(order), signature));
+        signedOrders.push(signedOrder2);
+
+        vm.prank(filler);
+        uint8[] memory returnArray = settler.initiateBatch(signedOrders, targetChainFiller);
+
+        ActiveSettlement memory settlement = settler.getSettlement(order.hash());
+        assertEq(settlement.optimisticDeadline, block.timestamp + order.info.optimisticSettlementPeriod);
+
+        ActiveSettlement memory settlement2 = settler.getSettlement(order2.hash());
+        assertEq(settlement2.optimisticDeadline, 0);
+
+        assertEq(returnArray[0], 0);
+        assertEq(returnArray[1], 1);
+
+    }
+
+    function testInitiateBatchStoresSecondSettlementIfFirstReverts() public {
+        SignedOrder memory signedOrder2 = generateSecondOrder();
+        signedOrders.push(SignedOrder(abi.encode(order), signedOrder2.sig)); // invalid signatuer
+        signedOrders.push(signedOrder2);
+
+        vm.prank(filler);
+        uint8[] memory returnArray = settler.initiateBatch(signedOrders, targetChainFiller);
+
+        ActiveSettlement memory settlement = settler.getSettlement(order.hash());
+        assertEq(settlement.optimisticDeadline, 0);
+
+        ActiveSettlement memory settlement2 = settler.getSettlement(order2.hash());
+        assertEq(settlement2.optimisticDeadline, block.timestamp + order2.info.optimisticSettlementPeriod);
+
+        assertEq(returnArray[0], 1);
+        assertEq(returnArray[1], 0);
+
     }
 
     function testInitiateSettlementRevertsOnInvalidSettlerContract() public {
@@ -379,6 +421,50 @@ contract CrossChainLimitOrderReactorTest is
         settler.cancel(order.hash());
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Cancelled));
     }
+
+    function testCancelBatchSettlementUpdatesSettlementStatuses() public {
+        SignedOrder memory signedOrder2 = generateSecondOrder();
+        signedOrders.push(SignedOrder(abi.encode(order), signature));
+        signedOrders.push(signedOrder2);
+        orderIds.push(order.hash());
+        orderIds.push(order2.hash());
+
+        vm.prank(filler);
+        settler.initiateBatch(signedOrders, targetChainFiller);
+        vm.warp(settler.getSettlement(order2.hash()).challengeDeadline + 100);
+
+        assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Pending));
+        assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStatus.Pending));
+        snapStart("CrossChainCancelBatchSettlements");
+        uint8[] memory failed = settler.cancelBatch(orderIds);
+        snapEnd();
+        assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Cancelled));
+        assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStatus.Cancelled));
+        assertEq(failed[0], 0);
+        assertEq(failed[1], 0);
+    }
+
+    function testCancelBatchSettlementUpdatesSecondSettlementStatusIfFirstFails() public {
+        SignedOrder memory signedOrder2 = generateSecondOrder();
+        signedOrders.push(SignedOrder(abi.encode(order), signature));
+        signedOrders.push(signedOrder2);
+        orderIds.push(order.hash());
+        orderIds.push(order2.hash());
+
+        vm.prank(filler);
+        settler.initiateBatch(signedOrders, targetChainFiller);
+        // warp to meet only the deadline of the first order
+        vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 100);
+
+        assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Pending));
+        assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStatus.Pending));
+        uint8[] memory failed = settler.cancelBatch(orderIds);
+        assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStatus.Cancelled));
+        assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStatus.Pending));
+        assertEq(failed[0], 0);
+        assertEq(failed[1], 1);
+    }
+
 
     function testCancelSettlementRevertsBeforeDeadline() public {
         vm.prank(filler);
@@ -548,7 +634,7 @@ contract CrossChainLimitOrderReactorTest is
         );
 
         order2.info =
-            SettlementInfoBuilder.init(address(settler)).withOfferer(swapper2).withOracle(address(settlementOracle));
+            SettlementInfoBuilder.init(address(settler)).withOfferer(swapper2).withOracle(address(settlementOracle)).withPeriods(300, 400);
         order2.input = InputToken(address(tokenIn2), tokenInAmount2, tokenInAmount2);
         order2.fillerCollateral = CollateralToken(address(tokenCollateral3), tokenCollateral3Amount);
         order2.challengerCollateral = CollateralToken(address(tokenCollateral4), tokenCollateral2Amount);
