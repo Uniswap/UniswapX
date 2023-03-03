@@ -70,7 +70,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }
 
-    /// @notice Unwraps the contract's WETH9 balance and sends it to recipient as ETH. Can only be called by owner.
+    /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
     /// @param recipient The address receiving ETH
     function unwrapWETH(address recipient) external onlyOwner {
         uint256 balanceWETH = WETH(WETH9).balanceOf(address(this));
