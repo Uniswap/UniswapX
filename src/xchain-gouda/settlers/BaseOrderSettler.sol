@@ -40,7 +40,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     /// @inheritdoc IOrderSettler
     function initiate(SignedOrder calldata order, address targetChainFiller) public override {
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         _initiate(resolve(order), targetChainFiller);
     }
 
@@ -103,14 +102,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             );
     }
 
-    // function cancelBatch(bytes32[] orderIds) external override {
-    //     for (uint256 i = 0; i < orderIds.length; i++) {
-    //       try IOrderSettler(addres(this)).cancel(orderIds[i]) returns (string memory result) {} catch {
-    //         emit Log("external call failed");
-    //       }
-    //     }
-    // }
-
     /// @inheritdoc IOrderSettler
     function cancel(bytes32 orderId) external override {
         ActiveSettlement storage settlement = settlements[orderId];
@@ -135,6 +126,18 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         }
 
         emit CancelSettlement(orderId);
+    }
+
+    function cancelBatch(bytes32[] calldata orderIds) external returns (uint8[] memory failed) {
+        failed = new uint8[](orderIds.length);
+
+        unchecked {
+            for (uint256 i = 0; i < orderIds.length; i++) {
+                (bool success,) =
+                    address(this).delegatecall(abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i]));
+                if (!success) failed[i] = 1;
+            }
+        }
     }
 
     /// @inheritdoc IOrderSettler

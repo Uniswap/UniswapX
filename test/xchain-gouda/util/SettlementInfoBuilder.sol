@@ -47,6 +47,16 @@ library SettlementInfoBuilder {
         return info;
     }
 
+    function withPeriods(SettlementInfo memory info, uint32 optimistic, uint32 challenge)
+        internal
+        pure
+        returns (SettlementInfo memory)
+    {
+        info.optimisticSettlementPeriod = optimistic;
+        info.challengePeriod = challenge;
+        return info;
+    }
+
     function withValidationContract(SettlementInfo memory info, address _validationContract)
         internal
         pure
