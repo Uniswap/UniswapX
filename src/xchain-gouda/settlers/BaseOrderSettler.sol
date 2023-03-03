@@ -104,12 +104,12 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     /// @inheritdoc IOrderSettler
     function cancel(bytes32 orderId) external override {
-        ActiveSettlement storage settlement = settlements[orderId];
+        ActiveSettlement memory settlement = settlements[orderId];
 
         verifySettlementInProgress(settlement, orderId);
         if (settlement.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
 
-        settlement.status = SettlementStatus.Cancelled;
+        settlements[orderId].status = SettlementStatus.Cancelled;
 
         ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
         if (settlement.challenger != address(0)) {
