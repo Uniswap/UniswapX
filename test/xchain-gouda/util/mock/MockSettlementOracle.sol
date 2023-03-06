@@ -15,6 +15,6 @@ contract MockSettlementOracle is ISettlementOracle {
         uint256 fillTimestamp,
         OutputToken[] calldata outputs
     ) external {
-        IOrderSettler(settler).finalize(orderId, targetChainFiller, fillTimestamp, outputs);
+        IOrderSettler(settler).finalize(orderId, targetChainFiller, fillTimestamp, keccak256(abi.encode(outputs)));
     }
 }

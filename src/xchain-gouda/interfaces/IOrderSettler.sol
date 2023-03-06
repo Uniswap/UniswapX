@@ -26,7 +26,7 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// oracle and then transferring input tokens and collateral to the filler.
     /// @dev only callable from the settlement specific oracle
     /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalize(bytes32 orderId, address targetChainFiller, uint256 fillTimestamp, OutputToken[] memory filledOutputs) external;
+    function finalize(bytes32 orderId, address targetChainFiller, uint256 fillTimestamp, bytes32 outputs) external;
 
     /// @notice Finalize a settlement after an optimistic time period if the settlement has not been challenged.
     /// @param orderId The order hash that identifies the order settlement to finalize

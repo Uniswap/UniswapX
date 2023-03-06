@@ -62,7 +62,7 @@ struct ActiveSettlement {
     InputToken input;
     CollateralToken fillerCollateral;
     CollateralToken challengerCollateral;
-    OutputToken[] outputs;
+    bytes32 outputs;
 }
 
 /// @dev generic concrete cross-chain order that specifies exact tokens which need to be sent and received

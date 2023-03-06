@@ -26,8 +26,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     ISignatureTransfer public immutable permit2;
 
-    event InitiateSettlementFailed(uint256 orderIndex);
-
     mapping(bytes32 => ActiveSettlement) settlements;
 
     constructor(address _permit2) {
@@ -70,7 +68,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
         uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
 
-        // TODO: may not be the most gas efficient, look into setting with dynamic array
         ActiveSettlement storage settlement = settlements[order.hash];
         settlement.status = SettlementStatus.Pending;
         settlement.offerer = order.info.offerer;
@@ -83,12 +80,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         settlement.input = order.input;
         settlement.fillerCollateral = order.fillerCollateral;
         settlement.challengerCollateral = order.challengerCollateral;
-
-        unchecked {
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                settlement.outputs.push(order.outputs[j]);
-            }
-        }
+        settlement.outputs = keccak256(abi.encode(order.outputs));
 
         emit InitiateSettlement(
             order.hash,
@@ -152,23 +144,13 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         compensateFiller(orderId, settlement);
     }
 
-    function finalize(bytes32 orderId, address filler, uint256 fillTimestamp, OutputToken[] memory filledOutputs) external override {
+    function finalize(bytes32 orderId, address filler, uint256 fillTimestamp, bytes32 outputs) external override {
         ActiveSettlement memory settlement = settlements[orderId];
         verifySettlementInProgress(settlement, orderId);
 
         if (msg.sender != settlement.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
         if (fillTimestamp > settlement.fillDeadline) revert OrderFillExceededDeadline();
-        if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
-
-        // validate outputs
-        for (uint16 i; i < settlement.outputs.length; i++) {
-            OutputToken memory expectedOutput = settlement.outputs[i];
-            OutputToken memory receivedOutput = filledOutputs[i];
-            if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
-            if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
-            if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
-            if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
-        }
+        if (outputs != settlement.outputs) revert InvalidOutputs(orderId);
 
         settlements[orderId].status = SettlementStatus.Success;
         ERC20(settlement.challengerCollateral.token).safeTransfer(

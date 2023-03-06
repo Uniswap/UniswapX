@@ -180,14 +180,15 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement.fillerCollateral.amount, order.fillerCollateral.amount);
         assertEq(settlement.challengerCollateral.token, order.challengerCollateral.token);
         assertEq(settlement.challengerCollateral.amount, order.challengerCollateral.amount);
-        assertEq(settlement.outputs[0].token, order.outputs[0].token);
-        assertEq(settlement.outputs[0].amount, order.outputs[0].amount);
-        assertEq(settlement.outputs[0].recipient, order.outputs[0].recipient);
-        assertEq(settlement.outputs[0].chainId, order.outputs[0].chainId);
-        assertEq(settlement.outputs[1].token, order.outputs[1].token);
-        assertEq(settlement.outputs[1].amount, order.outputs[1].amount);
-        assertEq(settlement.outputs[1].recipient, order.outputs[1].recipient);
-        assertEq(settlement.outputs[1].chainId, order.outputs[1].chainId);
+        assertEq(settlement.outputs, keccak256(abi.encode(order.outputs)));
+        // assertEq(settlement.outputs[0].token, order.outputs[0].token);
+        // assertEq(settlement.outputs[0].amount, order.outputs[0].amount);
+        // assertEq(settlement.outputs[0].recipient, order.outputs[0].recipient);
+        // assertEq(settlement.outputs[0].chainId, order.outputs[0].chainId);
+        // assertEq(settlement.outputs[1].token, order.outputs[1].token);
+        // assertEq(settlement.outputs[1].amount, order.outputs[1].amount);
+        // assertEq(settlement.outputs[1].recipient, order.outputs[1].recipient);
+        // assertEq(settlement.outputs[1].chainId, order.outputs[1].chainId);
     }
 
     function testInitiateBatchStoresAllActiveSettlements() public {
@@ -213,14 +214,15 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement.fillerCollateral.amount, order.fillerCollateral.amount);
         assertEq(settlement.challengerCollateral.token, order.challengerCollateral.token);
         assertEq(settlement.challengerCollateral.amount, order.challengerCollateral.amount);
-        assertEq(settlement.outputs[0].token, order.outputs[0].token);
-        assertEq(settlement.outputs[0].amount, order.outputs[0].amount);
-        assertEq(settlement.outputs[0].recipient, order.outputs[0].recipient);
-        assertEq(settlement.outputs[0].chainId, order.outputs[0].chainId);
-        assertEq(settlement.outputs[1].token, order.outputs[1].token);
-        assertEq(settlement.outputs[1].amount, order.outputs[1].amount);
-        assertEq(settlement.outputs[1].recipient, order.outputs[1].recipient);
-        assertEq(settlement.outputs[1].chainId, order.outputs[1].chainId);
+        assertEq(settlement.outputs, keccak256(abi.encode(order.outputs)));
+        // assertEq(settlement.outputs[0].token, order.outputs[0].token);
+        // assertEq(settlement.outputs[0].amount, order.outputs[0].amount);
+        // assertEq(settlement.outputs[0].recipient, order.outputs[0].recipient);
+        // assertEq(settlement.outputs[0].chainId, order.outputs[0].chainId);
+        // assertEq(settlement.outputs[1].token, order.outputs[1].token);
+        // assertEq(settlement.outputs[1].amount, order.outputs[1].amount);
+        // assertEq(settlement.outputs[1].recipient, order.outputs[1].recipient);
+        // assertEq(settlement.outputs[1].chainId, order.outputs[1].chainId);
 
         ActiveSettlement memory settlement2 = settler.getSettlement(order2.hash());
         assertEq(uint8(settlement2.status), uint8(SettlementStatus.Pending));
@@ -236,10 +238,12 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement2.fillerCollateral.amount, order2.fillerCollateral.amount);
         assertEq(settlement2.challengerCollateral.token, order2.challengerCollateral.token);
         assertEq(settlement2.challengerCollateral.amount, order2.challengerCollateral.amount);
-        assertEq(settlement2.outputs[0].token, order2.outputs[0].token);
-        assertEq(settlement2.outputs[0].amount, order2.outputs[0].amount);
-        assertEq(settlement2.outputs[0].recipient, order2.outputs[0].recipient);
-        assertEq(settlement2.outputs[0].chainId, order2.outputs[0].chainId);
+        assertEq(settlement2.outputs, keccak256(abi.encode(order2.outputs)));
+        //
+        // assertEq(settlement2.outputs[0].token, order2.outputs[0].token);
+        // assertEq(settlement2.outputs[0].amount, order2.outputs[0].amount);
+        // assertEq(settlement2.outputs[0].recipient, order2.outputs[0].recipient);
+        // assertEq(settlement2.outputs[0].chainId, order2.outputs[0].chainId);
     }
 
     function testInitiateBatchStoresFirstSettlementIfSecondReverts() public {
@@ -568,7 +572,7 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.warp(settler.getSettlement(order.hash()).challengeDeadline + 1);
         vm.expectRevert(abi.encodePacked(OnlyOracleCanFinalizeSettlement.selector, order.hash()));
-        settler.finalize(order.hash(), targetChainFiller, block.timestamp + 10, order.outputs);
+        settler.finalize(order.hash(), targetChainFiller, block.timestamp + 10, keccak256(abi.encode(order.outputs)));
     }
 
     function testFinalizeChallengedOrderRevertsIfOrderFilledAfterFillDeadline() public {
