@@ -47,9 +47,17 @@ interface IOrderSettlerErrors {
     /// @param orderId The order hash
     error CannotFinalizeBeforeDeadline(bytes32 orderId);
 
-    /// @notice Thrown when trying to finalize an order that was filled after the fill deadline
+    /// @notice Thrown when trying to optimistically finalize a challenged settlement.
     /// @param orderId The order hash
-    error OrderFillExceededDeadline(bytes32 orderId);
+    error CannotFinalizeChallengedSettlement(bytes32 orderId);
+
+    /// @notice Thrown when trying to finalize an order that was filled after the fill deadline
+    error OrderFillExceededDeadline();
+
+    /// @notice Thrown when attempting to finalize (non-optimistically) a settlement from an account other then the user
+    ///         selected oracle
+    /// @param orderId The order hash
+    error OnlyOracleCanFinalizeSettlement(bytes32 orderId);
 
     /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
     /// @param orderId The order hash

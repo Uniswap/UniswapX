@@ -15,18 +15,18 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
     /// @param chainId The invalid chainID
     error InvalidChainId(uint256 chainId);
 
-    function fillAndTransmitSettlementOutputs(bytes32 orderId, OutputToken[] calldata outputs) external {
+    function fillAndTransmitSettlement(bytes32 orderId, address settler, OutputToken[] calldata outputs) external {
         unchecked {
             for (uint256 i = 0; i < outputs.length; i++) {
                 OutputToken memory output = outputs[i];
                 if (output.chainId != block.chainid) revert InvalidChainId(output.chainId);
                 ERC20(output.token).safeTransferFrom(msg.sender, output.recipient, output.amount);
             }
-            transmitSettlementOutputs(orderId, msg.sender, outputs);
+            transmitSettlement(orderId, settler, msg.sender, outputs);
         }
     }
 
-    function transmitSettlementOutputs(bytes32 orderId, address filler, OutputToken[] calldata outputs)
+    function transmitSettlement(bytes32 orderId, address settler, address filler, OutputToken[] calldata outputs)
         internal
         virtual;
 }
