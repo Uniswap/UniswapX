@@ -141,47 +141,40 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function finalize(bytes32 orderId) external override {
+    function finalizeOptimistically(bytes32 orderId) external override {
         ActiveSettlement memory settlement = settlements[orderId];
         verifySettlementInProgress(settlement, orderId);
 
-        /**
-         * If the settlement has not been challenged
-         */
-        if (settlement.status == SettlementStatus.Pending) {
-            if (block.timestamp < settlement.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
+        if (settlement.status != SettlementStatus.Pending) revert CannotFinalizeChallengedSettlement(orderId);
+        if (block.timestamp < settlement.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
-            settlements[orderId].status = SettlementStatus.Success;
-            compensateFiller(orderId, settlement);
+        settlements[orderId].status = SettlementStatus.Success;
+        compensateFiller(orderId, settlement);
+    }
 
-            /**
-             * If the settlement has been challenged
-             */
-        } else if (settlement.status == SettlementStatus.Challenged) {
-            (OutputToken[] memory filledOutputs, uint256 fillTimestamp) =
-                ISettlementOracle(settlement.settlementOracle).getSettlementInfo(orderId, settlement.targetChainFiller);
+    function finalize(bytes32 orderId, address filler, uint256 fillTimestamp, OutputToken[] memory filledOutputs) external override {
+        ActiveSettlement memory settlement = settlements[orderId];
+        verifySettlementInProgress(settlement, orderId);
 
-            if (fillTimestamp > settlement.fillDeadline) revert OrderFillExceededDeadline(orderId);
-            if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
+        if (msg.sender != settlement.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
+        if (fillTimestamp > settlement.fillDeadline) revert OrderFillExceededDeadline();
+        if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
 
-            // validate outputs
-            for (uint16 i; i < settlement.outputs.length; i++) {
-                OutputToken memory expectedOutput = settlement.outputs[i];
-                OutputToken memory receivedOutput = filledOutputs[i];
-                if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
-                if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
-                if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
-                if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
-            }
-
-            settlements[orderId].status = SettlementStatus.Success;
-            ERC20(settlement.challengerCollateral.token).safeTransfer(
-                settlement.originChainFiller, settlement.challengerCollateral.amount
-            );
-            compensateFiller(orderId, settlement);
-        } else {
-            revert SettlementAlreadyCompleted(orderId);
+        // validate outputs
+        for (uint16 i; i < settlement.outputs.length; i++) {
+            OutputToken memory expectedOutput = settlement.outputs[i];
+            OutputToken memory receivedOutput = filledOutputs[i];
+            if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
+            if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
+            if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
+            if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
         }
+
+        settlements[orderId].status = SettlementStatus.Success;
+        ERC20(settlement.challengerCollateral.token).safeTransfer(
+            settlement.originChainFiller, settlement.challengerCollateral.amount
+        );
+        compensateFiller(orderId, settlement);
     }
 
     function challengeSettlement(bytes32 orderId) external {
