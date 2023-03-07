@@ -42,4 +42,6 @@ interface IOrderSettlerErrors {
     /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
     /// @param orderId The order hash
     error CanOnlyChallengePendingSettlements(bytes32 orderId);
+
+    error InvalidSettlementKey();
 }

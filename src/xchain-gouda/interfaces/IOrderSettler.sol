@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {IOrderSettlerErrors} from "./IOrderSettlerErrors.sol";
-import {ResolvedOrder, SettlementStatus, OutputToken} from "../base/SettlementStructs.sol";
+import {ResolvedOrder, OutputToken, SettlementKey} from "../base/SettlementStructs.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Interface for cross-chain order settlers. These contracts collect escrow tokens from the swapper and filler
@@ -26,15 +26,15 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// oracle and then transferring input tokens and collateral to the filler.
     /// @dev only callable from the settlement specific oracle
     /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalize(bytes32 orderId, address targetChainFiller, uint256 fillTimestamp, bytes32 outputs) external;
+    function finalize(bytes32 orderId, SettlementKey memory key, uint256 fillTimestamp) external;
 
     /// @notice Finalize a settlement after an optimistic time period if the settlement has not been challenged.
     /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalizeOptimistically(bytes32 orderId) external;
+    function finalizeOptimistically(bytes32 orderId, SettlementKey memory key) external;
 
 
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper. Half of the filler collateral is shared if a challenger challenged the order.
     /// @param orderId The order hash that identifies the order settlement to cancel
-    function cancel(bytes32 orderId) external;
+    function cancel(bytes32 orderId, SettlementKey memory key) external;
 }
