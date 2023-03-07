@@ -14,10 +14,9 @@ contract DeploySwapRouter02Executor is Script {
         address whitelistedCaller = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WHITELISTED_CALLER");
         address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
         address swapRouter02 = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02");
-        address WETH9 = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WETH");
 
         vm.startBroadcast(privateKey);
-        executor = new SwapRouter02Executor{salt: 0x00}(whitelistedCaller, reactor, owner, swapRouter02, payable(WETH9));
+        executor = new SwapRouter02Executor{salt: 0x00}(whitelistedCaller, reactor, owner, swapRouter02);
         vm.stopBroadcast();
 
         console2.log("SwapRouter02Executor", address(executor));

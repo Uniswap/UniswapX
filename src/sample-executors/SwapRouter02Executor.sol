@@ -4,10 +4,10 @@ pragma solidity ^0.8.16;
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
+import {IWETH9} from "../external/IWETH9.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Owned {
@@ -19,19 +19,11 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     address private immutable swapRouter02;
     address private immutable whitelistedCaller;
     address private immutable reactor;
-    address payable private immutable WETH9;
 
-    constructor(
-        address _whitelistedCaller,
-        address _reactor,
-        address _owner,
-        address _swapRouter02,
-        address payable _WETH9
-    ) Owned(_owner) {
+    constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
         swapRouter02 = _swapRouter02;
-        WETH9 = _WETH9;
     }
 
     /// @param resolvedOrders The orders to fill
@@ -79,12 +71,13 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
     /// @param recipient The address receiving ETH
     function unwrapWETH(address recipient) external onlyOwner {
-        uint256 balanceWETH = WETH(WETH9).balanceOf(address(this));
+        address WETH9 = ISwapRouter02(swapRouter02).WETH9();
+        uint256 balanceWETH = IWETH9(WETH9).balanceOf(address(this));
 
-        if (balanceWETH > 0) {
-            WETH(WETH9).withdraw(balanceWETH);
-            SafeTransferLib.safeTransferETH(recipient, balanceWETH);
-        }
+        require(balanceWETH > 0, "Insufficient WETH balance.");
+
+        IWETH9(WETH9).withdraw(balanceWETH);
+        SafeTransferLib.safeTransferETH(recipient, balanceWETH);
     }
 
     /// @notice Transfer all ETH in this contract to the recipient. Can only be called by owner.

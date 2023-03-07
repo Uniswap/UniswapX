@@ -11,6 +11,11 @@ contract MockSwapRouter {
 
     uint256 public constant SWAP_RATE_GRANULARITY = 10000;
     uint256 public swapRate = 10000; // start with swap at 1 for 1
+    address public WETH;
+
+    constructor(address wethAddress) {
+        WETH = wethAddress;
+    }
 
     function setSwapRate(uint256 newRate) public {
         swapRate = newRate;
@@ -47,5 +52,9 @@ contract MockSwapRouter {
 
             results[i] = result;
         }
+    }
+
+    function WETH9() public view returns (address) {
+        return WETH;
     }
 }

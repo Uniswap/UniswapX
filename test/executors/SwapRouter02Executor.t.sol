@@ -12,8 +12,8 @@ import {
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -64,11 +64,11 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         maker = vm.addr(makerPrivateKey);
 
         // Instantiate relevant contracts
-        mockSwapRouter = new MockSwapRouter();
+        mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         swapRouter02Executor =
-        new SwapRouter02Executor(address(this), address(reactor), address(this), address(mockSwapRouter), payable(address(weth)));
+            new SwapRouter02Executor(address(this), address(reactor), address(this), address(mockSwapRouter));
 
         // Do appropriate max approvals
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
@@ -394,6 +394,11 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     function testUnwrapWETHNotOwner() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xbeef));
+        swapRouter02Executor.unwrapWETH(address(this));
+    }
+
+    function testUnwrapWETHInsuffucientBalance() public {
+        vm.expectRevert("Insufficient WETH balance.");
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
