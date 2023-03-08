@@ -19,29 +19,9 @@ interface IOrderSettlerErrors {
     /// @param orderId The order hash to identify the order of the settlement
     error SettlementDoesNotExist(bytes32 orderId);
 
-    /// @notice Thrown when confirming outputs of an order are filled, but the amount of output tokens filled does not
-    /// match the expected amount of output tokens
-    error OutputsLengthMismatch(bytes32 orderId);
-
-    /// @notice Thrown when validating a settlement fill but the recipient does not match the expected recipient
-    /// @param orderId The order hash
-    /// @param outputIndex The index of the invalid settlement output
-    error InvalidRecipient(bytes32 orderId, uint16 outputIndex);
-
-    /// @notice Thrown when validating a settlement fill but the token does not match the expected token
-    /// @param orderId The order hash
-    /// @param outputIndex The index of the invalid settlement output
-    error InvalidToken(bytes32 orderId, uint16 outputIndex);
-
-    /// @notice Thrown when validating a settlement fill but the amount does not match the expected amount
-    /// @param orderId The order hash
-    /// @param outputIndex The index of the invalid settlement output
-    error InvalidAmount(bytes32 orderId, uint16 outputIndex);
-
-    /// @notice Thrown when validating a settlement fill but the chainId does not match the expected chainId
-    /// @param orderId The order hash
-    /// @param outputIndex The index of the invalid settlement output
-    error InvalidChain(bytes32 orderId, uint16 outputIndex);
+    /// @notice Thrown when validating a settlement fill but the outputs hash doesn't match whats sent over the bridge
+    /// @param orderId The order hash to identify the order of the settlement
+    error InvalidOutputs(bytes32 orderId);
 
     /// @notice Thrown when trying to finalize an order before the optimistic deadline period is over
     /// @param orderId The order hash
@@ -49,7 +29,7 @@ interface IOrderSettlerErrors {
 
     /// @notice Thrown when trying to optimistically finalize a challenged settlement.
     /// @param orderId The order hash
-    error CannotFinalizeChallengedSettlement(bytes32 orderId);
+    error OptimisticFinalizationForPendingSettlementsOnly(bytes32 orderId);
 
     /// @notice Thrown when trying to finalize an order that was filled after the fill deadline
     error OrderFillExceededDeadline();
@@ -62,4 +42,6 @@ interface IOrderSettlerErrors {
     /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
     /// @param orderId The order hash
     error CanOnlyChallengePendingSettlements(bytes32 orderId);
+
+    error InvalidSettlementKey();
 }

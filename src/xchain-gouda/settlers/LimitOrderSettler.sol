@@ -7,7 +7,7 @@ import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {CrossChainLimitOrderLib, CrossChainLimitOrder} from "../lib/CrossChainLimitOrderLib.sol";
 import {SignedOrder} from "../../base/ReactorStructs.sol";
-import {ResolvedOrder, SettlementInfo, ActiveSettlement, InputToken, OutputToken} from "../base/SettlementStructs.sol";
+import {ResolvedOrder, SettlementInfo, SettlementKey, InputToken, OutputToken} from "../base/SettlementStructs.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderSettler is BaseOrderSettler {
@@ -53,12 +53,9 @@ contract LimitOrderSettler is BaseOrderSettler {
     }
 
     /// @inheritdoc BaseOrderSettler
-    function collectChallengeBond(ActiveSettlement memory settlement) internal override {
+    function collectChallengeBond(SettlementKey calldata key) internal override {
         IAllowanceTransfer(address(permit2)).transferFrom(
-            msg.sender,
-            address(this),
-            uint160(settlement.challengerCollateral.amount),
-            settlement.challengerCollateral.token
+            msg.sender, address(this), uint160(key.challengerCollateral.amount), key.challengerCollateral.token
         );
     }
 }
