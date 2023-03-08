@@ -8,12 +8,9 @@ import {IOrderSettler} from "../../../../src/xchain-gouda/interfaces/IOrderSettl
 
 /// @notice Interface for cross chain listener oracles for cross-chain gouda
 contract MockSettlementOracle is ISettlementOracle {
-    function finalizeSettlement(
-        bytes32 orderId,
-        SettlementKey memory key,
-        address settler,
-        uint256 fillTimestamp
-    ) external {
+    function finalizeSettlement(bytes32 orderId, SettlementKey memory key, address settler, uint256 fillTimestamp)
+        external
+    {
         IOrderSettler(settler).finalize(orderId, key, fillTimestamp);
     }
 }

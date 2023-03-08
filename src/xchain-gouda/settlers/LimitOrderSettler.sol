@@ -55,10 +55,7 @@ contract LimitOrderSettler is BaseOrderSettler {
     /// @inheritdoc BaseOrderSettler
     function collectChallengeBond(SettlementKey calldata key) internal override {
         IAllowanceTransfer(address(permit2)).transferFrom(
-            msg.sender,
-            address(this),
-            uint160(key.challengerCollateral.amount),
-            key.challengerCollateral.token
+            msg.sender, address(this), uint160(key.challengerCollateral.amount), key.challengerCollateral.token
         );
     }
 }

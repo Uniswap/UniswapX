@@ -265,13 +265,11 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement.challenger, address(0));
         assertEq(settlement.key, keccak256(abi.encode(key)));
 
-
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
         assertEq(settlement2.key, 0);
 
         assertEq(returnArray[0], 0);
         assertEq(returnArray[1], 1);
-
     }
 
     function testInitiateBatchStoresSecondSettlementIfFirstReverts() public {
@@ -306,7 +304,6 @@ contract CrossChainLimitOrderReactorTest is
 
         assertEq(returnArray[0], 1);
         assertEq(returnArray[1], 0);
-
     }
 
     function testInitiateSettlementRevertsOnInvalidSettlerContract() public {
@@ -686,8 +683,9 @@ contract CrossChainLimitOrderReactorTest is
             address(tokenCollateral4), address(settler), uint160(tokenCollateral4Amount), uint48(block.timestamp + 1000)
         );
 
-        order2.info =
-            SettlementInfoBuilder.init(address(settler)).withOfferer(swapper2).withOracle(address(settlementOracle)).withPeriods(300, 400);
+        order2.info = SettlementInfoBuilder.init(address(settler)).withOfferer(swapper2).withOracle(
+            address(settlementOracle)
+        ).withPeriods(300, 400);
         order2.input = InputToken(address(tokenIn2), tokenInAmount2, tokenInAmount2);
         order2.fillerCollateral = CollateralToken(address(tokenCollateral3), tokenCollateral3Amount);
         order2.challengerCollateral = CollateralToken(address(tokenCollateral4), tokenCollateral2Amount);
@@ -696,19 +694,23 @@ contract CrossChainLimitOrderReactorTest is
         return SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, permit2, order2));
     }
 
-    function constructKey(CrossChainLimitOrder memory orderInfo, address fillerAddress) private view returns (SettlementKey memory key) {
-      key = SettlementKey(
-          orderInfo.info.offerer,
-          fillerAddress,
-          address(2),
-          orderInfo.info.settlementOracle,
-          uint32(block.timestamp + orderInfo.info.fillPeriod),
-          uint32(block.timestamp + orderInfo.info.optimisticSettlementPeriod),
-          uint32(block.timestamp + orderInfo.info.challengePeriod),
-          orderInfo.input,
-          orderInfo.fillerCollateral,
-          orderInfo.challengerCollateral,
-          keccak256(abi.encode(orderInfo.outputs))
-      );
+    function constructKey(CrossChainLimitOrder memory orderInfo, address fillerAddress)
+        private
+        view
+        returns (SettlementKey memory key)
+    {
+        key = SettlementKey(
+            orderInfo.info.offerer,
+            fillerAddress,
+            address(2),
+            orderInfo.info.settlementOracle,
+            uint32(block.timestamp + orderInfo.info.fillPeriod),
+            uint32(block.timestamp + orderInfo.info.optimisticSettlementPeriod),
+            uint32(block.timestamp + orderInfo.info.challengePeriod),
+            orderInfo.input,
+            orderInfo.fillerCollateral,
+            orderInfo.challengerCollateral,
+            keccak256(abi.encode(orderInfo.outputs))
+        );
     }
 }

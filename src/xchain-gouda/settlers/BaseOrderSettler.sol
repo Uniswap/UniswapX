@@ -27,7 +27,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     ISignatureTransfer public immutable permit2;
 
-
     mapping(bytes32 => SettlementStatus) settlements;
 
     constructor(address _permit2) {
@@ -82,7 +81,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             order.fillerCollateral,
             order.challengerCollateral,
             keccak256(abi.encode(order.outputs))
-          );
+        );
 
         settlements[order.hash] = SettlementStatus(keccak256(abi.encode(key)), SettlementStage.Pending, address(0));
 
@@ -112,25 +111,25 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             uint256 halfFillerCollateral = key.fillerCollateral.amount / 2;
             ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, halfFillerCollateral);
             ERC20(key.fillerCollateral.token).safeTransfer(settlement.challenger, halfFillerCollateral);
-            ERC20(key.challengerCollateral.token).safeTransfer(
-                settlement.challenger, key.challengerCollateral.amount
-            );
+            ERC20(key.challengerCollateral.token).safeTransfer(settlement.challenger, key.challengerCollateral.amount);
         } else {
-            ERC20(key.fillerCollateral.token).safeTransfer(
-                key.offerer, key.fillerCollateral.amount
-            );
+            ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, key.fillerCollateral.amount);
         }
 
         emit CancelSettlement(orderId);
     }
 
-    function cancelBatch(bytes32[] calldata orderIds, SettlementKey[] calldata keys) external returns (uint8[] memory failed) {
+    function cancelBatch(bytes32[] calldata orderIds, SettlementKey[] calldata keys)
+        external
+        returns (uint8[] memory failed)
+    {
         failed = new uint8[](orderIds.length);
 
         unchecked {
             for (uint256 i = 0; i < keys.length; i++) {
-                (bool success,) =
-                    address(this).delegatecall(abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i], keys[i]));
+                (bool success,) = address(this).delegatecall(
+                    abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i], keys[i])
+                );
                 if (!success) failed[i] = 1;
             }
         }
@@ -141,7 +140,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         SettlementStatus storage settlement = settlements[orderId];
         if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        if (settlement.status != SettlementStage.Pending) revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
+        if (settlement.status != SettlementStage.Pending) {
+            revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
+        }
         if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
         settlement.status = SettlementStage.Success;
@@ -157,9 +158,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
 
         settlement.status = SettlementStage.Success;
-        ERC20(key.challengerCollateral.token).safeTransfer(
-            key.originChainFiller, key.challengerCollateral.amount
-        );
+        ERC20(key.challengerCollateral.token).safeTransfer(key.originChainFiller, key.challengerCollateral.amount);
         compensateFiller(orderId, key);
     }
 
@@ -176,15 +175,16 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     function compensateFiller(bytes32 orderId, SettlementKey calldata key) internal {
         ERC20(key.input.token).safeTransfer(key.originChainFiller, key.input.amount);
-        ERC20(key.fillerCollateral.token).safeTransfer(
-            key.originChainFiller, key.fillerCollateral.amount
-        );
+        ERC20(key.fillerCollateral.token).safeTransfer(key.originChainFiller, key.fillerCollateral.amount);
         emit FinalizeSettlement(orderId);
     }
 
-    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement, bytes32 orderId) internal view {
-      if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
-      if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement, bytes32 orderId)
+        internal
+        view
+    {
+        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.

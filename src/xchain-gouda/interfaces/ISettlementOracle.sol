@@ -13,10 +13,6 @@ interface ISettlementOracle {
     /// @param key The SettlementKey containing all immutable info pertaining to a settlement
     /// @param settler The settler contract the oracle should call to finalize the settlement
     /// @param fillTimestamp The time in which the order was filled on the target chain
-    function finalizeSettlement(
-        bytes32 orderId,
-        SettlementKey memory key,
-        address settler,
-        uint256 fillTimestamp
-    ) external;
+    function finalizeSettlement(bytes32 orderId, SettlementKey memory key, address settler, uint256 fillTimestamp)
+        external;
 }

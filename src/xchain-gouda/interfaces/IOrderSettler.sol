@@ -32,7 +32,6 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// @param orderId The order hash that identifies the order settlement to finalize
     function finalizeOptimistically(bytes32 orderId, SettlementKey memory key) external;
 
-
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper. Half of the filler collateral is shared if a challenger challenged the order.
     /// @param orderId The order hash that identifies the order settlement to cancel
