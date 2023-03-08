@@ -102,8 +102,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function cancel(bytes32 orderId, SettlementKey memory key) external override {
         SettlementStatus storage settlement = settlements[orderId];
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-
-        verifySettlementInProgress(key.optimisticDeadline, settlement.status, orderId);
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
         if (key.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
 
         settlement.status = SettlementStage.Cancelled;
@@ -140,10 +139,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function finalizeOptimistically(bytes32 orderId, SettlementKey memory key) external override {
         SettlementStatus storage settlement = settlements[orderId];
+        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        verifySettlementInProgress(key.optimisticDeadline, settlement.status, orderId);
-
-        if (settlement.status != SettlementStage.Pending) revert CannotFinalizeChallengedSettlement(orderId);
+        if (settlement.status != SettlementStage.Pending) revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
         if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
         settlement.status = SettlementStage.Success;
@@ -152,8 +150,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     function finalize(bytes32 orderId, SettlementKey memory key, uint256 fillTimestamp) external override {
         SettlementStatus storage settlement = settlements[orderId];
-        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        verifySettlementInProgress(key.optimisticDeadline, settlement.status, orderId);
+        checkValidSettlement(key, settlement, orderId);
+        // if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+        // if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
 
         if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
         if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
@@ -167,8 +167,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     function challengeSettlement(bytes32 orderId, SettlementKey memory key) external {
         SettlementStatus storage settlement = settlements[orderId];
-        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        if (key.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
+        checkValidSettlement(key, settlement, orderId);
         if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements(orderId);
 
         settlement.status = SettlementStage.Challenged;
@@ -185,9 +184,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function verifySettlementInProgress(uint32 optimisticDeadline, SettlementStage status, bytes32 orderId) internal pure {
-        if (optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
-        if (status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
+    function checkValidSettlement(SettlementKey memory key, SettlementStatus storage settlement, bytes32 orderId) internal {
+      if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+      if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.

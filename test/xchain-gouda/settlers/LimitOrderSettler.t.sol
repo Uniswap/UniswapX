@@ -436,7 +436,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline);
+        vm.warp(key.challengeDeadline + 1);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
@@ -478,19 +478,17 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.prank(filler);
         settler.initiateBatch(signedOrders, targetChainFiller);
-        vm.warp(key.challengeDeadline + 100);
+        vm.warp(key.challengeDeadline + 1000);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
         snapStart("CrossChainCancelBatchSettlements");
         uint8[] memory failed = settler.cancelBatch(orderIds, keys);
         snapEnd();
-        console.log(uint8(SettlementStage.Cancelled));
-        console.log(uint8(SettlementStage.Pending));
-        console.log(uint8(settler.getSettlement(order.hash()).status));
+
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Cancelled));
-        // assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Cancelled));
-        // assertEq(failed[0], 0);
+        assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Cancelled));
+        assertEq(failed[0], 0);
         assertEq(failed[1], 0);
     }
 
@@ -541,7 +539,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallySuccessfullyTransfersInputAndCollateral() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), address(1));
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
         uint256 fillerInputBalanceStart = tokenIn.balanceOf(address(filler));
         uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
@@ -584,7 +582,7 @@ contract CrossChainLimitOrderReactorTest is
         vm.warp(key.optimisticDeadline + 1);
         settler.finalizeOptimistically(order.hash(), key);
 
-        vm.expectRevert(abi.encodePacked(SettlementAlreadyCompleted.selector, order.hash()));
+        vm.expectRevert(abi.encodePacked(OptimisticFinalizationForPendingSettlementsOnly.selector, order.hash()));
         settler.finalizeOptimistically(order.hash(), key);
     }
 
@@ -702,7 +700,7 @@ contract CrossChainLimitOrderReactorTest is
           order.info.offerer,
           filler,
           address(2),
-          address(settlementOracle),
+          order.info.settlementOracle,
           uint32(block.timestamp + order.info.fillPeriod),
           uint32(block.timestamp + order.info.optimisticSettlementPeriod),
           uint32(block.timestamp + order.info.challengePeriod),

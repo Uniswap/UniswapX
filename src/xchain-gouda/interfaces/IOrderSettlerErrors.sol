@@ -29,7 +29,7 @@ interface IOrderSettlerErrors {
 
     /// @notice Thrown when trying to optimistically finalize a challenged settlement.
     /// @param orderId The order hash
-    error CannotFinalizeChallengedSettlement(bytes32 orderId);
+    error OptimisticFinalizationForPendingSettlementsOnly(bytes32 orderId);
 
     /// @notice Thrown when trying to finalize an order that was filled after the fill deadline
     error OrderFillExceededDeadline();
