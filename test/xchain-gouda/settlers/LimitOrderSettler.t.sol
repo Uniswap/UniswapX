@@ -472,13 +472,14 @@ contract CrossChainLimitOrderReactorTest is
         orderIds.push(order2.hash());
 
         SettlementKey memory key = constructKey(order, filler);
+        SettlementKey memory key2 = constructKey(order2, filler);
 
         keys.push(key);
-        keys.push(constructKey(order2, filler));
+        keys.push(key2);
 
         vm.prank(filler);
         settler.initiateBatch(signedOrders, targetChainFiller);
-        vm.warp(key.challengeDeadline + 1000);
+        vm.warp(key2.challengeDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
