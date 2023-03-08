@@ -137,7 +137,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function finalizeOptimistically(bytes32 orderId, SettlementKey memory key) external override {
+    function finalizeOptimistically(bytes32 orderId, SettlementKey calldata key) external override {
         SettlementStatus storage settlement = settlements[orderId];
         if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
@@ -148,11 +148,9 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         compensateFiller(orderId, key);
     }
 
-    function finalize(bytes32 orderId, SettlementKey memory key, uint256 fillTimestamp) external override {
+    function finalize(bytes32 orderId, SettlementKey calldata key, uint256 fillTimestamp) external override {
         SettlementStatus storage settlement = settlements[orderId];
         checkValidSettlement(key, settlement, orderId);
-        // if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
-        // if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
         if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
 
         if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
@@ -165,7 +163,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         compensateFiller(orderId, key);
     }
 
-    function challengeSettlement(bytes32 orderId, SettlementKey memory key) external {
+    function challengeSettlement(bytes32 orderId, SettlementKey calldata key) external {
         SettlementStatus storage settlement = settlements[orderId];
         checkValidSettlement(key, settlement, orderId);
         if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements(orderId);
@@ -176,7 +174,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit SettlementChallenged(orderId, msg.sender);
     }
 
-    function compensateFiller(bytes32 orderId, SettlementKey memory key) internal {
+    function compensateFiller(bytes32 orderId, SettlementKey calldata key) internal {
         ERC20(key.input.token).safeTransfer(key.originChainFiller, key.input.amount);
         ERC20(key.fillerCollateral.token).safeTransfer(
             key.originChainFiller, key.fillerCollateral.amount
@@ -184,7 +182,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function checkValidSettlement(SettlementKey memory key, SettlementStatus storage settlement, bytes32 orderId) internal view {
+    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement, bytes32 orderId) internal view {
       if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
       if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
@@ -203,5 +201,5 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @notice Collects swapper input tokens as well as collateral tokens of filler to escrow them until settlement is
     /// finalized or cancelled
     /// @param key The current information associated with the active settlement
-    function collectChallengeBond(SettlementKey memory key) internal virtual;
+    function collectChallengeBond(SettlementKey calldata key) internal virtual;
 }
