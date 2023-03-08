@@ -152,7 +152,7 @@ contract CrossChainLimitOrderReactorTest is
             block.timestamp + 100,
             block.timestamp + 200,
             block.timestamp + 300
-            );
+        );
         vm.prank(filler);
         snapStart("CrossChainInitiateFill");
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
@@ -378,6 +378,18 @@ contract CrossChainLimitOrderReactorTest is
         settler.challengeSettlement(keccak256("0x69"), key);
     }
 
+    function testChallengeRevertsIfSettlementKeyDoesNotMatch() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+        key.challengeDeadline = 0;
+
+        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash(), key);
+    }
+
     function testChallengeRevertsIfItIsAlreadyChallenged() public {
         vm.prank(filler);
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
@@ -535,6 +547,29 @@ contract CrossChainLimitOrderReactorTest is
         settler.cancel(order.hash(), key);
     }
 
+    function testCancelSettlementRevertsIfSettlementKeyDoesNotMatch() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+        key.challengeDeadline = 0;
+
+        vm.warp(key.challengeDeadline + 1);
+        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash(), key);
+    }
+
+    function testCancelSettlementRevertsIfSettlementDoesNotExist() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+        vm.warp(key.challengeDeadline + 1);
+        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        settler.challengeSettlement(keccak256("0x69"), key);
+    }
+
     function testFinalizeOptimisticallySuccessfullyTransfersInputAndCollateral() public {
         vm.prank(filler);
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
@@ -571,7 +606,7 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Success));
     }
 
-    function testFinalizeRevertsIfAlreadyFinalized() public {
+    function testFinalizeOptimisticallyRevertsIfAlreadyFinalized() public {
         vm.prank(filler);
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
@@ -584,13 +619,35 @@ contract CrossChainLimitOrderReactorTest is
         settler.finalizeOptimistically(order.hash(), key);
     }
 
-    function testFinalizeRevertsIfOptimisticDeadlineHasNotPassed() public {
+    function testFinalizeOptimisticallyRevertsIfOptimisticDeadlineHasNotPassed() public {
         vm.prank(filler);
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
 
         SettlementKey memory key = constructKey(order, filler);
 
         vm.expectRevert(abi.encodePacked(CannotFinalizeBeforeDeadline.selector, order.hash()));
+        settler.finalizeOptimistically(order.hash(), key);
+    }
+
+    function testFinalizeOptimisticallyRevertsIfSettlementDoesNotExist() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+
+        vm.warp(key.optimisticDeadline + 1);
+        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        settler.finalizeOptimistically(keccak256("0x69"), key);
+    }
+
+    function testFinalizeOptimisticallyRevertsIfSettlementKeyDoesNotMatch() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+        key.challengeDeadline = 0;
+
+        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
         settler.finalizeOptimistically(order.hash(), key);
     }
 
@@ -651,6 +708,33 @@ contract CrossChainLimitOrderReactorTest is
         // TODO: this says it's not reverting as expected BUT IT IS???
         // vm.expectRevert(IOrderSettlerErrors.OrderFillExceededDeadline.selector);
         // settler.finalize(order.hash(), targetChainFiller, settler.getSettlement(order.hash()).fillDeadline + 10, order.outputs);
+    }
+
+    function testFinalizeChallengedRevertsIfSettlementDoesNotExist() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+
+        vm.warp(key.challengeDeadline + 1);
+        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        settlementOracle.finalizeSettlement(keccak256("0x69"), key, address(settler), key.fillDeadline);
+    }
+
+    function testFinalizeChallengedRevertsIfSettlementKeyDoesNotMatch() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+
+        SettlementKey memory key = constructKey(order, filler);
+
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash(), key);
+
+        key.challengeDeadline = 0;
+
+        vm.warp(key.challengeDeadline + 1);
+        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        settlementOracle.finalizeSettlement(order.hash(), key, address(settler), key.fillDeadline);
     }
 
     function generateSecondOrder() private returns (SignedOrder memory) {
