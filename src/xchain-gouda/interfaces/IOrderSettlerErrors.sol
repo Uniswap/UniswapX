@@ -4,44 +4,35 @@ pragma solidity ^0.8.16;
 /// @notice Interface for all errors in a cross-chain order settler
 interface IOrderSettlerErrors {
     /// @notice Thrown when trying to initiate a settlement that's already initiated
-    /// @param orderId The order hash to identify the order
-    error SettlementAlreadyInitiated(bytes32 orderId);
+    error SettlementAlreadyInitiated();
 
     /// @notice Thrown when trying to perform an action on a pending settlement that's already been completed
-    /// @param orderId The order hash to identify the order
-    error SettlementAlreadyCompleted(bytes32 orderId);
+    error SettlementAlreadyCompleted();
 
     /// @notice Thrown when trying to cancen an order that cannot be cancelled because deadline has not passed
-    /// @param orderId The order hash to identify the order
-    error CannotCancelBeforeDeadline(bytes32 orderId);
+    error CannotCancelBeforeDeadline();
 
     /// @notice Thrown when trying to interact with a settlement that does not exist
-    /// @param orderId The order hash to identify the order of the settlement
-    error SettlementDoesNotExist(bytes32 orderId);
+    error SettlementDoesNotExist();
 
     /// @notice Thrown when validating a settlement fill but the outputs hash doesn't match whats sent over the bridge
-    /// @param orderId The order hash to identify the order of the settlement
-    error InvalidOutputs(bytes32 orderId);
+    error InvalidOutputs();
 
     /// @notice Thrown when trying to finalize an order before the optimistic deadline period is over
-    /// @param orderId The order hash
-    error CannotFinalizeBeforeDeadline(bytes32 orderId);
+    error CannotFinalizeBeforeDeadline();
 
     /// @notice Thrown when trying to optimistically finalize a challenged settlement.
-    /// @param orderId The order hash
-    error OptimisticFinalizationForPendingSettlementsOnly(bytes32 orderId);
+    error OptimisticFinalizationForPendingSettlementsOnly();
 
     /// @notice Thrown when trying to finalize an order that was filled after the fill deadline
     error OrderFillExceededDeadline();
 
     /// @notice Thrown when attempting to finalize (non-optimistically) a settlement from an account other then the user
     ///         selected oracle
-    /// @param orderId The order hash
-    error OnlyOracleCanFinalizeSettlement(bytes32 orderId);
+    error OnlyOracleCanFinalizeSettlement();
 
     /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
-    /// @param orderId The order hash
-    error CanOnlyChallengePendingSettlements(bytes32 orderId);
+    error CanOnlyChallengePendingSettlements();
 
     error InvalidSettlementKey();
 }

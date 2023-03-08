@@ -63,7 +63,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         order.validate(msg.sender);
         collectEscrowTokens(order);
 
-        if (settlements[order.hash].key != 0) revert SettlementAlreadyInitiated(order.hash);
+        if (settlements[order.hash].key != 0) revert SettlementAlreadyInitiated();
 
         uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
         uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
@@ -101,8 +101,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function cancel(bytes32 orderId, SettlementKey calldata key) external override {
         SettlementStatus storage settlement = settlements[orderId];
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
-        if (key.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
+        if (key.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline();
 
         settlement.status = SettlementStage.Cancelled;
 
@@ -138,11 +138,11 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function finalizeOptimistically(bytes32 orderId, SettlementKey calldata key) external override {
         SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement, orderId);
+        checkValidSettlement(key, settlement);
         if (settlement.status != SettlementStage.Pending) {
-            revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
+            revert OptimisticFinalizationForPendingSettlementsOnly();
         }
-        if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
+        if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline();
 
         settlement.status = SettlementStage.Success;
         compensateFiller(orderId, key);
@@ -150,10 +150,10 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     function finalize(bytes32 orderId, SettlementKey calldata key, uint256 fillTimestamp) external override {
         SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement, orderId);
-        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
+        checkValidSettlement(key, settlement);
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
 
-        if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
+        if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement();
         if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
 
         settlement.status = SettlementStage.Success;
@@ -163,8 +163,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     function challengeSettlement(bytes32 orderId, SettlementKey calldata key) external {
         SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement, orderId);
-        if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements(orderId);
+        checkValidSettlement(key, settlement);
+        if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements();
 
         settlement.status = SettlementStage.Challenged;
         settlement.challenger = msg.sender;
@@ -178,11 +178,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement, bytes32 orderId)
-        internal
-        view
-    {
-        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement) internal view {
+        if (settlement.key == 0) revert SettlementDoesNotExist();
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
 

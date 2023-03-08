@@ -373,7 +373,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        vm.expectRevert(SettlementDoesNotExist.selector);
         vm.prank(challenger);
         settler.challengeSettlement(keccak256("0x69"), key);
     }
@@ -385,7 +385,7 @@ contract CrossChainLimitOrderReactorTest is
         SettlementKey memory key = constructKey(order, filler);
         key.challengeDeadline = 0;
 
-        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.expectRevert(InvalidSettlementKey.selector);
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
     }
@@ -398,7 +398,7 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
-        vm.expectRevert(abi.encodePacked(CanOnlyChallengePendingSettlements.selector, order.hash()));
+        vm.expectRevert(CanOnlyChallengePendingSettlements.selector);
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
     }
@@ -531,7 +531,7 @@ contract CrossChainLimitOrderReactorTest is
     function testCancelSettlementRevertsBeforeDeadline() public {
         vm.prank(filler);
         settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
-        vm.expectRevert(abi.encodePacked(CannotCancelBeforeDeadline.selector, order.hash()));
+        vm.expectRevert(CannotCancelBeforeDeadline.selector);
         settler.cancel(order.hash(), constructKey(order, filler));
     }
 
@@ -543,7 +543,7 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.warp(key.challengeDeadline + 1);
         settler.cancel(order.hash(), key);
-        vm.expectRevert(abi.encodePacked(SettlementAlreadyCompleted.selector, order.hash()));
+        vm.expectRevert(SettlementAlreadyCompleted.selector);
         settler.cancel(order.hash(), key);
     }
 
@@ -555,7 +555,7 @@ contract CrossChainLimitOrderReactorTest is
         key.challengeDeadline = 0;
 
         vm.warp(key.challengeDeadline + 1);
-        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.expectRevert(InvalidSettlementKey.selector);
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
     }
@@ -566,7 +566,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
         vm.warp(key.challengeDeadline + 1);
-        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        vm.expectRevert(SettlementDoesNotExist.selector);
         settler.challengeSettlement(keccak256("0x69"), key);
     }
 
@@ -615,7 +615,7 @@ contract CrossChainLimitOrderReactorTest is
         vm.warp(key.optimisticDeadline + 1);
         settler.finalizeOptimistically(order.hash(), key);
 
-        vm.expectRevert(abi.encodePacked(OptimisticFinalizationForPendingSettlementsOnly.selector, order.hash()));
+        vm.expectRevert(OptimisticFinalizationForPendingSettlementsOnly.selector);
         settler.finalizeOptimistically(order.hash(), key);
     }
 
@@ -625,7 +625,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.expectRevert(abi.encodePacked(CannotFinalizeBeforeDeadline.selector, order.hash()));
+        vm.expectRevert(CannotFinalizeBeforeDeadline.selector);
         settler.finalizeOptimistically(order.hash(), key);
     }
 
@@ -636,7 +636,7 @@ contract CrossChainLimitOrderReactorTest is
         SettlementKey memory key = constructKey(order, filler);
 
         vm.warp(key.optimisticDeadline + 1);
-        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        vm.expectRevert(SettlementDoesNotExist.selector);
         settler.finalizeOptimistically(keccak256("0x69"), key);
     }
 
@@ -647,7 +647,7 @@ contract CrossChainLimitOrderReactorTest is
         SettlementKey memory key = constructKey(order, filler);
         key.challengeDeadline = 0;
 
-        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.expectRevert(InvalidSettlementKey.selector);
         settler.finalizeOptimistically(order.hash(), key);
     }
 
@@ -690,7 +690,7 @@ contract CrossChainLimitOrderReactorTest is
         settler.challengeSettlement(order.hash(), key);
 
         vm.warp(key.challengeDeadline + 1);
-        vm.expectRevert(abi.encodePacked(OnlyOracleCanFinalizeSettlement.selector, order.hash()));
+        vm.expectRevert(OnlyOracleCanFinalizeSettlement.selector);
         settler.finalize(order.hash(), key, block.timestamp + 10);
     }
 
@@ -717,7 +717,7 @@ contract CrossChainLimitOrderReactorTest is
         SettlementKey memory key = constructKey(order, filler);
 
         vm.warp(key.challengeDeadline + 1);
-        vm.expectRevert(abi.encodePacked(SettlementDoesNotExist.selector, keccak256("0x69")));
+        vm.expectRevert(SettlementDoesNotExist.selector);
         settlementOracle.finalizeSettlement(keccak256("0x69"), key, address(settler), key.fillDeadline);
     }
 
@@ -733,7 +733,7 @@ contract CrossChainLimitOrderReactorTest is
         key.challengeDeadline = 0;
 
         vm.warp(key.challengeDeadline + 1);
-        vm.expectRevert(abi.encodePacked(InvalidSettlementKey.selector));
+        vm.expectRevert(InvalidSettlementKey.selector);
         settlementOracle.finalizeSettlement(order.hash(), key, address(settler), key.fillDeadline);
     }
 
