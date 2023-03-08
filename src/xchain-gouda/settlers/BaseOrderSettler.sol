@@ -94,7 +94,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             fillDeadline,
             optimisticDeadline,
             challengeDeadline
-            );
+        );
     }
 
     /// @inheritdoc IOrderSettler
@@ -138,8 +138,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function finalizeOptimistically(bytes32 orderId, SettlementKey calldata key) external override {
         SettlementStatus storage settlement = settlements[orderId];
-        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
-        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+        checkValidSettlement(key, settlement, orderId);
         if (settlement.status != SettlementStage.Pending) {
             revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
         }
