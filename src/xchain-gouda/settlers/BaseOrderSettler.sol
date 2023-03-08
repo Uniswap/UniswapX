@@ -11,9 +11,10 @@ import {ISettlementOracle} from "../interfaces/ISettlementOracle.sol";
 import {
     ResolvedOrder,
     SettlementInfo,
-    ActiveSettlement,
+    SettlementStatus,
+    SettlementKey,
     OutputToken,
-    SettlementStatus
+    SettlementStage
 } from "../base/SettlementStructs.sol";
 import {SignedOrder, InputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
@@ -26,16 +27,14 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     ISignatureTransfer public immutable permit2;
 
-    event InitiateSettlementFailed(uint256 orderIndex);
-
-    mapping(bytes32 => ActiveSettlement) settlements;
+    mapping(bytes32 => SettlementStatus) settlements;
 
     constructor(address _permit2) {
         permit2 = ISignatureTransfer(_permit2);
     }
 
-    function getSettlement(bytes32 orderHash) external view returns (ActiveSettlement memory) {
-        return settlements[orderHash];
+    function getSettlement(bytes32 orderId) external view returns (SettlementStatus memory) {
+        return settlements[orderId];
     }
 
     /// @inheritdoc IOrderSettler
@@ -64,31 +63,27 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         order.validate(msg.sender);
         collectEscrowTokens(order);
 
-        if (settlements[order.hash].optimisticDeadline != 0) revert SettlementAlreadyInitiated(order.hash);
+        if (settlements[order.hash].key != 0) revert SettlementAlreadyInitiated(order.hash);
 
         uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
         uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
         uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
 
-        // TODO: may not be the most gas efficient, look into setting with dynamic array
-        ActiveSettlement storage settlement = settlements[order.hash];
-        settlement.status = SettlementStatus.Pending;
-        settlement.offerer = order.info.offerer;
-        settlement.originChainFiller = msg.sender;
-        settlement.targetChainFiller = targetChainFiller;
-        settlement.settlementOracle = order.info.settlementOracle;
-        settlement.fillDeadline = fillDeadline;
-        settlement.optimisticDeadline = optimisticDeadline;
-        settlement.challengeDeadline = challengeDeadline;
-        settlement.input = order.input;
-        settlement.fillerCollateral = order.fillerCollateral;
-        settlement.challengerCollateral = order.challengerCollateral;
+        SettlementKey memory key = SettlementKey(
+            order.info.offerer,
+            msg.sender,
+            targetChainFiller,
+            order.info.settlementOracle,
+            fillDeadline,
+            optimisticDeadline,
+            challengeDeadline,
+            order.input,
+            order.fillerCollateral,
+            order.challengerCollateral,
+            keccak256(abi.encode(order.outputs))
+        );
 
-        unchecked {
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                settlement.outputs.push(order.outputs[j]);
-            }
-        }
+        settlements[order.hash] = SettlementStatus(keccak256(abi.encode(key)), SettlementStage.Pending, address(0));
 
         emit InitiateSettlement(
             order.hash,
@@ -103,103 +98,93 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function cancel(bytes32 orderId) external override {
-        ActiveSettlement memory settlement = settlements[orderId];
+    function cancel(bytes32 orderId, SettlementKey calldata key) external override {
+        SettlementStatus storage settlement = settlements[orderId];
+        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
+        if (key.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
 
-        verifySettlementInProgress(settlement, orderId);
-        if (settlement.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline(orderId);
+        settlement.status = SettlementStage.Cancelled;
 
-        settlements[orderId].status = SettlementStatus.Cancelled;
-
-        ERC20(settlement.input.token).safeTransfer(settlement.offerer, settlement.input.amount);
+        ERC20(key.input.token).safeTransfer(key.offerer, key.input.amount);
         if (settlement.challenger != address(0)) {
-            uint256 halfFillerCollateral = settlement.fillerCollateral.amount / 2;
-            ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.offerer, halfFillerCollateral);
-            ERC20(settlement.fillerCollateral.token).safeTransfer(settlement.challenger, halfFillerCollateral);
-            ERC20(settlement.challengerCollateral.token).safeTransfer(
-                settlement.challenger, settlement.challengerCollateral.amount
-            );
+            uint256 halfFillerCollateral = key.fillerCollateral.amount / 2;
+            ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, halfFillerCollateral);
+            ERC20(key.fillerCollateral.token).safeTransfer(settlement.challenger, halfFillerCollateral);
+            ERC20(key.challengerCollateral.token).safeTransfer(settlement.challenger, key.challengerCollateral.amount);
         } else {
-            ERC20(settlement.fillerCollateral.token).safeTransfer(
-                settlement.offerer, settlement.fillerCollateral.amount
-            );
+            ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, key.fillerCollateral.amount);
         }
 
         emit CancelSettlement(orderId);
     }
 
-    function cancelBatch(bytes32[] calldata orderIds) external returns (uint8[] memory failed) {
+    function cancelBatch(bytes32[] calldata orderIds, SettlementKey[] calldata keys)
+        external
+        returns (uint8[] memory failed)
+    {
         failed = new uint8[](orderIds.length);
 
         unchecked {
-            for (uint256 i = 0; i < orderIds.length; i++) {
-                (bool success,) =
-                    address(this).delegatecall(abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i]));
+            for (uint256 i = 0; i < keys.length; i++) {
+                (bool success,) = address(this).delegatecall(
+                    abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i], keys[i])
+                );
                 if (!success) failed[i] = 1;
             }
         }
     }
 
     /// @inheritdoc IOrderSettler
-    function finalizeOptimistically(bytes32 orderId) external override {
-        ActiveSettlement memory settlement = settlements[orderId];
-        verifySettlementInProgress(settlement, orderId);
-
-        if (settlement.status != SettlementStatus.Pending) revert CannotFinalizeChallengedSettlement(orderId);
-        if (block.timestamp < settlement.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
-
-        settlements[orderId].status = SettlementStatus.Success;
-        compensateFiller(orderId, settlement);
-    }
-
-    function finalize(bytes32 orderId, address filler, uint256 fillTimestamp, OutputToken[] memory filledOutputs) external override {
-        ActiveSettlement memory settlement = settlements[orderId];
-        verifySettlementInProgress(settlement, orderId);
-
-        if (msg.sender != settlement.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
-        if (fillTimestamp > settlement.fillDeadline) revert OrderFillExceededDeadline();
-        if (filledOutputs.length != settlement.outputs.length) revert OutputsLengthMismatch(orderId);
-
-        // validate outputs
-        for (uint16 i; i < settlement.outputs.length; i++) {
-            OutputToken memory expectedOutput = settlement.outputs[i];
-            OutputToken memory receivedOutput = filledOutputs[i];
-            if (expectedOutput.recipient != receivedOutput.recipient) revert InvalidRecipient(orderId, i);
-            if (expectedOutput.token != receivedOutput.token) revert InvalidToken(orderId, i);
-            if (expectedOutput.amount < receivedOutput.amount) revert InvalidAmount(orderId, i);
-            if (expectedOutput.chainId != receivedOutput.chainId) revert InvalidChain(orderId, i);
+    function finalizeOptimistically(bytes32 orderId, SettlementKey calldata key) external override {
+        SettlementStatus storage settlement = settlements[orderId];
+        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+        if (settlement.status != SettlementStage.Pending) {
+            revert OptimisticFinalizationForPendingSettlementsOnly(orderId);
         }
+        if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline(orderId);
 
-        settlements[orderId].status = SettlementStatus.Success;
-        ERC20(settlement.challengerCollateral.token).safeTransfer(
-            settlement.originChainFiller, settlement.challengerCollateral.amount
-        );
-        compensateFiller(orderId, settlement);
+        settlement.status = SettlementStage.Success;
+        compensateFiller(orderId, key);
     }
 
-    function challengeSettlement(bytes32 orderId) external {
-        ActiveSettlement memory settlement = settlements[orderId];
-        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
-        if (settlement.status != SettlementStatus.Pending) revert CanOnlyChallengePendingSettlements(orderId);
+    function finalize(bytes32 orderId, SettlementKey calldata key, uint256 fillTimestamp) external override {
+        SettlementStatus storage settlement = settlements[orderId];
+        checkValidSettlement(key, settlement, orderId);
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
 
-        settlements[orderId].status = SettlementStatus.Challenged;
-        settlements[orderId].challenger = msg.sender;
-        collectChallengeBond(settlement);
+        if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement(orderId);
+        if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
+
+        settlement.status = SettlementStage.Success;
+        ERC20(key.challengerCollateral.token).safeTransfer(key.originChainFiller, key.challengerCollateral.amount);
+        compensateFiller(orderId, key);
+    }
+
+    function challengeSettlement(bytes32 orderId, SettlementKey calldata key) external {
+        SettlementStatus storage settlement = settlements[orderId];
+        checkValidSettlement(key, settlement, orderId);
+        if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements(orderId);
+
+        settlement.status = SettlementStage.Challenged;
+        settlement.challenger = msg.sender;
+        collectChallengeBond(key);
         emit SettlementChallenged(orderId, msg.sender);
     }
 
-    function compensateFiller(bytes32 orderId, ActiveSettlement memory settlement) internal {
-        settlements[orderId].status = SettlementStatus.Success;
-        ERC20(settlement.input.token).safeTransfer(settlement.originChainFiller, settlement.input.amount);
-        ERC20(settlement.fillerCollateral.token).safeTransfer(
-            settlement.originChainFiller, settlement.fillerCollateral.amount
-        );
+    function compensateFiller(bytes32 orderId, SettlementKey calldata key) internal {
+        ERC20(key.input.token).safeTransfer(key.originChainFiller, key.input.amount);
+        ERC20(key.fillerCollateral.token).safeTransfer(key.originChainFiller, key.fillerCollateral.amount);
         emit FinalizeSettlement(orderId);
     }
 
-    function verifySettlementInProgress(ActiveSettlement memory settlement, bytes32 orderId) internal pure {
-        if (settlement.optimisticDeadline == 0) revert SettlementDoesNotExist(orderId);
-        if (settlement.status > SettlementStatus.Challenged) revert SettlementAlreadyCompleted(orderId);
+    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement, bytes32 orderId)
+        internal
+        view
+    {
+        if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
+        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.
@@ -215,6 +200,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
     /// @notice Collects swapper input tokens as well as collateral tokens of filler to escrow them until settlement is
     /// finalized or cancelled
-    /// @param settlement The current information associated with the active settlement
-    function collectChallengeBond(ActiveSettlement memory settlement) internal virtual;
+    /// @param key The current information associated with the active settlement
+    function collectChallengeBond(SettlementKey calldata key) internal virtual;
 }

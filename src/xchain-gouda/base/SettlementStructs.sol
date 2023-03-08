@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import {InputToken} from "../../base/ReactorStructs.sol";
 
-enum SettlementStatus {
+enum SettlementStage {
     Pending,
     Challenged,
     Cancelled,
@@ -49,12 +49,10 @@ struct OutputToken {
     uint256 chainId;
 }
 
-struct ActiveSettlement {
-    SettlementStatus status;
+struct SettlementKey {
     address offerer;
     address originChainFiller;
     address targetChainFiller;
-    address challenger;
     address settlementOracle;
     uint32 fillDeadline;
     uint32 optimisticDeadline;
@@ -62,7 +60,13 @@ struct ActiveSettlement {
     InputToken input;
     CollateralToken fillerCollateral;
     CollateralToken challengerCollateral;
-    OutputToken[] outputs;
+    bytes32 outputs;
+}
+
+struct SettlementStatus {
+    bytes32 key;
+    SettlementStage status;
+    address challenger;
 }
 
 /// @dev generic concrete cross-chain order that specifies exact tokens which need to be sent and received
