@@ -695,19 +695,19 @@ contract CrossChainLimitOrderReactorTest is
         return SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, permit2, order2));
     }
 
-    function constructKey(CrossChainLimitOrder memory order, address filler) private returns (SettlementKey memory key) {
+    function constructKey(CrossChainLimitOrder memory orderInfo, address fillerAddress) private view returns (SettlementKey memory key) {
       key = SettlementKey(
-          order.info.offerer,
-          filler,
+          orderInfo.info.offerer,
+          fillerAddress,
           address(2),
-          order.info.settlementOracle,
-          uint32(block.timestamp + order.info.fillPeriod),
-          uint32(block.timestamp + order.info.optimisticSettlementPeriod),
-          uint32(block.timestamp + order.info.challengePeriod),
-          order.input,
-          order.fillerCollateral,
-          order.challengerCollateral,
-          keccak256(abi.encode(order.outputs))
+          orderInfo.info.settlementOracle,
+          uint32(block.timestamp + orderInfo.info.fillPeriod),
+          uint32(block.timestamp + orderInfo.info.optimisticSettlementPeriod),
+          uint32(block.timestamp + orderInfo.info.challengePeriod),
+          orderInfo.input,
+          orderInfo.fillerCollateral,
+          orderInfo.challengerCollateral,
+          keccak256(abi.encode(orderInfo.outputs))
       );
     }
 }

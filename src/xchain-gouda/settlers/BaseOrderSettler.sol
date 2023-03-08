@@ -99,7 +99,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function cancel(bytes32 orderId, SettlementKey memory key) external override {
+    function cancel(bytes32 orderId, SettlementKey calldata key) external override {
         SettlementStatus storage settlement = settlements[orderId];
         if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
         if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted(orderId);
@@ -124,7 +124,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit CancelSettlement(orderId);
     }
 
-    function cancelBatch(bytes32[] memory orderIds, SettlementKey[] calldata keys) external returns (uint8[] memory failed) {
+    function cancelBatch(bytes32[] calldata orderIds, SettlementKey[] calldata keys) external returns (uint8[] memory failed) {
         failed = new uint8[](orderIds.length);
 
         unchecked {
@@ -184,7 +184,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit FinalizeSettlement(orderId);
     }
 
-    function checkValidSettlement(SettlementKey memory key, SettlementStatus storage settlement, bytes32 orderId) internal {
+    function checkValidSettlement(SettlementKey memory key, SettlementStatus storage settlement, bytes32 orderId) internal view {
       if (settlement.key == 0) revert SettlementDoesNotExist(orderId);
       if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
