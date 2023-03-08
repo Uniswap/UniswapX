@@ -11,9 +11,10 @@ contract DeployUniswapV3Executor is Script {
     function run() public returns (UniswapV3Executor executor) {
         uint256 privateKey = vm.envUint("FOUNDRY_PRIVATE_KEY");
         address deployer = vm.addr(privateKey);
+        address reactor = address(0);
 
         vm.startBroadcast(privateKey);
-        executor = new UniswapV3Executor{salt: 0x00}(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45, deployer);
+        executor = new UniswapV3Executor{salt: 0x00}(reactor, 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45, deployer);
         vm.stopBroadcast();
 
         console2.log("Executor", address(executor));
