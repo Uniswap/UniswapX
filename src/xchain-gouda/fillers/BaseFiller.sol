@@ -13,6 +13,7 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
 
     function fillAndTransmitSettlement(bytes32 orderId, SettlementKey memory key, address settler, OutputToken[] calldata outputs) external {
         if (keccak256(abi.encode(outputs)) != key.outputsHash) revert InvalidOutputsHash();
+        if (block.timestamp > key.fillDeadline) revert FillDeadlineMissed();
 
         unchecked {
             for (uint256 i = 0; i < outputs.length; i++) {
