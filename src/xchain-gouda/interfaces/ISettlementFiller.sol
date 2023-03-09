@@ -25,5 +25,10 @@ interface ISettlementFiller {
     /// @param settler The settler contract that holds the settlement, so the bridged message can call finalize on the correct contract.
     /// @param outputs The outputs associated with the corresponding settlement. The outputs MUST be in the same order
     /// as they are in the original order so when hashed they will match the hash in the SettlementKey
-    function fillAndTransmitSettlementOutputs(bytes32 orderId, SettlementKey memory key, address settler, OutputToken[] calldata outputs) external;
+    function fillAndTransmitSettlementOutputs(
+        bytes32 orderId,
+        SettlementKey memory key,
+        address settler,
+        OutputToken[] calldata outputs
+    ) external;
 }
