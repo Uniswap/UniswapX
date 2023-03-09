@@ -49,6 +49,9 @@ struct OutputToken {
     uint256 chainId;
 }
 
+/// @dev contains all parameters used to identify a settlement. Must be handed in as a parameter when performing an action
+/// on an existing settlement. This information maps to an orderKey and allows us to keep these parameters in calldata instead
+/// of storage.
 struct SettlementKey {
     address offerer;
     address originChainFiller;
@@ -63,6 +66,7 @@ struct SettlementKey {
     bytes32 outputsHash;
 }
 
+// @dev settlement information stored on chain. This includes a key representing all the information in the SettlementKey.
 struct SettlementStatus {
     bytes32 key;
     SettlementStage status;
