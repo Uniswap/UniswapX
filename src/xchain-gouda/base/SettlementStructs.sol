@@ -60,7 +60,7 @@ struct SettlementKey {
     InputToken input;
     CollateralToken fillerCollateral;
     CollateralToken challengerCollateral;
-    bytes32 outputs;
+    bytes32 outputsHash;
 }
 
 struct SettlementStatus {
