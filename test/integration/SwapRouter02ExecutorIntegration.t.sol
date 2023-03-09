@@ -24,12 +24,16 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
     address maker;
     uint256 makerPrivateKey;
+    address bot;
+    uint256 botPrivateKey;
     SwapRouter02Executor swapRouter02Executor;
     DutchLimitOrderReactor dloReactor;
 
     function setUp() public {
         makerPrivateKey = 0xbabe;
         maker = vm.addr(makerPrivateKey);
+        botPrivateKey = 0xdead;
+        bot = vm.addr(botPrivateKey);
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
         swapRouter02Executor =
@@ -195,5 +199,19 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.prank(address(0xbeef));
         vm.expectRevert("UNAUTHORIZED");
         swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+    }
+
+    // There is 10 WETH swapRouter02Executor. Test that we can convert it to ETH
+    // and withdraw successfully.
+    function testUnwrapWETH() public {
+        assertEq(bot.balance, 0);
+
+        // Transfer 10 WETH to swapRouter02Executor
+        vm.prank(0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E);
+        ERC20(WETH).transfer(address(swapRouter02Executor), 10 * ONE);
+
+        // unwrap WETH and withdraw ETH to bot wallet
+        swapRouter02Executor.unwrapWETH(bot);
+        assertEq(bot.balance, 10 * ONE);
     }
 }

@@ -19,13 +19,13 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     address private immutable swapRouter02;
     address private immutable whitelistedCaller;
     address private immutable reactor;
-    address payable private immutable WETH9;
+    WETH private immutable weth;
 
     constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
         swapRouter02 = _swapRouter02;
-        WETH9 = payable(ISwapRouter02(swapRouter02).WETH9());
+        weth = WETH(payable(ISwapRouter02(_swapRouter02).WETH9()));
     }
 
     /// @param resolvedOrders The orders to fill
@@ -73,12 +73,12 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
     /// @param recipient The address receiving ETH
     function unwrapWETH(address recipient) external onlyOwner {
-        uint256 balanceWETH = WETH(WETH9).balanceOf(address(this));
+        uint256 balanceWETH = weth.balanceOf(address(this));
 
         require(balanceWETH > 0, "Insufficient WETH balance.");
 
-        WETH(WETH9).withdraw(balanceWETH);
-        SafeTransferLib.safeTransferETH(recipient, balanceWETH);
+        weth.withdraw(balanceWETH);
+        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
     }
 
     /// @notice Transfer all ETH in this contract to the recipient. Can only be called by owner.
