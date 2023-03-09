@@ -11,7 +11,12 @@ import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 abstract contract BaseSettlementFiller is ISettlementFiller {
     using SafeTransferLib for ERC20;
 
-    function fillAndTransmitSettlement(bytes32 orderId, SettlementKey memory key, address settler, OutputToken[] calldata outputs) external {
+    function fillAndTransmitSettlement(
+        bytes32 orderId,
+        SettlementKey memory key,
+        address settler,
+        OutputToken[] calldata outputs
+    ) external {
         if (keccak256(abi.encode(outputs)) != key.outputsHash) revert InvalidOutputsHash();
         if (block.timestamp > key.fillDeadline) revert FillDeadlineMissed();
 
