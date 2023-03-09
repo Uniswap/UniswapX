@@ -54,8 +54,7 @@ struct OutputToken {
 /// of storage.
 struct SettlementKey {
     address offerer;
-    address originChainFiller;
-    address targetChainFiller;
+    address filler;
     address settlementOracle;
     uint32 fillDeadline;
     uint32 optimisticDeadline;

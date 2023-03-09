@@ -68,7 +68,6 @@ contract CrossChainLimitOrderReactorTest is
     uint256 challengerPrivateKey;
     address swapper;
     address filler;
-    address targetChainFiller;
     address challenger;
     LimitOrderSettler settler;
     CrossChainLimitOrder order;
@@ -94,7 +93,6 @@ contract CrossChainLimitOrderReactorTest is
         filler = vm.addr(fillerPrivateKey);
         challengerPrivateKey = 0x56785678;
         challenger = vm.addr(challengerPrivateKey);
-        targetChainFiller = address(2);
 
         // define tokenAmounts
         tokenInAmount = ONE;
@@ -147,7 +145,6 @@ contract CrossChainLimitOrderReactorTest is
             order.hash(),
             swapper,
             filler,
-            targetChainFiller,
             address(settlementOracle),
             block.timestamp + 100,
             block.timestamp + 200,
@@ -159,7 +156,7 @@ contract CrossChainLimitOrderReactorTest is
         );
         vm.prank(filler);
         snapStart("CrossChainInitiateFill");
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
         snapEnd();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - tokenInAmount);
@@ -171,12 +168,11 @@ contract CrossChainLimitOrderReactorTest is
     function testInitiateSettlementStoresTheActiveSettlement() public {
         vm.prank(filler);
 
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
         SettlementKey memory key = SettlementKey(
             swapper,
             filler,
-            address(2),
             address(settlementOracle),
             uint32(block.timestamp + order.info.fillPeriod),
             uint32(block.timestamp + order.info.optimisticSettlementPeriod),
@@ -199,7 +195,7 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.prank(filler);
         snapStart("CrossChainInitiateBatch");
-        settler.initiateBatch(signedOrders, targetChainFiller);
+        settler.initiateBatch(signedOrders);
         snapEnd();
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
@@ -224,7 +220,7 @@ contract CrossChainLimitOrderReactorTest is
         signedOrders.push(signedOrder2);
 
         vm.prank(filler);
-        uint8[] memory returnArray = settler.initiateBatch(signedOrders, targetChainFiller);
+        uint8[] memory returnArray = settler.initiateBatch(signedOrders);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
         SettlementKey memory key = constructKey(order, filler);
@@ -246,7 +242,7 @@ contract CrossChainLimitOrderReactorTest is
         signedOrders.push(signedOrder2);
 
         vm.prank(filler);
-        uint8[] memory returnArray = settler.initiateBatch(signedOrders, targetChainFiller);
+        uint8[] memory returnArray = settler.initiateBatch(signedOrders);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
         assertEq(settlement.key, 0);
@@ -268,14 +264,14 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.expectRevert(InvalidSettler.selector);
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
     }
 
     function testInitiateSettlementRevertsWhenDeadlinePassed() public {
         vm.warp(order.info.initiateDeadline + 1);
         vm.expectRevert(InitiateDeadlinePassed.selector);
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
     }
 
     function testInitiateSettlementRevertsWhenCustomValidationFails() public {
@@ -286,12 +282,12 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.expectRevert(ValidationFailed.selector);
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
     }
 
     function testChallengeCollectsBondAndUpdatesStatus() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
         uint256 challengerCollateralBalanceStart = tokenCollateral2.balanceOf(address(challenger));
@@ -310,7 +306,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testChallengeUpdatesSettlementStageAndEmitsEvent() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -325,7 +321,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testChallengeRevertsIfSettlementDoesNotExist() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -336,7 +332,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testChallengeRevertsIfSettlementKeyDoesNotMatch() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
         key.challengeDeadline = 0;
@@ -348,7 +344,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testChallengeRevertsIfItIsAlreadyChallenged() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -361,7 +357,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementSuccessfullyReturnsInputandCollateralsToAChallengedOrder() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -397,7 +393,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementSuccessfullyReturnsInputandCollateralToAnUnchallengedOrder() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -418,7 +414,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementUpdatesSettlementStage() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -443,7 +439,7 @@ contract CrossChainLimitOrderReactorTest is
         keys.push(key2);
 
         vm.prank(filler);
-        settler.initiateBatch(signedOrders, targetChainFiller);
+        settler.initiateBatch(signedOrders);
         vm.warp(key2.challengeDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
@@ -471,7 +467,7 @@ contract CrossChainLimitOrderReactorTest is
         keys.push(constructKey(order2, filler));
 
         vm.prank(filler);
-        settler.initiateBatch(signedOrders, targetChainFiller);
+        settler.initiateBatch(signedOrders);
         // warp to meet only the deadline of the first order
         vm.warp(key.challengeDeadline + 100);
 
@@ -486,14 +482,14 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementRevertsBeforeDeadline() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
         vm.expectRevert(CannotCancelBeforeDeadline.selector);
         settler.cancel(order.hash(), constructKey(order, filler));
     }
 
     function testCancelSettlementRevertsIfAlreadyCancelled() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -505,7 +501,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementRevertsIfSettlementKeyDoesNotMatch() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
         key.challengeDeadline = 0;
@@ -518,7 +514,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testCancelSettlementRevertsIfSettlementDoesNotExist() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
         vm.warp(key.challengeDeadline + 1);
@@ -528,7 +524,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallySuccessfullyTransfersInputAndCollateral() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         uint256 fillerInputBalanceStart = tokenIn.balanceOf(address(filler));
         uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
@@ -550,7 +546,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallyUpdatesSettlementStage() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -564,7 +560,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallyRevertsIfAlreadyFinalized() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -577,7 +573,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallyRevertsIfOptimisticDeadlineHasNotPassed() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -587,7 +583,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallyRevertsIfSettlementDoesNotExist() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -598,7 +594,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeOptimisticallyRevertsIfSettlementKeyDoesNotMatch() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
         key.challengeDeadline = 0;
@@ -609,7 +605,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeChallengedOrderSuccessfullyReturnsFundsIfSettlementWasValid() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -638,7 +634,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeChallengedOrderRevertsIfNotCalledFromOracle() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -654,7 +650,7 @@ contract CrossChainLimitOrderReactorTest is
         order.info.settlementOracle = address(this);
         signature = signOrder(swapperPrivateKey, permit2, order);
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -668,7 +664,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeChallengedRevertsIfSettlementDoesNotExist() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -679,7 +675,7 @@ contract CrossChainLimitOrderReactorTest is
 
     function testFinalizeChallengedRevertsIfSettlementKeyDoesNotMatch() public {
         vm.prank(filler);
-        settler.initiate(SignedOrder(abi.encode(order), signature), targetChainFiller);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -742,7 +738,6 @@ contract CrossChainLimitOrderReactorTest is
         key = SettlementKey(
             orderInfo.info.offerer,
             fillerAddress,
-            address(2),
             orderInfo.info.settlementOracle,
             uint32(block.timestamp + orderInfo.info.fillPeriod),
             uint32(block.timestamp + orderInfo.info.optimisticSettlementPeriod),
