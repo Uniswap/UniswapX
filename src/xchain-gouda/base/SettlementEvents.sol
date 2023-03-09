@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {InputToken} from "../../base/ReactorStructs.sol";
+import {CollateralToken} from "./SettlementStructs.sol";
+
 /// @notice standardized events that should be emitted by all cross-chain reactors
 /// @dev collated into one library to help with forge expectEmit integration
 /// @dev and for reactors which dont use base
@@ -15,13 +18,17 @@ contract SettlementEvents {
     /// @param challengeDeadline The timestamp starting at which the settlement may be cancelled if not filled
     event InitiateSettlement(
         bytes32 indexed orderHash,
-        address indexed originChainFiller,
         address indexed offerer,
+        address indexed originChainFiller,
         address targetChainFiller,
         address settlementOracle,
         uint256 fillDeadline,
         uint256 optimisticDeadline,
-        uint256 challengeDeadline
+        uint256 challengeDeadline,
+        InputToken input,
+        CollateralToken fillerCollateral,
+        CollateralToken challengerCollateral,
+        bytes32 outputsHash
     );
 
     /// @notice emitted when a settlement has been filled successfully

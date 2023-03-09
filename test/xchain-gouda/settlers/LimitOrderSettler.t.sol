@@ -151,7 +151,11 @@ contract CrossChainLimitOrderReactorTest is
             address(settlementOracle),
             block.timestamp + 100,
             block.timestamp + 200,
-            block.timestamp + 300
+            block.timestamp + 300,
+            order.input,
+            order.fillerCollateral,
+            order.challengerCollateral,
+            keccak256(abi.encode(order.outputs))
         );
         vm.prank(filler);
         snapStart("CrossChainInitiateFill");
@@ -199,38 +203,14 @@ contract CrossChainLimitOrderReactorTest is
         snapEnd();
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
-        SettlementKey memory key = SettlementKey(
-            swapper,
-            filler,
-            address(2),
-            address(settlementOracle),
-            uint32(block.timestamp + order.info.fillPeriod),
-            uint32(block.timestamp + order.info.optimisticSettlementPeriod),
-            uint32(block.timestamp + order.info.challengePeriod),
-            order.input,
-            order.fillerCollateral,
-            order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
-        );
+        SettlementKey memory key = constructKey(order, filler);
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
         assertEq(settlement.challenger, address(0));
         assertEq(settlement.key, keccak256(abi.encode(key)));
 
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
-        SettlementKey memory key2 = SettlementKey(
-            order2.info.offerer,
-            filler,
-            address(2),
-            address(settlementOracle),
-            uint32(block.timestamp + order2.info.fillPeriod),
-            uint32(block.timestamp + order2.info.optimisticSettlementPeriod),
-            uint32(block.timestamp + order2.info.challengePeriod),
-            order2.input,
-            order2.fillerCollateral,
-            order2.challengerCollateral,
-            keccak256(abi.encode(order2.outputs))
-        );
+        SettlementKey memory key2 = constructKey(order2, filler);
 
         assertEq(uint8(settlement2.status), uint8(SettlementStage.Pending));
         assertEq(settlement2.challenger, address(0));
@@ -247,19 +227,7 @@ contract CrossChainLimitOrderReactorTest is
         uint8[] memory returnArray = settler.initiateBatch(signedOrders, targetChainFiller);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
-        SettlementKey memory key = SettlementKey(
-            swapper,
-            filler,
-            address(2),
-            address(settlementOracle),
-            uint32(block.timestamp + order.info.fillPeriod),
-            uint32(block.timestamp + order.info.optimisticSettlementPeriod),
-            uint32(block.timestamp + order.info.challengePeriod),
-            order.input,
-            order.fillerCollateral,
-            order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
-        );
+        SettlementKey memory key = constructKey(order, filler);
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
         assertEq(settlement.challenger, address(0));
@@ -284,19 +252,7 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(settlement.key, 0);
 
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
-        SettlementKey memory key2 = SettlementKey(
-            order2.info.offerer,
-            filler,
-            address(2),
-            address(settlementOracle),
-            uint32(block.timestamp + order2.info.fillPeriod),
-            uint32(block.timestamp + order2.info.optimisticSettlementPeriod),
-            uint32(block.timestamp + order2.info.challengePeriod),
-            order2.input,
-            order2.fillerCollateral,
-            order2.challengerCollateral,
-            keccak256(abi.encode(order2.outputs))
-        );
+        SettlementKey memory key2 = constructKey(order2, filler);
 
         assertEq(uint8(settlement2.status), uint8(SettlementStage.Pending));
         assertEq(settlement2.challenger, address(0));

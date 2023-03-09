@@ -65,18 +65,14 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
         if (settlements[order.hash].key != 0) revert SettlementAlreadyInitiated();
 
-        uint32 fillDeadline = uint32(block.timestamp) + order.info.fillPeriod;
-        uint32 optimisticDeadline = uint32(block.timestamp) + order.info.optimisticSettlementPeriod;
-        uint32 challengeDeadline = uint32(block.timestamp) + order.info.challengePeriod;
-
         SettlementKey memory key = SettlementKey(
             order.info.offerer,
             msg.sender,
             targetChainFiller,
             order.info.settlementOracle,
-            fillDeadline,
-            optimisticDeadline,
-            challengeDeadline,
+            uint32(block.timestamp) + order.info.fillPeriod,
+            uint32(block.timestamp) + order.info.optimisticSettlementPeriod,
+            uint32(block.timestamp) + order.info.challengePeriod,
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
@@ -87,13 +83,17 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
         emit InitiateSettlement(
             order.hash,
-            order.info.offerer,
-            msg.sender,
-            targetChainFiller,
-            order.info.settlementOracle,
-            fillDeadline,
-            optimisticDeadline,
-            challengeDeadline
+            key.offerer,
+            key.originChainFiller,
+            key.targetChainFiller,
+            key.settlementOracle,
+            key.fillDeadline,
+            key.optimisticDeadline,
+            key.challengeDeadline,
+            key.input,
+            key.fillerCollateral,
+            key.challengerCollateral,
+            key.outputsHash
         );
     }
 
