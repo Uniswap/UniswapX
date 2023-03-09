@@ -38,12 +38,12 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function initiate(SignedOrder calldata order, address targetChainFiller) public override {
-        _initiate(resolve(order), targetChainFiller);
+    function initiate(SignedOrder calldata order) public override {
+        _initiate(resolve(order));
     }
 
     /// @inheritdoc IOrderSettler
-    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller)
+    function initiateBatch(SignedOrder[] calldata orders)
         external
         override
         returns (uint8[] memory failed)
@@ -52,14 +52,14 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 (bool success,) = address(this).delegatecall(
-                    abi.encodeWithSelector(IOrderSettler.initiate.selector, orders[i], targetChainFiller)
+                    abi.encodeWithSelector(IOrderSettler.initiate.selector, orders[i])
                 );
                 if (!success) failed[i] = 1;
             }
         }
     }
 
-    function _initiate(ResolvedOrder memory order, address targetChainFiller) internal {
+    function _initiate(ResolvedOrder memory order) internal {
         order.validate(msg.sender);
         collectEscrowTokens(order);
 
@@ -68,7 +68,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         SettlementKey memory key = SettlementKey(
             order.info.offerer,
             msg.sender,
-            targetChainFiller,
             order.info.settlementOracle,
             uint32(block.timestamp) + order.info.fillPeriod,
             uint32(block.timestamp) + order.info.optimisticSettlementPeriod,
@@ -84,8 +83,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit InitiateSettlement(
             order.hash,
             key.offerer,
-            key.originChainFiller,
-            key.targetChainFiller,
+            key.filler,
             key.settlementOracle,
             key.fillDeadline,
             key.optimisticDeadline,
@@ -151,13 +149,13 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     function finalize(bytes32 orderId, SettlementKey calldata key, uint256 fillTimestamp) external override {
         SettlementStatus storage settlement = settlements[orderId];
         checkValidSettlement(key, settlement);
-        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
 
         if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement();
+        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
         if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
 
         settlement.status = SettlementStage.Success;
-        ERC20(key.challengerCollateral.token).safeTransfer(key.originChainFiller, key.challengerCollateral.amount);
+        ERC20(key.challengerCollateral.token).safeTransfer(key.filler, key.challengerCollateral.amount);
         compensateFiller(orderId, key);
     }
 
@@ -173,8 +171,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     function compensateFiller(bytes32 orderId, SettlementKey calldata key) internal {
-        ERC20(key.input.token).safeTransfer(key.originChainFiller, key.input.amount);
-        ERC20(key.fillerCollateral.token).safeTransfer(key.originChainFiller, key.fillerCollateral.amount);
+        ERC20(key.input.token).safeTransfer(key.filler, key.input.amount);
+        ERC20(key.fillerCollateral.token).safeTransfer(key.filler, key.fillerCollateral.amount);
         emit FinalizeSettlement(orderId);
     }
 

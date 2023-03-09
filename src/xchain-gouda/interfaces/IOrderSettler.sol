@@ -12,13 +12,11 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 interface IOrderSettler is IOrderSettlerErrors {
     /// @notice Initiate a single order settlement using the given fill specification
     /// @param order The cross-chain order definition and valid signature to execute
-    /// @param targetChainFiller Address reserved as the valid address to initiate the fill on the cross-chain settlementFiller
-    function initiate(SignedOrder calldata order, address targetChainFiller) external;
+    function initiate(SignedOrder calldata order) external;
 
     /// @notice Initiate a multiple order settlements using the given fill specification
     /// @param orders The cross-chain order definitions and valid signatures to execute
-    /// @param targetChainFiller Address reserved as the valid address to initiate the fills on the cross-chain settlementFiller
-    function initiateBatch(SignedOrder[] calldata orders, address targetChainFiller)
+    function initiateBatch(SignedOrder[] calldata orders)
         external
         returns (uint8[] memory failed);
 

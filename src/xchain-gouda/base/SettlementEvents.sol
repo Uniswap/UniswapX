@@ -11,8 +11,7 @@ contract SettlementEvents {
     /// @notice emitted when a settlement is initiated. Has all the information needed to construct the associated SettlementKey
     /// @param orderHash The hash of the order to be filled
     /// @param offerer The offerer of the filled order
-    /// @param originChainFiller The address that initiates the settlement and recieves input tokens once the order is filled
-    /// @param targetChainFiller The address that fills the order on the target chain
+    /// @param filler The address that initiates the settlement and recieves input tokens once the order is filled on the target chain
     /// @param settlementOracle The settlementOracle to be used to determine fulfillment of order
     /// @param optimisticDeadline The timestamp starting at which the settlement may be cancelled if not filled
     /// @param challengeDeadline The timestamp starting at which the settlement may be cancelled if not filled
@@ -23,8 +22,7 @@ contract SettlementEvents {
     event InitiateSettlement(
         bytes32 indexed orderHash,
         address indexed offerer,
-        address indexed originChainFiller,
-        address targetChainFiller,
+        address indexed filler,
         address settlementOracle,
         uint256 fillDeadline,
         uint256 optimisticDeadline,
@@ -36,7 +34,7 @@ contract SettlementEvents {
     );
 
     /// @notice emitted when a settlement has been filled successfully
-    /// @param orderId The hash of the order to be finalized 
+    /// @param orderId The hash of the order to be finalized
     event FinalizeSettlement(bytes32 indexed orderId);
 
     /// @notice emitted when a settlement has been cancelled
