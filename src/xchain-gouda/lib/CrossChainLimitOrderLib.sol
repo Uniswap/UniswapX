@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import {SettlementInfo, CollateralToken, OutputToken} from "../base/SettlementStructs.sol";
-import {console} from "forge-std/console.sol";
 import {InputToken} from "../../base/ReactorStructs.sol";
 /// @dev External struct used to specify cross chain limit orders
 
@@ -76,21 +75,21 @@ library CrossChainLimitOrderLib {
             order.info.optimisticSettlementPeriod,
             order.info.challengePeriod,
             order.info.settlementOracle,
-            order.info.validationContract
-        );
-
-        bytes memory part2 = abi.encode(
+            order.info.validationContract,
             keccak256(order.info.validationData),
             order.input.token,
             order.input.amount,
             order.fillerCollateral.token,
-            order.fillerCollateral.amount,
+            order.fillerCollateral.amount
+        );
+
+        // avoid stack too deep
+        bytes memory part2 = abi.encode(
             order.challengerCollateral.token,
             order.challengerCollateral.amount,
             hash(order.outputs)
         );
 
-        // TODO: More elegant solution to this, I don't even think this works
-        return keccak256(abi.encode(part1, part2));
+        return keccak256(abi.encodePacked(part1, part2));
     }
 }

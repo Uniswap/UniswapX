@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {console} from "forge-std/console.sol";
 import {BaseOrderSettler} from "./BaseOrderSettler.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
