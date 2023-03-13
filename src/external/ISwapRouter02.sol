@@ -19,4 +19,5 @@ interface ISwapRouter02 {
         payable
         returns (uint256 amountOut);
     function unwrapWETH9(uint256 amountMinimum) external payable;
+    function WETH9() external view returns (address);
 }
