@@ -84,11 +84,8 @@ library CrossChainLimitOrderLib {
         );
 
         // avoid stack too deep
-        bytes memory part2 = abi.encode(
-            order.challengerCollateral.token,
-            order.challengerCollateral.amount,
-            hash(order.outputs)
-        );
+        bytes memory part2 =
+            abi.encode(order.challengerCollateral.token, order.challengerCollateral.amount, hash(order.outputs));
 
         return keccak256(abi.encodePacked(part1, part2));
     }
