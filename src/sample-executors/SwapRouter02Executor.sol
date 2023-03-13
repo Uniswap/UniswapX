@@ -15,6 +15,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
+    error InsufficientWETHBalance();
 
     address private immutable swapRouter02;
     address private immutable whitelistedCaller;
@@ -75,7 +76,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     function unwrapWETH(address recipient) external onlyOwner {
         uint256 balanceWETH = weth.balanceOf(address(this));
 
-        require(balanceWETH > 0, "Insufficient WETH balance.");
+        if (balanceWETH == 0) revert InsufficientWETHBalance();
 
         weth.withdraw(balanceWETH);
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);

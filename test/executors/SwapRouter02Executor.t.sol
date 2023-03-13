@@ -398,7 +398,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     function testUnwrapWETHInsuffucientBalance() public {
-        vm.expectRevert("Insufficient WETH balance.");
+        vm.expectRevert(SwapRouter02Executor.InsufficientWETHBalance.selector);
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
