@@ -4,9 +4,14 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
-import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {
+    DutchLimitOrderReactor,
+    DutchLimitOrder,
+    DutchInput,
+    DutchOutput
+} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
@@ -24,7 +29,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     uint256 constant ONE = 1000000000000000000;
 
     address maker;
+    address maker2;
     uint256 makerPrivateKey;
+    uint256 maker2PrivateKey;
     address filler;
     SwapRouter02Executor swapRouter02Executor;
     DutchLimitOrderReactor dloReactor;
@@ -32,15 +39,12 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function setUp() public {
         makerPrivateKey = 0xbabe;
         maker = vm.addr(makerPrivateKey);
+        maker2PrivateKey = 0xbeef;
+        maker2 = vm.addr(maker2PrivateKey);
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
-        swapRouter02Executor = new SwapRouter02Executor(
-            address(this),
-            address(dloReactor),
-            address(this),
-            0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
-        );
+        swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this), SWAPROUTER02);
 
         // Maker max approves permit post
         vm.prank(maker);
@@ -193,7 +197,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[1] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(2)
         );
-        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0);
+        multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
         swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
         assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
@@ -202,6 +206,180 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.prank(address(0xbeef));
         vm.expectRevert("UNAUTHORIZED");
         swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+    }
+
+    // Maker's order has input = 2000 DAI and output = 1 ETH. 213039886077866602 excess wei of ETH will remain in
+    // swapRouter02Executor.
+    function testSwapDaiToETHViaV2() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] =
+            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        // Transfer 2000 DAI to maker
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+        assertEq(ERC20(DAI).balanceOf(maker), 0);
+        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(maker.balance, 1000000000000000000);
+        assertEq(address(swapRouter02Executor).balance, 213039886077866602);
+    }
+
+    // Maker's order has input = 2000 DAI and output = 2 ETH. This is not enough DAI, so revert with "Too little received".
+    function testSwapDaiToEthViaV2ButInsufficientDai() public {
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE * 2, ONE * 2, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, 2 * ONE, path, SWAPROUTER02
+        );
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        // Transfer 2000 DAI to maker
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+
+        vm.expectRevert("Too little received");
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+    }
+
+    // Maker's order has input = 2000 DAI and output = [1 ETH, 0.05 ETH (fee)].
+    function testSwapDaiToETHViaV2WithFee() public {
+        DutchOutput[] memory outputs = new DutchOutput[](2);
+        outputs[0] = DutchOutput(ETH_ADDRESS, ONE, ONE, maker, false);
+        outputs[1] = DutchOutput(ETH_ADDRESS, ONE / 20, ONE / 20, maker, true);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
+            outputs: outputs
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] =
+            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        // Transfer 2000 DAI to maker
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+        assertEq(ERC20(DAI).balanceOf(maker), 0);
+        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(maker.balance, ONE);
+        assertEq(address(swapRouter02Executor).balance, 163039886077866602);
+        assertEq(address(dloReactor).balance, ONE / 20);
+        assertEq(dloReactor.feesOwed(ETH_ADDRESS, address(0)), 500000000000000);
+        assertEq(dloReactor.feesOwed(ETH_ADDRESS, maker), 49500000000000000);
+    }
+
+    // Test a batch execute, dai -> ETH via v2. Order 1: input = 2000 DAI, output = 1 ETH. Order 2: input = 1000 DAI,
+    // output = 0.5 ETH.
+    function testBatchSwapDaiToEthViaV2() public {
+        vm.prank(maker);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+        vm.prank(maker2);
+        ERC20(DAI).approve(PERMIT2, type(uint256).max);
+
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker, 2000 * ONE);
+        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
+        ERC20(DAI).transfer(maker2, 1000 * ONE);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(DAI, ONE * 2000, ONE * 2000),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, maker)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(DAI, ONE * 1000, ONE * 1000),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE / 2, ONE / 2, maker2)
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey, PERMIT2, order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(maker2PrivateKey, PERMIT2, order2));
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = DAI;
+        path[1] = WETH;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 3000 * ONE, ONE * 3 / 2, path, SWAPROUTER02
+        );
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        dloReactor.executeBatch(
+            signedOrders,
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+        );
+        assertEq(maker.balance, ONE);
+        assertEq(maker2.balance, ONE / 2);
+        assertEq(address(swapRouter02Executor).balance, 319317550497372609);
     }
 
     // There is 10 WETH swapRouter02Executor. Test that we can convert it to ETH

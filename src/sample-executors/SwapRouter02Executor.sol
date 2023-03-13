@@ -6,7 +6,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, ETH_ADDRESS} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
@@ -15,6 +15,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
+    error EtherSendFail();
     error InsufficientWETHBalance();
 
     address private immutable swapRouter02;
@@ -59,6 +60,22 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         }
 
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
+
+        // Send the appropriate amount of ETH back to reactor, so reactor can distribute to output recipients.
+        uint256 ethToSendToReactor;
+        for (uint256 i = 0; i < resolvedOrders.length; i++) {
+            for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
+                if (resolvedOrders[i].outputs[j].token == ETH_ADDRESS) {
+                    ethToSendToReactor += resolvedOrders[i].outputs[j].amount;
+                }
+            }
+        }
+        if (ethToSendToReactor > 0) {
+            (bool sent,) = reactor.call{value: ethToSendToReactor}("");
+            if (!sent) {
+                revert EtherSendFail();
+            }
+        }
     }
 
     /// @notice This function can be used to convert ERC20s to ETH that remains in this contract
