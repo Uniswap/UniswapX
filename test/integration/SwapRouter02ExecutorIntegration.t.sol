@@ -24,6 +24,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
     address constant SWAPROUTER02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 constant ONE = 1000000000000000000;
 
@@ -31,6 +32,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address maker2;
     uint256 makerPrivateKey;
     uint256 maker2PrivateKey;
+    address filler;
     SwapRouter02Executor swapRouter02Executor;
     DutchLimitOrderReactor dloReactor;
 
@@ -39,6 +41,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         maker = vm.addr(makerPrivateKey);
         maker2PrivateKey = 0xbeef;
         maker2 = vm.addr(maker2PrivateKey);
+        filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
         dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
         swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this), SWAPROUTER02);
@@ -48,7 +51,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20(WETH).approve(PERMIT2, type(uint256).max);
 
         // Transfer 3 WETH to maker
-        vm.prank(0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E);
+        vm.prank(WHALE);
         ERC20(WETH).transfer(maker, 3 * ONE);
     }
 
@@ -377,5 +380,19 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(maker.balance, ONE);
         assertEq(maker2.balance, ONE / 2);
         assertEq(address(swapRouter02Executor).balance, 319317550497372609);
+    }
+
+    // There is 10 WETH swapRouter02Executor. Test that we can convert it to ETH
+    // and withdraw successfully.
+    function testUnwrapWETH() public {
+        assertEq(filler.balance, 0);
+
+        // Transfer 10 WETH to swapRouter02Executor
+        vm.prank(WHALE);
+        ERC20(WETH).transfer(address(swapRouter02Executor), 10 * ONE);
+
+        // unwrap WETH and withdraw ETH to bot wallet
+        swapRouter02Executor.unwrapWETH(filler);
+        assertEq(filler.balance, 10 * ONE);
     }
 }
