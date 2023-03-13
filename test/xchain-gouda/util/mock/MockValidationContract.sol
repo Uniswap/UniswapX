@@ -2,7 +2,6 @@ pragma solidity ^0.8.16;
 
 import {IValidationCallback} from "../../../../src/xchain-gouda/interfaces/IValidationCallback.sol";
 import {ResolvedOrder} from "../../../../src/xchain-gouda/base/SettlementStructs.sol";
-import {console} from "forge-std/console.sol";
 
 contract MockValidationContract is IValidationCallback {
     bool public valid;

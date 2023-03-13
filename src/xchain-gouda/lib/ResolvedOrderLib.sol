@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 import {ResolvedOrder} from "../base/SettlementStructs.sol";
 import {OrderInfo} from "../../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
-import {console} from "forge-std/console.sol";
 
 library ResolvedOrderLib {
     error InvalidSettler();

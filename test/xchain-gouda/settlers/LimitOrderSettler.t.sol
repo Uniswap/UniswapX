@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {console} from "forge-std/console.sol";
 import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {console} from "forge-std/console.sol";
-import {console2} from "forge-std/console2.sol";
 import {InputToken, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {
     SettlementKey,
