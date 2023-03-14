@@ -12,25 +12,10 @@ contract SettlementEvents {
     /// @param orderHash The hash of the order to be filled
     /// @param offerer The offerer of the filled order
     /// @param filler The address that initiates the settlement and recieves input tokens once the order is filled on the target chain
-    /// @param settlementOracle The settlementOracle to be used to determine fulfillment of order
-    /// @param optimisticDeadline The timestamp starting at which the settlement may be cancelled if not filled
-    /// @param challengeDeadline The timestamp starting at which the settlement may be cancelled if not filled
-    /// @param input The InputToken information associated with the order
-    /// @param fillerCollateral The CollateralToken information associated the filler collateral
-    /// @param challengerCollateral The CollateralToken information associated the challenger collateral
-    /// @param outputsHash A hash of the array of OutputToken parameters associated with the order
     event InitiateSettlement(
         bytes32 indexed orderHash,
         address indexed offerer,
-        address indexed filler,
-        address settlementOracle,
-        uint256 fillDeadline,
-        uint256 optimisticDeadline,
-        uint256 challengeDeadline,
-        InputToken input,
-        CollateralToken fillerCollateral,
-        CollateralToken challengerCollateral,
-        bytes32 outputsHash
+        address indexed filler
     );
 
     /// @notice emitted when a settlement has been filled successfully

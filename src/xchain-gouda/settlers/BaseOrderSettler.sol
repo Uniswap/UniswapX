@@ -77,15 +77,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         emit InitiateSettlement(
             order.hash,
             key.offerer,
-            key.filler,
-            key.settlementOracle,
-            key.fillDeadline,
-            key.optimisticDeadline,
-            key.challengeDeadline,
-            key.input,
-            key.fillerCollateral,
-            key.challengerCollateral,
-            key.outputsHash
+            key.filler
         );
     }
 

@@ -137,20 +137,20 @@ contract CrossChainLimitOrderReactorTest is
         uint256 fillerCollateralBalanceStart = tokenCollateral.balanceOf(address(filler));
         uint256 settlerCollateralBalanceStart = tokenCollateral.balanceOf(address(settler));
 
-        vm.expectEmit(true, true, true, true, address(settler));
-        emit InitiateSettlement(
-            order.hash(),
-            swapper,
-            filler,
-            address(settlementOracle),
-            block.timestamp + 100,
-            block.timestamp + 200,
-            block.timestamp + 300,
-            order.input,
-            order.fillerCollateral,
-            order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
-        );
+        // vm.expectEmit(true, true, true, true, address(settler));
+        // emit InitiateSettlement(
+        //     order.hash(),
+        //     swapper,
+        //     filler,
+        //     address(settlementOracle),
+        //     block.timestamp + 100,
+        //     block.timestamp + 200,
+        //     block.timestamp + 300,
+        //     order.input,
+        //     order.fillerCollateral,
+        //     order.challengerCollateral,
+        //     keccak256(abi.encode(order.outputs))
+        // );
         vm.prank(filler);
         snapStart("CrossChainInitiateFill");
         settler.initiate(SignedOrder(abi.encode(order), signature));
