@@ -3,7 +3,12 @@ pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
-import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {
+    DutchLimitOrderReactor,
+    DutchLimitOrder,
+    DutchInput,
+    ResolvedOrder
+} from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {InvariantTest} from "../util/InvariantTest.sol";
@@ -13,6 +18,8 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
+import "forge-std/console.sol";
 
 contract Runner is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -29,6 +36,8 @@ contract Runner is Test, PermitSignature {
     uint256 makerNonce;
     DutchLimitOrderReactor reactor;
     address permit2;
+    uint256 cumulativeTokenOut;
+    OrderQuoter orderQuoter;
 
     SignedOrder[] signedOrders;
     bool[] signedOrdersFilled;
@@ -40,6 +49,7 @@ contract Runner is Test, PermitSignature {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         reactor = new DutchLimitOrderReactor(permit2, 5000, address(888));
+        orderQuoter = new OrderQuoter();
 
         tokenIn.mint(address(maker), INITIAL_BALANCE);
         tokenOut.mint(address(fillContract), INITIAL_BALANCE);
@@ -70,6 +80,12 @@ contract Runner is Test, PermitSignature {
         if (signedOrdersFilled[index % signedOrders.length]) {
             return;
         }
+        console.log("Block.timestamp", block.timestamp);
+        ResolvedOrder memory ro = orderQuoter.quote(
+            signedOrders[index % signedOrders.length].order, signedOrders[index % signedOrders.length].sig
+        );
+        console.log("ro.outputs[0].amount");
+        console.log(ro.outputs[0].amount);
         reactor.execute(signedOrders[index % signedOrders.length], address(fillContract), bytes(""));
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
@@ -79,15 +95,18 @@ contract Runner is Test, PermitSignature {
         if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
             return false;
         }
-//        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
-//            return false;
-//        }
+        //        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+        //            return false;
+        //        }
         if (tokenIn.balanceOf(maker) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
             return false;
         }
-//        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
-//            return false;
-//        }
+        //        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
+        //            return false;
+        //        }
+        if (numOrdersFilled == 3) {
+            return false;
+        }
         return true;
     }
 }
