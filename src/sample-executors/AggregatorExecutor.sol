@@ -13,7 +13,6 @@ contract AggregatorExecutor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
 
     error SwapFailed();
-
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
 
@@ -38,7 +37,7 @@ contract AggregatorExecutor is IReactorCallback, Owned {
     /// @param resolvedOrders The orders to fill
     /// @param filler This filler must be `whitelistedCaller`
     /// @param fillData It has the below encoded:
-    /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
+    /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to the 1 inch contract
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
@@ -64,14 +63,12 @@ contract AggregatorExecutor is IReactorCallback, Owned {
             ERC20(tokensToApproveForReactor[i]).approve(reactor, type(uint256).max);
         }
 
-        // should call swap on the v5 contract
         (bool success,) = aggregator.call(swapData);
         if (!success) revert SwapFailed();
-
-        // can check the returnAmount and spentAmount here.. is there any handling/sweeping?
     }
 
     /// @notice This function can be used to convert ERC20s to ETH that remains in this contract
+    /// @notice We use SwapRouter02 for the swap.
     /// @param tokensToApprove Max approve these tokens to swapRouter02
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {

@@ -13,6 +13,7 @@ import {
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {MockOneInchAggregator} from "../util/mock/MockOneInchAggregator.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
@@ -25,7 +26,8 @@ import {ISwapRouter02} from "../../src/external/ISwapRouter02.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 import {AggregatorExecutor} from "../../src/sample-executors/AggregatorExecutor.sol";
 
-// This set of tests will use a mock swap router to simulate the Uniswap swap router.
+// This set of tests will use a mock aggregator to mock the call to the 1inch aggreagtor.
+// We also set up a mock swap router to simulate the Uniswap swap router for the final eth swap call out of the executor.
 contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
@@ -33,6 +35,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
     uint256 makerPrivateKey;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
+    WETH weth;
     address taker;
     address maker;
     AggregatorExecutor executor;
@@ -56,6 +59,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
         // Mock input/output tokens
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        weth = new WETH();
 
         // Mock taker and maker
         takerPrivateKey = 0x12341234;
@@ -64,7 +68,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
         maker = vm.addr(makerPrivateKey);
 
         // Instantiate relevant contracts
-        mockSwapRouter = new MockSwapRouter();
+        mockSwapRouter = new MockSwapRouter(address(weth));
         mockAggregator = new MockOneInchAggregator();
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
