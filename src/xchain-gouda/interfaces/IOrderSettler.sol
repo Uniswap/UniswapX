@@ -21,15 +21,15 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// @notice Finalize a settlement by checking that the fill criteria is valid, the caller is the settlement specific
     /// oracle and then transferring input tokens and collateral to the filler.
     /// @dev only callable from the settlement specific oracle
-    /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalize(bytes32 orderId, SettlementKey memory key, uint256 fillTimestamp) external;
+    /// @param orderHash The order hash that identifies the order settlement to finalize
+    function finalize(bytes32 orderHash, SettlementKey memory key, uint256 fillTimestamp) external;
 
     /// @notice Finalize a settlement after an optimistic time period if the settlement has not been challenged.
-    /// @param orderId The order hash that identifies the order settlement to finalize
-    function finalizeOptimistically(bytes32 orderId, SettlementKey memory key) external;
+    /// @param orderHash The order hash that identifies the order settlement to finalize
+    function finalizeOptimistically(bytes32 orderHash, SettlementKey memory key) external;
 
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper. Half of the filler collateral is shared if a challenger challenged the order.
-    /// @param orderId The order hash that identifies the order settlement to cancel
-    function cancel(bytes32 orderId, SettlementKey memory key) external;
+    /// @param orderHash The order hash that identifies the order settlement to cancel
+    function cancel(bytes32 orderHash, SettlementKey memory key) external;
 }

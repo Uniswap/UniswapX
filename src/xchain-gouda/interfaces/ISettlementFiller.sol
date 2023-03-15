@@ -19,14 +19,14 @@ interface ISettlementFiller {
     error InvalidChainId(uint256 chainId);
 
     /// @notice Fills an order on the target chain and transmits a message to the origin chain about the details of the
-    /// fulfillment including the orderId and the outputs
-    /// @dev This function must call the valid bridge to transmit the orderId, settlementKey, and outputs to the origin chain. This function should revert
+    /// fulfillment including the orderHash and the outputs
+    /// @dev This function must call the valid bridge to transmit the orderHash, settlementKey, and outputs to the origin chain. This function should revert
     /// if the hash of outputs do not match the outputsHash in they settlement key.
     /// @param settler The settler contract that holds the settlement, so the bridged message can call finalize on the correct contract.
     /// @param outputs The outputs associated with the corresponding settlement. The outputs MUST be in the same order
     /// as they are in the original order so when hashed they will match the hash in the SettlementKey
     function fillAndTransmitSettlementOutputs(
-        bytes32 orderId,
+        bytes32 orderHash,
         SettlementKey memory key,
         address settler,
         OutputToken[] calldata outputs

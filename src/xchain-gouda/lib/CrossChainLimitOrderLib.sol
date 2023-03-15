@@ -25,7 +25,7 @@ library CrossChainLimitOrderLib {
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        "LimitOrder(",
+        "CrossChainLimitOrder(",
         "address settlerContract,",
         "address offerer,",
         "uint256 nonce,",
@@ -45,7 +45,7 @@ library CrossChainLimitOrderLib {
 
     string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("LimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+        string(abi.encodePacked("CrossChainLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     /// @notice returns the hash of an output token struct
     function hash(OutputToken memory output) private pure returns (bytes32) {

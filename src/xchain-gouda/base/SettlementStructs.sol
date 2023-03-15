@@ -67,7 +67,7 @@ struct SettlementKey {
 
 // @dev settlement information stored on chain. This includes a key representing all the information in the SettlementKey.
 struct SettlementStatus {
-    bytes32 key;
+    bytes32 keyHash;
     SettlementStage status;
     address challenger;
 }

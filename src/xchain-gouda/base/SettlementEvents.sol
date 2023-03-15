@@ -34,15 +34,15 @@ contract SettlementEvents {
     );
 
     /// @notice emitted when a settlement has been filled successfully
-    /// @param orderId The hash of the order to be finalized
-    event FinalizeSettlement(bytes32 indexed orderId);
+    /// @param orderHash The hash of the order to be finalized
+    event FinalizeSettlement(bytes32 indexed orderHash);
 
     /// @notice emitted when a settlement has been cancelled
-    /// @param orderId The hash of the order to be cancelled
-    event CancelSettlement(bytes32 indexed orderId);
+    /// @param orderHash The hash of the order to be cancelled
+    event CancelSettlement(bytes32 indexed orderHash);
 
     /// @notice emitted when a settlement has been challenged
-    /// @param orderId The hash of the order to be challenged
+    /// @param orderHash The hash of the order to be challenged
     /// @param challenger The address of the account that has challenged the settlement fill
-    event SettlementChallenged(bytes32 indexed orderId, address indexed challenger);
+    event SettlementChallenged(bytes32 indexed orderHash, address indexed challenger);
 }

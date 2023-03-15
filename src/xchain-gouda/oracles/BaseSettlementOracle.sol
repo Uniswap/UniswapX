@@ -8,11 +8,11 @@ import {OutputToken, SettlementKey} from "../base/SettlementStructs.sol";
 /// @notice Generic cross-chain filler logic for filling an order on the target chain
 abstract contract BaseSettlementOracle is ISettlementOracle {
     /// @inheritdoc ISettlementOracle
-    function finalizeSettlement(bytes32 orderId, SettlementKey memory key, address settler, uint256 fillTimestamp)
+    function finalizeSettlement(bytes32 orderHash, SettlementKey memory key, address settler, uint256 fillTimestamp)
         external
     {
         authenticateMessageOrigin();
-        IOrderSettler(settler).finalize(orderId, key, fillTimestamp);
+        IOrderSettler(settler).finalize(orderHash, key, fillTimestamp);
     }
 
     /// @notice verifies that the cross chain message came from a legitimate source

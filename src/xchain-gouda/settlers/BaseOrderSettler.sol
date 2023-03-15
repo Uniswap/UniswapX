@@ -32,8 +32,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         permit2 = ISignatureTransfer(_permit2);
     }
 
-    function getSettlement(bytes32 orderId) external view returns (SettlementStatus memory) {
-        return settlements[orderId];
+    function getSettlement(bytes32 orderHash) external view returns (SettlementStatus memory) {
+        return settlements[orderHash];
     }
 
     /// @inheritdoc IOrderSettler
@@ -57,7 +57,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         order.validate(msg.sender);
         collectEscrowTokens(order);
 
-        if (settlements[order.hash].key != 0) revert SettlementAlreadyInitiated();
+        if (settlements[order.hash].keyHash != 0) revert SettlementAlreadyInitiated();
 
         SettlementKey memory key = SettlementKey(
             order.info.offerer,
@@ -90,37 +90,39 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function cancel(bytes32 orderId, SettlementKey calldata key) external override {
-        SettlementStatus storage settlement = settlements[orderId];
-        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
-        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
-        if (key.challengeDeadline >= block.timestamp) revert CannotCancelBeforeDeadline();
+    function cancel(bytes32 orderHash, SettlementKey calldata key) external override {
+        SettlementStatus storage settlementStatus = settlements[orderHash];
+        if (settlementStatus.keyHash != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+        if (settlementStatus.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
+        if (block.timestamp <= key.challengeDeadline) revert CannotCancelBeforeDeadline();
 
-        settlement.status = SettlementStage.Cancelled;
+        settlementStatus.status = SettlementStage.Cancelled;
 
         ERC20(key.input.token).safeTransfer(key.offerer, key.input.amount);
-        if (settlement.challenger != address(0)) {
+        if (settlementStatus.challenger != address(0)) {
             uint256 halfFillerCollateral = key.fillerCollateral.amount / 2;
             ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, halfFillerCollateral);
-            ERC20(key.fillerCollateral.token).safeTransfer(settlement.challenger, halfFillerCollateral);
-            ERC20(key.challengerCollateral.token).safeTransfer(settlement.challenger, key.challengerCollateral.amount);
+            ERC20(key.fillerCollateral.token).safeTransfer(settlementStatus.challenger, halfFillerCollateral);
+            ERC20(key.challengerCollateral.token).safeTransfer(
+                settlementStatus.challenger, key.challengerCollateral.amount
+            );
         } else {
             ERC20(key.fillerCollateral.token).safeTransfer(key.offerer, key.fillerCollateral.amount);
         }
 
-        emit CancelSettlement(orderId);
+        emit CancelSettlement(orderHash);
     }
 
-    function cancelBatch(bytes32[] calldata orderIds, SettlementKey[] calldata keys)
+    function cancelBatch(bytes32[] calldata orderHashes, SettlementKey[] calldata keys)
         external
         returns (uint8[] memory failed)
     {
-        failed = new uint8[](orderIds.length);
+        failed = new uint8[](orderHashes.length);
 
         unchecked {
             for (uint256 i = 0; i < keys.length; i++) {
                 (bool success,) = address(this).delegatecall(
-                    abi.encodeWithSelector(IOrderSettler.cancel.selector, orderIds[i], keys[i])
+                    abi.encodeWithSelector(IOrderSettler.cancel.selector, orderHashes[i], keys[i])
                 );
                 if (!success) failed[i] = 1;
             }
@@ -128,51 +130,55 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     }
 
     /// @inheritdoc IOrderSettler
-    function finalizeOptimistically(bytes32 orderId, SettlementKey calldata key) external override {
-        SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement);
-        if (settlement.status != SettlementStage.Pending) {
+    function finalizeOptimistically(bytes32 orderHash, SettlementKey calldata key) external override {
+        SettlementStatus storage settlementStatus = settlements[orderHash];
+        checkValidSettlement(key, settlementStatus);
+        if (settlementStatus.status != SettlementStage.Pending) {
             revert OptimisticFinalizationForPendingSettlementsOnly();
         }
         if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline();
 
-        settlement.status = SettlementStage.Success;
-        compensateFiller(orderId, key);
+        settlementStatus.status = SettlementStage.Success;
+        compensateFiller(orderHash, key);
     }
 
-    function finalize(bytes32 orderId, SettlementKey calldata key, uint256 fillTimestamp) external override {
-        SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement);
+    function finalize(bytes32 orderHash, SettlementKey calldata key, uint256 fillTimestamp) external override {
+        SettlementStatus storage settlementStatus = settlements[orderHash];
+        checkValidSettlement(key, settlementStatus);
 
         if (msg.sender != key.settlementOracle) revert OnlyOracleCanFinalizeSettlement();
-        if (settlement.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
+        if (settlementStatus.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
         if (fillTimestamp > key.fillDeadline) revert OrderFillExceededDeadline();
 
-        settlement.status = SettlementStage.Success;
+        settlementStatus.status = SettlementStage.Success;
         ERC20(key.challengerCollateral.token).safeTransfer(key.filler, key.challengerCollateral.amount);
-        compensateFiller(orderId, key);
+        compensateFiller(orderHash, key);
     }
 
-    function challengeSettlement(bytes32 orderId, SettlementKey calldata key) external {
-        SettlementStatus storage settlement = settlements[orderId];
-        checkValidSettlement(key, settlement);
-        if (settlement.status != SettlementStage.Pending) revert CanOnlyChallengePendingSettlements();
+    function challengeSettlement(bytes32 orderHash, SettlementKey calldata key) external {
+        SettlementStatus storage settlementStatus = settlements[orderHash];
+        checkValidSettlement(key, settlementStatus);
+        if (settlementStatus.status != SettlementStage.Pending) revert ChallengePendingSettlementsOnly();
+        if (block.timestamp > key.challengeDeadline) revert ChallengeDeadlinePassed();
 
-        settlement.status = SettlementStage.Challenged;
-        settlement.challenger = msg.sender;
+        settlementStatus.status = SettlementStage.Challenged;
+        settlementStatus.challenger = msg.sender;
         collectChallengeBond(key);
-        emit SettlementChallenged(orderId, msg.sender);
+        emit SettlementChallenged(orderHash, msg.sender);
     }
 
-    function compensateFiller(bytes32 orderId, SettlementKey calldata key) internal {
+    function compensateFiller(bytes32 orderHash, SettlementKey calldata key) internal {
         ERC20(key.input.token).safeTransfer(key.filler, key.input.amount);
         ERC20(key.fillerCollateral.token).safeTransfer(key.filler, key.fillerCollateral.amount);
-        emit FinalizeSettlement(orderId);
+        emit FinalizeSettlement(orderHash);
     }
 
-    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlement) internal view {
-        if (settlement.key == 0) revert SettlementDoesNotExist();
-        if (settlement.key != keccak256(abi.encode(key))) revert InvalidSettlementKey();
+    function checkValidSettlement(SettlementKey calldata key, SettlementStatus storage settlementStatus)
+        internal
+        view
+    {
+        if (settlementStatus.keyHash == 0) revert SettlementDoesNotExist();
+        if (settlementStatus.keyHash != keccak256(abi.encode(key))) revert InvalidSettlementKey();
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.

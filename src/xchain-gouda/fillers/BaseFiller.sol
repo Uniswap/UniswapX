@@ -11,7 +11,7 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
     using SafeTransferLib for ERC20;
 
     function fillAndTransmitSettlement(
-        bytes32 orderId,
+        bytes32 orderHash,
         SettlementKey memory key,
         address settler,
         OutputToken[] calldata outputs
@@ -25,11 +25,11 @@ abstract contract BaseSettlementFiller is ISettlementFiller {
                 if (output.chainId != block.chainid) revert InvalidChainId(output.chainId);
                 ERC20(output.token).safeTransferFrom(msg.sender, output.recipient, output.amount);
             }
-            transmitSettlement(orderId, key, settler, block.timestamp);
+            transmitSettlement(orderHash, key, settler, block.timestamp);
         }
     }
 
-    function transmitSettlement(bytes32 orderId, SettlementKey memory key, address settler, uint256 fillTimestamp)
+    function transmitSettlement(bytes32 orderHash, SettlementKey memory key, address settler, uint256 fillTimestamp)
         internal
         virtual;
 }

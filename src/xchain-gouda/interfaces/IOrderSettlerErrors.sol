@@ -31,8 +31,11 @@ interface IOrderSettlerErrors {
     ///         selected oracle
     error OnlyOracleCanFinalizeSettlement();
 
-    /// @notice Thrown when trying to challenge settlement that is already challenged or already completed
-    error CanOnlyChallengePendingSettlements();
+    /// @notice Thrown when trying to challenge a settlement that is already challenged or already completed
+    error ChallengePendingSettlementsOnly();
+
+    /// @notice Thrown when trying to challenge a settlement whose challengeDeadline has passed
+    error ChallengeDeadlinePassed();
 
     error InvalidSettlementKey();
 }

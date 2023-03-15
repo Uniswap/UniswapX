@@ -70,7 +70,7 @@ contract CrossChainLimitOrderReactorTest is
     CrossChainLimitOrder order;
     CrossChainLimitOrder order2; // for batching
     SignedOrder[] signedOrders; // for batching
-    bytes32[] orderIds; // for batching
+    bytes32[] orderHashes; // for batching
     SettlementKey[] keys; // for batching
     bytes signature;
     address permit2;
@@ -182,7 +182,7 @@ contract CrossChainLimitOrderReactorTest is
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
         assertEq(settlement.challenger, address(0));
-        assertEq(settlement.key, keccak256(abi.encode(key)));
+        assertEq(settlement.keyHash, keccak256(abi.encode(key)));
     }
 
     function testInitiateBatchStoresAllActiveSettlements() public {
@@ -200,14 +200,14 @@ contract CrossChainLimitOrderReactorTest is
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
         assertEq(settlement.challenger, address(0));
-        assertEq(settlement.key, keccak256(abi.encode(key)));
+        assertEq(settlement.keyHash, keccak256(abi.encode(key)));
 
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
         SettlementKey memory key2 = constructKey(order2, filler);
 
         assertEq(uint8(settlement2.status), uint8(SettlementStage.Pending));
         assertEq(settlement2.challenger, address(0));
-        assertEq(settlement2.key, keccak256(abi.encode(key2)));
+        assertEq(settlement2.keyHash, keccak256(abi.encode(key2)));
     }
 
     function testInitiateBatchStoresFirstSettlementIfSecondReverts() public {
@@ -224,10 +224,10 @@ contract CrossChainLimitOrderReactorTest is
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
         assertEq(settlement.challenger, address(0));
-        assertEq(settlement.key, keccak256(abi.encode(key)));
+        assertEq(settlement.keyHash, keccak256(abi.encode(key)));
 
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
-        assertEq(settlement2.key, 0);
+        assertEq(settlement2.keyHash, 0);
 
         assertEq(returnArray[0], 0);
         assertEq(returnArray[1], 1);
@@ -242,14 +242,14 @@ contract CrossChainLimitOrderReactorTest is
         uint8[] memory returnArray = settler.initiateBatch(signedOrders);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
-        assertEq(settlement.key, 0);
+        assertEq(settlement.keyHash, 0);
 
         SettlementStatus memory settlement2 = settler.getSettlement(order2.hash());
         SettlementKey memory key2 = constructKey(order2, filler);
 
         assertEq(uint8(settlement2.status), uint8(SettlementStage.Pending));
         assertEq(settlement2.challenger, address(0));
-        assertEq(settlement2.key, keccak256(abi.encode(key2)));
+        assertEq(settlement2.keyHash, keccak256(abi.encode(key2)));
 
         assertEq(returnArray[0], 1);
         assertEq(returnArray[1], 0);
@@ -347,7 +347,19 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
-        vm.expectRevert(CanOnlyChallengePendingSettlements.selector);
+        vm.expectRevert(ChallengePendingSettlementsOnly.selector);
+        vm.prank(challenger);
+        settler.challengeSettlement(order.hash(), key);
+    }
+
+    function testChallengeRevertsIfChallengeDeadlineHasPassed() public {
+        vm.prank(filler);
+        settler.initiate(SignedOrder(abi.encode(order), signature));
+
+        SettlementKey memory key = constructKey(order, filler);
+
+        vm.warp(key.challengeDeadline + 1);
+        vm.expectRevert(ChallengeDeadlinePassed.selector);
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
     }
@@ -426,8 +438,8 @@ contract CrossChainLimitOrderReactorTest is
         SignedOrder memory signedOrder2 = generateSecondOrder();
         signedOrders.push(SignedOrder(abi.encode(order), signature));
         signedOrders.push(signedOrder2);
-        orderIds.push(order.hash());
-        orderIds.push(order2.hash());
+        orderHashes.push(order.hash());
+        orderHashes.push(order2.hash());
 
         SettlementKey memory key = constructKey(order, filler);
         SettlementKey memory key2 = constructKey(order2, filler);
@@ -442,7 +454,7 @@ contract CrossChainLimitOrderReactorTest is
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
         snapStart("CrossChainCancelBatchSettlements");
-        uint8[] memory failed = settler.cancelBatch(orderIds, keys);
+        uint8[] memory failed = settler.cancelBatch(orderHashes, keys);
         snapEnd();
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Cancelled));
@@ -455,8 +467,8 @@ contract CrossChainLimitOrderReactorTest is
         SignedOrder memory signedOrder2 = generateSecondOrder();
         signedOrders.push(SignedOrder(abi.encode(order), signature));
         signedOrders.push(signedOrder2);
-        orderIds.push(order.hash());
-        orderIds.push(order2.hash());
+        orderHashes.push(order.hash());
+        orderHashes.push(order2.hash());
 
         SettlementKey memory key = constructKey(order, filler);
 
@@ -470,7 +482,7 @@ contract CrossChainLimitOrderReactorTest is
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
-        uint8[] memory failed = settler.cancelBatch(orderIds, keys);
+        uint8[] memory failed = settler.cancelBatch(orderHashes, keys);
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Cancelled));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
         assertEq(failed[0], 0);
