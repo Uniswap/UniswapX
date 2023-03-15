@@ -19,7 +19,6 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
-import "forge-std/console.sol";
 
 contract Runner is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -80,12 +79,10 @@ contract Runner is Test, PermitSignature {
         if (signedOrdersFilled[index % signedOrders.length]) {
             return;
         }
-        console.log("Block.timestamp", block.timestamp);
         ResolvedOrder memory ro = orderQuoter.quote(
             signedOrders[index % signedOrders.length].order, signedOrders[index % signedOrders.length].sig
         );
-        console.log("ro.outputs[0].amount");
-        console.log(ro.outputs[0].amount);
+        cumulativeTokenOut += ro.outputs[0].amount;
         reactor.execute(signedOrders[index % signedOrders.length], address(fillContract), bytes(""));
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
@@ -95,22 +92,20 @@ contract Runner is Test, PermitSignature {
         if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
             return false;
         }
-        //        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
-        //            return false;
-        //        }
+        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - cumulativeTokenOut)) {
+            return false;
+        }
         if (tokenIn.balanceOf(maker) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
             return false;
         }
-        //        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
-        //            return false;
-        //        }
-        if (numOrdersFilled == 3) {
+        if (tokenOut.balanceOf(maker) != cumulativeTokenOut) {
             return false;
         }
         return true;
     }
 }
 
+// A single maker creates orders with a random output decay. Ensure filler can execute these orders correctly.
 contract DecayInvariants is Test, InvariantTest, DeployPermit2 {
     address permit2;
     Runner runner;
