@@ -106,7 +106,7 @@ contract Runner is Test, PermitSignature {
 }
 
 // A single maker creates orders with a random output decay. Ensure filler can execute these orders correctly.
-contract DecayInvariants is Test, InvariantTest, DeployPermit2 {
+contract OutputDecayInvariants is Test, InvariantTest, DeployPermit2 {
     address permit2;
     Runner runner;
 
