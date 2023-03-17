@@ -76,19 +76,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
 
         settlements[order.hash] = SettlementStatus(keccak256(abi.encode(key)), SettlementStage.Pending, address(0));
 
-        emit InitiateSettlement(
-            order.hash,
-            key.offerer,
-            key.filler,
-            key.settlementOracle,
-            key.fillDeadline,
-            key.optimisticDeadline,
-            key.challengeDeadline,
-            key.input,
-            key.fillerCollateral,
-            key.challengerCollateral,
-            key.outputsHash
-        );
+        emit InitiateSettlement(order.hash, key.offerer, key.filler);
     }
 
     /// @inheritdoc IOrderSettler
