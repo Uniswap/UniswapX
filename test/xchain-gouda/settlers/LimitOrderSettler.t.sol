@@ -20,6 +20,7 @@ import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {
     CrossChainLimitOrder, CrossChainLimitOrderLib
 } from "../../../src/xchain-gouda/lib/CrossChainLimitOrderLib.sol";
+import {OutputTokenLib} from "../../../src/xchain-gouda/lib/OutputTokenLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
@@ -40,6 +41,7 @@ contract CrossChainLimitOrderReactorTest is
 {
     using SettlementInfoBuilder for SettlementInfo;
     using CrossChainLimitOrderLib for CrossChainLimitOrder;
+    using OutputTokenLib for OutputToken[];
 
     error InitiateDeadlinePassed();
     error ValidationFailed();
@@ -149,7 +151,7 @@ contract CrossChainLimitOrderReactorTest is
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
+            order.outputs.hash()
         );
         vm.prank(filler);
         snapStart("CrossChainInitiateFill");
@@ -177,7 +179,7 @@ contract CrossChainLimitOrderReactorTest is
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
+            order.outputs.hash()
         );
 
         assertEq(uint8(settlement.status), uint8(SettlementStage.Pending));
@@ -754,7 +756,7 @@ contract CrossChainLimitOrderReactorTest is
             orderInfo.input,
             orderInfo.fillerCollateral,
             orderInfo.challengerCollateral,
-            keccak256(abi.encode(orderInfo.outputs))
+            orderInfo.outputs.hash()
         );
     }
 }

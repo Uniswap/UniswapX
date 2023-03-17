@@ -17,12 +17,14 @@ import {
 } from "../base/SettlementStructs.sol";
 import {SignedOrder, InputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
+import {OutputTokenLib} from "../lib/OutputTokenLib.sol";
 
 /// @notice Generic cross-chain settler logic for settling off-chain signed orders
 /// using arbitrary fill methods specified by a taker
 abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
+    using OutputTokenLib for OutputToken[];
 
     ISignatureTransfer public immutable permit2;
 
@@ -69,7 +71,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
-            keccak256(abi.encode(order.outputs))
+            order.outputs.hash()
         );
 
         settlements[order.hash] = SettlementStatus(keccak256(abi.encode(key)), SettlementStage.Pending, address(0));

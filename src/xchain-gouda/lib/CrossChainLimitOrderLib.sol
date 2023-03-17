@@ -3,8 +3,9 @@ pragma solidity ^0.8.16;
 
 import {SettlementInfo, CollateralToken, OutputToken} from "../base/SettlementStructs.sol";
 import {InputToken} from "../../base/ReactorStructs.sol";
-/// @dev External struct used to specify cross chain limit orders
+import {OutputTokenLib} from "./OutputTokenLib.sol";
 
+/// @dev External struct used to specify cross chain limit orders
 struct CrossChainLimitOrder {
     // generic order information
     SettlementInfo info;
@@ -20,6 +21,8 @@ struct CrossChainLimitOrder {
 
 /// @notice helpers for handling limit order objects
 library CrossChainLimitOrderLib {
+    using OutputTokenLib for OutputToken[];
+
     bytes private constant OUTPUT_TOKEN_TYPE =
         "OutputToken(address recipient,address token,uint256 amount,uint256 chainId)";
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
@@ -47,21 +50,6 @@ library CrossChainLimitOrderLib {
     string internal constant PERMIT2_ORDER_TYPE =
         string(abi.encodePacked("CrossChainLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
-    /// @notice returns the hash of an output token struct
-    function hash(OutputToken memory output) private pure returns (bytes32) {
-        return
-            keccak256(abi.encode(OUTPUT_TOKEN_TYPE_HASH, output.recipient, output.token, output.amount, output.chainId));
-    }
-
-    /// @notice returns the hash of an output token struct
-    function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
-        bytes32[] memory outputHashes = new bytes32[](outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
-            outputHashes[i] = hash(outputs[i]);
-        }
-        return keccak256(abi.encodePacked(outputHashes));
-    }
-
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
@@ -85,7 +73,7 @@ library CrossChainLimitOrderLib {
 
         // avoid stack too deep
         bytes memory part2 =
-            abi.encode(order.challengerCollateral.token, order.challengerCollateral.amount, hash(order.outputs));
+            abi.encode(order.challengerCollateral.token, order.challengerCollateral.amount, order.outputs.hash());
 
         return keccak256(abi.encodePacked(part1, part2));
     }
