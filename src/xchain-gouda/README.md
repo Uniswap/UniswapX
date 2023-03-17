@@ -16,3 +16,7 @@ An order can be settled optimistically if it is never challenged. In this scenar
 ### Finalize an Order Settlement that's been Challenged
 A settlement may be challenged successfully through the challengeDeadline. After it is challenged, it may no longer be finalized optimistically, but the SettlementOracle must attest that the order has been filled. The filler will have to ensure that the corresponding cross-chain bridge calls through to the SettlementOracle which has the authority to finalize the challenged settlement on the appropriate OrderSettler contract.
 ![gouda-finalizeChallenged](https://user-images.githubusercontent.com/5539720/226055852-a30fecdd-0157-4e38-8b6d-516a04890440.png)
+
+### Cancel An order
+A settlement may be cancelled after the proof deadline if it was never finalized. Swapper inputs are returned to swapper. Challenger collateral is returned to challenger. Filler collateral is split between the swapper and the challenger.
+![gouda-cancel](https://user-images.githubusercontent.com/5539720/226062365-26bbf097-1ec3-4c9d-aca7-e72d2039ba69.png)
