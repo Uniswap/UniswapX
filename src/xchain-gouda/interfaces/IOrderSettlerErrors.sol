@@ -28,7 +28,7 @@ interface IOrderSettlerErrors {
     error OrderFillExceededDeadline();
 
     /// @notice Thrown when attempting to finalize (non-optimistically) a settlement from an account other then the user
-    ///         selected oracle
+    /// selected oracle
     error OnlyOracleCanFinalizeSettlement();
 
     /// @notice Thrown when trying to challenge a settlement that is already challenged or already completed

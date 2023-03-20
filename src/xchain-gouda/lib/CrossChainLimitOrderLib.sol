@@ -33,7 +33,9 @@ library CrossChainLimitOrderLib {
         "address offerer,",
         "uint256 nonce,",
         "uint256 initiateDeadline,",
-        "uint256 settlementPeriod",
+        "uint256 fillPeriod",
+        "uint32 challengePeriod",
+        "uint32 proofPeriod",
         "address settlementOracle",
         "uint256 validationContract,",
         "uint256 validationData,",
@@ -60,20 +62,24 @@ library CrossChainLimitOrderLib {
             order.info.offerer,
             order.info.nonce,
             order.info.initiateDeadline,
+            order.info.fillPeriod,
             order.info.challengePeriod,
             order.info.proofPeriod,
             order.info.settlementOracle,
             order.info.validationContract,
             keccak256(order.info.validationData),
             order.input.token,
-            order.input.amount,
-            order.fillerCollateral.token,
-            order.fillerCollateral.amount
+            order.input.amount
         );
 
         // avoid stack too deep
-        bytes memory part2 =
-            abi.encode(order.challengerCollateral.token, order.challengerCollateral.amount, order.outputs.hash());
+        bytes memory part2 = abi.encode(
+            order.fillerCollateral.token,
+            order.fillerCollateral.amount,
+            order.challengerCollateral.token,
+            order.challengerCollateral.amount,
+            order.outputs.hash()
+        );
 
         return keccak256(abi.encodePacked(part1, part2));
     }
