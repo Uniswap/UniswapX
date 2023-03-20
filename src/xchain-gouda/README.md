@@ -5,7 +5,7 @@
 An order is equipped with 4 deadlines.
 1. `intiateDeadline:` The order settlement may not be initiated after the initiate deadline. Once passed, this means the order has expired.
 2. `fillDeadline:` The order must be filled on the target chain by the fill deadline, or it is not considered a valid fill.
-3. `challengeDeadline:` After this deadline, the order may be finalized optimistically if it has not been challenged. This means that the filler does not need to prove their fill. A challenger may still challenge after the challenge deadline if the order hasn't been finalized.
+3. `challengeDeadline:` A challenger must challenge a settlement that has not been filled properly within the challenge deadline. After the challenge deadline, the order may be finalized optimistically if it has not been challenged. This means that the filler does not need to prove their fill.
 4. `proofDeadline:` If the order cannot be finalized optimistically, then proof must be sent by this deadline via the SettlementOracle attesting that it was filled on the target chain. Otherwise the order may be cancelled and all funds sent back to the swapper and the challenger.
 
 
