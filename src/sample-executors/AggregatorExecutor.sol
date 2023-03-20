@@ -81,6 +81,4 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
             if (!sent) revert EtherSendFail();
         }
     }
-
-    receive() external payable {}
 }

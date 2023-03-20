@@ -10,9 +10,10 @@ import {ResolvedOrder, ETH_ADDRESS} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 import {FundMaintenance} from "./FundMaintenance.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
+import {Multicall} from "./Multicall.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
-contract SwapRouter02Executor is IReactorCallback, FundMaintenance {
+contract SwapRouter02Executor is IReactorCallback, Multicall, FundMaintenance {
     using ResolvedOrderLib for ResolvedOrder;
     using SafeTransferLib for ERC20;
 
@@ -74,6 +75,4 @@ contract SwapRouter02Executor is IReactorCallback, FundMaintenance {
             if (!sent) revert EtherSendFail();
         }
     }
-
-    receive() external payable {}
 }

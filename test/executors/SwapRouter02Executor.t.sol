@@ -111,6 +111,64 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
     }
 
+    function testFundMaintenanceSwapMulticall() public {
+        tokenOut.mint(address(swapRouter02Executor), ONE);
+
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
+
+        bytes[] memory data = new bytes[](1);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenOut, FEE, address(weth)),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        data[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenOut);
+
+        vm.deal(address(weth), 1 ether);
+        deal(address(weth), address(mockSwapRouter), ONE);
+
+        swapRouter02Executor.swapMulticall(tokensToApproveForSwapRouter02, data);
+
+        assertEq(weth.balanceOf(address(swapRouter02Executor)), ONE);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), ONE);
+    }
+
+    function testGeneralMulticallSwapThenUnwrap() public {
+        tokenOut.mint(address(swapRouter02Executor), ONE);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
+
+        bytes[] memory swapData = new bytes[](1);
+        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+            path: abi.encodePacked(tokenOut, FEE, address(weth)),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        swapData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenOut);
+
+        bytes memory swapMutlicallData =
+            abi.encodeWithSelector(FundMaintenance.swapMulticall.selector, tokensToApproveForSwapRouter02, swapData);
+
+        bytes memory unwrapData = abi.encodeWithSelector(FundMaintenance.unwrapWETH.selector, maker);
+        bytes[] memory multicallData = new bytes[](2);
+        multicallData[0] = swapMutlicallData;
+        multicallData[1] = unwrapData;
+
+        vm.deal(address(weth), 1 ether);
+        deal(address(weth), address(mockSwapRouter), ONE);
+
+        swapRouter02Executor.multicall(multicallData);
+
+        assertEq(weth.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(maker.balance, ONE);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), ONE);
+    }
+
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
     // There will be 0.5 output token remaining in SwapRouter02Executor.
     function testExecute() public {

@@ -6,6 +6,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import "forge-std/console2.sol";
 
 abstract contract FundMaintenance is Owned {
     using SafeTransferLib for ERC20;
@@ -46,4 +47,6 @@ abstract contract FundMaintenance is Owned {
         }
         SWAP_ROUTER_02.multicall(type(uint256).max, multicallData);
     }
+
+    receive() external payable {}
 }
