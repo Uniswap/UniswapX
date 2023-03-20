@@ -3,8 +3,8 @@ pragma solidity ^0.8.16;
 
 import {ITryableSelfMulticall} from "../interfaces/ITryableSelfMulticall.sol";
 
-/// @title ITryableSelfMulticall
-/// @notice Enables calling multiple methods in a single call to the contract
+/// @title TryableSelfMulticall
+/// @notice Enables calling multiple contract functions in a single call. Calls may succeed even if others fail.
 abstract contract TryableSelfMulticall is ITryableSelfMulticall {
     /// @inheritdoc ITryableSelfMulticall
     function multicall(bytes[] calldata data) public override returns (uint8[] memory failed) {

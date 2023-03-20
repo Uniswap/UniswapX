@@ -105,6 +105,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSe
         compensateFiller(orderHash, key);
     }
 
+    /// @inheritdoc IOrderSettler
     function finalize(bytes32 orderHash, SettlementKey calldata key, uint256 fillTimestamp) external override {
         SettlementStatus storage settlementStatus = settlements[orderHash];
         checkValidSettlement(key, settlementStatus);
@@ -118,6 +119,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSe
         compensateFiller(orderHash, key);
     }
 
+    /// @inheritdoc IOrderSettler
     function challengeSettlement(bytes32 orderHash, SettlementKey calldata key) external {
         SettlementStatus storage settlementStatus = settlements[orderHash];
         checkValidSettlement(key, settlementStatus);

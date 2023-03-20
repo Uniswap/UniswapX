@@ -15,17 +15,25 @@ interface IOrderSettler is IOrderSettlerErrors {
     function initiate(SignedOrder calldata order) external;
 
     /// @notice Finalize a settlement by checking that the fill criteria is valid, the caller is the settlement specific
-    /// oracle and then transferring input tokens and collateral to the filler.
+    /// oracle and then transferring input tokens and collateral to the filler
     /// @dev only callable from the settlement specific oracle
     /// @param orderHash The order hash that identifies the order settlement to finalize
+    /// @param key The settlement key associated with the settlement specific data
     function finalize(bytes32 orderHash, SettlementKey memory key, uint256 fillTimestamp) external;
 
-    /// @notice Finalize a settlement after an optimistic time period if the settlement has not been challenged.
+    /// @notice Finalize a settlement after an optimistic time period if the settlement has not been challenged
     /// @param orderHash The order hash that identifies the order settlement to finalize
+    /// @param key The settlement key associated with the settlement specific data
     function finalizeOptimistically(bytes32 orderHash, SettlementKey memory key) external;
+
+    /// @notice Challenge a settmentlent that was not filled properly by its fill deadline
+    /// @param orderHash The order hash that identifies the order settlement to cancel
+    /// @param key The settlement key associated with the settlement specific data
+    function challengeSettlement(bytes32 orderHash, SettlementKey calldata key) external;
 
     /// @notice Cancels a settmentlent that was never filled after the settlement deadline. Input and collateral tokens
     /// are returned to swapper. Half of the filler collateral is shared if a challenger challenged the order.
     /// @param orderHash The order hash that identifies the order settlement to cancel
+    /// @param key The settlement key associated with the settlement specific data
     function cancel(bytes32 orderHash, SettlementKey memory key) external;
 }
