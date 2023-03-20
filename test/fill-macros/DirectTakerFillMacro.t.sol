@@ -12,20 +12,25 @@ import {
     DutchInput,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {IPSFees} from "../../src/base/IPSFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
+import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 
-// This suite of tests test the direct taker fill macro, ie fillContract == address(1)
+// This suite of tests test the direct taker fill macro, ie fillContract == address(1). It also contains tests
+// for ETH outputs with direct taker.
 contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
+    uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
     MockERC20 tokenIn2;
@@ -56,6 +61,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
+        tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn3.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenOut1.forceApprove(directTaker, address(permit2), type(uint256).max);
@@ -129,8 +135,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     // 1st order by maker1, input = 1 tokenIn1 and outputs = [2 tokenOut1]
     // 2nd order by maker2, input = 3 tokenIn2 and outputs = [1 tokenOut1, 3 tokenOut2]
     function testTwoOrders() public {
-        uint256 ONE = 10 ** 18;
-
         tokenIn1.mint(address(maker1), ONE);
         tokenIn2.mint(address(maker2), ONE * 3);
         tokenOut1.mint(directTaker, ONE * 3);
@@ -174,8 +178,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     // 2nd order by maker2, input = 2 tokenIn2 and outputs = [2 tokenOut2]
     // 2nd order by maker2, input = 3 tokenIn3 and outputs = [3 tokenOut3]
     function testThreeOrdersWithFees() public {
-        uint256 ONE = 10 ** 18;
-
         tokenIn1.mint(address(maker1), ONE);
         tokenIn2.mint(address(maker2), ONE * 2);
         tokenIn3.mint(address(maker2), ONE * 3);

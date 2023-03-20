@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OutputToken, OrderInfo, ResolvedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -37,7 +37,7 @@ contract IPSFeesTest is Test {
     }
 
     function testTakeFees() public {
-        ResolvedOrder memory order = createOrder(ONE);
+        ResolvedOrder memory order = createOrder(ONE, false);
         assertEq(order.outputs[order.outputs.length - 1].recipient, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory newOrder = fees.takeFees(order);
 
@@ -47,17 +47,17 @@ contract IPSFeesTest is Test {
     }
 
     function testTakeFees(uint128 amount) public {
-        fees.takeFees(createOrder(amount));
+        fees.takeFees(createOrder(amount, false));
 
         assertEq(fees.feesOwed(address(tokenOut), address(0)), amount / 2);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), amount - amount / 2);
     }
 
     function testTakeSeveralFees() public {
-        fees.takeFees(createOrder(ONE));
-        fees.takeFees(createOrder(ONE * 2));
-        fees.takeFees(createOrder(ONE * 5));
-        fees.takeFees(createOrder(ONE * 2));
+        fees.takeFees(createOrder(ONE, false));
+        fees.takeFees(createOrder(ONE * 2, false));
+        fees.takeFees(createOrder(ONE * 5, false));
+        fees.takeFees(createOrder(ONE * 2, false));
         assertEq(fees.feesOwed(address(tokenOut), address(0)), ONE * 10 / 2);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE * 10 / 2);
     }
@@ -151,7 +151,7 @@ contract IPSFeesTest is Test {
     }
 
     function testClaimFees() public {
-        fees.takeFees(createOrder(ONE));
+        fees.takeFees(createOrder(ONE, false));
         deal(address(tokenOut), address(fees), ONE);
 
         uint256 preBalance = tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT));
@@ -166,6 +166,24 @@ contract IPSFeesTest is Test {
         // subtract one because the reactor keeps one wei for gas savings
         assertEq(tokenOut.balanceOf(INTERFACE_FEE_RECIPIENT), preBalance + ONE / 2 - 1);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 1);
+    }
+
+    function testClaimEthFees() public {
+        fees.takeFees(createOrder(ONE, true));
+        vm.deal(address(fees), ONE);
+
+        uint256 preBalance = address(PROTOCOL_FEE_RECIPIENT).balance;
+        vm.prank(PROTOCOL_FEE_RECIPIENT);
+        fees.claimFees(ETH_ADDRESS);
+        assertEq(address(PROTOCOL_FEE_RECIPIENT).balance, preBalance + ONE / 2 - 1);
+        assertEq(fees.feesOwed(address(ETH_ADDRESS), address(0)), 1);
+
+        preBalance = INTERFACE_FEE_RECIPIENT.balance;
+        vm.prank(INTERFACE_FEE_RECIPIENT);
+        fees.claimFees(ETH_ADDRESS);
+        // subtract one because the reactor keeps one wei for gas savings
+        assertEq(INTERFACE_FEE_RECIPIENT.balance, preBalance + ONE / 2 - 1);
+        assertEq(fees.feesOwed(ETH_ADDRESS, INTERFACE_FEE_RECIPIENT), 1);
     }
 
     function testSetProtocolFeeRecipient() public {
@@ -183,7 +201,7 @@ contract IPSFeesTest is Test {
     }
 
     function testOldFeeRecipientCannotClaim() public {
-        fees.takeFees(createOrder(ONE));
+        fees.takeFees(createOrder(ONE, false));
         deal(address(tokenOut), address(fees), ONE);
 
         vm.startPrank(PROTOCOL_FEE_RECIPIENT);
@@ -192,10 +210,11 @@ contract IPSFeesTest is Test {
         fees.claimFees(address(tokenOut));
     }
 
-    function createOrder(uint256 amount) private view returns (ResolvedOrder memory) {
+    function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](2);
-        outputs[0] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
-        outputs[1] = OutputToken(address(tokenOut), amount, INTERFACE_FEE_RECIPIENT, true);
+        address outputToken = isEthOutput ? ETH_ADDRESS : address(tokenOut);
+        outputs[0] = OutputToken(outputToken, ONE, RECIPIENT, false);
+        outputs[1] = OutputToken(outputToken, amount, INTERFACE_FEE_RECIPIENT, true);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
             input: InputToken(address(tokenIn), ONE, ONE),
