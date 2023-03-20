@@ -198,14 +198,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 1000 * ONE, 0, uniToEthPath, address(2)
         );
         multicallData[2] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
-        swapRouter02Executor.multicall(tokensToApproveForSwapRouter02, multicallData);
+        swapRouter02Executor.swapMulticall(tokensToApproveForSwapRouter02, multicallData);
         assertEq(address(swapRouter02Executor).balance, 4667228409436457308);
     }
 
     function testMulticallOnlyOwner() public {
         vm.prank(address(0xbeef));
         vm.expectRevert("UNAUTHORIZED");
-        swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+        swapRouter02Executor.swapMulticall(new address[](0), new bytes[](0));
     }
 
     // Maker's order has input = 2000 DAI and output = 1 ETH. 213039886077866602 excess wei of ETH will remain in
