@@ -14,10 +14,6 @@ interface IOrderSettler is IOrderSettlerErrors {
     /// @param order The cross-chain order definition and valid signature to execute
     function initiate(SignedOrder calldata order) external;
 
-    /// @notice Initiate a multiple order settlements using the given fill specification
-    /// @param orders The cross-chain order definitions and valid signatures to execute
-    function initiateBatch(SignedOrder[] calldata orders) external returns (uint8[] memory failed);
-
     /// @notice Finalize a settlement by checking that the fill criteria is valid, the caller is the settlement specific
     /// oracle and then transferring input tokens and collateral to the filler.
     /// @dev only callable from the settlement specific oracle

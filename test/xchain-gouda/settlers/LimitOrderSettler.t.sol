@@ -71,9 +71,6 @@ contract CrossChainLimitOrderReactorTest is
     LimitOrderSettler settler;
     CrossChainLimitOrder order;
     CrossChainLimitOrder order2; // for batching
-    SignedOrder[] signedOrders; // for batching
-    bytes32[] orderHashes; // for batching
-    SettlementKey[] keys; // for batching
     bytes signature;
     address permit2;
 
@@ -176,13 +173,13 @@ contract CrossChainLimitOrderReactorTest is
     }
 
     function testInitiateBatchStoresAllActiveSettlements() public {
-        SignedOrder memory signedOrder2 = generateSecondOrder();
-        signedOrders.push(SignedOrder(abi.encode(order), signature));
-        signedOrders.push(signedOrder2);
+        bytes[] memory initiateData = new bytes[](2);
+        initiateData[0] = abi.encodeWithSelector(settler.initiate.selector, SignedOrder(abi.encode(order), signature));
+        initiateData[1] = abi.encodeWithSelector(settler.initiate.selector, generateSecondOrder());
 
         vm.prank(filler);
         snapStart("CrossChainInitiateBatch");
-        settler.initiateBatch(signedOrders);
+        settler.multicall(initiateData);
         snapEnd();
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
@@ -203,11 +200,12 @@ contract CrossChainLimitOrderReactorTest is
     function testInitiateBatchStoresFirstSettlementIfSecondReverts() public {
         SignedOrder memory signedOrder2 = generateSecondOrder();
         signedOrder2.sig = signature; // invalid signatuer
-        signedOrders.push(SignedOrder(abi.encode(order), signature));
-        signedOrders.push(signedOrder2);
+        bytes[] memory initiateData = new bytes[](2);
+        initiateData[0] = abi.encodeWithSelector(settler.initiate.selector, SignedOrder(abi.encode(order), signature));
+        initiateData[1] = abi.encodeWithSelector(settler.initiate.selector, signedOrder2);
 
         vm.prank(filler);
-        uint8[] memory returnArray = settler.initiateBatch(signedOrders);
+        uint8[] memory returnArray = settler.multicall(initiateData);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
         SettlementKey memory key = constructKey(order, filler);
@@ -225,11 +223,14 @@ contract CrossChainLimitOrderReactorTest is
 
     function testInitiateBatchStoresSecondSettlementIfFirstReverts() public {
         SignedOrder memory signedOrder2 = generateSecondOrder();
-        signedOrders.push(SignedOrder(abi.encode(order), signedOrder2.sig)); // invalid signatuer
-        signedOrders.push(signedOrder2);
+
+        bytes[] memory initiateData = new bytes[](2);
+        initiateData[0] =
+            abi.encodeWithSelector(settler.initiate.selector, SignedOrder(abi.encode(order), signedOrder2.sig)); // invalid sig
+        initiateData[1] = abi.encodeWithSelector(settler.initiate.selector, signedOrder2);
 
         vm.prank(filler);
-        uint8[] memory returnArray = settler.initiateBatch(signedOrders);
+        uint8[] memory returnArray = settler.multicall(initiateData);
 
         SettlementStatus memory settlement = settler.getSettlement(order.hash());
         assertEq(settlement.keyHash, 0);
@@ -425,26 +426,26 @@ contract CrossChainLimitOrderReactorTest is
     }
 
     function testCancelBatchSettlementUpdatesSettlementStages() public {
-        SignedOrder memory signedOrder2 = generateSecondOrder();
-        signedOrders.push(SignedOrder(abi.encode(order), signature));
-        signedOrders.push(signedOrder2);
-        orderHashes.push(order.hash());
-        orderHashes.push(order2.hash());
+        bytes[] memory initiateData = new bytes[](2);
+        initiateData[0] = abi.encodeWithSelector(settler.initiate.selector, SignedOrder(abi.encode(order), signature));
+        initiateData[1] = abi.encodeWithSelector(settler.initiate.selector, generateSecondOrder());
 
         SettlementKey memory key = constructKey(order, filler);
         SettlementKey memory key2 = constructKey(order2, filler);
 
-        keys.push(key);
-        keys.push(key2);
-
         vm.prank(filler);
-        settler.initiateBatch(signedOrders);
+        settler.multicall(initiateData);
         vm.warp(key2.challengeDeadline + 1);
+
+        bytes[] memory cancelData = new bytes[](2);
+        cancelData[0] = abi.encodeWithSelector(settler.cancel.selector, order.hash(), key);
+        cancelData[1] = abi.encodeWithSelector(settler.cancel.selector, order2.hash(), key2);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
+
         snapStart("CrossChainCancelBatchSettlements");
-        uint8[] memory failed = settler.cancelBatch(orderHashes, keys);
+        uint8[] memory failed = settler.multicall(cancelData);
         snapEnd();
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Cancelled));
@@ -454,25 +455,27 @@ contract CrossChainLimitOrderReactorTest is
     }
 
     function testCancelBatchSettlementUpdatesSecondSettlementStageIfFirstFails() public {
-        SignedOrder memory signedOrder2 = generateSecondOrder();
-        signedOrders.push(SignedOrder(abi.encode(order), signature));
-        signedOrders.push(signedOrder2);
-        orderHashes.push(order.hash());
-        orderHashes.push(order2.hash());
+        bytes[] memory initiateData = new bytes[](2);
+        initiateData[0] = abi.encodeWithSelector(settler.initiate.selector, SignedOrder(abi.encode(order), signature));
+        initiateData[1] = abi.encodeWithSelector(settler.initiate.selector, generateSecondOrder());
 
         SettlementKey memory key = constructKey(order, filler);
-
-        keys.push(key);
-        keys.push(constructKey(order2, filler));
+        SettlementKey memory key2 = constructKey(order2, filler);
 
         vm.prank(filler);
-        settler.initiateBatch(signedOrders);
+        settler.multicall(initiateData);
         // warp to meet only the deadline of the first order
         vm.warp(key.challengeDeadline + 100);
 
+        bytes[] memory cancelData = new bytes[](2);
+        cancelData[0] = abi.encodeWithSelector(settler.cancel.selector, order.hash(), key);
+        cancelData[1] = abi.encodeWithSelector(settler.cancel.selector, order2.hash(), key2);
+
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
-        uint8[] memory failed = settler.cancelBatch(orderHashes, keys);
+
+        uint8[] memory failed = settler.multicall(cancelData);
+
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Cancelled));
         assertEq(uint8(settler.getSettlement(order2.hash()).status), uint8(SettlementStage.Pending));
         assertEq(failed[0], 0);

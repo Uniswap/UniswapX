@@ -5,6 +5,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SettlementEvents} from "../base/SettlementEvents.sol";
+import {TryableSelfMulticall} from "../base/TryableSelfMulticall.sol";
 import {IOrderSettler} from "../interfaces/IOrderSettler.sol";
 import {ISettlementOracle} from "../interfaces/ISettlementOracle.sol";
 import {
@@ -21,7 +22,7 @@ import {OutputTokenLib} from "../lib/OutputTokenLib.sol";
 
 /// @notice Generic cross-chain settler logic for settling off-chain signed orders
 /// using arbitrary fill methods specified by a taker
-abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
+abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSelfMulticall {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
     using OutputTokenLib for OutputToken[];
@@ -41,18 +42,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
     /// @inheritdoc IOrderSettler
     function initiate(SignedOrder calldata order) public override {
         _initiate(resolve(order));
-    }
-
-    /// @inheritdoc IOrderSettler
-    function initiateBatch(SignedOrder[] calldata orders) external override returns (uint8[] memory failed) {
-        failed = new uint8[](orders.length);
-        unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
-                (bool success,) =
-                    address(this).delegatecall(abi.encodeWithSelector(IOrderSettler.initiate.selector, orders[i]));
-                if (!success) failed[i] = 1;
-            }
-        }
     }
 
     function _initiate(ResolvedOrder memory order) internal {
@@ -101,22 +90,6 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents {
         }
 
         emit CancelSettlement(orderHash);
-    }
-
-    function cancelBatch(bytes32[] calldata orderHashes, SettlementKey[] calldata keys)
-        external
-        returns (uint8[] memory failed)
-    {
-        failed = new uint8[](orderHashes.length);
-
-        unchecked {
-            for (uint256 i = 0; i < keys.length; i++) {
-                (bool success,) = address(this).delegatecall(
-                    abi.encodeWithSelector(IOrderSettler.cancel.selector, orderHashes[i], keys[i])
-                );
-                if (!success) failed[i] = 1;
-            }
-        }
     }
 
     /// @inheritdoc IOrderSettler
