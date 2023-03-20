@@ -23,11 +23,12 @@ struct SettlementInfo {
     uint256 initiateDeadline;
     // The time period in seconds the filler has to fill the order on the targetChain
     uint32 fillPeriod;
-    // The time period in seconds when passed the filler may claim input and collateral tokens unless challenged
-    uint32 optimisticSettlementPeriod;
+    // The time period in seconds a challenger may challenge a settlement before the filler is able to optimistically
+    // finalize the settlement.
+    uint32 challengePeriod;
     // The time period in seconds from the time of the settlement initialization that the filler has to prove a
     // challenged fill before the settlement can be cancelled
-    uint32 challengePeriod;
+    uint32 proofPeriod;
     // Contract that receives information about cross chain transactions
     address settlementOracle;
     // Custom validation contract
@@ -57,8 +58,8 @@ struct SettlementKey {
     address filler;
     address settlementOracle;
     uint32 fillDeadline;
-    uint32 optimisticDeadline;
     uint32 challengeDeadline;
+    uint32 proofDeadline;
     InputToken input;
     CollateralToken fillerCollateral;
     CollateralToken challengerCollateral;

@@ -11,8 +11,8 @@ library SettlementInfoBuilder {
             nonce: 0,
             initiateDeadline: block.timestamp + 100,
             fillPeriod: 100,
-            optimisticSettlementPeriod: 200,
-            challengePeriod: 300,
+            challengePeriod: 200,
+            proofPeriod: 300,
             settlementOracle: address(0),
             validationContract: address(0),
             validationData: bytes("")
@@ -52,8 +52,8 @@ library SettlementInfoBuilder {
         pure
         returns (SettlementInfo memory)
     {
-        info.optimisticSettlementPeriod = optimistic;
-        info.challengePeriod = challenge;
+        info.challengePeriod = optimistic;
+        info.proofPeriod = challenge;
         return info;
     }
 

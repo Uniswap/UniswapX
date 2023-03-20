@@ -159,8 +159,8 @@ contract CrossChainLimitOrderReactorTest is
             filler,
             address(settlementOracle),
             uint32(block.timestamp + order.info.fillPeriod),
-            uint32(block.timestamp + order.info.optimisticSettlementPeriod),
             uint32(block.timestamp + order.info.challengePeriod),
+            uint32(block.timestamp + order.info.proofPeriod),
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
@@ -323,7 +323,7 @@ contract CrossChainLimitOrderReactorTest is
         settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
-        key.challengeDeadline = 0;
+        key.proofDeadline = 0;
 
         vm.expectRevert(InvalidSettlementKey.selector);
         vm.prank(challenger);
@@ -372,7 +372,7 @@ contract CrossChainLimitOrderReactorTest is
         uint256 challengerCollateralBalanceStart = tokenCollateral.balanceOf(address(challenger));
         uint256 challengerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(challenger));
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         snapStart("CrossChainCancelSettlement");
         settler.cancel(order.hash(), key);
         snapEnd();
@@ -397,7 +397,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 settlerInputBalanceStart = tokenIn.balanceOf(address(settler));
@@ -418,7 +418,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
         settler.cancel(order.hash(), key);
@@ -435,7 +435,7 @@ contract CrossChainLimitOrderReactorTest is
 
         vm.prank(filler);
         settler.multicall(initiateData);
-        vm.warp(key2.challengeDeadline + 1);
+        vm.warp(key2.proofDeadline + 1);
 
         bytes[] memory cancelData = new bytes[](2);
         cancelData[0] = abi.encodeWithSelector(settler.cancel.selector, order.hash(), key);
@@ -465,7 +465,7 @@ contract CrossChainLimitOrderReactorTest is
         vm.prank(filler);
         settler.multicall(initiateData);
         // warp to meet only the deadline of the first order
-        vm.warp(key.challengeDeadline + 100);
+        vm.warp(key.proofDeadline + 100);
 
         bytes[] memory cancelData = new bytes[](2);
         cancelData[0] = abi.encodeWithSelector(settler.cancel.selector, order.hash(), key);
@@ -495,7 +495,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         settler.cancel(order.hash(), key);
         vm.expectRevert(SettlementAlreadyCompleted.selector);
         settler.cancel(order.hash(), key);
@@ -506,9 +506,9 @@ contract CrossChainLimitOrderReactorTest is
         settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
-        key.challengeDeadline = 0;
+        key.proofDeadline = 0;
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         vm.expectRevert(InvalidSettlementKey.selector);
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
@@ -519,7 +519,7 @@ contract CrossChainLimitOrderReactorTest is
         settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         vm.expectRevert(SettlementDoesNotExist.selector);
         settler.challengeSettlement(keccak256("0x69"), key);
     }
@@ -535,7 +535,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.optimisticDeadline + 1);
+        vm.warp(key.challengeDeadline + 1);
         snapStart("CrossChainFinalizeOptimistic");
         settler.finalizeOptimistically(order.hash(), key);
         snapEnd();
@@ -552,10 +552,10 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
 
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Pending));
-        vm.warp(key.optimisticDeadline + 1);
+        vm.warp(key.challengeDeadline + 1);
         settler.finalizeOptimistically(order.hash(), key);
         assertEq(uint8(settler.getSettlement(order.hash()).status), uint8(SettlementStage.Success));
     }
@@ -566,7 +566,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.optimisticDeadline + 1);
+        vm.warp(key.challengeDeadline + 1);
         settler.finalizeOptimistically(order.hash(), key);
 
         vm.expectRevert(OptimisticFinalizationForPendingSettlementsOnly.selector);
@@ -589,7 +589,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.optimisticDeadline + 1);
+        vm.warp(key.challengeDeadline + 1);
         vm.expectRevert(SettlementDoesNotExist.selector);
         settler.finalizeOptimistically(keccak256("0x69"), key);
     }
@@ -599,7 +599,7 @@ contract CrossChainLimitOrderReactorTest is
         settler.initiate(SignedOrder(abi.encode(order), signature));
 
         SettlementKey memory key = constructKey(order, filler);
-        key.challengeDeadline = 0;
+        key.proofDeadline = 0;
 
         vm.expectRevert(InvalidSettlementKey.selector);
         settler.finalizeOptimistically(order.hash(), key);
@@ -621,7 +621,7 @@ contract CrossChainLimitOrderReactorTest is
         uint256 settlerCollateralBalanceStart = tokenCollateral.balanceOf(address(settler));
         uint256 settlerCollateral2BalanceStart = tokenCollateral2.balanceOf(address(settler));
 
-        vm.warp(key.challengeDeadline);
+        vm.warp(key.proofDeadline);
         snapStart("CrossChainFinalizeChallenged");
         settlementOracle.finalizeSettlement(order.hash(), key, address(settler), key.fillDeadline);
         snapEnd();
@@ -643,7 +643,7 @@ contract CrossChainLimitOrderReactorTest is
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         vm.expectRevert(OnlyOracleCanFinalizeSettlement.selector);
         settler.finalize(order.hash(), key, block.timestamp + 10);
     }
@@ -670,7 +670,7 @@ contract CrossChainLimitOrderReactorTest is
 
         SettlementKey memory key = constructKey(order, filler);
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         vm.expectRevert(SettlementDoesNotExist.selector);
         settlementOracle.finalizeSettlement(keccak256("0x69"), key, address(settler), key.fillDeadline);
     }
@@ -684,9 +684,9 @@ contract CrossChainLimitOrderReactorTest is
         vm.prank(challenger);
         settler.challengeSettlement(order.hash(), key);
 
-        key.challengeDeadline = 0;
+        key.proofDeadline = 0;
 
-        vm.warp(key.challengeDeadline + 1);
+        vm.warp(key.proofDeadline + 1);
         vm.expectRevert(InvalidSettlementKey.selector);
         settlementOracle.finalizeSettlement(order.hash(), key, address(settler), key.fillDeadline);
     }
@@ -742,8 +742,8 @@ contract CrossChainLimitOrderReactorTest is
             fillerAddress,
             orderInfo.info.settlementOracle,
             uint32(block.timestamp + orderInfo.info.fillPeriod),
-            uint32(block.timestamp + orderInfo.info.optimisticSettlementPeriod),
             uint32(block.timestamp + orderInfo.info.challengePeriod),
+            uint32(block.timestamp + orderInfo.info.proofPeriod),
             orderInfo.input,
             orderInfo.fillerCollateral,
             orderInfo.challengerCollateral,

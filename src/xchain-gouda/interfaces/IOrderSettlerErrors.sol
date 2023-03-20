@@ -34,7 +34,7 @@ interface IOrderSettlerErrors {
     /// @notice Thrown when trying to challenge a settlement that is already challenged or already completed
     error ChallengePendingSettlementsOnly();
 
-    /// @notice Thrown when trying to challenge a settlement whose challengeDeadline has passed
+    /// @notice Thrown when trying to challenge a settlement whose proofDeadline has passed
     error ChallengeDeadlinePassed();
 
     error InvalidSettlementKey();

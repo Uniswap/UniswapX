@@ -55,8 +55,8 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSe
             msg.sender,
             order.info.settlementOracle,
             uint32(block.timestamp) + order.info.fillPeriod,
-            uint32(block.timestamp) + order.info.optimisticSettlementPeriod,
             uint32(block.timestamp) + order.info.challengePeriod,
+            uint32(block.timestamp) + order.info.proofPeriod,
             order.input,
             order.fillerCollateral,
             order.challengerCollateral,
@@ -73,7 +73,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSe
         SettlementStatus storage settlementStatus = settlements[orderHash];
         if (settlementStatus.keyHash != keccak256(abi.encode(key))) revert InvalidSettlementKey();
         if (settlementStatus.status > SettlementStage.Challenged) revert SettlementAlreadyCompleted();
-        if (block.timestamp <= key.challengeDeadline) revert CannotCancelBeforeDeadline();
+        if (block.timestamp <= key.proofDeadline) revert CannotCancelBeforeDeadline();
 
         settlementStatus.status = SettlementStage.Cancelled;
 
@@ -99,7 +99,7 @@ abstract contract BaseOrderSettler is IOrderSettler, SettlementEvents, TryableSe
         if (settlementStatus.status != SettlementStage.Pending) {
             revert OptimisticFinalizationForPendingSettlementsOnly();
         }
-        if (block.timestamp < key.optimisticDeadline) revert CannotFinalizeBeforeDeadline();
+        if (block.timestamp < key.challengeDeadline) revert CannotFinalizeBeforeDeadline();
 
         settlementStatus.status = SettlementStage.Success;
         compensateFiller(orderHash, key);
