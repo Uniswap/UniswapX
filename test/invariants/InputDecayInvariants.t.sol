@@ -35,7 +35,7 @@ contract Runner is Test, PermitSignature {
     uint256 makerNonce;
     DutchLimitOrderReactor reactor;
     address permit2;
-    uint256 cumulativeTokenOut;
+    uint256 cumulativeTokenIn;
     OrderQuoter orderQuoter;
 
     SignedOrder[] signedOrders;
@@ -63,8 +63,8 @@ contract Runner is Test, PermitSignature {
                 ),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE * decay / 10, address(maker))
+            input: DutchInput(address(tokenIn), ONE * decay / 10, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, ONE, address(maker))
         });
         SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(makerPk, permit2, order));
         signedOrders.push(signedOrder);
@@ -82,30 +82,30 @@ contract Runner is Test, PermitSignature {
         ResolvedOrder memory ro = orderQuoter.quote(
             signedOrders[index % signedOrders.length].order, signedOrders[index % signedOrders.length].sig
         );
-        cumulativeTokenOut += ro.outputs[0].amount;
+        cumulativeTokenIn += ro.input.amount;
         reactor.execute(signedOrders[index % signedOrders.length], address(fillContract), bytes(""));
         signedOrdersFilled[index % signedOrders.length] = true;
         numOrdersFilled++;
     }
 
     function balancesAreCorrect() public returns (bool) {
-        if (tokenIn.balanceOf(address(fillContract)) != numOrdersFilled * ONE) {
+        if (tokenIn.balanceOf(address(fillContract)) != cumulativeTokenIn) {
             return false;
         }
-        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - cumulativeTokenOut)) {
+        if (tokenOut.balanceOf(address(fillContract)) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
             return false;
         }
-        if (tokenIn.balanceOf(maker) != (INITIAL_BALANCE - numOrdersFilled * ONE)) {
+        if (tokenIn.balanceOf(maker) != (INITIAL_BALANCE - cumulativeTokenIn)) {
             return false;
         }
-        if (tokenOut.balanceOf(maker) != cumulativeTokenOut) {
+        if (tokenOut.balanceOf(maker) != numOrdersFilled * ONE) {
             return false;
         }
         return true;
     }
 }
 
-// A single maker creates orders with a random output decay. Ensure filler can execute these orders correctly.
+// A single maker creates orders with a random input decay. Ensure filler can execute these orders correctly.
 contract InputDecayVariants is Test, InvariantTest, DeployPermit2 {
     address permit2;
     Runner runner;
