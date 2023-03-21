@@ -12,6 +12,8 @@ import {FundMaintenance} from "./FundMaintenance.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {Multicall} from "./Multicall.sol";
 
+import "forge-std/console2.sol";
+
 /// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Multicall, FundMaintenance {
     using ResolvedOrderLib for ResolvedOrder;
@@ -64,12 +66,13 @@ contract SwapRouter02Executor is IReactorCallback, Multicall, FundMaintenance {
 
         // Send the appropriate amount of ETH back to reactor, so reactor can distribute to output recipients.
         uint256 ethToSendToReactor;
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
+        for (uint256 i = 0; i < resolvedOrders.length;) {
             ethToSendToReactor += resolvedOrders[i].getTokenOutputAmount(ETH_ADDRESS);
             unchecked {
                 i++;
             }
         }
+
         if (ethToSendToReactor > 0) {
             (bool sent,) = reactor.call{value: ethToSendToReactor}("");
             if (!sent) revert EtherSendFail();
