@@ -43,6 +43,8 @@ library CurrencyLibrary {
     }
 
     /// @notice Transfer currency from msg.sender to the recipient
+    /// @dev if curency is ETH, the value must have been sent in the execute call and is transferred directly
+    /// @dev if curency is token, the value is transferred from msg.sender via permit2
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer

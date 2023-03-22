@@ -73,7 +73,6 @@ library ExpectedBalanceLib {
                         outputIdx++;
                     }
                 }
-
                 unchecked {
                     j++;
                 }

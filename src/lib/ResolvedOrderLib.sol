@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {OrderInfo, ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 library ResolvedOrderLib {
