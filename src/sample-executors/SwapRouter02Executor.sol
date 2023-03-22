@@ -47,6 +47,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         if (filler != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
+
         (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
             abi.decode(fillData, (address[], bytes[]));
 

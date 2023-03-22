@@ -60,7 +60,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Order 1: input = 2 WETH, output = 3000 DAI
     // Order 2: input = 1 WETH, output = 1600 DAI
     // I chose to test using 2 orders to test that the 2nd execute call will not have to pass in
-    // `tokensToApproveForSwapRouter02` nor `tokensToApproveForReactor`.
+    // `tokensToApproveForSwapRouter02`
     // There will be 288797467469336654155 wei of DAI in SwapRouter02Executor after the 1st order is filled.
     // There will be 332868886072663242927 wei of DAI in SwapRouter02Executor after the 2nd order is filled.
     function testSwapWethToDaiViaV3() public {
@@ -81,8 +81,6 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         });
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = WETH;
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = DAI;
         bytes[] memory multicallData1 = new bytes[](1);
         bytes[] memory multicallData2 = new bytes[](1);
 
@@ -92,7 +90,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order1), signOrder(makerPrivateKey, PERMIT2, order1)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData1)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData1)
         );
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
@@ -104,7 +102,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order2), signOrder(makerPrivateKey, PERMIT2, order2)),
             address(swapRouter02Executor),
-            abi.encode(new address[](0), new address[](0), multicallData2)
+            abi.encode(new address[](0), multicallData2)
         );
         assertEq(ERC20(WETH).balanceOf(maker), 0);
         assertEq(ERC20(DAI).balanceOf(maker), 4600 * ONE);
@@ -124,8 +122,6 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = WETH;
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = DAI;
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = WETH;
@@ -136,7 +132,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
@@ -156,8 +152,6 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = WETH;
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = DAI;
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = WETH;
@@ -169,7 +163,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
 
@@ -241,7 +235,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(DAI).balanceOf(maker), 0);
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
@@ -282,7 +276,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
 
@@ -320,7 +314,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
             address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(DAI).balanceOf(maker), 0);
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
@@ -374,9 +368,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
 
         dloReactor.executeBatch(
-            signedOrders,
-            address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, new address[](0), multicallData)
+            signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(maker.balance, ONE);
         assertEq(maker2.balance, ONE / 2);

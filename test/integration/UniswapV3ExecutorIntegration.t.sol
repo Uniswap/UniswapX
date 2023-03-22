@@ -87,7 +87,7 @@ contract UniswapV3ExecutorIntegrationTest is Test, PermitSignature, DeployPermit
             outputs: OutputsBuilder.singleDutch(address(usdc), 40000000, 40000000, address(maker))
         });
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
