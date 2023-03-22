@@ -69,9 +69,11 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
         // Require that there is only one output per order.
         // Note: We are doing repeated checks if there are repeated tokens.
         uint256[] memory balanceBefore = new uint256[](resolvedOrders.length);
-        for (uint256 i = 0; i < resolvedOrders.length;) {
-            balanceBefore[i] = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
+        uint256 ethBalanceBefore = address(this).balance;
 
+        for (uint256 i = 0; i < resolvedOrders.length;) {
+            if (resolvedOrders[i].outputs[0].token == ETH_ADDRESS) continue;
+            balanceBefore[i] = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
             unchecked {
                 i++;
             }
@@ -80,15 +82,7 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
         (bool success, bytes memory returnData) = aggregator.call(swapData);
         if (!success) revert SwapFailed(returnData);
 
-        for (uint256 i = 0; i < resolvedOrders.length;) {
-            uint256 balanceAfter = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
-            uint256 balanceRequested = resolvedOrders[i].getTokenOutputAmount(resolvedOrders[i].outputs[0].token);
-            int256 delta = int256(balanceAfter - balanceBefore[i]);
-            if (delta < 0 || uint256(delta) < balanceRequested) revert InsufficientTokenBalance();
-            unchecked {
-                i++;
-            }
-        }
+        _veryifyERC20Balances(balanceBefore, resolvedOrders);
 
         // handle eth output
         uint256 ethToSendToReactor;
@@ -99,8 +93,36 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
                 i++;
             }
         }
-
         if (ethToSendToReactor > 0) {
+            _verifyAndSendEth(ethBalanceBefore, ethToSendToReactor, resolvedOrders);
+        }
+    }
+
+    function _veryifyERC20Balances(uint256[] memory balanceBefore, ResolvedOrder[] memory resolvedOrders)
+        private
+        view
+    {
+        for (uint256 i = 0; i < resolvedOrders.length;) {
+            if (resolvedOrders[i].outputs[0].token == ETH_ADDRESS) continue;
+            uint256 balanceAfter = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
+            uint256 balanceRequested = resolvedOrders[i].getTokenOutputAmount(resolvedOrders[i].outputs[0].token);
+            int256 delta = int256(balanceAfter - balanceBefore[i]);
+            if (delta < 0 || uint256(delta) < balanceRequested) revert InsufficientTokenBalance();
+            unchecked {
+                i++;
+            }
+        }
+    }
+
+    function _verifyAndSendEth(
+        uint256 ethBalanceBefore,
+        uint256 ethToSendToReactor,
+        ResolvedOrder[] memory resolvedOrders
+    ) private {
+        int256 ethDelta = int256(address(this).balance - ethBalanceBefore);
+        if (ethDelta < 0 || uint256(ethDelta) < ethToSendToReactor) {
+            revert InsufficientTokenBalance();
+        } else {
             (bool sent,) = reactor.call{value: ethToSendToReactor}("");
             if (!sent) revert EtherSendFail();
         }

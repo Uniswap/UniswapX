@@ -201,7 +201,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
         bytes memory swapData =
             abi.encodeWithSelector(MockOneInchAggregator.unoswap.selector, address(tokenIn), ONE, 0, pools);
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
+        vm.expectRevert(AggregatorExecutor.InsufficientTokenBalance.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(executor),
