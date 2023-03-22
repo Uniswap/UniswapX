@@ -11,10 +11,11 @@ import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 
 /// @notice A fill contract that uses the 1inch aggregator to execute trades
 contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
-    error SwapFailed();
+    error SwapFailed(bytes error);
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
     error EtherSendFail();
+    error InsufficientTokenBalance();
 
     address private immutable aggregator;
     address private immutable whitelistedCaller;
@@ -34,6 +35,7 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
 
     using ResolvedOrderLib for ResolvedOrder;
 
+    /// @notice This safely handles orders with only one output token. Do not use for orders that have more than one output token.
     /// @param resolvedOrders The orders to fill
     /// @param filler This filler must be `whitelistedCaller`
     /// @param fillData It has the below encoded:
@@ -64,11 +66,33 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
             }
         }
 
-        (bool success,) = aggregator.call(swapData);
-        if (!success) revert SwapFailed();
+        // Require that there is only one output per order.
+        // Note: We are doing repeated checks if there are repeated tokens.
+        uint256[] memory balanceBefore = new uint256[](resolvedOrders.length);
+        for (uint256 i = 0; i < resolvedOrders.length;) {
+            balanceBefore[i] = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
+
+            unchecked {
+                i++;
+            }
+        }
+
+        (bool success, bytes memory returnData) = aggregator.call(swapData);
+        if (!success) revert SwapFailed(returnData);
+
+        for (uint256 i = 0; i < resolvedOrders.length;) {
+            uint256 balanceAfter = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
+            uint256 balanceRequested = resolvedOrders[i].getTokenOutputAmount(resolvedOrders[i].outputs[0].token);
+            int256 delta = int256(balanceAfter - balanceBefore[i]);
+            if (delta < 0 || uint256(delta) < balanceRequested) revert InsufficientTokenBalance();
+            unchecked {
+                i++;
+            }
+        }
 
         // handle eth output
         uint256 ethToSendToReactor;
+        // uint256 wethRequested;
         for (uint256 i = 0; i < resolvedOrders.length;) {
             ethToSendToReactor += resolvedOrders[i].getTokenOutputAmount(ETH_ADDRESS);
             unchecked {

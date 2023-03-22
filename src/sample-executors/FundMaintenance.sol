@@ -13,7 +13,7 @@ abstract contract FundMaintenance is Owned {
 
     error InsufficientWETHBalance();
 
-    WETH private immutable WETH9;
+    WETH public immutable WETH9;
     ISwapRouter02 public immutable SWAP_ROUTER_02;
 
     constructor(address _swapRouter02, address _owner) Owned(_owner) {
