@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {BaseReactor} from "../reactors/BaseReactor.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
