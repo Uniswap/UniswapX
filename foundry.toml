@@ -6,7 +6,6 @@ no_match_path = "*/integration/*"
 ffi = true
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 optimizer_runs = 1000000
-solc_version = '0.8.18'
 
 [profile.integration]
 no_match_path = ""
