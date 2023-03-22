@@ -9,7 +9,6 @@ library ResolvedOrderLib {
     error InvalidReactor();
     error DeadlinePassed();
     error ValidationFailed();
-    error InsufficientOutput();
 
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
