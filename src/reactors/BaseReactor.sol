@@ -99,26 +99,28 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     function _processDirectTakerFill(ResolvedOrder[] memory orders) internal {
         // track outputs from msg.value as the contract may have
         // a standing ETH balance due to collected fees
-        uint256 ethAvailable = msg.value;
-        for (uint256 i = 0; i < orders.length; i++) {
-            ResolvedOrder memory order = orders[i];
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                OutputToken memory output = order.outputs[j];
-                output.token.transferFromDirectTaker(output.recipient, output.amount, permit2);
+        unchecked {
+            uint256 ethAvailable = msg.value;
+            for (uint256 i = 0; i < orders.length; i++) {
+                ResolvedOrder memory order = orders[i];
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    OutputToken memory output = order.outputs[j];
+                    output.token.transferFromDirectTaker(output.recipient, output.amount, permit2);
 
-                if (output.token == ETH_ADDRESS) {
-                    if (ethAvailable >= output.amount) {
-                        ethAvailable -= output.amount;
-                    } else {
-                        revert InsufficientEth();
+                    if (output.token == ETH_ADDRESS) {
+                        if (ethAvailable >= output.amount) {
+                            ethAvailable -= output.amount;
+                        } else {
+                            revert InsufficientEth();
+                        }
                     }
                 }
             }
-        }
 
-        // refund any remaining ETH to the taker
-        if (ethAvailable > 0) {
-            ETH_ADDRESS.transfer(msg.sender, ethAvailable);
+            // refund any remaining ETH to the taker
+            if (ethAvailable > 0) {
+                ETH_ADDRESS.transfer(msg.sender, ethAvailable);
+            }
         }
     }
 
