@@ -13,6 +13,7 @@ import {
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
@@ -56,6 +57,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         // Mock input/output tokens
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        WETH weth = new WETH();
 
         // Mock taker and maker
         takerPrivateKey = 0x12341234;
@@ -65,7 +67,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
 
         vm.startPrank(taker);
         // Instantiate relevant contracts
-        mockSwapRouter = new MockSwapRouter();
+        mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         uniswapV3Executor = new UniswapV3Executor(address(reactor), address(mockSwapRouter), taker);

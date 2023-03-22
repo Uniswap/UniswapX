@@ -14,6 +14,7 @@ import {
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
 import {MockSwapRouter} from "../util/mock/MockSwapRouter.sol";
 import {OutputToken, InputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -32,6 +33,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     uint256 makerPrivateKey;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
+    WETH weth;
     address taker;
     address maker;
     SwapRouter02Executor swapRouter02Executor;
@@ -54,6 +56,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         // Mock input/output tokens
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        weth = new WETH();
 
         // Mock taker and maker
         takerPrivateKey = 0x12341234;
@@ -62,7 +65,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         maker = vm.addr(makerPrivateKey);
 
         // Instantiate relevant contracts
-        mockSwapRouter = new MockSwapRouter();
+        mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         swapRouter02Executor =
@@ -364,6 +367,26 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
         swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+    }
+
+    function testUnwrapWETH() public {
+        vm.deal(address(weth), 1 ether);
+        deal(address(weth), address(swapRouter02Executor), ONE);
+        uint256 balanceBefore = address(this).balance;
+        swapRouter02Executor.unwrapWETH(address(this));
+        uint256 balanceAfter = address(this).balance;
+        assertEq(balanceAfter - balanceBefore, 1 ether);
+    }
+
+    function testUnwrapWETHNotOwner() public {
+        vm.expectRevert("UNAUTHORIZED");
+        vm.prank(address(0xbeef));
+        swapRouter02Executor.unwrapWETH(address(this));
+    }
+
+    function testUnwrapWETHInsuffucientBalance() public {
+        vm.expectRevert(SwapRouter02Executor.InsufficientWETHBalance.selector);
+        swapRouter02Executor.unwrapWETH(address(this));
     }
 
     function testWithdrawETH() public {
