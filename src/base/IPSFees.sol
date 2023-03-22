@@ -4,12 +4,14 @@ pragma solidity ^0.8.16;
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {ResolvedOrder, OutputToken, ETH_ADDRESS} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
+import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Handling for interface-protocol-split fees
 abstract contract IPSFees {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
+    using CurrencyLibrary for address;
 
     error InvalidFee();
     error NoClaimableFees();
@@ -86,13 +88,7 @@ abstract contract IPSFees {
 
         feesOwed[token][feeRecipient] = 1;
         unchecked {
-            if (token == ETH_ADDRESS) {
-                (bool sent,) = msg.sender.call{value: amount - 1}("");
-                if (!sent) {
-                    revert FailedToSendEther();
-                }
-            }
-            ERC20(token).safeTransfer(msg.sender, amount - 1);
+            token.transfer(msg.sender, amount - 1);
         }
     }
 

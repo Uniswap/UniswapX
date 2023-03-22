@@ -176,7 +176,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(swapRouter02Executor),

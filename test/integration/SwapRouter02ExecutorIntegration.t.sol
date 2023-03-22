@@ -4,7 +4,8 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
-import {InputToken, OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {
     DutchLimitOrderReactor,

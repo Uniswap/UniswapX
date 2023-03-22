@@ -6,12 +6,14 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder, ETH_ADDRESS} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
+import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
+    using CurrencyLibrary for address;
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
@@ -57,7 +59,8 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             ResolvedOrder memory order = resolvedOrders[i];
             for (uint256 j = 0; j < order.outputs.length; j++) {
-                ERC20(order.outputs[j].token).transfer(order.outputs[j].recipient, order.outputs[j].amount);
+                OutputToken memory output = order.outputs[j];
+                output.token.transfer(output.recipient, output.amount);
             }
         }
     }

@@ -4,7 +4,8 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
-import {OrderInfo, SignedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {CurrencyLibrary, ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -19,7 +20,7 @@ import {IPSFees} from "../../src/base/IPSFees.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
-import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
+import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 
 // This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
@@ -218,7 +219,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
-        vm.expectRevert(BaseReactor.InsufficientEth.selector);
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
     }
 }
