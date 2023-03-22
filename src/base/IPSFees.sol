@@ -86,6 +86,7 @@ abstract contract IPSFees {
         uint256 amount = feesOwed[token][feeRecipient];
         if (amount <= 1) revert NoClaimableFees();
 
+        // note we leave a single wei of balance for warm sstores
         feesOwed[token][feeRecipient] = 1;
         unchecked {
             token.transfer(msg.sender, amount - 1);
