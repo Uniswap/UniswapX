@@ -21,6 +21,9 @@ library ExpectedBalanceLib {
         view
         returns (ExpectedBalance[] memory expectedBalances)
     {
+        // TODO: surely there are optimizations / cleanup we can do here
+        // with EIP-1153 can use transient storage mappings
+
         // get the total number of outputs
         // note this is an upper bound on the length of the resulting array
         // because (recipient, token) pairs are deduplicated
@@ -36,22 +39,26 @@ library ExpectedBalanceLib {
 
         // for each unique output (recipient, token) pair, add an entry to expectedBalances that
         // includes the user's initial balance + expected output
-        for (uint256 i = 0; i < orders.length; i++) {
+        for (uint256 i = 0; i < orders.length;) {
             ResolvedOrder memory order = orders[i];
 
-            for (uint256 j = 0; j < order.outputs.length; j++) {
+            for (uint256 j = 0; j < order.outputs.length;) {
                 OutputToken memory output = order.outputs[j];
 
                 // check if the given output (address, token) pair already exists in expectedBalances
                 // update it if so
                 bool found = false;
-                for (uint256 k = 0; k < expectedBalances.length; k++) {
+                for (uint256 k = 0; k < expectedBalances.length;) {
                     ExpectedBalance memory addressBalance = expectedBalances[k];
                     if (addressBalance.recipient == output.recipient && addressBalance.token == output.token) {
                         found = true;
                         addressBalance.expectedBalance += output.amount;
                     } else if (addressBalance.token == address(0)) {
                         break;
+                    }
+
+                    unchecked {
+                        k++;
                     }
                 }
 
@@ -62,8 +69,17 @@ library ExpectedBalanceLib {
                         token: output.token,
                         expectedBalance: balance + output.amount
                     });
-                    outputIdx++;
+                    unchecked {
+                        outputIdx++;
+                    }
                 }
+
+                unchecked {
+                    j++;
+                }
+            }
+            unchecked {
+                i++;
             }
         }
 
