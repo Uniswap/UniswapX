@@ -575,6 +575,8 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
+    // Execute 2 dutch limit orders, but executor does not send enough output tokens to the recipient
+    // should fail with InsufficientOutput error from balance checks
     function testExecuteBatchInsufficientOutputSent() public {
         MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
         uint256 inputAmount = 10 ** 18;
@@ -607,6 +609,8 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
     }
 
+    // Execute 2 dutch limit orders, but executor does not send enough output ETH to the recipient
+    // should fail with InsufficientOutput error from balance checks
     function testExecuteBatchInsufficientOutputSentNative() public {
         MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
         uint256 inputAmount = 10 ** 18;

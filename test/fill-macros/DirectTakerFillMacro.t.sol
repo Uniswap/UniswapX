@@ -23,8 +23,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 
-// This suite of tests test the direct taker fill macro, ie fillContract == address(1). It also contains tests
-// for ETH outputs with direct taker.
+// This suite of tests test the direct taker fill macro, ie fillContract == address(1).
 contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;

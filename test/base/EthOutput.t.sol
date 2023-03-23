@@ -302,6 +302,31 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(maker1.balance, outputAmount);
     }
 
+    function testExcessETHIsReturned() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(maker1), inputAmount);
+        vm.deal(directTaker, outputAmount * 2);
+
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker1)
+        });
+
+        vm.prank(directTaker);
+        reactor.execute{value: outputAmount * 2}(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+        );
+        // check directTaker received refund
+        assertEq(directTaker.balance, outputAmount);
+        assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
+        assertEq(maker1.balance, outputAmount);
+    }
+
     // The same as testEth1Output, but reverts because directTaker doesn't send enough ether
     function testEth1OutputInsufficientEthSent() public {
         uint256 inputAmount = 10 ** 18;
