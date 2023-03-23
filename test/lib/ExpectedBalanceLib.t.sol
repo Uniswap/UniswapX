@@ -96,6 +96,23 @@ contract ExpectedBalanceTest is Test {
         assertEq(expectedBalances[0].expectedBalance, uint256(amount1) + amount2);
     }
 
+    function testGetExpectedBalanceMultiOutputSomeDuplicate(uint128 amount) public {
+        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
+        orders[0].outputs = new OutputToken[](3);
+        orders[0].outputs[0] = OutputToken(ETH_ADDRESS, amount, recipient1, false);
+        orders[0].outputs[1] = OutputToken(ETH_ADDRESS, amount, recipient2, false);
+        orders[0].outputs[2] = OutputToken(ETH_ADDRESS, amount, recipient2, false);
+
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        assertEq(expectedBalances.length, 2);
+        assertEq(expectedBalances[0].token, ETH_ADDRESS);
+        assertEq(expectedBalances[0].recipient, recipient1);
+        assertEq(expectedBalances[0].expectedBalance, amount);
+        assertEq(expectedBalances[1].token, ETH_ADDRESS);
+        assertEq(expectedBalances[1].recipient, recipient2);
+        assertEq(expectedBalances[1].expectedBalance, uint256(amount) * 2);
+    }
+
     function testGetExpectedBalanceMultiOutputWithPreBalance(uint128 preAmount, uint64 amount1, uint64 amount2)
         public
     {
