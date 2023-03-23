@@ -52,6 +52,8 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
     address constant PROTOCOL_FEE_RECIPIENT = address(80085);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
+    address constant ONE_INCH_ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     // to test sweeping ETH
     receive() external payable {}
 
@@ -111,31 +113,28 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
             keccak256(abi.encode(1))
         );
 
-        // encode a weth trade for the user
-
         address[] memory tokensToApproveForAggregator = new address[](1);
         tokensToApproveForAggregator[0] = address(tokenIn);
 
         address[] memory tokensToApproveForReactor; // eth doesnt require pulling from reactor
 
         uint256[] memory pools = new uint256[](1);
-        pools[0] = uint256(uint160(address(weth)));
+        pools[0] = uint256(uint160(ONE_INCH_ETH_ADDRESS));
 
         bytes memory swapData = abi.encodeWithSelector(MockOneInchAggregator.unoswap.selector, tokenIn, ONE, 0, pools);
         bytes memory fillData = abi.encode(tokensToApproveForAggregator, tokensToApproveForReactor, swapData);
 
+        // mock maker send input token to executor
         tokenIn.mint(address(executor), ONE);
-        vm.deal(address(executor), ONE);
 
-        vm.deal(address(weth), 1 ether);
-        deal(address(weth), address(mockAggregator), ONE);
+        // mock liquidity in aggregator
+        vm.deal(address(mockAggregator), ONE);
 
         vm.prank(address(reactor));
         executor.reactorCallback(resolvedOrders, address(this), fillData);
 
         assertEq(tokenIn.balanceOf(address(mockAggregator)), ONE);
-        assertEq(weth.balanceOf(address(executor)), ONE);
-        // reactor was sent eth
+        // reactor was sent eth from executor
         assertEq(address(reactor).balance, ONE);
     }
 
