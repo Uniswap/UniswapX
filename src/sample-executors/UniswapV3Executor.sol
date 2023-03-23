@@ -6,9 +6,12 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback, Owned {
+    using CurrencyLibrary for address;
+
     error FillerNotOwner();
     error CallerNotReactor();
 
@@ -52,7 +55,7 @@ contract UniswapV3Executor is IReactorCallback, Owned {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             ResolvedOrder memory order = resolvedOrders[i];
             for (uint256 j = 0; j < order.outputs.length; j++) {
-                ERC20(outputToken).transfer(order.outputs[j].recipient, order.outputs[j].amount);
+                outputToken.transfer(order.outputs[j].recipient, order.outputs[j].amount);
             }
         }
     }

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {stdError} from "forge-std/StdError.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {UniswapV3Executor} from "../../src/sample-executors/UniswapV3Executor.sol";
@@ -203,7 +202,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 2);
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),
@@ -281,7 +280,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         tokenIn.mint(maker, inputAmount);
         tokenOut.mint(address(mockSwapRouter), ONE * 3);
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(uniswapV3Executor),

@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {stdError} from "forge-std/StdError.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
 import {
