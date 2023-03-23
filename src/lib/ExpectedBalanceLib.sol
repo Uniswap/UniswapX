@@ -53,6 +53,7 @@ library ExpectedBalanceLib {
                     if (addressBalance.recipient == output.recipient && addressBalance.token == output.token) {
                         found = true;
                         addressBalance.expectedBalance += output.amount;
+                        break;
                     }
 
                     unchecked {
