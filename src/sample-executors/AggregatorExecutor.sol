@@ -71,12 +71,9 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
         uint256[] memory balanceBefore = new uint256[](resolvedOrders.length);
         uint256 ethBalanceBefore = address(this).balance;
 
-        for (uint256 i = 0; i < resolvedOrders.length;) {
+        for (uint256 i = 0; i < resolvedOrders.length; i++) {
             if (resolvedOrders[i].outputs[0].token == ETH_ADDRESS) continue;
             balanceBefore[i] = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
-            unchecked {
-                i++;
-            }
         }
 
         (bool success, bytes memory returnData) = aggregator.call(swapData);
@@ -102,15 +99,12 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
         private
         view
     {
-        for (uint256 i = 0; i < resolvedOrders.length;) {
+        for (uint256 i = 0; i < resolvedOrders.length; i++) {
             if (resolvedOrders[i].outputs[0].token == ETH_ADDRESS) continue;
             uint256 balanceAfter = ERC20(resolvedOrders[i].outputs[0].token).balanceOf(address(this));
             uint256 balanceRequested = resolvedOrders[i].getTokenOutputAmount(resolvedOrders[i].outputs[0].token);
             int256 delta = int256(balanceAfter - balanceBefore[i]);
             if (delta < 0 || uint256(delta) < balanceRequested) revert InsufficientTokenBalance();
-            unchecked {
-                i++;
-            }
         }
     }
 
