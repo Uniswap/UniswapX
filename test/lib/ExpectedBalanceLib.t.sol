@@ -211,76 +211,53 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceManyOutputs(TestGetExpectedBalanceConfig[] memory test) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = new OutputToken[](test.length);
-        uint256 totalSum1;
-        uint256 totalSum2;
         for (uint256 i = 0; i < test.length; i++) {
             TestGetExpectedBalanceConfig memory config = test[i];
             address token = config.useToken1 ? address(token1) : address(token2);
             MockERC20(token).mint(config.recipient, config.preBalance);
-            config.useToken1
-                ? totalSum1 += uint256(config.amount) + config.preBalance
-                : totalSum2 += uint256(config.amount) + config.preBalance;
             orders[0].outputs[i] = OutputToken(token, config.amount, config.recipient, false);
         }
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
-        assertLe(expectedBalances.length, test.length);
-        // assert each recipient in test with nonzero value has an entry
-        for (uint256 i = 0; i < test.length; i++) {
-            TestGetExpectedBalanceConfig memory config = test[i];
-            if (config.amount == 0) {
-                continue;
-            }
-            bool found = false;
-            for (uint256 j = 0; j < expectedBalances.length; j++) {
-                if (expectedBalances[j].recipient == config.recipient) {
-                    found = true;
-                    break;
-                }
-            }
-            assertTrue(found);
-        }
-
-        // assert totalSums
-        uint256 sum1;
-        uint256 sum2;
-        for (uint256 i = 0; i < expectedBalances.length; i++) {
-            if (expectedBalances[i].token == address(token1)) {
-                sum1 += expectedBalances[i].expectedBalance;
-            } else {
-                sum2 += expectedBalances[i].expectedBalance;
-            }
-        }
-        assertEq(sum1, totalSum1);
-        assertEq(sum2, totalSum2);
+        assertFuzzSanity(test, expectedBalances);
     }
 
     // asserting no reverts and sane handling on arbitrary output lists
     function testGetExpectedBalanceManyOrders(TestGetExpectedBalanceConfig[] memory test) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](test.length);
-        uint256 totalSum1;
-        uint256 totalSum2;
         for (uint256 i = 0; i < test.length; i++) {
             TestGetExpectedBalanceConfig memory config = test[i];
             address token = config.useToken1 ? address(token1) : address(token2);
             MockERC20(token).mint(config.recipient, config.preBalance);
-            config.useToken1
-                ? totalSum1 += uint256(config.amount) + config.preBalance
-                : totalSum2 += uint256(config.amount) + config.preBalance;
             orders[i].outputs = OutputsBuilder.single(token, config.amount, config.recipient);
         }
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        assertFuzzSanity(test, expectedBalances);
+    }
+
+    function assertFuzzSanity(TestGetExpectedBalanceConfig[] memory test, ExpectedBalance[] memory expectedBalances)
+        internal
+    {
         assertLe(expectedBalances.length, test.length);
+
         // assert each recipient in test with nonzero value has an entry
+        uint256 totalSum1;
+        uint256 totalSum2;
         for (uint256 i = 0; i < test.length; i++) {
             TestGetExpectedBalanceConfig memory config = test[i];
+            config.useToken1
+                ? totalSum1 += uint256(config.amount) + config.preBalance
+                : totalSum2 += uint256(config.amount) + config.preBalance;
+
             if (config.amount == 0) {
                 continue;
             }
             bool found = false;
             for (uint256 j = 0; j < expectedBalances.length; j++) {
-                if (expectedBalances[j].recipient == config.recipient) {
+                address token = config.useToken1 ? address(token1) : address(token2);
+                if (expectedBalances[j].recipient == config.recipient && expectedBalances[j].token == token) {
+                    assertGe(expectedBalances[j].expectedBalance, uint256(config.amount) + config.preBalance);
                     found = true;
                     break;
                 }
