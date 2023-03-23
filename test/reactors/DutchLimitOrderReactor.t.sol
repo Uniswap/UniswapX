@@ -21,6 +21,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {BaseReactorTest} from "../base/BaseReactor.t.sol";
@@ -575,11 +576,12 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     }
 
     function testExecuteBatchInsufficientOutputSent() public {
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(maker), inputAmount * 3);
-        tokenOut.mint(address(fillContract), 5 * 10 ** 18);
+        tokenOut.mint(address(fill), 5 * 10 ** 18);
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
@@ -600,17 +602,18 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
-        fillContract.setOutputAmount(outputAmount);
+        fill.setOutputAmount(outputAmount);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
     }
 
     function testExecuteBatchInsufficientOutputSentNative() public {
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = inputAmount;
 
         tokenIn.mint(address(maker), inputAmount * 2);
-        vm.deal(address(fillContract), 2 * 10 ** 18);
+        vm.deal(address(fill), 2 * 10 ** 18);
         tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
@@ -631,9 +634,9 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker)
         });
 
-        fillContract.setOutputAmount(outputAmount / 2);
+        fill.setOutputAmount(outputAmount / 2);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
     }
 
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {

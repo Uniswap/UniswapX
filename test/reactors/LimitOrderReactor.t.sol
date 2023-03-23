@@ -12,6 +12,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -122,6 +123,8 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function testExecuteInsufficientOutput() public {
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
+        tokenOut.mint(address(fill), ONE);
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
@@ -136,10 +139,10 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), maker, order.info.nonce);
 
-        fillContract.setOutputAmount(ONE);
+        fill.setOutputAmount(ONE);
 
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fill), bytes(""));
     }
 
     function testExecuteWithDuplicateOutputs() public {
