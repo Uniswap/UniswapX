@@ -120,6 +120,37 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
     }
 
+    function testExecuteWithDuplicateOutputs() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = ONE / 2;
+        amounts[1] = ONE / 2;
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
+        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
+        uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
+        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
+
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+
+        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    }
+
     function testExecuteWithValidationContractChangeSig() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
