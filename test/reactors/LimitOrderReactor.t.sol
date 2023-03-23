@@ -6,6 +6,7 @@ import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "..
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
+import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -118,6 +119,27 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
         assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    }
+
+    function testExecuteInsufficientOutput() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
+
+        fillContract.setOutputAmount(ONE);
+
+        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
     function testExecuteWithDuplicateOutputs() public {
