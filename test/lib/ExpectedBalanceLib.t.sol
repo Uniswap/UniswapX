@@ -6,6 +6,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {OrderInfo, ResolvedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {ExpectedBalance, ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
+import {ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
 import {MockExpectedBalanceLib} from "../util/mock/MockExpectedBalanceLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
@@ -46,6 +47,17 @@ contract ExpectedBalanceTest is Test {
         assertEq(expectedBalances[0].expectedBalance, amount);
     }
 
+    function testGetExpectedBalanceSingleNative(uint256 amount) public {
+        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
+        orders[0].outputs = OutputsBuilder.single(ETH_ADDRESS, amount, recipient1);
+
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        assertEq(expectedBalances.length, 1);
+        assertEq(expectedBalances[0].token, ETH_ADDRESS);
+        assertEq(expectedBalances[0].recipient, recipient1);
+        assertEq(expectedBalances[0].expectedBalance, amount);
+    }
+
     function testGetExpectedBalanceSingleWithPreBalance(uint128 preAmount, uint128 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         token1.mint(recipient1, preAmount);
@@ -54,6 +66,18 @@ contract ExpectedBalanceTest is Test {
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
+        assertEq(expectedBalances[0].recipient, recipient1);
+        assertEq(expectedBalances[0].expectedBalance, uint256(amount) + preAmount);
+    }
+
+    function testGetExpectedBalanceSingleWithPreBalanceNative(uint128 preAmount, uint128 amount) public {
+        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
+        vm.deal(recipient1, preAmount);
+        orders[0].outputs = OutputsBuilder.single(ETH_ADDRESS, amount, recipient1);
+
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        assertEq(expectedBalances.length, 1);
+        assertEq(expectedBalances[0].token, ETH_ADDRESS);
         assertEq(expectedBalances[0].recipient, recipient1);
         assertEq(expectedBalances[0].expectedBalance, uint256(amount) + preAmount);
     }
@@ -288,6 +312,14 @@ contract ExpectedBalanceTest is Test {
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
+    function testCheckNative(uint256 expected, uint256 balance) public {
+        vm.assume(balance >= expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, ETH_ADDRESS, expected);
+        vm.deal(recipient1, balance);
+        mockExpectedBalanceLib.check(expectedBalances);
+    }
+
     function testCheckMany(uint128 expected, uint128 balance) public {
         vm.assume(balance >= expected);
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](4);
@@ -307,6 +339,15 @@ contract ExpectedBalanceTest is Test {
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
         expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
         token1.mint(recipient1, balance);
+        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        mockExpectedBalanceLib.check(expectedBalances);
+    }
+
+    function testCheckInsufficientOutputNative(uint256 expected, uint256 balance) public {
+        vm.assume(balance < expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, ETH_ADDRESS, expected);
+        vm.deal(recipient1, balance);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
         mockExpectedBalanceLib.check(expectedBalances);
     }
