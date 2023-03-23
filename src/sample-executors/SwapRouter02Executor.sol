@@ -9,27 +9,26 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
+import {FundMaintenance} from "./FundMaintenance.sol";
+import {Multicall} from "./Multicall.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
-contract SwapRouter02Executor is IReactorCallback, Owned {
+contract SwapRouter02Executor is IReactorCallback, Multicall, FundMaintenance {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
     error EtherSendFail();
-    error InsufficientWETHBalance();
 
-    address private immutable swapRouter02;
     address private immutable whitelistedCaller;
     address private immutable reactor;
-    WETH private immutable weth;
 
-    constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02) Owned(_owner) {
+    constructor(address _whitelistedCaller, address _reactor, address _owner, address _swapRouter02)
+        FundMaintenance(_swapRouter02, _owner)
+    {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
-        swapRouter02 = _swapRouter02;
-        weth = WETH(payable(ISwapRouter02(_swapRouter02).WETH9()));
     }
 
     /// @param resolvedOrders The orders to fill
@@ -52,10 +51,10 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
             abi.decode(fillData, (address[], bytes[]));
 
         for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
+            ERC20(tokensToApproveForSwapRouter02[i]).approve(address(SWAP_ROUTER_02), type(uint256).max);
         }
 
-        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
+        SWAP_ROUTER_02.multicall(type(uint256).max, multicallData);
 
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             ResolvedOrder memory order = resolvedOrders[i];
@@ -65,33 +64,4 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
             }
         }
     }
-
-    /// @notice This function can be used to convert ERC20s to ETH that remains in this contract
-    /// @param tokensToApprove Max approve these tokens to swapRouter02
-    /// @param multicallData Pass into swapRouter02.multicall()
-    function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
-        for (uint256 i = 0; i < tokensToApprove.length; i++) {
-            ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
-        }
-        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
-    }
-
-    /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
-    /// @param recipient The address receiving ETH
-    function unwrapWETH(address recipient) external onlyOwner {
-        uint256 balanceWETH = weth.balanceOf(address(this));
-
-        if (balanceWETH == 0) revert InsufficientWETHBalance();
-
-        weth.withdraw(balanceWETH);
-        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
-    }
-
-    /// @notice Transfer all ETH in this contract to the recipient. Can only be called by owner.
-    /// @param recipient The recipient of the ETH
-    function withdrawETH(address recipient) external onlyOwner {
-        SafeTransferLib.safeTransferETH(recipient, address(this).balance);
-    }
-
-    receive() external payable {}
 }

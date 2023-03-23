@@ -24,6 +24,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02} from "../../src/external/ISwapRouter02.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
+import {FundMaintenance} from "../../src/sample-executors/FundMaintenance.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -385,7 +386,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     function testUnwrapWETHInsuffucientBalance() public {
-        vm.expectRevert(SwapRouter02Executor.InsufficientWETHBalance.selector);
+        vm.expectRevert(FundMaintenance.InsufficientWETHBalance.selector);
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
