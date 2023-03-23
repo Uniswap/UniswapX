@@ -35,7 +35,7 @@ library ExpectedBalanceLib {
             expectedBalances = new ExpectedBalance[](outputCount);
         }
 
-        uint256 outputIdx = 0;
+        uint256 nextOutputIdx = 0;
 
         // for each unique output (recipient, token) pair, add an entry to expectedBalances that
         // includes the user's initial balance + expected output
@@ -48,13 +48,11 @@ library ExpectedBalanceLib {
                 // check if the given output (address, token) pair already exists in expectedBalances
                 // update it if so
                 bool found = false;
-                for (uint256 k = 0; k < expectedBalances.length;) {
+                for (uint256 k = 0; k < nextOutputIdx;) {
                     ExpectedBalance memory addressBalance = expectedBalances[k];
                     if (addressBalance.recipient == output.recipient && addressBalance.token == output.token) {
                         found = true;
                         addressBalance.expectedBalance += output.amount;
-                    } else if (addressBalance.token == address(0)) {
-                        break;
                     }
 
                     unchecked {
@@ -64,13 +62,13 @@ library ExpectedBalanceLib {
 
                 if (!found) {
                     uint256 balance = output.token.balanceOf(output.recipient);
-                    expectedBalances[outputIdx] = ExpectedBalance({
+                    expectedBalances[nextOutputIdx] = ExpectedBalance({
                         recipient: output.recipient,
                         token: output.token,
                         expectedBalance: balance + output.amount
                     });
                     unchecked {
-                        outputIdx++;
+                        nextOutputIdx++;
                     }
                 }
                 unchecked {
@@ -83,7 +81,11 @@ library ExpectedBalanceLib {
         }
 
         assembly {
-            mstore(expectedBalances, outputIdx)
+            // update array size to the actual number of unique recipient/token pairs
+            // since the array was initialized with an upper bound of the total number of outputs
+            // note: this leaves a few unused memory slots, but free memory pointer
+            // still points to the next fresh piece of memory
+            mstore(expectedBalances, nextOutputIdx)
         }
     }
 
