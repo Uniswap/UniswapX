@@ -227,7 +227,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
         vm.deal(address(weth), 1 ether);
         deal(address(weth), address(mockSwapRouter), ONE);
 
-        executor.swapMulticall(tokensToApproveForSwapRouter02, data);
+        executor.multicall(tokensToApproveForSwapRouter02, data);
 
         assertEq(weth.balanceOf(address(executor)), ONE);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), ONE);
@@ -249,7 +249,7 @@ contract AggregatorExecutorTest is Test, PermitSignature, GasSnapshot, DeployPer
         tokensToApproveForSwapRouter02[0] = address(tokenOut);
 
         bytes memory swapMutlicallData =
-            abi.encodeWithSelector(FundMaintenance.swapMulticall.selector, tokensToApproveForSwapRouter02, swapData);
+            abi.encodeWithSelector(FundMaintenance.multicall.selector, tokensToApproveForSwapRouter02, swapData);
 
         bytes memory unwrapData = abi.encodeWithSelector(FundMaintenance.unwrapWETH.selector, maker);
         bytes[] memory multicallData = new bytes[](2);

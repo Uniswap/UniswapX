@@ -6,7 +6,6 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import "forge-std/console2.sol";
 
 abstract contract FundMaintenance is Owned {
     using SafeTransferLib for ERC20;
@@ -41,7 +40,7 @@ abstract contract FundMaintenance is Owned {
     /// @notice This function can be used to convert ERC20s to ETH that remains in this contract
     /// @param tokensToApprove Max approve these tokens to swapRouter02
     /// @param multicallData Pass into swapRouter02.multicall()
-    function swapMulticall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
+    function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
         for (uint256 i = 0; i < tokensToApprove.length; i++) {
             ERC20(tokensToApprove[i]).approve(address(SWAP_ROUTER_02), type(uint256).max);
         }
