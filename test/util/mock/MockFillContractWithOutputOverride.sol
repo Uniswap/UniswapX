@@ -6,15 +6,23 @@ import {CurrencyLibrary} from "../../../src/lib/CurrencyLibrary.sol";
 import {ResolvedOrder, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {IReactorCallback} from "../../../src/interfaces/IReactorCallback.sol";
 
-contract MockFillContract is IReactorCallback {
+contract MockFillContractWithOutputOverride is IReactorCallback {
     using CurrencyLibrary for address;
+
+    uint256 outputAmount;
+
+    // override for sending less than reactor amount
+    function setOutputAmount(uint256 amount) external {
+        outputAmount = amount;
+    }
 
     /// @notice assume that we already have all output tokens
     function reactorCallback(ResolvedOrder[] memory resolvedOrders, address, bytes memory) external {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
                 OutputToken memory output = resolvedOrders[i].outputs[j];
-                output.token.transfer(output.recipient, output.amount);
+                uint256 amount = outputAmount == 0 ? output.amount : outputAmount;
+                output.token.transfer(output.recipient, amount);
             }
         }
     }

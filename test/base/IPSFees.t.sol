@@ -2,7 +2,8 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {InputToken, OutputToken, OrderInfo, ResolvedOrder, ETH_ADDRESS} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
