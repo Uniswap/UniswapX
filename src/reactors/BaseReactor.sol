@@ -8,7 +8,7 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
-import {CurrencyLibrary, ETH_ADDRESS} from "../lib/CurrencyLibrary.sol";
+import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {ExpectedBalanceLib, ExpectedBalance} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
@@ -107,7 +107,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                     OutputToken memory output = order.outputs[j];
                     output.token.transferFromDirectTaker(output.recipient, output.amount, permit2);
 
-                    if (output.token == ETH_ADDRESS) {
+                    if (output.token.isNative()) {
                         if (ethAvailable >= output.amount) {
                             ethAvailable -= output.amount;
                         } else {
@@ -119,7 +119,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
 
             // refund any remaining ETH to the taker
             if (ethAvailable > 0) {
-                ETH_ADDRESS.transfer(msg.sender, ethAvailable);
+                NATIVE.transfer(msg.sender, ethAvailable);
             }
         }
     }
