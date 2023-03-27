@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {
     DutchLimitOrderReactor,
@@ -211,7 +211,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, address(maker))
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, address(maker))
         });
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
@@ -250,7 +250,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE * 2, ONE * 2, address(maker))
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, address(maker))
         });
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
@@ -283,8 +283,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Maker's order has input = 2000 DAI and output = [1 ETH, 0.05 ETH (fee)].
     function testSwapDaiToETHViaV2WithFee() public {
         DutchOutput[] memory outputs = new DutchOutput[](2);
-        outputs[0] = DutchOutput(ETH_ADDRESS, ONE, ONE, maker, false);
-        outputs[1] = DutchOutput(ETH_ADDRESS, ONE / 20, ONE / 20, maker, true);
+        outputs[0] = DutchOutput(NATIVE, ONE, ONE, maker, false);
+        outputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, maker, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
@@ -321,8 +321,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(maker.balance, ONE);
         assertEq(address(swapRouter02Executor).balance, 163039886077866602);
         assertEq(address(dloReactor).balance, ONE / 20);
-        assertEq(dloReactor.feesOwed(ETH_ADDRESS, address(0)), 500000000000000);
-        assertEq(dloReactor.feesOwed(ETH_ADDRESS, maker), 49500000000000000);
+        assertEq(dloReactor.feesOwed(NATIVE, address(0)), 500000000000000);
+        assertEq(dloReactor.feesOwed(NATIVE, maker), 49500000000000000);
     }
 
     // Test a batch execute, dai -> ETH via v2. Order 1: input = 2000 DAI, output = 1 ETH. Order 2: input = 1000 DAI,
@@ -343,14 +343,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 2000, ONE * 2000),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE, ONE, maker)
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, maker)
         });
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 1000, ONE * 1000),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, ONE / 2, ONE / 2, maker2)
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE / 2, ONE / 2, maker2)
         });
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey, PERMIT2, order1));
