@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
@@ -36,7 +37,7 @@ contract MockSwapRouter {
         ERC20(tokenOut).safeTransfer(params.recipient, amountOut);
     }
 
-    function multicall(uint256 deadline, bytes[] calldata data) public payable returns (bytes[] memory results) {
+    function multicall(uint256, bytes[] calldata data) public payable returns (bytes[] memory results) {
         results = new bytes[](data.length);
         for (uint256 i = 0; i < data.length; i++) {
             (bool success, bytes memory result) = address(this).delegatecall(data[i]);

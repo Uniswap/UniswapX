@@ -6,9 +6,12 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback, Owned {
+    using CurrencyLibrary for address;
+
     error FillerNotOwner();
     error CallerNotReactor();
 
@@ -40,7 +43,7 @@ contract UniswapV3Executor is IReactorCallback, Owned {
         if (ERC20(inputToken).allowance(address(this), swapRouter) < inputTokenBalance) {
             ERC20(inputToken).approve(swapRouter, type(uint256).max);
         }
-        uint256 amountOut = IUniV3SwapRouter(swapRouter).exactInput(
+        IUniV3SwapRouter(swapRouter).exactInput(
             IUniV3SwapRouter.ExactInputParams({
                 path: path,
                 recipient: address(this),
@@ -48,9 +51,12 @@ contract UniswapV3Executor is IReactorCallback, Owned {
                 amountOutMinimum: 0
             })
         );
-        // Reactor has to take out outputToken from executor (and send to recipient)
-        if (ERC20(outputToken).allowance(address(this), msg.sender) < amountOut) {
-            ERC20(outputToken).approve(msg.sender, type(uint256).max);
+
+        for (uint256 i = 0; i < resolvedOrders.length; i++) {
+            ResolvedOrder memory order = resolvedOrders[i];
+            for (uint256 j = 0; j < order.outputs.length; j++) {
+                outputToken.transfer(order.outputs[j].recipient, order.outputs[j].amount);
+            }
         }
     }
 
