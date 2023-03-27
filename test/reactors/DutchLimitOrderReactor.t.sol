@@ -14,7 +14,7 @@ import {
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {ETH_ADDRESS} from "../../src/lib/CurrencyLibrary.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -626,7 +626,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
         });
         orders[1] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
@@ -635,7 +635,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(ETH_ADDRESS, outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
         });
 
         fill.setOutputAmount(outputAmount / 2);

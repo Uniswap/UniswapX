@@ -6,7 +6,7 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
-address constant ETH_ADDRESS = 0x0000000000000000000000000000000000000000;
+address constant NATIVE = 0x0000000000000000000000000000000000000000;
 
 /// @title CurrencyLibrary
 /// @dev This library allows for transferring native ETH and ERC20s via direct taker OR fill contract.
@@ -21,7 +21,7 @@ library CurrencyLibrary {
     /// @param addr The address to get the balance of
     /// @return balance The balance of the currency for addr
     function balanceOf(address currency, address addr) internal view returns (uint256 balance) {
-        if (currency == ETH_ADDRESS) {
+        if (isNative(currency)) {
             balance = addr.balance;
         } else {
             balance = ERC20(currency).balanceOf(addr);
@@ -33,7 +33,7 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     function transfer(address currency, address recipient, uint256 amount) internal {
-        if (currency == ETH_ADDRESS) {
+        if (isNative(currency)) {
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
@@ -48,11 +48,18 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     function transferFromDirectTaker(address currency, address recipient, uint256 amount, address permit2) internal {
-        if (currency == ETH_ADDRESS) {
+        if (isNative(currency)) {
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
             IAllowanceTransfer(permit2).transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
         }
+    }
+
+    /// @notice returns true if currency is native
+    /// @param currency The currency to check
+    /// @return true if currency is native
+    function isNative(address currency) internal pure returns (bool) {
+        return currency == NATIVE;
     }
 }
