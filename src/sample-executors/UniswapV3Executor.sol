@@ -11,14 +11,13 @@ import {IUniV3SwapRouter} from "../external/IUniV3SwapRouter.sol";
 
 contract UniswapV3Executor is IReactorCallback, Owned {
     using CurrencyLibrary for address;
+    using SafeTransferLib for ERC20;
 
     error FillerNotOwner();
     error CallerNotReactor();
 
     address public immutable swapRouter;
     address public immutable reactor;
-
-    using SafeTransferLib for ERC20;
 
     constructor(address _reactor, address _swapRouter, address _owner) Owned(_owner) {
         reactor = _reactor;
@@ -41,7 +40,7 @@ contract UniswapV3Executor is IReactorCallback, Owned {
 
         // SwapRouter has to take out inputToken from executor
         if (ERC20(inputToken).allowance(address(this), swapRouter) < inputTokenBalance) {
-            ERC20(inputToken).approve(swapRouter, type(uint256).max);
+            ERC20(inputToken).safeApprove(swapRouter, type(uint256).max);
         }
         IUniV3SwapRouter(swapRouter).exactInput(
             IUniV3SwapRouter.ExactInputParams({
