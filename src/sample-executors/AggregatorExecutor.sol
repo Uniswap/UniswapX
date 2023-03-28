@@ -17,9 +17,9 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
     error EtherSendFail();
     error InsufficientTokenBalance();
 
-    address private immutable aggregator;
-    address private immutable whitelistedCaller;
-    address private immutable reactor;
+    address public immutable aggregator;
+    address public immutable whitelistedCaller;
+    address public immutable reactor;
 
     constructor(
         address _whitelistedCaller,
