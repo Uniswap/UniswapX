@@ -176,7 +176,7 @@ contract IPSFeesTest is Test {
 
         FeeEscrow escrow = fees.feeEscrow();
         vm.prank(makeAddr("test"));
-        vm.expectRevert("UNAUTHORIZED");
+        vm.expectRevert(FeeEscrow.Unauthorized.selector);
         escrow.transfer(address(tokenOut), address(1), ONE);
     }
 
