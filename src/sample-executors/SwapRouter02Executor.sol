@@ -52,7 +52,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
             abi.decode(fillData, (address[], bytes[]));
 
         for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
+            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(swapRouter02, type(uint256).max);
         }
 
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
