@@ -386,7 +386,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     // The same setup as testEth2Outputs, but filler sends insufficient eth. However, there was already ETH in
-    // the reactor to cover the difference, so the revert we expect is `InsufficientEth` instead of `EtherSendFail`.
+    // the reactor to cover the difference, so the execution succeeds
     function testEth2OutputsInsufficientEthSentButEthInReactor() public {
         uint256 inputAmount = 10 ** 18;
 
@@ -415,7 +415,56 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
 
         vm.prank(directTaker);
-        vm.expectRevert(BaseReactor.InsufficientEth.selector);
+        reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
+    }
+
+    // The same setup as testEth2Outputs, but filler sends insufficient eth. However, there was already fees collected
+    // enough to cover the difference. Execution still fails as the collected fees are kept separately
+    function testEth2OutputsInsufficientEthSentButEthFromFees() public {
+        uint256 inputAmount = 10 ** 18;
+
+        tokenIn1.mint(address(maker1), inputAmount * 3);
+        vm.deal(directTaker, ONE * 3);
+
+        DutchOutput[] memory feeOutput = new DutchOutput[](1);
+        feeOutput[0] = DutchOutput(NATIVE, ONE * 10, ONE * 10, maker2, true);
+        DutchLimitOrder memory feeCollection = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: feeOutput
+        });
+
+        SignedOrder memory order =
+            SignedOrder(abi.encode(feeCollection), signOrder(makerPrivateKey1, address(permit2), feeCollection));
+        reactor.execute{value: ONE * 10}(order, address(1), bytes(""));
+        assertEq(address(reactor.feeEscrow()).balance, ONE * 10);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, maker1)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
+                2
+                ),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, maker1)
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey1, address(permit2), order2));
+
+        vm.prank(directTaker);
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
     }
 
@@ -455,7 +504,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * ONE);
         assertEq(maker2.balance, ONE);
-        assertEq(address(reactor).balance, ONE / 20);
+        assertEq(address(reactor.feeEscrow()).balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
         assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);

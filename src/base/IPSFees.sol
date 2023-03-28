@@ -5,7 +5,8 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, OutputToken} from "./ReactorStructs.sol";
+import {FeeEscrow} from "./FeeEscrow.sol";
 
 /// @notice Handling for interface-protocol-split fees
 abstract contract IPSFees {
@@ -31,6 +32,9 @@ abstract contract IPSFees {
     /// @dev maps token address to owner address to amount
     mapping(address => mapping(address => uint256)) public feesOwed;
 
+    /// @dev The address which holds accrued fees
+    FeeEscrow public immutable feeEscrow;
+
     /// @dev The address who can receive fees
     address public protocolFeeRecipient;
 
@@ -44,6 +48,8 @@ abstract contract IPSFees {
 
         PROTOCOL_FEE_BPS = _protocolFeeBps;
         protocolFeeRecipient = _protocolFeeRecipient;
+
+        feeEscrow = new FeeEscrow();
     }
 
     /// @notice Takes fees from the order
@@ -69,8 +75,8 @@ abstract contract IPSFees {
                 // rest goes to the original interface fee recipient
                 feesOwed[output.token][output.recipient] += interfaceFeeAmount;
 
-                // we custody the fee and they can claim later
-                output.recipient = address(this);
+                // we escrow the fee and they can claim later
+                output.recipient = address(feeEscrow);
             }
 
             unchecked {
@@ -89,7 +95,7 @@ abstract contract IPSFees {
         // note we leave a single wei of balance for warm sstores
         feesOwed[token][feeRecipient] = 1;
         unchecked {
-            token.transfer(msg.sender, amount - 1);
+            feeEscrow.transfer(token, msg.sender, amount - 1);
         }
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {FeeEscrow} from "../../src/base/FeeEscrow.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -44,7 +45,7 @@ contract IPSFeesTest is Test {
 
         assertEq(fees.feesOwed(address(tokenOut), address(0)), ONE / 2);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE / 2);
-        assertEq(newOrder.outputs[newOrder.outputs.length - 1].recipient, address(fees));
+        assertEq(newOrder.outputs[newOrder.outputs.length - 1].recipient, address(fees.feeEscrow()));
     }
 
     function testTakeFees(uint128 amount) public {
@@ -84,9 +85,9 @@ contract IPSFeesTest is Test {
         assertEq(fees.feesOwed(address(tokenIn), address(0)), ONE / 2);
         assertEq(fees.feesOwed(address(tokenIn), INTERFACE_FEE_RECIPIENT), ONE / 2);
         assertEq(newOrder.outputs[0].recipient, RECIPIENT);
-        assertEq(newOrder.outputs[1].recipient, address(fees));
+        assertEq(newOrder.outputs[1].recipient, address(fees.feeEscrow()));
         assertEq(newOrder.outputs[2].recipient, RECIPIENT);
-        assertEq(newOrder.outputs[3].recipient, address(fees));
+        assertEq(newOrder.outputs[3].recipient, address(fees.feeEscrow()));
     }
 
     function testMultipleFeeOutputsSameToken() public {
@@ -108,9 +109,9 @@ contract IPSFeesTest is Test {
         assertEq(fees.feesOwed(address(tokenOut), address(0)), ONE);
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), ONE);
         assertEq(newOrder.outputs[0].recipient, RECIPIENT);
-        assertEq(newOrder.outputs[1].recipient, address(fees));
+        assertEq(newOrder.outputs[1].recipient, address(fees.feeEscrow()));
         assertEq(newOrder.outputs[2].recipient, RECIPIENT);
-        assertEq(newOrder.outputs[3].recipient, address(fees));
+        assertEq(newOrder.outputs[3].recipient, address(fees.feeEscrow()));
     }
 
     function testNoFeeOutput() public {
@@ -153,7 +154,7 @@ contract IPSFeesTest is Test {
 
     function testClaimFees() public {
         fees.takeFees(createOrder(ONE, false));
-        deal(address(tokenOut), address(fees), ONE);
+        deal(address(tokenOut), address(fees.feeEscrow()), ONE);
 
         uint256 preBalance = tokenOut.balanceOf(address(PROTOCOL_FEE_RECIPIENT));
         vm.prank(PROTOCOL_FEE_RECIPIENT);
@@ -169,9 +170,19 @@ contract IPSFeesTest is Test {
         assertEq(fees.feesOwed(address(tokenOut), INTERFACE_FEE_RECIPIENT), 1);
     }
 
+    function testEscrowOnlyOwner() public {
+        fees.takeFees(createOrder(ONE, false));
+        deal(address(tokenOut), address(fees.feeEscrow()), ONE);
+
+        FeeEscrow escrow = fees.feeEscrow();
+        vm.prank(makeAddr("test"));
+        vm.expectRevert("UNAUTHORIZED");
+        escrow.transfer(address(tokenOut), address(1), ONE);
+    }
+
     function testClaimEthFees() public {
         fees.takeFees(createOrder(ONE, true));
-        vm.deal(address(fees), ONE);
+        vm.deal(address(fees.feeEscrow()), ONE);
 
         uint256 preBalance = address(PROTOCOL_FEE_RECIPIENT).balance;
         vm.prank(PROTOCOL_FEE_RECIPIENT);

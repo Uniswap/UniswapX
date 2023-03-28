@@ -127,7 +127,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), outputAmount * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), outputAmount / 10);
+        assertEq(tokenOut1.balanceOf(address(reactor.feeEscrow())), outputAmount / 10);
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
     }
 
@@ -230,11 +230,11 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(maker1), ONE * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), ONE / 10);
+        assertEq(tokenOut1.balanceOf(address(reactor.feeEscrow())), ONE / 10);
         assertEq(tokenOut2.balanceOf(maker2), ONE * 2 * 9 / 10);
-        assertEq(tokenOut2.balanceOf(address(reactor)), ONE * 2 / 10);
+        assertEq(tokenOut2.balanceOf(address(reactor.feeEscrow())), ONE * 2 / 10);
         assertEq(tokenOut3.balanceOf(maker2), ONE * 3 * 9 / 10);
-        assertEq(tokenOut3.balanceOf(address(reactor)), ONE * 3 / 10);
+        assertEq(tokenOut3.balanceOf(address(reactor.feeEscrow())), ONE * 3 / 10);
 
         assertEq(tokenIn1.balanceOf(directTaker), ONE);
         assertEq(tokenIn2.balanceOf(directTaker), 2 * ONE);

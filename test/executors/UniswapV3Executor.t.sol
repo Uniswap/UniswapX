@@ -253,7 +253,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
 
         // assert fees properly handled
-        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
+        assertEq(tokenOut.balanceOf(address(reactor.feeEscrow())), ONE);
         assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
         assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
     }

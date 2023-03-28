@@ -320,7 +320,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
         assertEq(maker.balance, ONE);
         assertEq(address(swapRouter02Executor).balance, 163039886077866602);
-        assertEq(address(dloReactor).balance, ONE / 20);
+        assertEq(address(dloReactor.feeEscrow()).balance, ONE / 20);
         assertEq(dloReactor.feesOwed(NATIVE, address(0)), 500000000000000);
         assertEq(dloReactor.feesOwed(NATIVE, maker), 49500000000000000);
     }
