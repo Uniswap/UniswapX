@@ -67,7 +67,7 @@ contract AggregatorExecutor is IReactorCallback, Multicall, FundMaintenance {
         }
 
         // Require that there is only one output per order.
-        // Note: We are doing repeated checks if there are repeated tokens.
+        // Also require that each resolvedOrder has a unique token. There should be no repeated tokens.
         uint256[] memory balanceBefore = new uint256[](resolvedOrders.length);
         uint256 balanceEthBefore = address(this).balance;
 
