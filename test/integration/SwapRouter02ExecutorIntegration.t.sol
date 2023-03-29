@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
@@ -20,10 +21,12 @@ import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRou
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
+    using SafeTransferLib for ERC20;
 
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
+    address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address constant SWAPROUTER02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
@@ -137,6 +140,72 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
         assertEq(ERC20(DAI).balanceOf(maker), 3000 * ONE);
         assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 275438458971501955836);
+    }
+
+    // Maker creates order of input = 2 WETH and output = 3000 USDT. Trade via Uniswap V2.
+    // There will be 275438458971501955836 wei of USDT in SwapRouter02Executor after.
+    function testSwapWethToUsdtViaV2() public {
+        uint256 output = 300 * 10 ** 6;
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
+            outputs: OutputsBuilder.singleDutch(address(USDT), output, output, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = WETH;
+        bytes[] memory multicallData = new bytes[](1);
+        address[] memory path = new address[](2);
+        path[0] = WETH;
+        path[1] = USDT;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, output, path, address(swapRouter02Executor)
+        );
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+        );
+        assertEq(ERC20(WETH).balanceOf(maker), ONE);
+        assertEq(ERC20(USDT).balanceOf(maker), output);
+    }
+
+    // Maker creates order of input = 2 WETH and output = 3000 USDT. Trade via Uniswap V2.
+    // There will be 275438458971501955836 wei of USDT in SwapRouter02Executor after.
+    function testSwapUsdtToWethViaV2() public {
+        uint256 input = 2000 * 10 ** 6;
+        uint256 output = 1 ether;
+
+        // Maker max approves permit post
+        vm.prank(maker);
+        ERC20(USDT).safeApprove(PERMIT2, type(uint256).max);
+        deal(USDT, address(maker), input);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp - 100,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(USDT), input, input),
+            outputs: OutputsBuilder.singleDutch(address(WETH), output, output, address(maker))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = USDT;
+        bytes[] memory multicallData = new bytes[](1);
+        address[] memory path = new address[](2);
+        path[0] = USDT;
+        path[1] = WETH;
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, input, output, path, address(swapRouter02Executor)
+        );
+        dloReactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
+            address(swapRouter02Executor),
+            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+        );
+        assertEq(ERC20(USDT).balanceOf(maker), 0);
+        assertEq(ERC20(WETH).balanceOf(maker), 4 * ONE);
     }
 
     // Exact same test as testSwapWethToDaiViaV2, but the order requests 4000 DAI output, which is too much for
