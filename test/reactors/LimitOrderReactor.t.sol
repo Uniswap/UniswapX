@@ -6,11 +6,13 @@ import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "..
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
+import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -100,6 +102,60 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        uint256 makerInputBalanceStart = tokenIn.balanceOf(address(maker));
+        uint256 fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
+        uint256 makerOutputBalanceStart = tokenOut.balanceOf(address(maker));
+        uint256 fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
+
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+
+        assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart + ONE);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
+    }
+
+    function testExecuteInsufficientOutput() public {
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
+        tokenOut.mint(address(fill), ONE);
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(maker))
+        });
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+
+        vm.expectEmit(false, false, false, true, address(reactor));
+        emit Fill(orderHash, address(this), maker, order.info.nonce);
+
+        fill.setOutputAmount(ONE);
+
+        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        reactor.execute(SignedOrder(abi.encode(order), sig), address(fill), bytes(""));
+    }
+
+    function testExecuteWithDuplicateOutputs() public {
+        tokenIn.forceApprove(maker, address(permit2), ONE);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = ONE / 2;
+        amounts[1] = ONE / 2;
+        LimitOrder memory order = LimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)).withValidationContract(
+                address(validationContract)
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(maker))
         });
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);

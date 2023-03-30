@@ -6,12 +6,14 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
-import {ResolvedOrder, ETH_ADDRESS} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
+import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
+    using CurrencyLibrary for address;
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
@@ -45,35 +47,21 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         if (filler != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
-        (
-            address[] memory tokensToApproveForSwapRouter02,
-            address[] memory tokensToApproveForReactor,
-            bytes[] memory multicallData
-        ) = abi.decode(fillData, (address[], address[], bytes[]));
+
+        (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
+            abi.decode(fillData, (address[], bytes[]));
 
         for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).approve(swapRouter02, type(uint256).max);
-        }
-
-        for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
-            ERC20(tokensToApproveForReactor[i]).approve(reactor, type(uint256).max);
+            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(swapRouter02, type(uint256).max);
         }
 
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
 
-        // Send the appropriate amount of ETH back to reactor, so reactor can distribute to output recipients.
-        uint256 ethToSendToReactor;
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
-                if (resolvedOrders[i].outputs[j].token == ETH_ADDRESS) {
-                    ethToSendToReactor += resolvedOrders[i].outputs[j].amount;
-                }
-            }
-        }
-        if (ethToSendToReactor > 0) {
-            (bool sent,) = reactor.call{value: ethToSendToReactor}("");
-            if (!sent) {
-                revert EtherSendFail();
+            ResolvedOrder memory order = resolvedOrders[i];
+            for (uint256 j = 0; j < order.outputs.length; j++) {
+                OutputToken memory output = order.outputs[j];
+                output.token.transfer(output.recipient, output.amount);
             }
         }
     }
