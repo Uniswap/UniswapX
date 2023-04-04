@@ -31,14 +31,13 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockDutchLimitOrderReactor reactor;
     ISignatureTransfer permit2;
 
     function setUp() public {
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new MockDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new MockDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
@@ -394,7 +393,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     using DutchLimitOrderLib for DutchLimitOrder;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     function setUp() public override {
         fillContract = new MockFillContract();
@@ -411,7 +409,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         return reactor;
     }
 

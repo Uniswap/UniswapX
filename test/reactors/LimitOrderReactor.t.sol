@@ -26,7 +26,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockValidationContract validationContract;
 
@@ -49,7 +48,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         return reactor;
     }
 

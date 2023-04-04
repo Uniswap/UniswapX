@@ -29,7 +29,6 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -51,7 +50,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         makerPrivateKey2 = 0x12341235;
         maker2 = vm.addr(makerPrivateKey2);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
     }
@@ -230,7 +229,6 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
     using DutchLimitOrderLib for DutchLimitOrder;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -260,7 +258,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
@@ -458,6 +456,6 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(address(reactor).balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
-        assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
+//        assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
     }
 }

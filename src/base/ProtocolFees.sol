@@ -26,7 +26,7 @@ abstract contract ProtocolFees {
         PROTOCOL_FEE_RECIPIENT = _protocolFeeRecipient;
     }
 
-    function validateProtocolFees(ResolvedOrder calldata order) internal {
+    function validateProtocolFees(ResolvedOrder memory order) internal {
         uint256 outputsLength = order.outputs.length;
         address[] memory validatedTokens = new address[](outputsLength);
         // Iterate over outputs
@@ -43,7 +43,7 @@ abstract contract ProtocolFees {
         }
     }
 
-    function validateTokensProtocolFee(address token, OutputToken[] calldata outputs) internal view {
+    function validateTokensProtocolFee(address token, OutputToken[] memory outputs) internal view {
         if (protocolFees[token] == 0) {
             return;
         } else {

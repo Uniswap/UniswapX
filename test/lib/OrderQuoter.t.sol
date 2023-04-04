@@ -28,7 +28,6 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
 
     uint256 constant ONE = 10 ** 18;
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     OrderQuoter quoter;
     MockERC20 tokenIn;
@@ -47,8 +46,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         maker = vm.addr(makerPrivateKey);
         tokenIn.mint(address(maker), ONE);
         permit2 = ISignatureTransfer(deployPermit2());
-        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
-        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
+        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
     }
 
     function testQuoteLimitOrder() public {

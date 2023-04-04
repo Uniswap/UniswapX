@@ -29,7 +29,6 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     using DutchLimitOrderLib for DutchLimitOrder;
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -59,7 +58,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
