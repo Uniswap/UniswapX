@@ -10,9 +10,12 @@ import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 /// @notice Handling for interface-protocol-split fees
 abstract contract ProtocolFees {
     error InsufficientProtocolFee();
+    error NotGovernance();
+    error ProtocolFeeTooHigh();
 
     /// @dev The number of basis points per whole
     uint256 private constant BPS = 10000;
+    uint8 public constant MAX_PROTOCOL_FEE = 5;
 
     address public immutable GOVERNANCE;
     address public immutable PROTOCOL_FEE_RECIPIENT;
@@ -24,6 +27,18 @@ abstract contract ProtocolFees {
     constructor(address _governance, address _protocolFeeRecipient) {
         GOVERNANCE = _governance;
         PROTOCOL_FEE_RECIPIENT = _protocolFeeRecipient;
+    }
+
+    modifier onlyGovernance() {
+        if (msg.sender != GOVERNANCE) revert NotGovernance();
+        _;
+    }
+
+    function setProtocolFees(address token, uint8 protocolFee) onlyGovernance {
+        if (protocolFee > MAX_PROTOCOL_FEE) {
+            revert ProtocolFeeTooHigh();
+        }
+        protocolFees[token] = protocolFee;
     }
 
     function validateProtocolFees(ResolvedOrder memory order) internal {
