@@ -2,31 +2,30 @@
 pragma solidity ^0.8.16;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
+import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
+import {ExpectedBalanceLib, ExpectedBalance} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken, ETH_ADDRESS} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a taker
 abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
-    using FixedPointMathLib for uint256;
+    using ExpectedBalanceLib for ResolvedOrder[];
+    using ExpectedBalanceLib for ExpectedBalance[];
     using CurrencyLibrary for address;
 
-    // Occurs when an output = ETH and the reactor lacks enough ETH OR output recipient cannot receive ETH
-    error EtherSendFail();
-    // Occurs when an output = ETH and the reactor does contain enough ETH but either 1) the direct taker did not include
-    // enough ETH in their call to execute/executeBatch or 2) the fillContract did not send enough ETH to the reactor
+    // Occurs when an output = ETH and the reactor does contain enough ETH but
+    // the direct taker did not include enough ETH in their call to execute/executeBatch
     error InsufficientEth();
 
     address public immutable permit2;
@@ -85,36 +84,48 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                 }
                 _takeFees(order);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
+
+                // Batch fills are all-or-nothing so emit fill events now to save a loop
+                emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
             }
         }
 
-        uint256 ethBalanceBeforeReactorCallback = address(this).balance;
-        // availableEthOutput is the amount of ETH available to distribute as outputs. This amount of
-        // ETH is msg.value if directTaker, otherwise the amount of ETH gained from reactor callback.
-        uint256 availableEthOutput;
-        if (!directTaker) {
-            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
-            availableEthOutput = address(this).balance - ethBalanceBeforeReactorCallback;
+        if (directTaker) {
+            _processDirectTakerFill(orders);
         } else {
-            availableEthOutput = msg.value;
+            ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
+            expectedBalances.check();
         }
+    }
 
+    /// @notice Process transferring tokens from a direct taker to the recipients
+    /// @dev in the case of ETH outputs, ETh should be provided as value in the execute call
+    /// @param orders The orders to process
+    function _processDirectTakerFill(ResolvedOrder[] memory orders) internal {
+        // track outputs from msg.value as the contract may have
+        // a standing ETH balance due to collected fees
         unchecked {
-            // transfer output tokens to their respective recipients
+            uint256 ethAvailable = msg.value;
             for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory resolvedOrder = orders[i];
-                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
-                    OutputToken memory output = resolvedOrder.outputs[j];
-                    output.token.transfer(output.recipient, output.amount, fillContract, IAllowanceTransfer(permit2));
-                    if (output.token == ETH_ADDRESS) {
-                        if (availableEthOutput >= output.amount) {
-                            availableEthOutput -= output.amount;
+                ResolvedOrder memory order = orders[i];
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    OutputToken memory output = order.outputs[j];
+                    output.token.transferFromDirectTaker(output.recipient, output.amount, permit2);
+
+                    if (output.token.isNative()) {
+                        if (ethAvailable >= output.amount) {
+                            ethAvailable -= output.amount;
                         } else {
                             revert InsufficientEth();
                         }
                     }
                 }
-                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.offerer, resolvedOrder.info.nonce);
+            }
+
+            // refund any remaining ETH to the taker
+            if (ethAvailable > 0) {
+                NATIVE.transfer(msg.sender, ethAvailable);
             }
         }
     }
