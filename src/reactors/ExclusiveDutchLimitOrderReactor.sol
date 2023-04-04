@@ -1,24 +1,33 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {BaseReactor} from "./BaseReactor.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
-import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
+import {
+    ExclusiveDutchLimitOrderLib,
+    ExclusiveDutchLimitOrder,
+    DutchOutput,
+    DutchInput
+} from "../lib/ExclusiveDutchLimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
-/// @notice Reactor for dutch limit orders
-contract DutchLimitOrderReactor is BaseReactor {
+/// @notice Reactor for exclusive dutch limit orders
+contract ExclusiveDutchLimitOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
-    using DutchLimitOrderLib for DutchLimitOrder;
+    using FixedPointMathLib for uint256;
+    using ExclusiveDutchLimitOrderLib for ExclusiveDutchLimitOrder;
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
+
+    uint256 public constant EXCLUSIVE_OVERRIDE_BPS = 300;
+    uint256 private constant BPS = 10_000;
 
     error DeadlineBeforeEndTime();
     error EndTimeBeforeStartTime();
     error InputAndOutputDecay();
-    error IncorrectAmounts();
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
@@ -32,13 +41,15 @@ contract DutchLimitOrderReactor is BaseReactor {
         override
         returns (ResolvedOrder memory resolvedOrder)
     {
-        DutchLimitOrder memory order = abi.decode(signedOrder.order, (DutchLimitOrder));
+        ExclusiveDutchLimitOrder memory order = abi.decode(signedOrder.order, (ExclusiveDutchLimitOrder));
         _validateOrder(order);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
             input: order.input.decay(order.startTime, order.endTime),
-            outputs: order.outputs.decay(order.startTime, order.endTime),
+            // if the filler has fill right, they can fill at the specified price
+            // else they must override the price by EXCLUSIVE_OVERRIDE_BPS
+            outputs: _checkExclusivity(order) ? order.outputs.decay(order.startTime, order.endTime) : scale(order.outputs),
             sig: signedOrder.sig,
             hash: order.hash()
         });
@@ -51,7 +62,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             order.transferDetails(to),
             order.info.offerer,
             order.hash,
-            DutchLimitOrderLib.PERMIT2_ORDER_TYPE,
+            ExclusiveDutchLimitOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }
@@ -62,7 +73,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
-    function _validateOrder(DutchLimitOrder memory order) internal pure {
+    function _validateOrder(ExclusiveDutchLimitOrder memory order) internal pure {
         if (order.info.deadline < order.endTime) {
             revert DeadlineBeforeEndTime();
         }
@@ -79,6 +90,27 @@ contract DutchLimitOrderReactor is BaseReactor {
                     }
                 }
             }
+        }
+    }
+
+    /// @notice checks if the order currently passes the exclusivity check
+    /// @dev if the order has no exclusivity, always returns true
+    /// @dev if the order has exclusivity and the current filler is the exlcusive address, returns true
+    /// @dev if the order has exclusivity and the current filler is not the exlcusive address, returns false
+    function _checkExclusivity(ExclusiveDutchLimitOrder memory order) internal view returns (bool pass) {
+        address exclusive = order.exclusiveFiller;
+        return exclusive == address(0) || block.timestamp > order.startTime || exclusive == msg.sender;
+    }
+
+    /// @notice returns a scaled output array by the exclusivity override amount
+    /// @param outputs The output array to decay
+    /// @return result a scaled output array
+    function scale(DutchOutput[] memory outputs) internal pure returns (OutputToken[] memory result) {
+        result = new OutputToken[](outputs.length);
+        for (uint256 i = 0; i < outputs.length; i++) {
+            DutchOutput memory output = outputs[i];
+            uint256 scaledOutput = output.startAmount.mulDivDown(EXCLUSIVE_OVERRIDE_BPS, BPS);
+            result[i] = OutputToken(output.token, scaledOutput, output.recipient, output.isFeeOutput);
         }
     }
 }
