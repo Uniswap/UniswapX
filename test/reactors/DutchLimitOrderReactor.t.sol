@@ -13,6 +13,7 @@ import {
     BaseReactor
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -118,7 +119,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             DutchInput(address(0), 0, 0),
             dutchOutputs
         );
-        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
         bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
@@ -332,7 +333,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             DutchInput(address(0), 110, 100),
             dutchOutputs
         );
-        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
         bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
@@ -347,7 +348,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             DutchInput(address(0), 100, 100),
             dutchOutputs
         );
-        vm.expectRevert(DutchLimitOrderReactor.IncorrectAmounts.selector);
+        vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
         bytes memory sig = hex"1234";
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
