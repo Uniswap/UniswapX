@@ -34,7 +34,7 @@ abstract contract ProtocolFees {
         _;
     }
 
-    function setProtocolFees(address token, uint8 protocolFee) onlyGovernance {
+    function setProtocolFees(address token, uint8 protocolFee) external onlyGovernance {
         if (protocolFee > MAX_PROTOCOL_FEE) {
             revert ProtocolFeeTooHigh();
         }
