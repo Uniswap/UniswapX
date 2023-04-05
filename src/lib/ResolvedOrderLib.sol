@@ -2,18 +2,18 @@
 pragma solidity ^0.8.16;
 
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
-import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
+import {IOrderPreparation} from "../interfaces/IOrderPreparation.sol";
 
 library ResolvedOrderLib {
     error InvalidReactor();
     error DeadlinePassed();
 
-    /// @notice Validates a resolved order, reverting if invalid
+    /// @notice Validates and prepares a resolved order, reverting if invalid
     /// @param filler The filler of the order
-    function validate(ResolvedOrder memory resolvedOrder, address filler)
+    function prepare(ResolvedOrder memory resolvedOrder, address filler)
         internal
         view
-        returns (uint256 outputIncrease)
+        returns (ResolvedOrder memory)
     {
         if (address(this) != resolvedOrder.info.reactor) {
             revert InvalidReactor();
@@ -23,8 +23,9 @@ library ResolvedOrderLib {
             revert DeadlinePassed();
         }
 
-        if (resolvedOrder.info.validationContract != address(0)) {
-            outputIncrease = IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder);
+        if (resolvedOrder.info.preparationContract != address(0)) {
+            return IOrderPreparation(resolvedOrder.info.preparationContract).prepare(filler, resolvedOrder);
         }
+        return resolvedOrder;
     }
 }

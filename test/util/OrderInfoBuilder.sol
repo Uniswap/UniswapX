@@ -10,8 +10,8 @@ library OrderInfoBuilder {
             offerer: address(0),
             nonce: 0,
             deadline: block.timestamp + 100,
-            validationContract: address(0),
-            validationData: bytes("")
+            preparationContract: address(0),
+            preparationData: bytes("")
         });
     }
 
@@ -30,21 +30,21 @@ library OrderInfoBuilder {
         return info;
     }
 
-    function withValidationContract(OrderInfo memory info, address _validationContract)
+    function withPreparationContract(OrderInfo memory info, address _preparationContract)
         internal
         pure
         returns (OrderInfo memory)
     {
-        info.validationContract = _validationContract;
+        info.preparationContract = _preparationContract;
         return info;
     }
 
-    function withValidationData(OrderInfo memory info, bytes memory _validationData)
+    function withPreparationData(OrderInfo memory info, bytes memory _preparationData)
         internal
         pure
         returns (OrderInfo memory)
     {
-        info.validationData = _validationData;
+        info.preparationData = _preparationData;
         return info;
     }
 }

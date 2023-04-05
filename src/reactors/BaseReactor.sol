@@ -74,19 +74,13 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         bool directTaker = fillContract == DIRECT_TAKER_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory order = orders[i];
-                uint256 outputIncrease = order.validate(msg.sender);
-                // Increase order's output amounts by `outputIncrease` basis points
-                if (outputIncrease != 0) {
-                    for (uint256 j = 0; j < order.outputs.length; j++) {
-                        order.outputs[j].amount = order.outputs[j].amount.mulDivDown(10000 + outputIncrease, 10000);
-                    }
-                }
+                ResolvedOrder memory order = orders[i].prepare(msg.sender);
                 _takeFees(order);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
 
                 // Batch fills are all-or-nothing so emit fill events now to save a loop
-                emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
+                emit Fill(order.hash, msg.sender, order.info.offerer, order.info.nonce);
+                orders[i] = order;
             }
         }
 

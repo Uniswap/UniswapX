@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
-import {IValidationCallback} from "../../../src/interfaces/IValidationCallback.sol";
+import {IOrderPreparation} from "../../../src/interfaces/IOrderPreparation.sol";
 import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 
-contract MockValidationContract is IValidationCallback {
+contract MockPreparationContract is IOrderPreparation {
     error ValidationFailed();
 
     bool public valid;
@@ -12,9 +13,9 @@ contract MockValidationContract is IValidationCallback {
         valid = _valid;
     }
 
-    function validate(address, ResolvedOrder memory) external view returns (uint256) {
+    function prepare(address, ResolvedOrder memory order) external view returns (ResolvedOrder memory) {
         if (valid) {
-            return 0;
+            return order;
         } else {
             revert ValidationFailed();
         }
