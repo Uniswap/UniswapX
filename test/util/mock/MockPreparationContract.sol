@@ -13,7 +13,7 @@ contract MockPreparationContract is IOrderPreparation {
         valid = _valid;
     }
 
-    function prepare(address, ResolvedOrder memory order) external view returns (ResolvedOrder memory) {
+    function prepare(ResolvedOrder memory order, address) external view returns (ResolvedOrder memory) {
         if (valid) {
             return order;
         } else {

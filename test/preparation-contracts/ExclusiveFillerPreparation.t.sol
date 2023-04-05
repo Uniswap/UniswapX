@@ -6,7 +6,7 @@ import {stdError} from "forge-std/StdError.sol";
 import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchLimitOrderReactor, DutchLimitOrder, DutchInput} from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, SignedOrder, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -32,7 +32,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
     address maker;
     DutchLimitOrderReactor reactor;
     ISignatureTransfer permit2;
-    ExclusiveFillerPreparation exclusiveFiller;
+    ExclusiveFillerPreparation preparationContract;
 
     function setUp() public {
         fillContract = new MockFillContract();
@@ -42,8 +42,120 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
         maker = vm.addr(makerPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
-        exclusiveFiller = new ExclusiveFillerPreparation();
+        preparationContract = new ExclusiveFillerPreparation();
     }
+
+    function testExclusivity() public {
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp, 0)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory prepared = preparationContract.prepare(order, address(1));
+        assertEq(prepared.input.token, address(tokenIn));
+        assertEq(prepared.input.amount, 1 ether);
+        assertEq(prepared.outputs.length, 1);
+        assertEq(prepared.outputs[0].token, address(tokenOut));
+        assertEq(prepared.outputs[0].amount, 1 ether);
+        assertEq(prepared.outputs[0].recipient, address(0));
+    }
+
+    function testExclusivityFailNoOverride() public {
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp, 0)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        vm.expectRevert(ExclusiveFillerPreparation.ValidationFailed.selector);
+        preparationContract.prepare(order, address(0));
+    }
+
+    function testExclusivityOver() public {
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp - 1, 0)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory prepared = preparationContract.prepare(order, address(0));
+        assertEq(prepared.input.token, address(tokenIn));
+        assertEq(prepared.input.amount, 1 ether);
+        assertEq(prepared.outputs.length, 1);
+        assertEq(prepared.outputs[0].token, address(tokenOut));
+        assertEq(prepared.outputs[0].amount, 1 ether);
+        assertEq(prepared.outputs[0].recipient, address(0));
+    }
+
+    function testExclusivityOverrideTooHigh() public {
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp, 20000)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        vm.expectRevert(ExclusiveFillerPreparation.ValidationFailed.selector);
+        preparationContract.prepare(order, address(0));
+    }
+
+    function testExclusivityOverride() public {
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp, 100)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory prepared = preparationContract.prepare(order, address(0));
+        assertEq(prepared.input.token, address(tokenIn));
+        assertEq(prepared.input.amount, 1 ether);
+        assertEq(prepared.outputs.length, 1);
+        assertEq(prepared.outputs[0].token, address(tokenOut));
+        // 1% increase
+        assertEq(prepared.outputs[0].amount, 1 ether * 101 / 100);
+        assertEq(prepared.outputs[0].recipient, address(0));
+    }
+
+    function testExclusivityOverrideMultiOutput() public {
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 1 ether;
+        amounts[1] = 2 ether;
+        amounts[2] = 3 ether;
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withPreparationContract(address(preparationContract))
+                .withPreparationData(abi.encode(address(1), block.timestamp, 500)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(0)),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory prepared = preparationContract.prepare(order, address(0));
+        assertEq(prepared.input.token, address(tokenIn));
+        assertEq(prepared.input.amount, 1 ether);
+        assertEq(prepared.outputs.length, 3);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            // 5% increase
+            assertEq(prepared.outputs[i].amount, amounts[i] * 105 / 100);
+        }
+    }
+
+    // integration tests with DutchLimitOrder reactor
 
     // Test exclusive filler validation contract succeeds
     function testExclusiveFillerSucceeds() public {
@@ -56,7 +168,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller)).withPreparationData(
+                .withPreparationContract(address(preparationContract)).withPreparationData(
                 abi.encode(address(this), block.timestamp + 50, 0)
                 ),
             startTime: block.timestamp,
@@ -89,7 +201,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller)).withPreparationData(
+                .withPreparationContract(address(preparationContract)).withPreparationData(
                 abi.encode(address(this), block.timestamp + 50, 0)
                 ),
             startTime: block.timestamp,
@@ -120,7 +232,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller)).withPreparationData(
+                .withPreparationContract(address(preparationContract)).withPreparationData(
                 abi.encode(address(this), block.timestamp - 50, 0)
                 ),
             startTime: block.timestamp,
@@ -150,7 +262,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller)).withPreparationData(
+                .withPreparationContract(address(preparationContract)).withPreparationData(
                 abi.encode(address(this), block.timestamp, 0)
                 ),
             startTime: block.timestamp,
@@ -179,7 +291,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
             startTime: block.timestamp,
@@ -212,7 +324,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
             startTime: block.timestamp,
@@ -242,7 +354,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp - 50, 100)),
             startTime: block.timestamp - 100,
@@ -276,7 +388,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
             DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
             startTime: block.timestamp - 100,
@@ -320,7 +432,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
             DutchOutput(address(tokenOut), outputAmount / 20, outputAmount * 9 / 200, maker, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // Set the RFQ winner to this contract
                 .withPreparationData(abi.encode(address(this), block.timestamp + 50, 100)),
             startTime: block.timestamp - 100,
@@ -359,7 +471,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
             startTime: block.timestamp - 100,
@@ -389,7 +501,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 100 bps, so filler must pay 1% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 100)),
             startTime: block.timestamp,
@@ -417,7 +529,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withPreparationContract(address(exclusiveFiller))
+                .withPreparationContract(address(preparationContract))
                 // override increase set to 200 bps, so filler must pay 2% more output
                 .withPreparationData(abi.encode(address(0x80085), block.timestamp + 50, 200)),
             startTime: block.timestamp,

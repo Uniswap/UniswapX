@@ -7,8 +7,11 @@ import {OrderInfo, ResolvedOrder} from "../base/ReactorStructs.sol";
 interface IOrderPreparation {
     /// @notice Called by the reactor for custom validation of an order. Will revert with `ValidationFailed()` if
     /// custom validation fails. If this function doesn't revert, then that means the order is valid.
-    /// @param filler The filler of the order
     /// @param resolvedOrder The resolved order to fill
+    /// @param filler The filler of the order
     /// @return updatedOrder The prepared order
-    function prepare(address filler, ResolvedOrder calldata resolvedOrder) external view returns (ResolvedOrder memory updatedOrder);
+    function prepare(ResolvedOrder calldata resolvedOrder, address filler)
+        external
+        view
+        returns (ResolvedOrder memory updatedOrder);
 }

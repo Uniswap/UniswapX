@@ -60,9 +60,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerPreparationInvalidFiller() public {
         vm.warp(900);
         ExclusiveFillerPreparation prep = new ExclusiveFillerPreparation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(
-            address(prep)
-        ).withPreparationData(abi.encode(address(0x123), 1000, 0));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(address(prep))
+            .withPreparationData(abi.encode(address(0x123), 1000, 0));
         vm.expectRevert(MockPreparationContract.ValidationFailed.selector);
         resolvedOrderLib.prepare(mockResolvedOrder, address(0x234));
     }
@@ -72,9 +71,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerPreparationInvalidFillerPastTimestamp() public {
         vm.warp(900);
         ExclusiveFillerPreparation prep = new ExclusiveFillerPreparation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(
-            address(prep)
-        ).withPreparationData(abi.encode(address(0x123), 888, 0));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(address(prep))
+            .withPreparationData(abi.encode(address(0x123), 888, 0));
         resolvedOrderLib.prepare(mockResolvedOrder, address(0x234));
     }
 
@@ -82,9 +80,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerPreparationValidFillerPastTimestamp() public {
         vm.warp(900);
         ExclusiveFillerPreparation prep = new ExclusiveFillerPreparation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(
-            address(prep)
-        ).withPreparationData(abi.encode(address(0x123), 1000, 0));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withPreparationContract(address(prep))
+            .withPreparationData(abi.encode(address(0x123), 1000, 0));
         resolvedOrderLib.prepare(mockResolvedOrder, address(0x123));
     }
 }
