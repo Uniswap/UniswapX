@@ -57,7 +57,6 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         reactor.setProtocolFees(address(tokenOut1), 5);
     }
 
-    // Fill one order (from maker1, input = 1 tokenIn, output = 0.5 tokenOut (starts at 1 but decays to 0.5))
     function test1OutputWithProtocolFee() public {
         tokenIn1.mint(address(maker1), ONE);
         tokenOut1.mint(address(fillContract), ONE);
