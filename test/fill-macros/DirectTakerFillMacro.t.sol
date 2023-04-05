@@ -44,6 +44,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     address directTaker;
     DutchLimitOrderReactor reactor;
     IAllowanceTransfer permit2;
+    address interfaceFeeRecipient;
 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
@@ -57,6 +58,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         makerPrivateKey2 = 0x12341235;
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
+        interfaceFeeRecipient = address(999);
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
@@ -110,7 +112,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, maker1, true);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, interfaceFeeRecipient, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -126,7 +128,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), outputAmount * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), outputAmount / 10);
+        assertEq(tokenOut1.balanceOf(address(interfaceFeeRecipient)), outputAmount / 10);
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
     }
 
