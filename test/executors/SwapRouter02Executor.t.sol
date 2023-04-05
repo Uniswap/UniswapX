@@ -237,9 +237,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 0);
 
         // assert fees properly handled
-        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
-//        assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
-//        assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
+        assertEq(tokenOut.balanceOf(address(1)), ONE);
     }
 
     // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3
