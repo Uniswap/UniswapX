@@ -13,6 +13,8 @@ struct ExclusiveDutchLimitOrder {
     uint256 endTime;
     // The address who has exclusive rights to the order until startTime
     address exclusiveFiller;
+    // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order
+    uint256 exclusivityOverrideBps;
     // The tokens that the offerer will provide when settling the order
     DutchInput input;
     // The tokens that must be received to satisfy the order
@@ -34,6 +36,7 @@ library ExclusiveDutchLimitOrderLib {
         "uint256 startTime,",
         "uint256 endTime,",
         "address exclusiveFiller,",
+        "uint256 exclusivityOverrideBps,",
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
@@ -51,21 +54,27 @@ library ExclusiveDutchLimitOrderLib {
     /// @return the eip-712 order hash
     function hash(ExclusiveDutchLimitOrder memory order) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(
-                ORDER_TYPE_HASH,
-                order.info.reactor,
-                order.info.offerer,
-                order.info.nonce,
-                order.info.deadline,
-                order.info.validationContract,
-                keccak256(order.info.validationData),
-                order.startTime,
-                order.endTime,
-                order.exclusiveFiller,
-                order.input.token,
-                order.input.startAmount,
-                order.input.endAmount,
-                order.outputs.hash()
+            bytes.concat(
+                // embedded encode avoids stack too deep
+                abi.encode(
+                    ORDER_TYPE_HASH,
+                    order.info.reactor,
+                    order.info.offerer,
+                    order.info.nonce,
+                    order.info.deadline,
+                    order.info.validationContract,
+                    keccak256(order.info.validationData)
+                ),
+                abi.encode(
+                    order.startTime,
+                    order.endTime,
+                    order.exclusiveFiller,
+                    order.exclusivityOverrideBps,
+                    order.input.token,
+                    order.input.startAmount,
+                    order.input.endAmount,
+                    order.outputs.hash()
+                )
             )
         );
     }

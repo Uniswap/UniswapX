@@ -22,7 +22,6 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
 
-    uint256 public constant EXCLUSIVE_OVERRIDE_BPS = 300;
     uint256 private constant BPS = 10_000;
 
     error DeadlineBeforeEndTime();
@@ -49,7 +48,7 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
             input: order.input.decay(order.startTime, order.endTime),
             // if the filler has fill right, they can fill at the specified price
             // else they must override the price by EXCLUSIVE_OVERRIDE_BPS
-            outputs: _checkExclusivity(order) ? order.outputs.decay(order.startTime, order.endTime) : scale(order.outputs),
+            outputs: _checkExclusivity(order) ? order.outputs.decay(order.startTime, order.endTime) : scaleOverride(order),
             sig: signedOrder.sig,
             hash: order.hash()
         });
@@ -103,13 +102,14 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
     }
 
     /// @notice returns a scaled output array by the exclusivity override amount
-    /// @param outputs The output array to decay
+    /// @param order The order to scale
     /// @return result a scaled output array
-    function scale(DutchOutput[] memory outputs) internal pure returns (OutputToken[] memory result) {
+    function scaleOverride(ExclusiveDutchLimitOrder memory order) internal pure returns (OutputToken[] memory result) {
+        DutchOutput[] memory outputs = order.outputs;
         result = new OutputToken[](outputs.length);
         for (uint256 i = 0; i < outputs.length; i++) {
             DutchOutput memory output = outputs[i];
-            uint256 scaledOutput = output.startAmount.mulDivDown(EXCLUSIVE_OVERRIDE_BPS, BPS);
+            uint256 scaledOutput = output.startAmount.mulDivDown(order.exclusivityOverrideBps, BPS);
             result[i] = OutputToken(output.token, scaledOutput, output.recipient, output.isFeeOutput);
         }
     }

@@ -65,6 +65,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -97,6 +98,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
                 startTime: block.timestamp,
                 endTime: block.timestamp + 100,
                 exclusiveFiller: address(0),
+                exclusivityOverrideBps: 300,
                 input: DutchInput(address(tokenIn), inputAmounts[i], inputAmounts[i]),
                 outputs: dutchOutput
             });
@@ -134,6 +136,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
         });
@@ -145,6 +148,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
         });
@@ -164,6 +168,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
         });
@@ -201,6 +206,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -211,6 +217,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
@@ -236,6 +243,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
@@ -246,6 +254,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
@@ -272,6 +281,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
         });
@@ -282,6 +292,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
         });
