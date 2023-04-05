@@ -28,10 +28,15 @@ contract ExclusivityOverrideLibTest is Test {
         assertEq(exclusivity.checkExclusivity(exclusive, block.timestamp + 1), true);
     }
 
-    function testExclusivityFail(uint256 nowTime, uint256 exclusiveTimestamp) public {
+    function testExclusivityFail(address caller, address exclusive, uint256 nowTime, uint256 exclusiveTimestamp)
+        public
+    {
         vm.assume(nowTime <= exclusiveTimestamp);
+        vm.assume(caller != exclusive);
+        vm.assume(exclusive != address(0));
         vm.warp(nowTime);
-        assertEq(exclusivity.checkExclusivity(address(1), exclusiveTimestamp), false);
+        vm.prank(caller);
+        assertEq(exclusivity.checkExclusivity(exclusive, exclusiveTimestamp), false);
     }
 
     function testNoExclusivity(address caller, uint256 nowTime, uint256 exclusiveTimestamp) public {
@@ -108,6 +113,17 @@ contract ExclusivityOverrideLibTest is Test {
         exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
     }
 
+    function testHandleOverride() public {
+        ResolvedOrder memory order;
+        order.outputs = OutputsBuilder.single(token1, 1 ether, recipient);
+        uint256 overrideAmt = 3000;
+        vm.prank(address(2));
+        ResolvedOrder memory handled = exclusivity.handleOverride(order, address(1), block.timestamp + 1, overrideAmt);
+        // assert overrideAmt applied
+        assertEq(handled.outputs[0].amount, 1.3 ether);
+        assertEq(handled.outputs[0].recipient, recipient);
+    }
+
     function testHandleOverrideApplied(address caller, address exclusive, uint256 overrideAmt, uint128 amount) public {
         vm.assume(caller != exclusive);
         vm.assume(exclusive != address(0));
@@ -117,7 +133,7 @@ contract ExclusivityOverrideLibTest is Test {
         vm.prank(caller);
         ResolvedOrder memory handled = exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
         // assert overrideAmt applied
-        assertEq(handled.outputs[0].amount, amount * overrideAmt / 10000);
+        assertEq(handled.outputs[0].amount, amount * (10000 + overrideAmt) / 10000);
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
@@ -141,7 +157,7 @@ contract ExclusivityOverrideLibTest is Test {
         ResolvedOrder memory handled = exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
         // assert overrideAmt applied
         for (uint256 i = 0; i < amounts.length; i++) {
-            assertEq(handled.outputs[i].amount, amounts[i] * overrideAmt / 10000);
+            assertEq(handled.outputs[i].amount, amounts[i] * (10000 + overrideAmt) / 10000);
             assertEq(handled.outputs[i].recipient, recipient);
         }
     }

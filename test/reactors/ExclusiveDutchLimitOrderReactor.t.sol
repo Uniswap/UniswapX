@@ -302,6 +302,115 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
     }
 
+    function testExclusivitySucceeds(address exclusive, uint128 amountIn, uint128 amountOut) public {
+        vm.assume(exclusive != address(0));
+        tokenIn.mint(address(maker), amountIn);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenOut.mint(address(fillContract), amountOut);
+
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: exclusive,
+            exclusivityOverrideBps: 300,
+            input: DutchInput(address(tokenIn), amountIn, amountIn),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, maker)
+        });
+
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+
+        vm.prank(exclusive);
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), amountOut);
+        assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
+    }
+
+    function testExclusivityOverride(
+        address caller,
+        address exclusive,
+        uint256 amountIn,
+        uint128 amountOut,
+        uint256 overrideAmt
+    ) public {
+        vm.assume(exclusive != address(0));
+        vm.assume(exclusive != caller);
+        vm.assume(overrideAmt > 0 && overrideAmt < 10000);
+        tokenIn.mint(address(maker), amountIn);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenOut.mint(address(fillContract), uint256(amountOut) * 2);
+
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: exclusive,
+            exclusivityOverrideBps: overrideAmt,
+            input: DutchInput(address(tokenIn), amountIn, amountIn),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, maker)
+        });
+
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+
+        vm.prank(caller);
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), amountOut * (10000 + overrideAmt) / 10000);
+        assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
+    }
+
+    function testExclusivityMultipleOutputs(
+        address caller,
+        address exclusive,
+        uint256 amountIn,
+        uint128[] memory amountOuts,
+        uint256 overrideAmt
+    ) public {
+        vm.assume(exclusive != address(0));
+        vm.assume(exclusive != caller);
+        vm.assume(overrideAmt > 0 && overrideAmt < 10000);
+        tokenIn.mint(address(maker), amountIn);
+        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        uint256 amountOutSum = 0;
+        for (uint256 i = 0; i < amountOuts.length; i++) {
+            amountOutSum += amountOuts[i] * (10000 + overrideAmt) / 10000;
+        }
+        tokenOut.mint(address(fillContract), uint256(amountOutSum));
+
+        uint256[] memory amounts = new uint256[](amountOuts.length);
+        for (uint256 i = 0; i < amountOuts.length; i++) {
+            amounts[i] = amountOuts[i];
+        }
+
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: exclusive,
+            exclusivityOverrideBps: overrideAmt,
+            input: DutchInput(address(tokenIn), amountIn, amountIn),
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), amounts, amounts, maker)
+        });
+
+        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+
+        vm.prank(caller);
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(maker), amountOutSum);
+        assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
+    }
+
     function generateSignedOrders(ExclusiveDutchLimitOrder[] memory orders)
         private
         view

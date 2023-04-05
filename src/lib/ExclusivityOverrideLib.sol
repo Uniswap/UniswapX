@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.17;
 
+import {console2} from "forge-std/console2.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 
@@ -47,7 +48,7 @@ library ExclusivityOverrideLib {
         OutputToken[] memory outputs = order.outputs;
         for (uint256 i = 0; i < outputs.length; i++) {
             OutputToken memory output = outputs[i];
-            output.amount = output.amount.mulDivDown(exclusivityOverrideBps, BPS);
+            output.amount = output.amount.mulDivDown(BPS + exclusivityOverrideBps, BPS);
         }
     }
 
