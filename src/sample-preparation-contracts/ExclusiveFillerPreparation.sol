@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.16;
 
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {IOrderPreparation} from "../interfaces/IOrderPreparation.sol";
 import {ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
 
 contract ExclusiveFillerPreparation is IOrderPreparation {
     error ValidationFailed();
+
+    using FixedPointMathLib for uint256;
 
     uint256 private constant BPS = 10_000;
 
@@ -25,22 +28,23 @@ contract ExclusiveFillerPreparation is IOrderPreparation {
         view
         returns (ResolvedOrder memory preparedOrder)
     {
-        preparedOrder = resolvedOrder;
         (address exclusiveFiller, uint256 lastExclusiveTimestamp, uint256 overrideIncreaseRequired) =
             abi.decode(resolvedOrder.info.preparationData, (address, uint256, uint256));
 
-        if (filler != exclusiveFiller && block.timestamp <= lastExclusiveTimestamp) {
-            if (overrideIncreaseRequired == 0 || overrideIncreaseRequired > BPS) {
-                revert ValidationFailed();
-            } else {
-                for (uint256 i = 0; i < preparedOrder.outputs.length;) {
-                    preparedOrder.outputs[i].amount =
-                        (preparedOrder.outputs[i].amount * (BPS + overrideIncreaseRequired)) / BPS;
+        if (filler == exclusiveFiller) return resolvedOrder;
+        if (block.timestamp > lastExclusiveTimestamp) return resolvedOrder;
 
-                    unchecked {
-                        i++;
-                    }
-                }
+        preparedOrder = resolvedOrder;
+        if (overrideIncreaseRequired == 0 || overrideIncreaseRequired > BPS) {
+            revert ValidationFailed();
+        }
+
+        for (uint256 i = 0; i < preparedOrder.outputs.length;) {
+            preparedOrder.outputs[i].amount =
+                preparedOrder.outputs[i].amount.mulDivDown(BPS + overrideIncreaseRequired, BPS);
+
+            unchecked {
+                i++;
             }
         }
     }

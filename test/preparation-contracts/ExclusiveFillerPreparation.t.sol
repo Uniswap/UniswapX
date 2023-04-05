@@ -510,7 +510,7 @@ contract ExclusiveFillerPreparationTest is Test, PermitSignature, GasSnapshot, D
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert(bytes(""));
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
             address(fillContract),
