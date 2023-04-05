@@ -390,8 +390,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(maker.balance, ONE);
         assertEq(address(swapRouter02Executor).balance, 163039886077866602);
         assertEq(address(dloReactor).balance, ONE / 20);
-//        assertEq(dloReactor.feesOwed(NATIVE, address(0)), 500000000000000);
-//        assertEq(dloReactor.feesOwed(NATIVE, maker), 49500000000000000);
+        //        assertEq(dloReactor.feesOwed(NATIVE, address(0)), 500000000000000);
+        //        assertEq(dloReactor.feesOwed(NATIVE, maker), 49500000000000000);
     }
 
     // Test a batch execute, dai -> ETH via v2. Order 1: input = 2000 DAI, output = 1 ETH. Order 2: input = 1000 DAI,

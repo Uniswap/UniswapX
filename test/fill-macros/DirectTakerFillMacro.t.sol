@@ -112,7 +112,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, interfaceFeeRecipient, true);
+        dutchOutputs[1] =
+            DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, interfaceFeeRecipient, true);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
