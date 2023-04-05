@@ -16,9 +16,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     using DutchDecayLib for DutchInput;
 
     error DeadlineBeforeEndTime();
-    error EndTimeBeforeStartTime();
     error InputAndOutputDecay();
-    error IncorrectAmounts();
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
@@ -65,10 +63,6 @@ contract DutchLimitOrderReactor is BaseReactor {
     function _validateOrder(DutchLimitOrder memory order) internal pure {
         if (order.info.deadline < order.endTime) {
             revert DeadlineBeforeEndTime();
-        }
-
-        if (order.endTime < order.startTime) {
-            revert EndTimeBeforeStartTime();
         }
 
         if (order.input.startAmount != order.input.endAmount) {

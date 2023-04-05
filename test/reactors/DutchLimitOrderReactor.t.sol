@@ -147,7 +147,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
     }
 
     function testValidateDutchEndTimeBeforeStart() public {
-        vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0), false);
         DutchLimitOrder memory dlo = DutchLimitOrder(

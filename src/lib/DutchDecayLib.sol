@@ -10,6 +10,7 @@ library DutchDecayLib {
     using FixedPointMathLib for uint256;
 
     error IncorrectAmounts();
+    error EndTimeBeforeStartTime();
 
     /// @notice calculates an amount using linear decay over time from startTime to endTime
     /// @dev handles both positive and negative decay depending on startAmount and endAmount
@@ -22,12 +23,12 @@ library DutchDecayLib {
         view
         returns (uint256 decayedAmount)
     {
-        if (endTime == block.timestamp || startAmount == endAmount) {
+        if (endTime < startTime) {
+            revert EndTimeBeforeStartTime();
+        } else if (endTime < block.timestamp || startAmount == endAmount || startTime == endTime) {
             decayedAmount = endAmount;
-        } else if (startTime >= block.timestamp) {
+        } else if (startTime > block.timestamp) {
             decayedAmount = startAmount;
-        } else if (block.timestamp >= endTime) {
-            decayedAmount = endAmount;
         } else {
             unchecked {
                 uint256 elapsed = block.timestamp - startTime;
