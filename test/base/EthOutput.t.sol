@@ -242,6 +242,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
     uint256 makerPrivateKey2;
     address maker2;
     address directTaker;
+    address interfaceFeeRecipient;
     DutchLimitOrderReactor reactor;
     IAllowanceTransfer permit2;
 
@@ -257,6 +258,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         makerPrivateKey2 = 0x12341235;
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
+        interfaceFeeRecipient = address(999);
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
@@ -435,7 +437,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         DutchOutput[] memory order2DutchOutputs = new DutchOutput[](2);
         order2DutchOutputs[0] = DutchOutput(NATIVE, ONE, ONE, maker2, false);
-        order2DutchOutputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, maker2, true);
+        order2DutchOutputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, interfaceFeeRecipient, true);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -453,9 +455,8 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * ONE);
         assertEq(maker2.balance, ONE);
-        assertEq(address(reactor).balance, ONE / 20);
+        assertEq(interfaceFeeRecipient.balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
-//        assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
     }
 }
