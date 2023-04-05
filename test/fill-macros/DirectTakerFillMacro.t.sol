@@ -188,7 +188,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
         DutchOutput[] memory dutchOutputs1 = new DutchOutput[](2);
         dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, maker1, false);
-        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, maker1, true);
+        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, interfaceFeeRecipient, true);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -199,7 +199,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
         DutchOutput[] memory dutchOutputs2 = new DutchOutput[](2);
         dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, maker2, false);
-        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, maker2, true);
+        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, interfaceFeeRecipient, true);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -210,7 +210,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
         DutchOutput[] memory dutchOutputs3 = new DutchOutput[](2);
         dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, maker2, false);
-        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, maker2, true);
+        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, interfaceFeeRecipient, true);
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
                 1
@@ -231,11 +231,11 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(maker1), ONE * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), ONE / 10);
+        assertEq(tokenOut1.balanceOf(interfaceFeeRecipient), ONE / 10);
         assertEq(tokenOut2.balanceOf(maker2), ONE * 2 * 9 / 10);
-        assertEq(tokenOut2.balanceOf(address(reactor)), ONE * 2 / 10);
+        assertEq(tokenOut2.balanceOf(interfaceFeeRecipient), ONE * 2 / 10);
         assertEq(tokenOut3.balanceOf(maker2), ONE * 3 * 9 / 10);
-        assertEq(tokenOut3.balanceOf(address(reactor)), ONE * 3 / 10);
+        assertEq(tokenOut3.balanceOf(interfaceFeeRecipient), ONE * 3 / 10);
 
         assertEq(tokenIn1.balanceOf(directTaker), ONE);
         assertEq(tokenIn2.balanceOf(directTaker), 2 * ONE);
