@@ -26,6 +26,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
+    MockERC20 tokenOut2;
     MockFillContract fillContract;
     MockValidationContract validationContract;
     ISignatureTransfer permit2;
@@ -39,6 +40,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     constructor() {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
@@ -421,6 +423,64 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         snapEnd();
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+    }
+
+    /// @dev Execute batch with multiple outputs
+    /// Order 1: (inputs = 1, outputs = [2, 1]),
+    /// Order 2: (inputs = 2, outputs = [3])
+    function testBaseExecuteBatchMultipleOutputsDifferentTokens() public {
+        uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
+        uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE).push(ONE);
+
+        OutputToken[] memory outputs1 = OutputsBuilder.multiple(address(tokenOut), output1, swapper);
+        outputs1[1].token = address(tokenOut2);
+
+        OutputToken[] memory outputs2 = OutputsBuilder.multiple(address(tokenOut), output2, swapper);
+        outputs2[0].token = address(tokenOut2);
+
+        uint256 totalInputAmount = 3 * ONE;
+        uint256 totalOutputAmount1 = 3 * ONE;
+        uint256 totalOutputAmount2 = 4 * ONE;
+        tokenIn.mint(address(swapper), totalInputAmount);
+        tokenOut.mint(address(fillContract), totalOutputAmount1);
+        tokenOut2.mint(address(fillContract), totalOutputAmount2);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        ResolvedOrder[] memory orders = new ResolvedOrder[](2);
+
+        orders[0] = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+                0
+                ),
+            input: InputToken(address(tokenIn), ONE, ONE),
+            outputs: outputs1,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        orders[1] = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+                ),
+            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
+            outputs: outputs2,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[0], address(this), swapper, orders[0].info.nonce);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[1], address(this), swapper, orders[1].info.nonce);
+
+        snapStart(string.concat(name(), "BaseExecuteBatchMultipleOutputsDifferentTokens"));
+        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        snapEnd();
+
+        assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
+        assertEq(tokenOut2.balanceOf(swapper), totalOutputAmount2);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
     }
 
