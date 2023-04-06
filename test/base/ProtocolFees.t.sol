@@ -31,6 +31,7 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
 
     MockERC20 tokenIn1;
     MockERC20 tokenOut1;
+    MockERC20 tokenOut2;
     uint256 makerPrivateKey1;
     address maker1;
     uint256 makerPrivateKey2;
@@ -42,6 +43,7 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
         tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
+        tokenOut2 = new MockERC20("tokenOut2", "OUT2", 18);
         fillContract = new MockFillContract();
         makerPrivateKey1 = 0x12341234;
         maker1 = vm.addr(makerPrivateKey1);
@@ -54,6 +56,8 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
 
         vm.prank(GOVERNANCE);
         reactor.setProtocolFees(address(tokenOut1), 5);
+        vm.prank(GOVERNANCE);
+        reactor.setProtocolFees(address(tokenOut2), 1);
     }
 
     // outputs array: [0.9995 tokenOut1 -> maker1, 0.0005 tokenOut1 -> protocol]. Should succeed
@@ -168,5 +172,42 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         assertEq(tokenOut1.balanceOf(maker1), ONE * 9990 / 10000);
         assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
         assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), ONE * 5 / 10000);
+    }
+
+    // outputs array: [0.999 tokenOut1 -> maker1, 0.0005 tokenOut1 -> protocol, 0.0005 tokenOut1 -> interface,
+    // 0.9999 tokenOut2 -> maker1, 0.0001 tokenOut2 -> protocol].
+    function test2OutputsWithProtocolFees() public {
+        tokenIn1.mint(address(maker1), ONE);
+        tokenOut1.mint(address(fillContract), ONE);
+        tokenOut2.mint(address(fillContract), ONE);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](5);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT);
+        dutchOutputs[2] = DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT);
+        dutchOutputs[3] = DutchOutput(address(tokenOut2), ONE * 9999 / 10000, ONE * 9999 / 10000, maker1);
+        dutchOutputs[4] = DutchOutput(address(tokenOut2), ONE * 1 / 10000, ONE * 1 / 10000, PROTOCOL_FEE_RECIPIENT);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesTest2OutputsWithProtocolFees");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
+        assertEq(tokenOut1.balanceOf(address(fillContract)), 0);
+        assertEq(tokenOut2.balanceOf(address(fillContract)), 0);
+        assertEq(tokenOut1.balanceOf(maker1), ONE * 9990 / 10000);
+        assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
+        assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), ONE * 5 / 10000);
+        assertEq(tokenOut2.balanceOf(maker1), ONE * 9999 / 10000);
+        assertEq(tokenOut2.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 1 / 10000);
     }
 }
