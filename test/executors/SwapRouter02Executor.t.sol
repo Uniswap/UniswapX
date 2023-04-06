@@ -200,7 +200,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
         // fee output
         outputs[2].recipient = address(1);
-        outputs[2].isFeeOutput = true;
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),

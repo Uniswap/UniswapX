@@ -227,7 +227,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
             OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
         // fee output
         outputs[2].recipient = address(1);
-        outputs[2].isFeeOutput = true;
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
