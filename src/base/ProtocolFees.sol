@@ -50,6 +50,7 @@ abstract contract ProtocolFees {
             for (uint256 j = 0; j < outputsLength; j++) {
                 if (validatedTokens[j] == address(0)) {
                     validateTokensProtocolFee(order.outputs[i].token, order.outputs);
+                    validatedTokens[j] = order.outputs[i].token;
                 }
                 if (order.outputs[i].token == validatedTokens[j]) {
                     break;
