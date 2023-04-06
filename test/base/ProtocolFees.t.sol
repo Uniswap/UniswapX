@@ -139,4 +139,34 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
             bytes("")
         );
     }
+
+    // outputs array: [0.0005 tokenOut1 -> protocol, 0.999 tokenOut1 -> maker1, 0.0005 tokenOut1 -> interface].
+    // The same as `test1OutputWithProtocolFeeAndInterfaceFee`, but put the protocol fee first in the array. Ensure
+    // the order of the protocol fee in the outputs array has no impact on success.
+    function test1OutputWithProtocolFeeAndInterfaceFeeChangeOrder() public {
+        tokenIn1.mint(address(maker1), ONE);
+        tokenOut1.mint(address(fillContract), ONE);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT);
+        dutchOutputs[2] = DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: dutchOutputs
+        });
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
+        assertEq(tokenOut1.balanceOf(address(fillContract)), 0);
+        assertEq(tokenOut1.balanceOf(maker1), ONE * 9990 / 10000);
+        assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
+        assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), ONE * 5 / 10000);
+    }
 }
