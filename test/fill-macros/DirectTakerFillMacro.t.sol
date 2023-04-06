@@ -14,7 +14,7 @@ import {
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
+import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";

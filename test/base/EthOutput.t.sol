@@ -16,7 +16,7 @@ import {
     DutchInput,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
+import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -458,6 +458,6 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(address(reactor).balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
-        assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
+        assertEq(ProtocolFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
     }
 }

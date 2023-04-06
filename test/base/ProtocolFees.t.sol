@@ -4,14 +4,14 @@ pragma solidity ^0.8.16;
 import {Test} from "forge-std/Test.sol";
 import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
+import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {MockIPSFees} from "../util/mock/MockIPSFees.sol";
+import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 
-contract IPSFeesTest is Test {
+contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
     using ResolvedOrderLib for OrderInfo;
 
@@ -24,17 +24,17 @@ contract IPSFeesTest is Test {
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
-    MockIPSFees fees;
+    MockProtocolFees fees;
 
     function setUp() public {
-        fees = new MockIPSFees(PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        fees = new MockProtocolFees(PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
     }
 
     function testInvalidFee() public {
-        vm.expectRevert(IPSFees.InvalidFee.selector);
-        new MockIPSFees(10001, PROTOCOL_FEE_RECIPIENT);
+        vm.expectRevert(ProtocolFees.InvalidFee.selector);
+        new MockProtocolFees(10001, PROTOCOL_FEE_RECIPIENT);
     }
 
     function testTakeFees() public {
@@ -197,7 +197,7 @@ contract IPSFeesTest is Test {
     function testOnlyCurrentFeeRecipientCanSet() public {
         assertEq(fees.protocolFeeRecipient(), PROTOCOL_FEE_RECIPIENT);
         vm.prank(address(0));
-        vm.expectRevert(IPSFees.UnauthorizedFeeRecipient.selector);
+        vm.expectRevert(ProtocolFees.UnauthorizedFeeRecipient.selector);
         fees.setProtocolFeeRecipient(address(0));
     }
 
@@ -207,7 +207,7 @@ contract IPSFeesTest is Test {
 
         vm.startPrank(PROTOCOL_FEE_RECIPIENT);
         fees.setProtocolFeeRecipient(address(0));
-        vm.expectRevert(IPSFees.NoClaimableFees.selector);
+        vm.expectRevert(ProtocolFees.NoClaimableFees.selector);
         fees.claimFees(address(tokenOut));
     }
 
