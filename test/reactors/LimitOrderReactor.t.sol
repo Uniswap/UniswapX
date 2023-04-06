@@ -200,10 +200,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        order.outputs[0].isFeeOutput = true;
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-
-        order.outputs[0].isFeeOutput = false;
 
         vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
