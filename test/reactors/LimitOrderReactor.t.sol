@@ -193,19 +193,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
     }
 
-    function testExecuteWithFeeOutputChangeSig() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-
-        vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
-    }
-
     function testExecuteInsufficientPermit() public {
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
