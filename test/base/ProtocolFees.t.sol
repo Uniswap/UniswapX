@@ -2,15 +2,13 @@
 pragma solidity ^0.8.16;
 
 import {Test} from "forge-std/Test.sol";
-import {SignedOrder, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {SignedOrder, OrderInfo} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
-import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {MockIPSFees} from "../util/mock/MockIPSFees.sol";
 import {DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {
     DutchLimitOrderReactor,
@@ -28,6 +26,7 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
 
     address constant PROTOCOL_FEE_RECIPIENT = address(2);
     address constant GOVERNANCE = address(3);
+    address constant INTERFACE_FEE_RECIPIENT = address(4);
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -61,14 +60,13 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         tokenIn1.mint(address(maker1), ONE);
         tokenOut1.mint(address(fillContract), ONE);
 
-        vm.warp(1000);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9995 / 10000, ONE * 9995 / 10000, maker1, false);
         dutchOutputs[1] =
             DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT, false);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
+            startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), ONE, ONE),
             outputs: dutchOutputs
@@ -84,5 +82,36 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         assertEq(tokenOut1.balanceOf(address(fillContract)), 0);
         assertEq(tokenOut1.balanceOf(maker1), ONE * 9995 / 10000);
         assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
+    }
+
+    function test1OutputWithProtocolFeeAndInterfaceFee() public {
+        tokenIn1.mint(address(maker1), ONE);
+        tokenOut1.mint(address(fillContract), ONE);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1, false);
+        dutchOutputs[1] =
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT, false);
+        dutchOutputs[2] =
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT, false);
+        DutchLimitOrder memory order = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(address(tokenIn1), ONE, ONE),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesTest1OutputWithProtocolFeeAndInterfaceFee");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            address(fillContract),
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
+        assertEq(tokenOut1.balanceOf(address(fillContract)), 0);
+        assertEq(tokenOut1.balanceOf(maker1), ONE * 9990 / 10000);
+        assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
+        assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), ONE * 5 / 10000);
     }
 }
