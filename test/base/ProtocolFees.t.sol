@@ -62,9 +62,9 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         tokenOut1.mint(address(fillContract), ONE);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9995 / 10000, ONE * 9995 / 10000, maker1, false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9995 / 10000, ONE * 9995 / 10000, maker1);
         dutchOutputs[1] =
-            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT, false);
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -92,11 +92,11 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         tokenOut1.mint(address(fillContract), ONE);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
-        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1, false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1);
         dutchOutputs[1] =
-            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT, false);
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, PROTOCOL_FEE_RECIPIENT);
         dutchOutputs[2] =
-            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT, false);
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -125,11 +125,11 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         tokenOut1.mint(address(fillContract), ONE);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](3);
-        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1, false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), ONE * 9990 / 10000, ONE * 9990 / 10000, maker1);
         dutchOutputs[1] =
-            DutchOutput(address(tokenOut1), ONE * 4 / 10000, ONE * 4 / 10000, PROTOCOL_FEE_RECIPIENT, false);
+            DutchOutput(address(tokenOut1), ONE * 4 / 10000, ONE * 4 / 10000, PROTOCOL_FEE_RECIPIENT);
         dutchOutputs[2] =
-            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT, false);
+            DutchOutput(address(tokenOut1), ONE * 5 / 10000, ONE * 5 / 10000, INTERFACE_FEE_RECIPIENT);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,

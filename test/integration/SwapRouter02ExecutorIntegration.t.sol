@@ -352,8 +352,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Maker's order has input = 2000 DAI and output = [1 ETH, 0.05 ETH (fee)].
     function testSwapDaiToETHViaV2WithFee() public {
         DutchOutput[] memory outputs = new DutchOutput[](2);
-        outputs[0] = DutchOutput(NATIVE, ONE, ONE, maker, false);
-        outputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, maker, true);
+        outputs[0] = DutchOutput(NATIVE, ONE, ONE, maker);
+        outputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, maker);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
