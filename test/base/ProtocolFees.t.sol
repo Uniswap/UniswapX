@@ -56,6 +56,7 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         reactor.setProtocolFees(address(tokenOut1), 5);
     }
 
+    // outputs array: [0.9995 tokenOut1 -> maker1, 0.0005 tokenOut1 -> protocol]. Should succeed
     function test1OutputWithProtocolFee() public {
         tokenIn1.mint(address(maker1), ONE);
         tokenOut1.mint(address(fillContract), ONE);
@@ -84,6 +85,8 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), ONE * 5 / 10000);
     }
 
+    // outputs array: [0.999 tokenOut1 -> maker1, 0.0005 tokenOut1 -> protocol, 0.0005 tokenOut1 -> interface].
+    // Should succeed
     function test1OutputWithProtocolFeeAndInterfaceFee() public {
         tokenIn1.mint(address(maker1), ONE);
         tokenOut1.mint(address(fillContract), ONE);
@@ -115,6 +118,8 @@ contract ProtocolFeesTest is Test, DeployPermit2, GasSnapshot, PermitSignature {
         assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), ONE * 5 / 10000);
     }
 
+    // outputs array: [0.999 tokenOut1 -> maker1, 0.0004 tokenOut1 -> protocol, 0.0005 tokenOut1 -> interface].
+    // Should fail because we expect 5bps protocol fee
     function test1OutputWithProtocolFeeAndInterfaceFeeInsufficientProtocolFee() public {
         tokenIn1.mint(address(maker1), ONE);
         tokenOut1.mint(address(fillContract), ONE);
