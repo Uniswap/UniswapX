@@ -436,24 +436,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
-    /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
-    function createAndSignBatchOrders(ResolvedOrder[] memory requests)
-        public
-        view
-        override
-        returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
-    {
-        signedOrders = new SignedOrder[](requests.length);
-        orderHashes = new bytes32[](requests.length);
-
-        for (uint256 i = 0; i < requests.length; i++) {
-            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(requests[i]);
-            signedOrders[i] = signed;
-            orderHashes[i] = hash;
-        }
-        return (signedOrders, orderHashes);
-    }
-
     // Execute 3 dutch limit orders. Have the 3rd one signed by a different swapper.
     // Order 1: Input = 1, outputs = [2, 1]
     // Order 2: Input = 2, outputs = [3]

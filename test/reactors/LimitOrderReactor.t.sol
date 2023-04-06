@@ -54,22 +54,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
-    function createAndSignBatchOrders(ResolvedOrder[] memory requests)
-        public
-        view
-        override
-        returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
-    {
-        signedOrders = new SignedOrder[](requests.length);
-        orderHashes = new bytes32[](requests.length);
-        for (uint256 i = 0; i < requests.length; i++) {
-            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(requests[i]);
-            signedOrders[i] = signed;
-            orderHashes[i] = hash;
-        }
-        return (signedOrders, orderHashes);
-    }
-
     function testExecuteWithValidationContract() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({

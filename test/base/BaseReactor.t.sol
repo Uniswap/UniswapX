@@ -54,20 +54,28 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     function createReactor() public virtual returns (BaseReactor) {}
 
     /// @dev Create a signed order and return the order and orderHash
-    /// @param order Order to sign
-    function createAndSignOrder(ResolvedOrder memory order)
+    /// @param request Order to sign
+    function createAndSignOrder(ResolvedOrder memory request)
         public
         virtual
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {}
 
     /// @dev Create many signed orders and return
-    /// @param orders Array of orders to sign
-    function createAndSignBatchOrders(ResolvedOrder[] memory orders)
+    /// @param requests Array of orders to sign
+    function createAndSignBatchOrders(ResolvedOrder[] memory requests)
         public
-        virtual
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
-    {}
+    {
+        signedOrders = new SignedOrder[](requests.length);
+        orderHashes = new bytes32[](requests.length);
+        for (uint256 i = 0; i < requests.length; i++) {
+            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(requests[i]);
+            signedOrders[i] = signed;
+            orderHashes[i] = hash;
+        }
+        return (signedOrders, orderHashes);
+    }
 
     /// @dev Basic execute test, checks balance before and after
     function testBaseExecute(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
