@@ -48,7 +48,7 @@ library LimitOrderLib {
     /// @notice returns the hash of an output token struct
     function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
-        unchecked{
+        unchecked {
             for (uint256 i = 0; i < outputs.length; i++) {
                 outputHashes[i] = hash(outputs[i]);
             }

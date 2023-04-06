@@ -98,7 +98,9 @@ library ExpectedBalanceLib {
             if (balance < expected.expectedBalance) {
                 revert InsufficientOutput();
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
     }
 }
