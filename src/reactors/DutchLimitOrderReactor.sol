@@ -117,12 +117,10 @@ contract DutchLimitOrderReactor is BaseReactor {
         view
         returns (uint256 decayedAmount)
     {
-        if (endTime == block.timestamp || startAmount == endAmount) {
+        if (startAmount == endAmount || endTime <= block.timestamp) {
             decayedAmount = endAmount;
         } else if (startTime >= block.timestamp) {
             decayedAmount = startAmount;
-        } else if (block.timestamp >= endTime) {
-            decayedAmount = endAmount;
         } else {
             unchecked {
                 uint256 elapsed = block.timestamp - startTime;
