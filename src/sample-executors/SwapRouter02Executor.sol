@@ -50,18 +50,21 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
         (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
             abi.decode(fillData, (address[], bytes[]));
-
-        for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(swapRouter02, type(uint256).max);
+        unchecked {
+            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
+                ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(swapRouter02, type(uint256).max);
+            }
         }
 
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
 
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            ResolvedOrder memory order = resolvedOrders[i];
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                OutputToken memory output = order.outputs[j];
-                output.token.transfer(output.recipient, output.amount);
+        unchecked {
+            for (uint256 i = 0; i < resolvedOrders.length; i++) {
+                ResolvedOrder memory order = resolvedOrders[i];
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    OutputToken memory output = order.outputs[j];
+                    output.token.transfer(output.recipient, output.amount);
+                }
             }
         }
     }
@@ -70,8 +73,10 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param tokensToApprove Max approve these tokens to swapRouter02
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
-        for (uint256 i = 0; i < tokensToApprove.length; i++) {
-            ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
+        unchecked {
+            for (uint256 i = 0; i < tokensToApprove.length; i++) {
+                ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
+            }
         }
         ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
     }

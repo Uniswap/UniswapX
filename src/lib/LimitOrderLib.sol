@@ -48,8 +48,10 @@ library LimitOrderLib {
     /// @notice returns the hash of an output token struct
     function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
-            outputHashes[i] = hash(outputs[i]);
+        unchecked{
+            for (uint256 i = 0; i < outputs.length; i++) {
+                outputHashes[i] = hash(outputs[i]);
+            }
         }
         return keccak256(abi.encodePacked(outputHashes));
     }
@@ -58,15 +60,16 @@ library LimitOrderLib {
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(LimitOrder memory order) internal pure returns (bytes32) {
+        OrderInfo memory info = order.info;
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,
-                order.info.reactor,
-                order.info.offerer,
-                order.info.nonce,
-                order.info.deadline,
-                order.info.validationContract,
-                keccak256(order.info.validationData),
+                info.reactor,
+                info.offerer,
+                info.nonce,
+                info.deadline,
+                info.validationContract,
+                keccak256(info.validationData),
                 order.input.token,
                 order.input.amount,
                 hash(order.outputs)

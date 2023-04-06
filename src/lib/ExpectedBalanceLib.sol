@@ -92,12 +92,13 @@ library ExpectedBalanceLib {
 
     /// @notice Asserts expected balances are satisfied
     function check(ExpectedBalance[] memory expectedBalances) internal view {
-        for (uint256 i = 0; i < expectedBalances.length; i++) {
+        for (uint256 i = 0; i < expectedBalances.length;) {
             ExpectedBalance memory expected = expectedBalances[i];
             uint256 balance = expected.token.balanceOf(expected.recipient);
             if (balance < expected.expectedBalance) {
                 revert InsufficientOutput();
             }
+            unchecked { i++; }
         }
     }
 }

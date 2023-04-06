@@ -51,10 +51,12 @@ contract UniswapV3Executor is IReactorCallback, Owned {
             })
         );
 
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            ResolvedOrder memory order = resolvedOrders[i];
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                outputToken.transfer(order.outputs[j].recipient, order.outputs[j].amount);
+        unchecked {
+            for (uint256 i = 0; i < resolvedOrders.length; i++) {
+                ResolvedOrder memory order = resolvedOrders[i];
+                for (uint256 j = 0; j < order.outputs.length; j++) {
+                    outputToken.transfer(order.outputs[j].recipient, order.outputs[j].amount);
+                }
             }
         }
     }

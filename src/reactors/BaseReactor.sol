@@ -80,7 +80,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
 
                 // Batch fills are all-or-nothing so emit fill events now to save a loop
-                emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
+                emit Fill(order.hash, msg.sender, order.info.offerer, order.info.nonce);
             }
         }
 

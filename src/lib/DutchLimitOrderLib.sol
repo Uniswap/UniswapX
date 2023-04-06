@@ -95,15 +95,16 @@ library DutchLimitOrderLib {
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
+        OrderInfo memory info = order.info;
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,
-                order.info.reactor,
-                order.info.offerer,
-                order.info.nonce,
-                order.info.deadline,
-                order.info.validationContract,
-                keccak256(order.info.validationData),
+                info.reactor,
+                info.offerer,
+                info.nonce,
+                info.deadline,
+                info.validationContract,
+                keccak256(info.validationData),
                 order.startTime,
                 order.endTime,
                 order.input.token,
