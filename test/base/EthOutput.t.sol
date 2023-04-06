@@ -16,7 +16,6 @@ import {
     DutchInput,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
