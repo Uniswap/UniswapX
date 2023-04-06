@@ -222,7 +222,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
 
-        vm.expectRevert();
+        vm.expectRevert("TRANSFER_FAILED");
         reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
     }
 
