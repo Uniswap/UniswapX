@@ -27,9 +27,10 @@ library ExpectedBalanceLib {
         // get the total number of outputs
         // note this is an upper bound on the length of the resulting array
         // because (recipient, token) pairs are deduplicated
+        uint256 ordersLength = orders.length;
         unchecked {
             uint256 outputCount = 0;
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 outputCount += orders[i].outputs.length;
             }
             expectedBalances = new ExpectedBalance[](outputCount);
@@ -39,7 +40,7 @@ library ExpectedBalanceLib {
 
         // for each unique output (recipient, token) pair, add an entry to expectedBalances that
         // includes the user's initial balance + expected output
-        for (uint256 i = 0; i < orders.length;) {
+        for (uint256 i = 0; i < ordersLength;) {
             ResolvedOrder memory order = orders[i];
 
             for (uint256 j = 0; j < order.outputs.length;) {

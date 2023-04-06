@@ -33,9 +33,10 @@ contract DutchLimitOrderReactor is BaseReactor {
     {
         DutchLimitOrder memory dutchLimitOrder = abi.decode(signedOrder.order, (DutchLimitOrder));
         _validateOrder(dutchLimitOrder);
+        DutchInput memory dutchInput = dutchLimitOrder.input;
 
-        OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
-        uint256 outputsLength = outputs.length;
+        uint256 outputsLength = dutchLimitOrder.outputs.length;
+        OutputToken[] memory outputs = new OutputToken[](outputsLength);
         for (uint256 i = 0; i < outputsLength;) {
             DutchOutput memory output = dutchLimitOrder.outputs[i];
             if (output.startAmount < output.endAmount) {
@@ -51,14 +52,11 @@ contract DutchLimitOrderReactor is BaseReactor {
         }
 
         uint256 decayedInput = _getDecayedAmount(
-            dutchLimitOrder.input.startAmount,
-            dutchLimitOrder.input.endAmount,
-            dutchLimitOrder.startTime,
-            dutchLimitOrder.endTime
+            dutchInput.startAmount, dutchInput.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
         );
         resolvedOrder = ResolvedOrder({
             info: dutchLimitOrder.info,
-            input: InputToken(dutchLimitOrder.input.token, decayedInput, dutchLimitOrder.input.endAmount),
+            input: InputToken(dutchInput.token, decayedInput, dutchInput.endAmount),
             outputs: outputs,
             sig: signedOrder.sig,
             hash: dutchLimitOrder.hash()
@@ -92,13 +90,15 @@ contract DutchLimitOrderReactor is BaseReactor {
             revert EndTimeBeforeStartTime();
         }
 
-        if (dutchLimitOrder.input.startAmount != dutchLimitOrder.input.endAmount) {
-            if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
+        DutchInput memory dutchInput = dutchLimitOrder.input;
+        if (dutchInput.startAmount != dutchInput.endAmount) {
+            if (dutchInput.startAmount > dutchInput.endAmount) {
                 revert IncorrectAmounts();
             }
             unchecked {
                 for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
-                    if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                    DutchOutput memory output = dutchLimitOrder.outputs[i];
+                    if (output.startAmount != output.endAmount) {
                         revert InputAndOutputDecay();
                     }
                 }
