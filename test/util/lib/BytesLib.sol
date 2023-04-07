@@ -6,7 +6,7 @@
  * @dev Bytes tightly packed arrays utility library for ethereum contracts written in Solidity.
  *      The library lets you concatenate, slice and type cast bytes arrays both in memory and storage.
  */
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 library BytesLib {
     function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {

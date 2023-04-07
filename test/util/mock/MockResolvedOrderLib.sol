@@ -1,4 +1,4 @@
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ResolvedOrderLib} from "../../../src/lib/ResolvedOrderLib.sol";
