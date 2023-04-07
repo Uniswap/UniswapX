@@ -12,7 +12,7 @@ import {
     DutchInput,
     BaseReactor
 } from "../../src/reactors/ExclusiveDutchLimitOrderReactor.sol";
-import {OrderInfo, InputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
@@ -33,16 +33,6 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
     address constant PROTOCOL_FEE_RECIPIENT = address(1);
     uint256 constant PROTOCOL_FEE_BPS = 5000;
 
-    function setUp() public override {
-        fillContract = new MockFillContract();
-        tokenIn = new MockERC20("Input", "IN", 18);
-        tokenOut = new MockERC20("Output", "OUT", 18);
-        makerPrivateKey = 0x12341234;
-        maker = vm.addr(makerPrivateKey);
-        permit2 = ISignatureTransfer(deployPermit2());
-        createReactor();
-    }
-
     function name() public pure override returns (string memory) {
         return "ExclusiveDutchLimitOrder";
     }
@@ -54,73 +44,50 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
     /// TODO: Support creating a single dutch order with multiple outputs
-    function createAndSignOrder(OrderInfo memory _info, uint256 inputAmount, uint256 outputAmount)
+    function createAndSignOrder(ResolvedOrder memory request)
         public
         view
         override
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
+        DutchOutput[] memory outputs = new DutchOutput[](request.outputs.length);
+        for (uint256 i = 0; i < request.outputs.length; i++) {
+            OutputToken memory output = request.outputs[i];
+            outputs[i] = DutchOutput({
+                token: output.token,
+                startAmount: output.amount,
+                endAmount: output.amount,
+                recipient: output.recipient,
+                isFeeOutput: output.isFeeOutput
+            });
+        }
+
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: _info,
+            info: request.info,
             startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            endTime: request.info.deadline,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            input: DutchInput(request.input.token, request.input.amount, request.input.amount),
+            outputs: outputs
         });
         orderHash = order.hash();
-        return (SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)), orderHash);
+        return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
-    /// @dev Create an return an array of basic single Dutch limit orders along with their signatures, orderHashes, and orderInfos
-    function createAndSignBatchOrders(
-        OrderInfo[] memory _infos,
-        uint256[] memory inputAmounts,
-        uint256[][] memory outputAmounts
-    ) public override returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) {
-        // Constraint should still work for inputs with multiple outputs, outputs will be [[output1, output2], [output1, output2], ...]
-        assertEq(inputAmounts.length, outputAmounts.length);
-
-        signedOrders = new SignedOrder[](inputAmounts.length);
-        orderHashes = new bytes32[](inputAmounts.length);
-
-        for (uint256 i = 0; i < inputAmounts.length; i++) {
-            DutchOutput[] memory dutchOutput;
-            if (outputAmounts[i].length == 1) {
-                dutchOutput =
-                    OutputsBuilder.singleDutch(address(tokenOut), outputAmounts[i][0], outputAmounts[i][0], maker);
-            } else {
-                dutchOutput = OutputsBuilder.multipleDutch(address(tokenOut), outputAmounts[i], outputAmounts[i], maker);
-            }
-            ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-                info: _infos[i],
-                startTime: block.timestamp,
-                endTime: block.timestamp + 100,
-                exclusiveFiller: address(0),
-                exclusivityOverrideBps: 300,
-                input: DutchInput(address(tokenIn), inputAmounts[i], inputAmounts[i]),
-                outputs: dutchOutput
-            });
-            orderHashes[i] = order.hash();
-            signedOrders[i] = SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order));
-        }
-        return (signedOrders, orderHashes);
-    }
-
-    // Execute 3 dutch limit orders. Have the 3rd one signed by a different maker.
+    // Execute 3 dutch limit orders. Have the 3rd one signed by a different swapper.
     // Order 1: Input = 1, outputs = [2, 1]
     // Order 2: Input = 2, outputs = [3]
     // Order 3: Input = 3, outputs = [3,4,5]
     function testExecuteBatchMultipleOutputs() public {
-        uint256 makerPrivateKey2 = 0x12341235;
-        address maker2 = vm.addr(makerPrivateKey2);
+        uint256 swapperPrivateKey2 = 0x12341235;
+        address swapper2 = vm.addr(swapperPrivateKey2);
 
-        tokenIn.mint(address(maker), 3 * 10 ** 18);
-        tokenIn.mint(address(maker2), 3 * 10 ** 18);
+        tokenIn.mint(address(swapper), 3 * 10 ** 18);
+        tokenIn.mint(address(swapper2), 3 * 10 ** 18);
         tokenOut.mint(address(fillContract), 18 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
-        tokenIn.forceApprove(maker2, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper2, address(permit2), type(uint256).max);
 
         // Build the 3 orders
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](3);
@@ -132,17 +99,17 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         endAmounts0[0] = startAmounts0[0];
         endAmounts0[1] = startAmounts0[1];
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
-            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, maker)
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, swapper)
         });
 
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -150,7 +117,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, swapper)
         });
 
         uint256[] memory startAmounts2 = new uint256[](3);
@@ -162,29 +129,28 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
-                2
-                ),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper2).withDeadline(block.timestamp + 100)
+                .withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
-            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, maker2)
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, swapper2)
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
-        // different maker
-        signedOrders[2].sig = signOrder(makerPrivateKey2, address(permit2), orders[2]);
+        // different swapper
+        signedOrders[2].sig = signOrder(swapperPrivateKey2, address(permit2), orders[2]);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[0].hash(), address(this), maker, orders[0].info.nonce);
+        emit Fill(orders[0].hash(), address(this), swapper, orders[0].info.nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[1].hash(), address(this), maker, orders[1].info.nonce);
+        emit Fill(orders[1].hash(), address(this), swapper, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
-        emit Fill(orders[2].hash(), address(this), maker2, orders[2].info.nonce);
+        emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(maker), 6 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(maker2), 12 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(swapper), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(swapper2), 12 * 10 ** 18);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
     }
 
@@ -196,22 +162,22 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount * 3);
+        tokenIn.mint(address(swapper), inputAmount * 3);
         tokenOut.mint(address(fillContract), 5 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -219,7 +185,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
 
         vm.expectRevert("TRANSFER_FAILED");
@@ -233,22 +199,22 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount * 3);
+        tokenIn.mint(address(swapper), inputAmount * 3);
         tokenOut.mint(address(fill), 5 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -256,7 +222,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
 
         fill.setOutputAmount(outputAmount);
@@ -271,22 +237,22 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount * 2);
+        tokenIn.mint(address(swapper), inputAmount * 2);
         vm.deal(address(fill), 2 * 10 ** 18);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -294,7 +260,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
 
         fill.setOutputAmount(outputAmount / 2);
@@ -304,29 +270,29 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
     function testExclusivitySucceeds(address exclusive, uint128 amountIn, uint128 amountOut) public {
         vm.assume(exclusive != address(0));
-        tokenIn.mint(address(maker), amountIn);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.mint(address(swapper), amountIn);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         tokenOut.mint(address(fillContract), amountOut);
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), amountIn, amountIn),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, swapper)
         });
 
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+        emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(exclusive);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(maker), amountOut);
+        assertEq(tokenOut.balanceOf(swapper), amountOut);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
 
@@ -340,29 +306,29 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         vm.assume(exclusive != address(0));
         vm.assume(exclusive != caller);
         vm.assume(overrideAmt > 0 && overrideAmt < 10000);
-        tokenIn.mint(address(maker), amountIn);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.mint(address(swapper), amountIn);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         tokenOut.mint(address(fillContract), uint256(amountOut) * 2);
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: overrideAmt,
             input: DutchInput(address(tokenIn), amountIn, amountIn),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), amountOut, amountOut, swapper)
         });
 
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+        emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(caller);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(maker), amountOut * (10000 + overrideAmt) / 10000);
+        assertEq(tokenOut.balanceOf(swapper), amountOut * (10000 + overrideAmt) / 10000);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
 
@@ -376,8 +342,8 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         vm.assume(exclusive != address(0));
         vm.assume(exclusive != caller);
         vm.assume(overrideAmt > 0 && overrideAmt < 10000);
-        tokenIn.mint(address(maker), amountIn);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.mint(address(swapper), amountIn);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         uint256 amountOutSum = 0;
         for (uint256 i = 0; i < amountOuts.length; i++) {
             amountOutSum += amountOuts[i] * (10000 + overrideAmt) / 10000;
@@ -390,24 +356,24 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         }
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: overrideAmt,
             input: DutchInput(address(tokenIn), amountIn, amountIn),
-            outputs: OutputsBuilder.multipleDutch(address(tokenOut), amounts, amounts, maker)
+            outputs: OutputsBuilder.multipleDutch(address(tokenOut), amounts, amounts, swapper)
         });
 
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
         SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
 
         vm.expectEmit(false, false, false, true);
-        emit Fill(order.hash(), address(this), maker, order.info.nonce);
+        emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(caller);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(maker), amountOutSum);
+        assertEq(tokenOut.balanceOf(swapper), amountOutSum);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
 
@@ -418,7 +384,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
     {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            bytes memory sig = signOrder(makerPrivateKey, address(permit2), orders[i]);
+            bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
     }
