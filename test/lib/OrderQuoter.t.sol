@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
+import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
@@ -168,7 +169,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-        vm.expectRevert(DutchLimitOrderReactor.EndTimeBeforeStartTime.selector);
+        vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         quoter.quote(abi.encode(order), sig);
     }
 

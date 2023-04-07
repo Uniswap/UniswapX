@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.19;
 
-import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch limit orders
 contract DutchLimitOrderReactor is BaseReactor {
-    using FixedPointMathLib for uint256;
     using Permit2Lib for ResolvedOrder;
     using DutchLimitOrderLib for DutchLimitOrder;
+    using DutchDecayLib for DutchOutput[];
+    using DutchDecayLib for DutchInput;
 
     error DeadlineBeforeEndTime();
-    error EndTimeBeforeStartTime();
     error InputAndOutputDecay();
-    error IncorrectAmounts();
 
     constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
         BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
@@ -31,37 +30,15 @@ contract DutchLimitOrderReactor is BaseReactor {
         override
         returns (ResolvedOrder memory resolvedOrder)
     {
-        DutchLimitOrder memory dutchLimitOrder = abi.decode(signedOrder.order, (DutchLimitOrder));
-        _validateOrder(dutchLimitOrder);
+        DutchLimitOrder memory order = abi.decode(signedOrder.order, (DutchLimitOrder));
+        _validateOrder(order);
 
-        OutputToken[] memory outputs = new OutputToken[](dutchLimitOrder.outputs.length);
-        uint256 outputsLength = outputs.length;
-        for (uint256 i = 0; i < outputsLength;) {
-            DutchOutput memory output = dutchLimitOrder.outputs[i];
-            if (output.startAmount < output.endAmount) {
-                revert IncorrectAmounts();
-            }
-            uint256 decayedOutput = _getDecayedAmount(
-                output.startAmount, output.endAmount, dutchLimitOrder.startTime, dutchLimitOrder.endTime
-            );
-            outputs[i] = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
-            unchecked {
-                i++;
-            }
-        }
-
-        uint256 decayedInput = _getDecayedAmount(
-            dutchLimitOrder.input.startAmount,
-            dutchLimitOrder.input.endAmount,
-            dutchLimitOrder.startTime,
-            dutchLimitOrder.endTime
-        );
         resolvedOrder = ResolvedOrder({
-            info: dutchLimitOrder.info,
-            input: InputToken(dutchLimitOrder.input.token, decayedInput, dutchLimitOrder.input.endAmount),
-            outputs: outputs,
+            info: order.info,
+            input: order.input.decay(order.startTime, order.endTime),
+            outputs: order.outputs.decay(order.startTime, order.endTime),
             sig: signedOrder.sig,
-            hash: dutchLimitOrder.hash()
+            hash: order.hash()
         });
     }
 
@@ -83,54 +60,17 @@ contract DutchLimitOrderReactor is BaseReactor {
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
-    function _validateOrder(DutchLimitOrder memory dutchLimitOrder) internal pure {
-        if (dutchLimitOrder.info.deadline < dutchLimitOrder.endTime) {
+    function _validateOrder(DutchLimitOrder memory order) internal pure {
+        if (order.info.deadline < order.endTime) {
             revert DeadlineBeforeEndTime();
         }
 
-        if (dutchLimitOrder.endTime < dutchLimitOrder.startTime) {
-            revert EndTimeBeforeStartTime();
-        }
-
-        if (dutchLimitOrder.input.startAmount != dutchLimitOrder.input.endAmount) {
-            if (dutchLimitOrder.input.startAmount > dutchLimitOrder.input.endAmount) {
-                revert IncorrectAmounts();
-            }
+        if (order.input.startAmount != order.input.endAmount) {
             unchecked {
-                for (uint256 i = 0; i < dutchLimitOrder.outputs.length; i++) {
-                    if (dutchLimitOrder.outputs[i].startAmount != dutchLimitOrder.outputs[i].endAmount) {
+                for (uint256 i = 0; i < order.outputs.length; i++) {
+                    if (order.outputs[i].startAmount != order.outputs[i].endAmount) {
                         revert InputAndOutputDecay();
                     }
-                }
-            }
-        }
-    }
-
-    /// @notice calculates an amount using linear decay over time from startTime to endTime
-    /// @dev handles both positive and negative decay depending on startAmount and endAmount
-    /// @param startAmount The amount of tokens at startTime
-    /// @param endAmount The amount of tokens at endTime
-    /// @param startTime The time to start decaying linearly
-    /// @param endTime The time to stop decaying linearly
-    function _getDecayedAmount(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
-        internal
-        view
-        returns (uint256 decayedAmount)
-    {
-        if (endTime == block.timestamp || startAmount == endAmount) {
-            decayedAmount = endAmount;
-        } else if (startTime >= block.timestamp) {
-            decayedAmount = startAmount;
-        } else if (block.timestamp >= endTime) {
-            decayedAmount = endAmount;
-        } else {
-            unchecked {
-                uint256 elapsed = block.timestamp - startTime;
-                uint256 duration = endTime - startTime;
-                if (endAmount < startAmount) {
-                    decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-                } else {
-                    decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
                 }
             }
         }
