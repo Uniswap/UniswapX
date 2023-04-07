@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.19;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";

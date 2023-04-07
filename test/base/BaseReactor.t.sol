@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
