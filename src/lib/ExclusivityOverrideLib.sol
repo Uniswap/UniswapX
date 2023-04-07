@@ -33,7 +33,7 @@ library ExclusivityOverrideLib {
             return;
         }
 
-        // if override is 0, then assume strict exlcusivity so the order cannot be filled
+        // if override is 0, then assume strict exclusivity so the order cannot be filled
         if (exclusivityOverrideBps == STRICT_EXCLUSIVITY) {
             revert NoExclusiveOverride();
         }
@@ -53,8 +53,8 @@ library ExclusivityOverrideLib {
 
     /// @notice checks if the order currently passes the exclusivity check
     /// @dev if the order has no exclusivity, always returns true
-    /// @dev if the order has exclusivity and the current filler is the exlcusive address, returns true
-    /// @dev if the order has exclusivity and the current filler is not the exlcusive address, returns false
+    /// @dev if the order has exclusivity and the current filler is the exclusive address, returns true
+    /// @dev if the order has exclusivity and the current filler is not the exclusive address, returns false
     function checkExclusivity(address exclusive, uint256 exclusivityEndTime) internal view returns (bool pass) {
         return exclusive == address(0) || block.timestamp > exclusivityEndTime || exclusive == msg.sender;
     }
