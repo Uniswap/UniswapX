@@ -78,10 +78,12 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
             revert EndTimeBeforeStartTime();
         }
 
-        if (order.input.startAmount != order.input.endAmount) {
+        DutchInput memory input = order.input;
+        if (input.startAmount != input.endAmount) {
             unchecked {
                 for (uint256 i = 0; i < order.outputs.length; i++) {
-                    if (order.outputs[i].startAmount != order.outputs[i].endAmount) {
+                    DutchOutput memory output = order.outputs[i];
+                    if (output.startAmount != output.endAmount) {
                         revert InputAndOutputDecay();
                     }
                 }
