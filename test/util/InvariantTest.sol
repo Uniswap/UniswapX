@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // from: https://github.com/maple-labs/contract-test-utils/blob/add-bounded-invariants/contracts/test.sol
-pragma solidity 0.8.17;
+pragma solidity 0.8.19;
 
 contract InvariantTest {
     address[] private _excludedContracts;
