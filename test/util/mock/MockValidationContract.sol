@@ -1,4 +1,4 @@
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 import {IValidationCallback} from "../../../src/interfaces/IValidationCallback.sol";
 import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
