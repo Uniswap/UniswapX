@@ -185,6 +185,7 @@ contract MultipleMakersInvariants is Test, InvariantTest, DeployPermit2 {
         addTargetContract(address(runner));
     }
 
+    // TODO: Fix this test!
     function invariant_balancesAreCorrect() public {
         //        assertTrue(runner.balancesAreCorrect());
         assertTrue(true);
