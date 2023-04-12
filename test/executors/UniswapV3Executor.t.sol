@@ -44,8 +44,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
     uint24 constant FEE = 3000;
-    address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(1);
     bytes32 constant TRANSFER_EVENT_SIG = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
     bytes32 constant APPROVAL_EVENT_SIG = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
     bytes32 constant FILL_EVENT_SIG = 0x78ad7ec0e9f89e74012afa58738b6b661c024cb0fd185ee2f616c0a28924bd66;
@@ -68,7 +67,7 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         uniswapV3Executor = new UniswapV3Executor(address(reactor), address(mockSwapRouter), taker);
 
         // Do appropriate max approvals
@@ -208,53 +207,6 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
             address(uniswapV3Executor),
             abi.encodePacked(tokenIn, FEE, tokenOut)
         );
-    }
-
-    // Requested outputs = 2 & 1 (for a total output of 3), input = 3. With
-    // swap rate at 1 to 1, at the end of the test there will be 3 tokenIn
-    // in mockSwapRouter and 3 tokenOut in maker.
-    function testExecuteMultipleOutputs() public {
-        uint256 inputAmount = ONE * 4;
-        uint256[] memory startAmounts = new uint256[](3);
-        startAmounts[0] = ONE * 2;
-        startAmounts[1] = ONE;
-        startAmounts[2] = ONE;
-        uint256[] memory endAmounts = new uint256[](3);
-        endAmounts[0] = startAmounts[0];
-        endAmounts[1] = startAmounts[1];
-        endAmounts[2] = startAmounts[2];
-        DutchOutput[] memory outputs =
-            OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
-        // fee output
-        outputs[2].recipient = address(1);
-
-        DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: outputs
-        });
-
-        tokenIn.mint(maker, inputAmount);
-        tokenOut.mint(address(mockSwapRouter), ONE * 4);
-
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(uniswapV3Executor),
-            abi.encodePacked(tokenIn, FEE, tokenOut)
-        );
-
-        assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE * 4);
-        assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
-        assertEq(tokenOut.balanceOf(maker), ONE * 3);
-        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 0);
-
-        // assert fees properly handled
-        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
-        assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
-        assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
     }
 
     // Requested outputs = 2 & 1 (for a total output of 3), input = 2. With

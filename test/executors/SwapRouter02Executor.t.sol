@@ -43,8 +43,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
     uint24 constant FEE = 3000;
-    address constant PROTOCOL_FEE_RECIPIENT = address(80085);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(80085);
 
     // to test sweeping ETH
     receive() external payable {}
@@ -66,7 +65,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         swapRouter02Executor =
             new SwapRouter02Executor(address(this), address(reactor), address(this), address(mockSwapRouter));
 
@@ -181,65 +180,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             address(swapRouter02Executor),
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
-    }
-
-    // There is one order with outputs of length 3. 1st output = 2 token out to maker, 2nd output = 1 token out to
-    // maker, 3rd output = 1 token out as a fee with recipient = address(1). At the end of the test, there will
-    // be 4 tokenIn in mockSwapRouter, 3 tokenOut in maker, and 1 tokenOut in reactor.
-    function testExecuteOneOrderWithMultipleOutputs() public {
-        uint256 inputAmount = ONE * 4;
-        uint256[] memory startAmounts = new uint256[](3);
-        startAmounts[0] = ONE * 2;
-        startAmounts[1] = ONE;
-        startAmounts[2] = ONE;
-        uint256[] memory endAmounts = new uint256[](3);
-        endAmounts[0] = startAmounts[0];
-        endAmounts[1] = startAmounts[1];
-        endAmounts[2] = startAmounts[2];
-        DutchOutput[] memory outputs =
-            OutputsBuilder.multipleDutch(address(tokenOut), startAmounts, endAmounts, address(maker));
-        // fee output
-        outputs[2].recipient = address(1);
-
-        DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: outputs
-        });
-
-        tokenIn.mint(maker, inputAmount);
-        tokenOut.mint(address(mockSwapRouter), ONE * 4);
-
-        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
-        tokensToApproveForSwapRouter02[0] = address(tokenIn);
-
-        bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
-            path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
-            amountIn: inputAmount,
-            amountOutMinimum: 0
-        });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
-
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
-        );
-
-        assertEq(tokenIn.balanceOf(maker), 0);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE * 4);
-        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
-        assertEq(tokenOut.balanceOf(maker), ONE * 3);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 0);
-
-        // assert fees properly handled
-        assertEq(tokenOut.balanceOf(address(reactor)), ONE);
-        assertEq(reactor.feesOwed(address(tokenOut), address(1)), ONE / 2);
-        assertEq(reactor.feesOwed(address(tokenOut), address(0)), ONE / 2);
     }
 
     // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3

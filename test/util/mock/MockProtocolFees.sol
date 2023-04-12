@@ -6,12 +6,10 @@ import {ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ProtocolFees} from "../../../src/base/ProtocolFees.sol";
 
 contract MockProtocolFees is ProtocolFees {
-    constructor(uint256 _protocolFeeBps, address _protocolFeeRecipient)
-        ProtocolFees(_protocolFeeBps, _protocolFeeRecipient)
-    {}
+    constructor(address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {}
 
-    function takeFees(ResolvedOrder memory order) external returns (ResolvedOrder memory) {
-        _takeFees(order);
-        return order;
+    function takeFees(ResolvedOrder[] memory orders) external view returns (ResolvedOrder[] memory) {
+        _takeFees(orders);
+        return orders;
     }
 }

@@ -15,10 +15,9 @@ abstract contract ProtocolFees is Owned {
     using FixedPointMathLib for uint256;
     using CurrencyLibrary for address;
 
-    error InvalidFee();
-    error NoClaimableFees();
-    error Unauthorized();
-    error FailedToSendEther();
+    error DuplicateFeeOutput();
+    error FeeTooLarge();
+    error InvalidFeeToken();
 
     uint256 private constant BPS = 10_000;
     uint256 private constant MAX_FEE_BPS = 5;
@@ -47,7 +46,9 @@ abstract contract ProtocolFees is Owned {
             ResolvedOrder memory order = orders[i];
             OutputToken[] memory orderFeeOutputs = feeOutputs[i];
             // fill new outputs with old outputs
-            OutputToken[] memory newOutputs = new OutputToken[](order.outputs.length);
+            OutputToken[] memory newOutputs = new OutputToken[](
+                order.outputs.length + orderFeeOutputs.length
+            );
             for (uint256 j = 0; j < order.outputs.length; j++) {
                 newOutputs[j] = order.outputs[j];
             }
@@ -55,19 +56,30 @@ abstract contract ProtocolFees is Owned {
             for (uint256 j = 0; j < orderFeeOutputs.length; j++) {
                 OutputToken memory feeOutput = orderFeeOutputs[j];
                 // assert no duplicates
+                // TODO: maybe this check is unnecessary
                 for (uint256 k = 0; k < j; k++) {
-                    require(feeOutput.token != orderFeeOutputs[k].token, "Duplicate fee output");
+                    if (feeOutput.token == orderFeeOutputs[k].token) {
+                        revert DuplicateFeeOutput();
+                    }
                 }
 
                 // assert not greater than MAX_FEE_BPS
-                uint256 tokenOutputSum;
+                uint256 tokenValue;
                 for (uint256 k = 0; k < order.outputs.length; k++) {
                     OutputToken memory output = order.outputs[k];
                     if (output.token == feeOutput.token) {
-                        tokenOutputSum += output.amount;
+                        tokenValue += output.amount;
                     }
                 }
-                require(feeOutput.amount <= tokenOutputSum.mulDivDown(MAX_FEE_BPS, BPS), "Fee too large");
+
+                // allow fee on input token as well
+                if (order.input.token == feeOutput.token) {
+                    tokenValue += order.input.amount;
+                }
+
+                if (tokenValue == 0) revert InvalidFeeToken();
+
+                if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) revert FeeTooLarge();
                 newOutputs[order.outputs.length + j] = feeOutput;
             }
 

@@ -28,8 +28,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(2);
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -59,7 +58,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         maker2 = vm.addr(makerPrivateKey2);
         directTaker = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(maker1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(maker2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(maker2, address(permit2), type(uint256).max);
@@ -110,8 +109,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenOut1.mint(directTaker, outputAmount);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, maker1, true);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, maker1);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -148,8 +147,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE * 2, ONE * 2, maker1)
         });
         DutchOutput[] memory order2Outputs = new DutchOutput[](2);
-        order2Outputs[0] = DutchOutput(address(tokenOut1), ONE, ONE, maker2, false);
-        order2Outputs[1] = DutchOutput(address(tokenOut2), ONE * 3, ONE * 3, maker2, false);
+        order2Outputs[0] = DutchOutput(address(tokenOut1), ONE, ONE, maker2);
+        order2Outputs[1] = DutchOutput(address(tokenOut2), ONE * 3, ONE * 3, maker2);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -186,8 +185,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenOut3.mint(directTaker, ONE * 3);
 
         DutchOutput[] memory dutchOutputs1 = new DutchOutput[](2);
-        dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, maker1, false);
-        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, maker1, true);
+        dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, maker1);
+        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, maker1);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -197,8 +196,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         });
 
         DutchOutput[] memory dutchOutputs2 = new DutchOutput[](2);
-        dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, maker2, false);
-        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, maker2, true);
+        dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, maker2);
+        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, maker2);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -208,8 +207,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         });
 
         DutchOutput[] memory dutchOutputs3 = new DutchOutput[](2);
-        dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, maker2, false);
-        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, maker2, true);
+        dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, maker2);
+        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, maker2);
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
                 1
