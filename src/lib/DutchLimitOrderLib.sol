@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
 
@@ -40,9 +40,9 @@ struct DutchLimitOrder {
 
 /// @notice helpers for handling dutch limit order objects
 library DutchLimitOrderLib {
-    bytes private constant DUTCH_OUTPUT_TYPE =
+    bytes internal constant DUTCH_OUTPUT_TYPE =
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
-    bytes32 private constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
+    bytes32 internal constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "DutchLimitOrder(",
@@ -62,17 +62,17 @@ library DutchLimitOrderLib {
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
-    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
+    string internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
         string(abi.encodePacked("DutchLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
-    function hash(DutchOutput memory output) private pure returns (bytes32) {
+    function hash(DutchOutput memory output) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(DUTCH_OUTPUT_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
         );
     }
 
-    function hash(DutchOutput[] memory outputs) private pure returns (bytes32) {
+    function hash(DutchOutput[] memory outputs) internal pure returns (bytes32) {
         bytes32[] memory outputHashes = new bytes32[](outputs.length);
         unchecked {
             for (uint256 i = 0; i < outputs.length; i++) {

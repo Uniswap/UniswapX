@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
