@@ -6,7 +6,7 @@ import {ResolvedOrder, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
 
 /// @notice Mock protocol fee controller
-contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
+contract MockFeeControllerDuplicates is IProtocolFeeController, Owned(msg.sender) {
     error InvalidFee();
 
     uint256 private constant BPS = 10000;
@@ -41,21 +41,8 @@ contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
                 if (fee != 0) {
                     uint256 feeAmount = order.outputs[j].amount * fee / BPS;
 
-                    // check if token already has fee
-                    bool found;
-                    for (uint256 k = 0; k < feeCount; k++) {
-                        OutputToken memory feeOutput = feeOutputs[k];
-                        if (feeOutput.token == outputToken) {
-                            found = true;
-                            feeOutput.amount += feeAmount;
-                        }
-                    }
-
-                    if (!found && feeAmount > 0) {
-                        feeOutputs[feeCount] =
-                            OutputToken({token: outputToken, amount: feeAmount, recipient: feeRecipient});
-                        feeCount++;
-                    }
+                    feeOutputs[feeCount] = OutputToken({token: outputToken, amount: feeAmount, recipient: feeRecipient});
+                    feeCount++;
                 }
             }
 

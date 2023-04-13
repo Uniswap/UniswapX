@@ -56,7 +56,6 @@ abstract contract ProtocolFees is Owned {
             for (uint256 j = 0; j < orderFeeOutputs.length; j++) {
                 OutputToken memory feeOutput = orderFeeOutputs[j];
                 // assert no duplicates
-                // TODO: maybe this check is unnecessary
                 for (uint256 k = 0; k < j; k++) {
                     if (feeOutput.token == orderFeeOutputs[k].token) {
                         revert DuplicateFeeOutput();

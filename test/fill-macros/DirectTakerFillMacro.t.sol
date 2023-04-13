@@ -19,6 +19,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
@@ -102,11 +103,18 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
 
     // The same as testSingleOrder, but with a 10% fee.
     function testSingleOrderWithFee() public {
+        address feeRecipient = address(1);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn1.mint(address(maker1), inputAmount);
-        tokenOut1.mint(directTaker, outputAmount);
+        tokenOut1.mint(directTaker, outputAmount * (10000 + feeBps) / 10000);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, maker1);
@@ -125,8 +133,8 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );
         snapEnd();
-        assertEq(tokenOut1.balanceOf(maker1), outputAmount * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), outputAmount / 10);
+        assertEq(tokenOut1.balanceOf(maker1), outputAmount);
+        assertEq(tokenOut1.balanceOf(address(feeRecipient)), outputAmount * feeBps / 10000);
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
     }
 
@@ -177,12 +185,21 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
     // 2nd order by maker2, input = 2 tokenIn2 and outputs = [2 tokenOut2]
     // 2nd order by maker2, input = 3 tokenIn3 and outputs = [3 tokenOut3]
     function testThreeOrdersWithFees() public {
+        address feeRecipient = address(1);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+        feeController.setFee(address(tokenIn2), address(tokenOut2), feeBps);
+        feeController.setFee(address(tokenIn3), address(tokenOut3), feeBps);
+
         tokenIn1.mint(address(maker1), ONE);
         tokenIn2.mint(address(maker2), ONE * 2);
         tokenIn3.mint(address(maker2), ONE * 3);
-        tokenOut1.mint(directTaker, ONE);
-        tokenOut2.mint(directTaker, ONE * 2);
-        tokenOut3.mint(directTaker, ONE * 3);
+        tokenOut1.mint(directTaker, ONE * (10000 + feeBps) / 10000);
+        tokenOut2.mint(directTaker, ONE * 2 * (10000 + feeBps) / 10000);
+        tokenOut3.mint(directTaker, ONE * 3 * (10000 + feeBps) / 10000);
 
         DutchOutput[] memory dutchOutputs1 = new DutchOutput[](2);
         dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, maker1);
@@ -228,12 +245,12 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.executeBatch(signedOrders, address(1), bytes(""));
         snapEnd();
 
-        assertEq(tokenOut1.balanceOf(maker1), ONE * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), ONE / 10);
-        assertEq(tokenOut2.balanceOf(maker2), ONE * 2 * 9 / 10);
-        assertEq(tokenOut2.balanceOf(address(reactor)), ONE * 2 / 10);
-        assertEq(tokenOut3.balanceOf(maker2), ONE * 3 * 9 / 10);
-        assertEq(tokenOut3.balanceOf(address(reactor)), ONE * 3 / 10);
+        assertEq(tokenOut1.balanceOf(maker1), ONE);
+        assertEq(tokenOut1.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
+        assertEq(tokenOut2.balanceOf(maker2), ONE * 2);
+        assertEq(tokenOut2.balanceOf(address(feeRecipient)), ONE * 2 * feeBps / 10000);
+        assertEq(tokenOut3.balanceOf(maker2), ONE * 3);
+        assertEq(tokenOut3.balanceOf(address(feeRecipient)), ONE * 3 * feeBps / 10000);
 
         assertEq(tokenIn1.balanceOf(directTaker), ONE);
         assertEq(tokenIn2.balanceOf(directTaker), 2 * ONE);

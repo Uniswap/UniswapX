@@ -12,6 +12,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockMaker} from "../util/mock/users/MockMaker.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -194,11 +195,20 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function testExecuteWithFeeOutput() public {
+        address feeRecipient = address(1);
+        address recipient = address(2);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        tokenOut.mint(address(fillContract), ONE);
+
         tokenIn.forceApprove(maker, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
             input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
+            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(recipient))
         });
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
@@ -216,20 +226,10 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         assertEq(tokenIn.balanceOf(address(maker)), makerInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
         assertEq(tokenOut.balanceOf(address(maker)), makerOutputBalanceStart);
-        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
-    }
-
-    function testExecuteWithFeeOutputChangeSig() public {
-        tokenIn.forceApprove(maker, address(permit2), ONE);
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(maker)),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
-        });
-        bytes memory sig = signOrder(makerPrivateKey, address(permit2), order);
-
-        vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        assertEq(
+            tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - (ONE * (feeBps + 10000) / 10000)
+        );
+        assertEq(tokenOut.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
     }
 
     function testExecuteInsufficientPermit() public {
