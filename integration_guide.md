@@ -54,7 +54,7 @@ data: {
     tokenOutChainId: "number - the `tokenOut` chainId",
     offerer: "string address - The swapper’s EOA address that will sign the order",
     tokenIn: "string address - The ERC20 token that the swapper will provide",
-    tokenOut: "string address - The ERC20 token that the swapper will receive"
+    tokenOut: "string address - The ERC20 token that the swapper will receive",
     amount: "string number - If the trade type is exact input then this is amount of `tokenIn` the user wants to swap otherwise this is amount of tokenOut the user wants to receive",
     type: "number - This is `0` if the trade is an exact input and `1` if the trade is an exact output"
 }
@@ -66,8 +66,8 @@ Response:
 {
     chainId: "number - the chainId for the quoted token",
     amountIn: "string number - If the request type is exact input then this field is `amount` from the quote request, otherwise this is the provided quote",
-	amountOut: "string number - If the request type is exact output then this field is `amount` from the quote request, otherwise this is the provided quote", 
-	filler: "string address - The executor address that you would like to have last-look exclusivity for this order"
+    amountOut: "string number - If the request type is exact output then this field is `amount` from the quote request, otherwise this is the provided quote", 
+    filler: "string address - The executor address that you would like to have last-look exclusivity for this order"
 
     { ...The following fields should be echoed from the quote request...},
     requestId: "string uuid - a unique identifier for this quote request", 
