@@ -103,6 +103,19 @@ contract ProtocolFeesTest is Test {
 
         ResolvedOrder[] memory afterFees = fees.takeFees(orders);
         assertGe(afterFees[0].outputs.length, outputs.length);
+
+        for (uint256 i = 0; i < outputAmounts.length; i++) {
+            address tokenAddress = order.outputs[i].token;
+            uint256 baseAmount = order.outputs[i].amount;
+
+            uint256 extraOutputs = afterFees[0].outputs.length - outputAmounts.length;
+            for (uint256 j = 0; j < extraOutputs; j++) {
+                OutputToken memory output = afterFees[0].outputs[outputAmounts.length + j];
+                if (output.token == tokenAddress) {
+                    assertGe(output.amount, baseAmount * feeBps / 10000);
+                }
+            }
+        }
     }
 
     function testTakeFeesWithInterfaceFee() public {
