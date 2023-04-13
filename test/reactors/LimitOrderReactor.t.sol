@@ -25,7 +25,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     using LimitOrderLib for LimitOrder;
 
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
-    address constant PROTOCOL_FEE_OWNER = address(1);
 
     function setUp() public {
         tokenIn.mint(address(swapper), ONE);

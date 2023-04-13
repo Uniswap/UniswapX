@@ -30,8 +30,6 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
     using OrderInfoBuilder for OrderInfo;
     using ExclusiveDutchLimitOrderLib for ExclusiveDutchLimitOrder;
 
-    address constant PROTOCOL_FEE_OWNER = address(1);
-
     function name() public pure override returns (string memory) {
         return "ExclusiveDutchLimitOrder";
     }
