@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
+import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 /// @dev An amount of output tokens that decreases linearly over time
 struct DutchOutput {
@@ -40,25 +41,23 @@ struct DutchLimitOrder {
 
 /// @notice helpers for handling dutch limit order objects
 library DutchLimitOrderLib {
+    using OrderInfoLib for OrderInfo;
+
     bytes internal constant DUTCH_OUTPUT_TYPE =
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 internal constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "DutchLimitOrder(",
-        "address reactor,",
-        "address offerer,",
-        "uint256 nonce,",
-        "uint256 deadline,",
-        "address validationContract,",
-        "bytes validationData,",
+        "OrderInfo info,",
         "uint256 startTime,",
         "uint256 endTime,",
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
         "DutchOutput[] outputs)",
-        DUTCH_OUTPUT_TYPE
+        DUTCH_OUTPUT_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
@@ -89,12 +88,7 @@ library DutchLimitOrderLib {
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,
-                order.info.reactor,
-                order.info.offerer,
-                order.info.nonce,
-                order.info.deadline,
-                order.info.validationContract,
-                keccak256(order.info.validationData),
+                order.info.hash(),
                 order.startTime,
                 order.endTime,
                 order.input.token,
