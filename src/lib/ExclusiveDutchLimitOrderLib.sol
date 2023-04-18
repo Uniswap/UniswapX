@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
 import {DutchOutput, DutchInput, DutchLimitOrderLib} from "./DutchLimitOrderLib.sol";
+import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 struct ExclusiveDutchLimitOrder {
     // generic order information
@@ -24,15 +25,11 @@ struct ExclusiveDutchLimitOrder {
 /// @notice helpers for handling dutch limit order objects
 library ExclusiveDutchLimitOrderLib {
     using DutchLimitOrderLib for DutchOutput[];
+    using OrderInfoLib for OrderInfo;
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "ExclusiveDutchLimitOrder(",
-        "address reactor,",
-        "address offerer,",
-        "uint256 nonce,",
-        "uint256 deadline,",
-        "address validationContract,",
-        "bytes validationData,",
+        "OrderInfo info,",
         "uint256 startTime,",
         "uint256 endTime,",
         "address exclusiveFiller,",
@@ -41,7 +38,8 @@ library ExclusiveDutchLimitOrderLib {
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
         "DutchOutput[] outputs)",
-        DutchLimitOrderLib.DUTCH_OUTPUT_TYPE
+        DutchLimitOrderLib.DUTCH_OUTPUT_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
@@ -54,27 +52,17 @@ library ExclusiveDutchLimitOrderLib {
     /// @return the eip-712 order hash
     function hash(ExclusiveDutchLimitOrder memory order) internal pure returns (bytes32) {
         return keccak256(
-            bytes.concat(
-                // embedded encode avoids stack too deep
-                abi.encode(
-                    ORDER_TYPE_HASH,
-                    order.info.reactor,
-                    order.info.offerer,
-                    order.info.nonce,
-                    order.info.deadline,
-                    order.info.validationContract,
-                    keccak256(order.info.validationData)
-                ),
-                abi.encode(
-                    order.startTime,
-                    order.endTime,
-                    order.exclusiveFiller,
-                    order.exclusivityOverrideBps,
-                    order.input.token,
-                    order.input.startAmount,
-                    order.input.endAmount,
-                    order.outputs.hash()
-                )
+            abi.encode(
+                ORDER_TYPE_HASH,
+                order.info.hash(),
+                order.startTime,
+                order.endTime,
+                order.exclusiveFiller,
+                order.exclusivityOverrideBps,
+                order.input.token,
+                order.input.startAmount,
+                order.input.endAmount,
+                order.outputs.hash()
             )
         );
     }
