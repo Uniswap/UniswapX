@@ -123,5 +123,5 @@ data: {
 
 | Contract | Address | Source |
 | --- | --- | --- |
-| Dutch Limit Order Reactor | [https://etherscan.io/address/0x007fA0ba27431df6F4827Ebd0f4b68BC58e262A0](https://etherscan.io/address/0x007fA0ba27431df6F4827Ebd0f4b68BC58e262A0) | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
+| Dutch Limit Order Reactor | [https://etherscan.io/address/0x09D8D51AaC7eCd9AEaC621E7839B1860C3e6EF7b](https://etherscan.io/address/0x09D8D51AaC7eCd9AEaC621E7839B1860C3e6EF7b) | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
 | Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
