@@ -284,7 +284,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(swapper), inputAmount * 3);
-        tokenOut.mint(address(fillContract), 6 * 10 ** 18);
+        tokenOut.mint(address(fillContract), 6 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         uint256 totalOutputAmount = 3 * outputAmount;
@@ -332,7 +332,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(swapper), inputAmount * 3);
-        vm.deal(address(fillContract), 6 * 10 ** 18);
+        vm.deal(address(fillContract), 6 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         uint256 totalOutputAmount = 3 * outputAmount;
