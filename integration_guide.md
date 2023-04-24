@@ -56,7 +56,7 @@ data: {
     tokenIn: "string address - The ERC20 token that the swapper will provide",
     tokenOut: "string address - The ERC20 token that the swapper will receive",
     amount: "string number - If the trade type is exact input then this is amount of `tokenIn` the user wants to swap otherwise this is amount of tokenOut the user wants to receive",
-    type: "number - This is `0` if the trade is an exact input and `1` if the trade is an exact output"
+    type: "number - This is either `EXACT_INPUT` or `EXACT_OUTPUT`"
 }
 ```
 
