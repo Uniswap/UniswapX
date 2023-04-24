@@ -56,7 +56,7 @@ data: {
     tokenIn: "string address - The ERC20 token that the swapper will provide",
     tokenOut: "string address - The ERC20 token that the swapper will receive",
     amount: "string number - If the trade type is exact input then this is amount of `tokenIn` the user wants to swap otherwise this is amount of tokenOut the user wants to receive",
-    type: "number - This is `0` if the trade is an exact input and `1` if the trade is an exact output"
+    type: "number - This is either `EXACT_INPUT` or `EXACT_OUTPUT`"
 }
 ```
 
@@ -123,5 +123,5 @@ data: {
 
 | Contract | Address | Source |
 | --- | --- | --- |
-| Dutch Limit Order Reactor | [https://etherscan.io/address/0x81f570f48BE8d3D358404f257b5bDC4A88eefA50](https://etherscan.io/address/0x81f570f48BE8d3D358404f257b5bDC4A88eefA50) | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
+| Dutch Limit Order Reactor | [https://etherscan.io/address/0x007fA0ba27431df6F4827Ebd0f4b68BC58e262A0](https://etherscan.io/address/0x007fA0ba27431df6F4827Ebd0f4b68BC58e262A0) | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
 | Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
