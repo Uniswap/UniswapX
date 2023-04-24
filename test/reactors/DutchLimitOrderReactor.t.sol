@@ -445,9 +445,9 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         uint256 swapperPrivateKey2 = 0x12341235;
         address swapper2 = vm.addr(swapperPrivateKey2);
 
-        tokenIn.mint(address(swapper), 3 * 10 ** 18);
-        tokenIn.mint(address(swapper2), 3 * 10 ** 18);
-        tokenOut.mint(address(fillContract), 18 * 10 ** 18);
+        tokenIn.mint(address(swapper), 3 ether);
+        tokenIn.mint(address(swapper2), 3 ether);
+        tokenOut.mint(address(fillContract), 18 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         tokenIn.forceApprove(swapper2, address(permit2), type(uint256).max);
 
@@ -455,7 +455,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](3);
 
         uint256[] memory startAmounts0 = new uint256[](2);
-        startAmounts0[0] = 2 * 10 ** 18;
+        startAmounts0[0] = 2 ether;
         startAmounts0[1] = 10 ** 18;
         uint256[] memory endAmounts0 = new uint256[](2);
         endAmounts0[0] = startAmounts0[0];
@@ -474,14 +474,14 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), 2 * 10 ** 18, 2 * 10 ** 18),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 * 10 ** 18, 3 * 10 ** 18, swapper)
+            input: DutchInput(address(tokenIn), 2 ether, 2 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 ether, 3 ether, swapper)
         });
 
         uint256[] memory startAmounts2 = new uint256[](3);
-        startAmounts2[0] = 3 * 10 ** 18;
-        startAmounts2[1] = 4 * 10 ** 18;
-        startAmounts2[2] = 5 * 10 ** 18;
+        startAmounts2[0] = 3 ether;
+        startAmounts2[1] = 4 ether;
+        startAmounts2[2] = 5 ether;
         uint256[] memory endAmounts2 = new uint256[](3);
         endAmounts2[0] = startAmounts2[0];
         endAmounts2[1] = startAmounts2[1];
@@ -491,7 +491,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 .withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), 3 * 10 ** 18, 3 * 10 ** 18),
+            input: DutchInput(address(tokenIn), 3 ether, 3 ether),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, swapper2)
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
@@ -505,9 +505,9 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
         reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
-        assertEq(tokenOut.balanceOf(swapper), 6 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(swapper2), 12 * 10 ** 18);
-        assertEq(tokenIn.balanceOf(address(fillContract)), 6 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(swapper), 6 ether);
+        assertEq(tokenOut.balanceOf(swapper2), 12 ether);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 6 ether);
     }
 
     // Execute 2 dutch limit orders. The 1st one has input = 1, outputs = [2]. The 2nd one
@@ -519,7 +519,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(swapper), inputAmount * 3);
-        tokenOut.mint(address(fillContract), 5 * 10 ** 18);
+        tokenOut.mint(address(fillContract), 5 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
@@ -552,7 +552,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn.mint(address(swapper), inputAmount * 3);
-        tokenOut.mint(address(fill), 5 * 10 ** 18);
+        tokenOut.mint(address(fill), 5 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
@@ -586,7 +586,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         uint256 outputAmount = inputAmount;
 
         tokenIn.mint(address(swapper), inputAmount * 2);
-        vm.deal(address(fill), 2 * 10 ** 18);
+        vm.deal(address(fill), 2 ether);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
