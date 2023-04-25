@@ -45,6 +45,7 @@ library ExclusiveDutchLimitOrderLib {
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
+    /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked(
             "ExclusiveDutchLimitOrder witness)",

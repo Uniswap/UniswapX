@@ -60,6 +60,7 @@ library DutchLimitOrderLib {
         "DutchOutput[] outputs)"
     );
 
+    /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
     bytes internal constant ORDER_TYPE =
         abi.encodePacked(DUTCH_LIMIT_ORDER_TYPE, DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
