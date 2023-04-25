@@ -27,7 +27,7 @@ library ExclusiveDutchLimitOrderLib {
     using DutchLimitOrderLib for DutchOutput[];
     using OrderInfoLib for OrderInfo;
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
+    bytes internal constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
         "ExclusiveDutchLimitOrder(",
         "OrderInfo info,",
         "uint256 startTime,",
@@ -37,14 +37,22 @@ library ExclusiveDutchLimitOrderLib {
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
-        "DutchOutput[] outputs)",
-        DutchLimitOrderLib.DUTCH_OUTPUT_TYPE,
-        OrderInfoLib.ORDER_INFO_TYPE
+        "DutchOutput[] outputs)"
+    );
+
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE, DutchLimitOrderLib.DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     string internal constant PERMIT2_ORDER_TYPE = string(
-        abi.encodePacked("ExclusiveDutchLimitOrder witness)", ORDER_TYPE, DutchLimitOrderLib.TOKEN_PERMISSIONS_TYPE)
+        abi.encodePacked(
+            "ExclusiveDutchLimitOrder witness)",
+            DutchLimitOrderLib.DUTCH_OUTPUT_TYPE,
+            EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE,
+            OrderInfoLib.ORDER_INFO_TYPE,
+            DutchLimitOrderLib.TOKEN_PERMISSIONS_TYPE
+        )
     );
 
     /// @notice hash the given order
