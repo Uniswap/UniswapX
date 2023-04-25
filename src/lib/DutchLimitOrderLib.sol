@@ -49,7 +49,7 @@ library DutchLimitOrderLib {
         "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient,bool isFeeOutput)";
     bytes32 internal constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
+    bytes internal constant DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
         "DutchLimitOrder(",
         "OrderInfo info,",
         "uint256 startTime,",
@@ -57,10 +57,11 @@ library DutchLimitOrderLib {
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
-        "DutchOutput[] outputs)",
-        DUTCH_OUTPUT_TYPE,
-        OrderInfoLib.ORDER_INFO_TYPE
+        "DutchOutput[] outputs)"
     );
+
+    bytes internal constant ORDER_TYPE =
+        abi.encodePacked(DUTCH_LIMIT_ORDER_TYPE, DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     string internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
