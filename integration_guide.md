@@ -26,7 +26,7 @@ For convenience, we’ve provided an [example Executor Contract](https://github.
 
 ## 2. Retrieve & Execute Signed Orders
 
-All signed orders created through the Uniswap UI will be available via the [Gouda Orders Endpoint](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs). It’s up to the individual filler to architect their own systems for finding and executing orders profitable orders, but the basic flow is as follows: 
+All signed orders created through the Uniswap UI will be available via the [Gouda Orders Endpoint](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs). It’s up to the individual filler to architect their own systems for finding and executing profitable orders, but the basic flow is as follows: 
 
 1. Call `GET` on the `prod/dutch-auction/orders` of the Gouda Orders Endpoint (see [docs](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs) for additional query params) to retrieve open signed orders
 2. Decode returned orders using the [Gouda SDK](https://github.com/Uniswap/gouda-sdk/#parsing-orders)
