@@ -77,7 +77,7 @@ Response:
 }
 ```
 
-There is a latency requirement on responses from registered endpoints. Currently set to 0.5s, but will likely tweak during testing.
+There is a latency requirement on responses from registered endpoints. Currently set to 0.5s, but will likely tweak during testing. If a filler receives a quote request they do not want to respond to they should send back an empty response with status code `204`.
 
 Once this server is stood up and available, message your Uniswap Labs contact with its available URL to onboard it to Gouda RFQ and start receiving quote requests. 
 
