@@ -393,8 +393,6 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
-
     function name() public pure override returns (string memory) {
         return "DutchLimitOrder";
     }
