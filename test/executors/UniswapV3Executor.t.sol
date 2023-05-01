@@ -277,11 +277,11 @@ contract UniswapV3ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPerm
         snapStart("DutchUniswapV3ExecuteBatch");
         reactor.executeBatch(signedOrders, address(uniswapV3Executor), abi.encodePacked(tokenIn, FEE, tokenOut));
         snapEnd();
-        assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
-        assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 1 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker), 3 ether);
+        assertEq(tokenIn.balanceOf(maker), 6 ether);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 ether);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 ether);
+        assertEq(tokenOut.balanceOf(address(uniswapV3Executor)), 1 ether);
         assertEq(tokenIn.balanceOf(address(uniswapV3Executor)), 0);
     }
 

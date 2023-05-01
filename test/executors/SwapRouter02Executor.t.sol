@@ -232,10 +232,10 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         reactor.executeBatch(
             signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
-        assertEq(tokenOut.balanceOf(maker), 3 * 10 ** 18);
-        assertEq(tokenIn.balanceOf(maker), 6 * 10 ** 18);
-        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 * 10 ** 18);
-        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 * 10 ** 18);
+        assertEq(tokenOut.balanceOf(maker), 3 ether);
+        assertEq(tokenIn.balanceOf(maker), 6 ether);
+        assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 ether);
+        assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 ether);
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 10 ** 18);
         assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
     }
