@@ -22,10 +22,7 @@ abstract contract ProtocolFees is Owned {
     uint256 private constant BPS = 10_000;
     uint256 private constant MAX_FEE_BPS = 5;
 
-    /// @dev The fee recipient used in feesOwed for protocol fees
-    address private constant PROTOCOL_FEE_RECIPIENT_STORED = address(0);
-
-    /// @dev The address who can set fee controller
+    /// @dev The address of the fee controller
     IProtocolFeeController public feeController;
 
     constructor(address _owner) Owned(_owner) {}
@@ -88,7 +85,7 @@ abstract contract ProtocolFees is Owned {
 
     /// @notice sets the protocol fee controller
     /// @dev only callable by the owner
-    /// @param _feeController the new fee recipient
+    /// @param _feeController the new fee controller
     function setProtocolFeeController(address _feeController) external onlyOwner {
         feeController = IProtocolFeeController(_feeController);
     }
