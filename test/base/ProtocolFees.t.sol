@@ -21,8 +21,6 @@ contract ProtocolFeesTest is Test {
     address constant INTERFACE_FEE_RECIPIENT = address(10);
     address constant PROTOCOL_FEE_OWNER = address(11);
     address constant RECIPIENT = address(12);
-    // 50/50 split
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
