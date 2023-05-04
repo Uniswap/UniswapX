@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ExpectedBalance, ExpectedBalanceLib} from "../../../src/lib/ExpectedBalanceLib.sol";

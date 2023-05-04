@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 /// @notice standardized events that should be emitted by all reactors
 /// @dev collated into one library to help with forge expectEmit integration

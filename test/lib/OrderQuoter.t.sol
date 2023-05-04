@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
