@@ -17,7 +17,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     error CallerNotWhitelisted();
     error MsgSenderNotReactor();
-    error EtherSendFail();
     error InsufficientWETHBalance();
 
     address private immutable swapRouter02;
