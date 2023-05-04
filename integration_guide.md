@@ -28,7 +28,7 @@ For convenience, we’ve provided an [example Executor Contract](https://github.
 
 All signed orders created through the Uniswap UI will be available via the [Gouda Orders Endpoint](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs). It’s up to the individual filler to architect their own systems for finding and executing profitable orders, but the basic flow is as follows: 
 
-1. Call `GET` on the `prod/dutch-auction/orders` of the Gouda Orders Endpoint (see [docs](https://6q5qkya37k.execute-api.us-east-2.amazonaws.com/prod/api-docs) for additional query params) to retrieve open signed orders
+1. Call `GET` on the `prod/dutch-auction/orders` of the Gouda Orders Endpoint (see [docs](https://uniswap-docs.readme.io/reference/get_prod-dutch-auction-orders) for additional query params) to retrieve open signed orders
 2. Decode returned orders using the [Gouda SDK](https://github.com/Uniswap/gouda-sdk/#parsing-orders)
 3. Determine which orders you would like to execute
 4. Send a new transaction to the [execute](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L29) or [executeBatch](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L37) methods of the [Dutch Limit Order Reactor](https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol) specifying the signed orders you’d like to fill and the address of your executor contract
