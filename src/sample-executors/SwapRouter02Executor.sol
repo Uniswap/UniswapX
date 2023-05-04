@@ -61,7 +61,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
             ResolvedOrder memory order = resolvedOrders[i];
             for (uint256 j = 0; j < order.outputs.length; j++) {
                 OutputToken memory output = order.outputs[j];
-                ERC20(output.token).safeTransfer(output.recipient, output.amount);
+                output.token.transfer(output.recipient, output.amount);
             }
         }
     }
