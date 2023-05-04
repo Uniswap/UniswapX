@@ -8,6 +8,8 @@ import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol"
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders
 contract OrderQuoter is IReactorCallback {
+    error OrdersLengthIncorrect();
+
     uint256 constant ORDER_INFO_OFFSET = 64;
 
     /// @notice Quote the given order, returning the ResolvedOrder object which defines
@@ -45,6 +47,9 @@ contract OrderQuoter is IReactorCallback {
 
     function reactorCallback(ResolvedOrder[] memory resolvedOrders, address filler, bytes memory) external view {
         require(filler == address(this));
+        if (resolvedOrders.length != 1) {
+            revert OrdersLengthIncorrect();
+        }
         bytes memory order = abi.encode(resolvedOrders[0]);
         assembly {
             revert(add(32, order), mload(order))
