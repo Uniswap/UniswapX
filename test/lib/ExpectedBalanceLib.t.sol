@@ -6,7 +6,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {OrderInfo, ResolvedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {ExpectedBalance, ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {MockExpectedBalanceLib} from "../util/mock/MockExpectedBalanceLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
@@ -49,11 +49,11 @@ contract ExpectedBalanceTest is Test {
 
     function testGetExpectedBalanceSingleNative(uint256 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0].outputs = OutputsBuilder.single(NATIVE, amount, recipient1);
+        orders[0].outputs = OutputsBuilder.single(CurrencyLibrary.NATIVE, amount, recipient1);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
-        assertEq(expectedBalances[0].token, NATIVE);
+        assertEq(expectedBalances[0].token, CurrencyLibrary.NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
         assertEq(expectedBalances[0].expectedBalance, amount);
     }
@@ -73,11 +73,11 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceSingleWithPreBalanceNative(uint128 preAmount, uint128 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         vm.deal(recipient1, preAmount);
-        orders[0].outputs = OutputsBuilder.single(NATIVE, amount, recipient1);
+        orders[0].outputs = OutputsBuilder.single(CurrencyLibrary.NATIVE, amount, recipient1);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
-        assertEq(expectedBalances[0].token, NATIVE);
+        assertEq(expectedBalances[0].token, CurrencyLibrary.NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
         assertEq(expectedBalances[0].expectedBalance, uint256(amount) + preAmount);
     }
@@ -99,16 +99,16 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceMultiOutputSomeDuplicate(uint128 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = new OutputToken[](3);
-        orders[0].outputs[0] = OutputToken(NATIVE, amount, recipient1, false);
-        orders[0].outputs[1] = OutputToken(NATIVE, amount, recipient2, false);
-        orders[0].outputs[2] = OutputToken(NATIVE, amount, recipient2, false);
+        orders[0].outputs[0] = OutputToken(CurrencyLibrary.NATIVE, amount, recipient1, false);
+        orders[0].outputs[1] = OutputToken(CurrencyLibrary.NATIVE, amount, recipient2, false);
+        orders[0].outputs[2] = OutputToken(CurrencyLibrary.NATIVE, amount, recipient2, false);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
-        assertEq(expectedBalances[0].token, NATIVE);
+        assertEq(expectedBalances[0].token, CurrencyLibrary.NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
         assertEq(expectedBalances[0].expectedBalance, amount);
-        assertEq(expectedBalances[1].token, NATIVE);
+        assertEq(expectedBalances[1].token, CurrencyLibrary.NATIVE);
         assertEq(expectedBalances[1].recipient, recipient2);
         assertEq(expectedBalances[1].expectedBalance, uint256(amount) * 2);
     }
@@ -309,7 +309,7 @@ contract ExpectedBalanceTest is Test {
     function testCheckNative(uint256 expected, uint256 balance) public {
         vm.assume(balance >= expected);
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalance(recipient1, NATIVE, expected);
+        expectedBalances[0] = ExpectedBalance(recipient1, CurrencyLibrary.NATIVE, expected);
         vm.deal(recipient1, balance);
         mockExpectedBalanceLib.check(expectedBalances);
     }
@@ -340,7 +340,7 @@ contract ExpectedBalanceTest is Test {
     function testCheckInsufficientOutputNative(uint256 expected, uint256 balance) public {
         vm.assume(balance < expected);
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalance(recipient1, NATIVE, expected);
+        expectedBalances[0] = ExpectedBalance(recipient1, CurrencyLibrary.NATIVE, expected);
         vm.deal(recipient1, balance);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
         mockExpectedBalanceLib.check(expectedBalances);

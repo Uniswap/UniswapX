@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {Test} from "forge-std/Test.sol";
-import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
@@ -16,6 +15,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
@@ -252,7 +252,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
+            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });
@@ -345,7 +345,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
                 0
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
+            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });
@@ -355,7 +355,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
                 1
                 ),
             input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
-            outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper),
+            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });

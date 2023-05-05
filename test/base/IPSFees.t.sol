@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
-import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {IPSFees} from "../../src/base/IPSFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -175,16 +175,16 @@ contract IPSFeesTest is Test {
 
         uint256 preBalance = address(PROTOCOL_FEE_RECIPIENT).balance;
         vm.prank(PROTOCOL_FEE_RECIPIENT);
-        fees.claimFees(NATIVE);
+        fees.claimFees(CurrencyLibrary.NATIVE);
         assertEq(address(PROTOCOL_FEE_RECIPIENT).balance, preBalance + ONE / 2 - 1);
-        assertEq(fees.feesOwed(address(NATIVE), address(0)), 1);
+        assertEq(fees.feesOwed(address(CurrencyLibrary.NATIVE), address(0)), 1);
 
         preBalance = INTERFACE_FEE_RECIPIENT.balance;
         vm.prank(INTERFACE_FEE_RECIPIENT);
-        fees.claimFees(NATIVE);
+        fees.claimFees(CurrencyLibrary.NATIVE);
         // subtract one because the reactor keeps one wei for gas savings
         assertEq(INTERFACE_FEE_RECIPIENT.balance, preBalance + ONE / 2 - 1);
-        assertEq(fees.feesOwed(NATIVE, INTERFACE_FEE_RECIPIENT), 1);
+        assertEq(fees.feesOwed(CurrencyLibrary.NATIVE, INTERFACE_FEE_RECIPIENT), 1);
     }
 
     function testSetProtocolFeeRecipient() public {
@@ -213,7 +213,7 @@ contract IPSFeesTest is Test {
 
     function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](2);
-        address outputToken = isEthOutput ? NATIVE : address(tokenOut);
+        address outputToken = isEthOutput ? CurrencyLibrary.NATIVE : address(tokenOut);
         outputs[0] = OutputToken(outputToken, ONE, RECIPIENT, false);
         outputs[1] = OutputToken(outputToken, amount, INTERFACE_FEE_RECIPIENT, true);
         return ResolvedOrder({

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -67,7 +67,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, 0, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, ONE, 0, maker1)
         });
         snapStart("EthOutputTestEthOutput");
         reactor.execute(
@@ -93,7 +93,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(fillContract), ONE * 5);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, maker1, false);
+        dutchOutputs[0] = DutchOutput(CurrencyLibrary.NATIVE, 2 * ONE, 2 * ONE, maker1, false);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, maker1, false);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
@@ -107,7 +107,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), 2 * ONE, 2 * ONE),
-            outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, maker2)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, 3 * ONE, 3 * ONE, maker2)
         });
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
@@ -144,7 +144,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(fillContract), ONE * 4);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, maker1, false);
+        dutchOutputs[0] = DutchOutput(CurrencyLibrary.NATIVE, 2 * ONE, 2 * ONE, maker1, false);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, maker1, false);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
@@ -158,7 +158,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), 2 * ONE, 2 * ONE),
-            outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, maker2)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, 3 * ONE, 3 * ONE, maker2)
         });
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
@@ -189,7 +189,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(reactor), ONE * 100);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, maker1, false);
+        dutchOutputs[0] = DutchOutput(CurrencyLibrary.NATIVE, 2 * ONE, 2 * ONE, maker1, false);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, maker1, false);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
@@ -203,7 +203,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), 2 * ONE, 2 * ONE),
-            outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, maker2)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, 3 * ONE, 3 * ONE, maker2)
         });
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100).withNonce(
@@ -289,7 +289,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, maker1)
         });
 
         vm.prank(directTaker);
@@ -314,7 +314,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, maker1)
         });
 
         vm.prank(directTaker);
@@ -340,7 +340,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, maker1)
         });
 
         vm.prank(directTaker);
@@ -362,7 +362,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, ONE, ONE, maker1)
         });
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
@@ -371,7 +371,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, ONE * 2, ONE * 2, maker1)
         });
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
@@ -399,7 +399,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, ONE, ONE, maker1)
         });
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100).withNonce(
@@ -408,7 +408,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, maker1)
+            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, ONE * 2, ONE * 2, maker1)
         });
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(makerPrivateKey1, address(permit2), order1));
@@ -436,8 +436,8 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE, ONE, maker1)
         });
         DutchOutput[] memory order2DutchOutputs = new DutchOutput[](2);
-        order2DutchOutputs[0] = DutchOutput(NATIVE, ONE, ONE, maker2, false);
-        order2DutchOutputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, maker2, true);
+        order2DutchOutputs[0] = DutchOutput(CurrencyLibrary.NATIVE, ONE, ONE, maker2, false);
+        order2DutchOutputs[1] = DutchOutput(CurrencyLibrary.NATIVE, ONE / 20, ONE / 20, maker2, true);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -458,6 +458,6 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(address(reactor).balance, ONE / 20);
         assertEq(tokenOut1.balanceOf(maker1), ONE);
         assertEq(directTaker.balance, ONE * 19 / 20);
-        assertEq(IPSFees(reactor).feesOwed(NATIVE, maker2), 25000000000000000);
+        assertEq(IPSFees(reactor).feesOwed(CurrencyLibrary.NATIVE, maker2), 25000000000000000);
     }
 }
