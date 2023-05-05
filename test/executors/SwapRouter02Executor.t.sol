@@ -383,11 +383,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
-    function testUnwrapWETHInsuffucientBalance() public {
-        vm.expectRevert(SwapRouter02Executor.InsufficientWETHBalance.selector);
-        swapRouter02Executor.unwrapWETH(address(this));
-    }
-
     function testWithdrawETH() public {
         vm.deal(address(swapRouter02Executor), 1 ether);
         uint256 balanceBefore = address(this).balance;
