@@ -37,6 +37,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         permit2 = _permit2;
     }
 
+    /// @notice Needed for reactor (which takes custody of fees) to receive ETH fees
     receive() external payable {}
 
     /// @inheritdoc IReactor
