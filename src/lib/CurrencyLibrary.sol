@@ -47,12 +47,13 @@ library CurrencyLibrary {
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
-    function transferFromDirectTaker(address currency, address recipient, uint256 amount, address permit2) internal {
+    /// @param permit2 The deployed permit2 address
+    function transferFromDirectTaker(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2) internal {
         if (isNative(currency)) {
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
-            IAllowanceTransfer(permit2).transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
+            permit2.transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
         }
     }
 
