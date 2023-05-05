@@ -27,7 +27,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
     address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-    address constant SWAPROUTER02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    ISwapRouter02 constant SWAPROUTER02 = ISwapRouter02(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
     address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     uint256 constant ONE = 1000000000000000000;

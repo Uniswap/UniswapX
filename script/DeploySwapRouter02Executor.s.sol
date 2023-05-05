@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/console2.sol";
 import "forge-std/Script.sol";
 import {SwapRouter02Executor} from "../src/sample-executors/SwapRouter02Executor.sol";
+import {ISwapRouter02} from "../src/external/ISwapRouter02.sol";
 
 contract DeploySwapRouter02Executor is Script {
     function setUp() public {}
@@ -13,7 +14,7 @@ contract DeploySwapRouter02Executor is Script {
         address reactor = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_REACTOR");
         address whitelistedCaller = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WHITELISTED_CALLER");
         address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
-        address swapRouter02 = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02");
+        ISwapRouter02 swapRouter02 = ISwapRouter02(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02"));
 
         vm.startBroadcast(privateKey);
         executor = new SwapRouter02Executor{salt: 0x00}(whitelistedCaller, reactor, owner, swapRouter02);
