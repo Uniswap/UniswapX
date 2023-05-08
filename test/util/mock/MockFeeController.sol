@@ -29,7 +29,6 @@ contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
         for (uint256 j = 0; j < order.outputs.length; j++) {
             address outputToken = order.outputs[j].token;
             uint256 fee = fees[tokenIn][outputToken];
-            // TODO: deduplicate
             if (fee != 0) {
                 uint256 feeAmount = order.outputs[j].amount * fee / BPS;
 

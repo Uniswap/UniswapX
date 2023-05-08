@@ -611,7 +611,6 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             uint256 fillContractOutputBalanceStart
         ) = _checkpointBalances();
 
-        // TODO: expand to allow for custom fillData in 3rd param
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
