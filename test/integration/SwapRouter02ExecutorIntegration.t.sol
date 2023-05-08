@@ -68,14 +68,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // There will be 332868886072663242927 wei of DAI in SwapRouter02Executor after the 2nd order is filled.
     function testSwapWethToDaiViaV3() public {
         DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(swapper))
         });
         DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
@@ -116,7 +116,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // There will be 275438458971501955836 wei of DAI in SwapRouter02Executor after.
     function testSwapWethToDaiViaV2() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
@@ -147,7 +147,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapWethToUsdtViaV2() public {
         uint256 output = 300 * 10 ** 6;
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
@@ -183,7 +183,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20(USDT).safeApprove(PERMIT2, type(uint256).max);
         deal(USDT, address(swapper), input);
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(USDT), input, input),
@@ -212,7 +212,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // given 2 WETH input. Should revert with "Too little received".
     function testSwapWethToDaiViaV2InsufficientOutput() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(WETH), 2 * ONE, 2 * ONE),
@@ -276,7 +276,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // swapRouter02Executor.
     function testSwapDaiToETHViaV2() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
@@ -315,7 +315,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Swapper's order has input = 2000 DAI and output = 2 ETH. This is not enough DAI, so revert with "Too little received".
     function testSwapDaiToEthViaV2ButInsufficientDai() public {
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
@@ -355,7 +355,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         outputs[0] = DutchOutput(NATIVE, ONE, ONE, swapper, false);
         outputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, swapper, true);
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
             input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
@@ -408,14 +408,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20(DAI).transfer(swapper2, 1000 * ONE);
 
         DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 2000, ONE * 2000),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper)
         });
         DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withOfferer(swapper2).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 1000, ONE * 1000),

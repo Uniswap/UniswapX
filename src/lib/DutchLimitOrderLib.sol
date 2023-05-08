@@ -35,7 +35,7 @@ struct DutchLimitOrder {
     uint256 startTime;
     // The time at which price becomes static
     uint256 endTime;
-    // The tokens that the offerer will provide when settling the order
+    // The tokens that the swapper will provide when settling the order
     DutchInput input;
     // The tokens that must be received to satisfy the order
     DutchOutput[] outputs;

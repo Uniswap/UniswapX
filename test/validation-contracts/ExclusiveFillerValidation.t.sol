@@ -53,7 +53,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
@@ -86,7 +86,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
@@ -117,7 +117,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp - 50)
                 ),
@@ -147,7 +147,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp)
                 ),

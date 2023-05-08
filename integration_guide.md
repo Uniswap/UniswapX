@@ -52,7 +52,7 @@ data: {
     requestId: "string uuid - a unique identifier for this quote request", 
     tokenInChainId: "number - the `tokenIn` chainId",
     tokenOutChainId: "number - the `tokenOut` chainId",
-    offerer: "string address - The swapper’s EOA address that will sign the order",
+    swapper: "string address - The swapper’s EOA address that will sign the order",
     tokenIn: "string address - The ERC20 token that the swapper will provide",
     tokenOut: "string address - The ERC20 token that the swapper will receive",
     amount: "string number - If the trade type is exact input then this is amount of `tokenIn` the user wants to swap otherwise this is amount of tokenOut the user wants to receive",
@@ -71,7 +71,7 @@ Response:
 
     { ...The following fields should be echoed from the quote request...},
     requestId: "string uuid - a unique identifier for this quote request", 
-    offerer: "string address - The swapper’s EOA address that will sign the order",
+    swapper: "string address - The swapper’s EOA address that will sign the order",
     tokenIn: "string address - The ERC20 token that the swapper will provide",
     tokenOut: "string address - The ERC20 token that the swapper will receive"
 }
@@ -100,7 +100,7 @@ data: {
     orderHash: "the hash identifier for the order", 
     createdAt: "timestamp at which the order was posted",
     signature: "the swapper signature to include with order execution",
-    offerer: "the swapper address",
+    swapper: "the swapper address",
     orderStatus: "current order status (always should be `active` upon receiving notification)",
     encodedOrder: "The abi-encoded order to include with order execution. This can be decoded using the Gouda-SDK (https://github.com/uniswap/gouda-sdk) to verify order fields and signature",
     chainId: "The chain ID that the order originates from and must be settled on",
