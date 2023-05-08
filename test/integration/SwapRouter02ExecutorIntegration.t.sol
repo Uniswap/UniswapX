@@ -92,7 +92,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
         dloReactor.execute(
             SignedOrder(abi.encode(order1), signOrder(makerPrivateKey, PERMIT2, order1)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData1)
         );
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
@@ -104,7 +104,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData2[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params2);
         dloReactor.execute(
             SignedOrder(abi.encode(order2), signOrder(makerPrivateKey, PERMIT2, order2)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(new address[](0), multicallData2)
         );
         assertEq(ERC20(WETH).balanceOf(maker), 0);
@@ -134,7 +134,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
@@ -165,7 +165,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(WETH).balanceOf(maker), ONE);
@@ -201,7 +201,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(USDT).balanceOf(maker), 0);
@@ -231,7 +231,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.expectRevert("Too little received");
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -303,7 +303,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(DAI).balanceOf(maker), 0);
@@ -344,7 +344,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.expectRevert("Too little received");
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -382,7 +382,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         dloReactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(ERC20(DAI).balanceOf(maker), 0);
@@ -437,7 +437,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
 
         dloReactor.executeBatch(
-            signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(maker.balance, ONE);
         assertEq(maker2.balance, ONE / 2);

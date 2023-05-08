@@ -138,7 +138,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
@@ -178,7 +178,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -227,7 +227,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
@@ -291,7 +291,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
         reactor.executeBatch(
-            signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(tokenOut.balanceOf(maker), 3 ether);
         assertEq(tokenIn.balanceOf(maker), 6 ether);
@@ -329,7 +329,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }

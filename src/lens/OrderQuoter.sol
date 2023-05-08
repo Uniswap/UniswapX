@@ -19,7 +19,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param sig The order signature
     /// @return result The ResolvedOrder
     function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
-        try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), address(this), bytes("")) {}
+        try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), this, bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
         }

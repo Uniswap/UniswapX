@@ -22,6 +22,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
+import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 
 // This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
 // Note that this contract only tests ETH outputs when NOT using direct taker.
@@ -72,7 +73,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         snapStart("EthOutputTestEthOutput");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
-            address(fillContract),
+            fillContract,
             bytes("")
         );
         snapEnd();
@@ -124,7 +125,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
         snapStart("EthOutputTest3OrdersWithEthAndERC20Outputs");
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         snapEnd();
         assertEq(tokenOut1.balanceOf(maker1), 3 * ONE);
         assertEq(maker1.balance, 2 * ONE);
@@ -175,7 +176,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
     }
 
     // Same as `test3OrdersWithEthAndERC20Outputs` but the fillContract does not have enough ETH. The reactor DOES
@@ -220,7 +221,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(makerPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(makerPrivateKey2, address(permit2), order3));
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
     }
 }
 
@@ -295,7 +296,9 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroTestEth1Output");
         reactor.execute{value: outputAmount}(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            IReactorCallback(address(1)),
+            bytes("")
         );
         snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), inputAmount);
@@ -319,7 +322,9 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
 
         vm.prank(directTaker);
         reactor.execute{value: outputAmount * 2}(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            IReactorCallback(address(1)),
+            bytes("")
         );
         // check directTaker received refund
         assertEq(directTaker.balance, outputAmount);
@@ -346,7 +351,9 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.prank(directTaker);
         vm.expectRevert(CurrencyLibrary.NotEnoughETHDirectTaker.selector);
         reactor.execute{value: outputAmount - 1}(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
+            SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)),
+            IReactorCallback(address(1)),
+            bytes("")
         );
     }
 
@@ -379,7 +386,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
 
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroTestEth2Outputs");
-        reactor.executeBatch{value: ONE * 3}(signedOrders, address(1), bytes(""));
+        reactor.executeBatch{value: ONE * 3}(signedOrders, IReactorCallback(address(1)), bytes(""));
         snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * inputAmount);
         assertEq(maker1.balance, 3 * ONE);
@@ -416,7 +423,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
 
         vm.prank(directTaker);
         vm.expectRevert(BaseReactor.InsufficientEth.selector);
-        reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
+        reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, IReactorCallback(address(1)), bytes(""));
     }
 
     // Fill 2 orders, with ETH and ERC20 outputs:
@@ -451,7 +458,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
 
         vm.prank(directTaker);
         snapStart("DirectTakerFillMacroTestEthOutputMixedOutputsAndFees");
-        reactor.executeBatch{value: ONE * 21 / 20}(signedOrders, address(1), bytes(""));
+        reactor.executeBatch{value: ONE * 21 / 20}(signedOrders, IReactorCallback(address(1)), bytes(""));
         snapEnd();
         assertEq(tokenIn1.balanceOf(directTaker), 2 * ONE);
         assertEq(maker2.balance, ONE);

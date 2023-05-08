@@ -41,7 +41,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     receive() external payable {}
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
+    function execute(SignedOrder calldata order, IReactorCallback fillContract, bytes calldata fillData)
         external
         payable
         override
@@ -54,7 +54,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
+    function executeBatch(SignedOrder[] calldata orders, IReactorCallback fillContract, bytes calldata fillData)
         external
         payable
         override
@@ -71,14 +71,14 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        bool directTaker = fillContract == DIRECT_TAKER_FILL;
+    function _fill(ResolvedOrder[] memory orders, IReactorCallback fillContract, bytes calldata fillData) internal {
+        bool directTaker = address(fillContract) == DIRECT_TAKER_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _takeFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, directTaker ? msg.sender : fillContract);
+                transferInputTokens(order, directTaker ? msg.sender : address(fillContract));
 
                 // Batch fills are all-or-nothing so emit fill events now to save a loop
                 emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
@@ -89,7 +89,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
             _processDirectTakerFill(orders);
         } else {
             ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
-            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
+            fillContract.reactorCallback(orders, msg.sender, fillData);
             expectedBalances.check();
         }
     }

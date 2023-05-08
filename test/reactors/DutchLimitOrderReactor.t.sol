@@ -504,7 +504,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         emit Fill(orders[1].hash(), address(this), swapper, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(swapper2), 12 ether);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 ether);
@@ -541,7 +541,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         });
 
         vm.expectRevert();
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fillContract, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output tokens to the recipient
@@ -575,7 +575,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         fill.setOutputAmount(outputAmount);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output ETH to the recipient
@@ -609,7 +609,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         fill.setOutputAmount(outputAmount / 2);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {

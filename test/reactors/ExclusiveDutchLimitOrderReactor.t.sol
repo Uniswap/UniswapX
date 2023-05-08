@@ -148,7 +148,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         emit Fill(orders[1].hash(), address(this), swapper, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(swapper2), 12 ether);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 ether);
@@ -189,7 +189,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         });
 
         vm.expectRevert("TRANSFER_FAILED");
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fillContract, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output tokens to the recipient
@@ -227,7 +227,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
         fill.setOutputAmount(outputAmount);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output ETH to the recipient
@@ -265,7 +265,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
         fill.setOutputAmount(outputAmount / 2);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     function testExclusivitySucceeds(address exclusive, uint128 amountIn, uint128 amountOut) public {
@@ -291,7 +291,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(exclusive);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), amountOut);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
@@ -327,7 +327,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(caller);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), amountOut * (10000 + overrideAmt) / 10000);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
@@ -372,7 +372,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         emit Fill(order.hash(), address(this), swapper, order.info.nonce);
 
         vm.prank(caller);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), amountOutSum);
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
