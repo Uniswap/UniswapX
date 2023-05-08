@@ -100,19 +100,6 @@ contract ExclusivityOverrideLibTest is Test {
         exclusivity.handleOverride(order, exclusive, block.timestamp + 1, 0);
     }
 
-    function testHandleOverrideInvalidAmount(address caller, address exclusive, uint256 overrideAmt, uint128 amount)
-        public
-    {
-        vm.assume(caller != exclusive);
-        vm.assume(exclusive != address(0));
-        vm.assume(overrideAmt > 10000);
-        ResolvedOrder memory order;
-        order.outputs = OutputsBuilder.single(token1, amount, recipient);
-        vm.prank(caller);
-        vm.expectRevert(ExclusivityOverrideLib.InvalidOverrideAmount.selector);
-        exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
-    }
-
     function testHandleOverride() public {
         ResolvedOrder memory order;
         order.outputs = OutputsBuilder.single(token1, 1 ether, recipient);

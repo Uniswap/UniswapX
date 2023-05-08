@@ -12,7 +12,6 @@ library ExclusivityOverrideLib {
     using FixedPointMathLib for uint256;
 
     error NoExclusiveOverride();
-    error InvalidOverrideAmount();
 
     uint256 private constant STRICT_EXCLUSIVITY = 0;
     uint256 private constant BPS = 10_000;
@@ -36,11 +35,6 @@ library ExclusivityOverrideLib {
         // if override is 0, then assume strict exclusivity so the order cannot be filled
         if (exclusivityOverrideBps == STRICT_EXCLUSIVITY) {
             revert NoExclusiveOverride();
-        }
-
-        // if override is greater than 100% we cannot scale outputs
-        if (exclusivityOverrideBps > BPS) {
-            revert InvalidOverrideAmount();
         }
 
         // scale outputs by override amount
