@@ -6,7 +6,6 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
-
 /// @title CurrencyLibrary
 /// @dev This library allows for transferring native ETH and ERC20s via direct taker OR fill contract.
 library CurrencyLibrary {
@@ -50,7 +49,9 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     /// @param permit2 The deployed permit2 address
-    function transferFromDirectTaker(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2) internal {
+    function transferFromDirectTaker(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2)
+        internal
+    {
         if (isNative(currency)) {
             if (msg.value < amount) revert NotEnoughETHDirectTaker();
             (bool success,) = recipient.call{value: amount}("");
