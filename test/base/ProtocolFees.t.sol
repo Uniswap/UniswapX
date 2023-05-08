@@ -52,37 +52,34 @@ contract ProtocolFeesTest is Test {
     }
 
     function testTakeFeesNoFees() public {
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0] = createOrder(1 ether, false);
+        ResolvedOrder memory order = createOrder(1 ether, false);
 
-        assertEq(orders[0].outputs.length, 1);
-        ResolvedOrder[] memory afterFees = fees.takeFees(orders);
-        assertEq(afterFees[0].outputs.length, 1);
-        assertEq(afterFees[0].outputs[0].token, orders[0].outputs[0].token);
-        assertEq(afterFees[0].outputs[0].amount, orders[0].outputs[0].amount);
-        assertEq(afterFees[0].outputs[0].recipient, orders[0].outputs[0].recipient);
+        assertEq(order.outputs.length, 1);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 1);
+        assertEq(afterFees.outputs[0].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[0].amount, order.outputs[0].amount);
+        assertEq(afterFees.outputs[0].recipient, order.outputs[0].recipient);
     }
 
     function testTakeFees() public {
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0] = createOrder(1 ether, false);
+        ResolvedOrder memory order = createOrder(1 ether, false);
         uint256 feeBps = 3;
         feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
 
-        assertEq(orders[0].outputs.length, 1);
-        ResolvedOrder[] memory afterFees = fees.takeFees(orders);
-        assertEq(afterFees[0].outputs.length, 2);
-        assertEq(afterFees[0].outputs[0].token, orders[0].outputs[0].token);
-        assertEq(afterFees[0].outputs[0].amount, orders[0].outputs[0].amount);
-        assertEq(afterFees[0].outputs[0].recipient, orders[0].outputs[0].recipient);
-        assertEq(afterFees[0].outputs[1].token, orders[0].outputs[0].token);
-        assertEq(afterFees[0].outputs[1].amount, orders[0].outputs[0].amount * feeBps / 10000);
-        assertEq(afterFees[0].outputs[1].recipient, RECIPIENT);
+        assertEq(order.outputs.length, 1);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 2);
+        assertEq(afterFees.outputs[0].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[0].amount, order.outputs[0].amount);
+        assertEq(afterFees.outputs[0].recipient, order.outputs[0].recipient);
+        assertEq(afterFees.outputs[1].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[1].amount, order.outputs[0].amount * feeBps / 10000);
+        assertEq(afterFees.outputs[1].recipient, RECIPIENT);
     }
 
     function testTakeFeesFuzzOutputs(uint128 inputAmount, uint128[] memory outputAmounts, uint256 feeBps) public {
         vm.assume(feeBps <= 5);
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         OutputToken[] memory outputs = new OutputToken[](outputAmounts.length);
         for (uint256 i = 0; i < outputAmounts.length; i++) {
             outputs[i] = OutputToken(address(tokenOut), outputAmounts[i], RECIPIENT);
@@ -94,21 +91,20 @@ contract ProtocolFeesTest is Test {
             sig: hex"00",
             hash: bytes32(0)
         });
-        orders[0] = order;
         for (uint256 i = 0; i < outputs.length; i++) {
             feeController.setFee(address(tokenIn), address(outputs[i].token), feeBps);
         }
 
-        ResolvedOrder[] memory afterFees = fees.takeFees(orders);
-        assertGe(afterFees[0].outputs.length, outputs.length);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertGe(afterFees.outputs.length, outputs.length);
 
         for (uint256 i = 0; i < outputAmounts.length; i++) {
             address tokenAddress = order.outputs[i].token;
             uint256 baseAmount = order.outputs[i].amount;
 
-            uint256 extraOutputs = afterFees[0].outputs.length - outputAmounts.length;
+            uint256 extraOutputs = afterFees.outputs.length - outputAmounts.length;
             for (uint256 j = 0; j < extraOutputs; j++) {
-                OutputToken memory output = afterFees[0].outputs[outputAmounts.length + j];
+                OutputToken memory output = afterFees.outputs[outputAmounts.length + j];
                 if (output.token == tokenAddress) {
                     assertGe(output.amount, baseAmount * feeBps / 10000);
                 }
@@ -117,35 +113,31 @@ contract ProtocolFeesTest is Test {
     }
 
     function testTakeFeesWithInterfaceFee() public {
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0] = createOrderWithInterfaceFee(1 ether, false);
+        ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 3;
         feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
 
-        assertEq(orders[0].outputs.length, 2);
-        ResolvedOrder[] memory afterFees = fees.takeFees(orders);
-        assertEq(afterFees[0].outputs.length, 3);
-        assertEq(afterFees[0].outputs[0].token, orders[0].outputs[0].token);
-        assertEq(afterFees[0].outputs[0].amount, orders[0].outputs[0].amount);
-        assertEq(afterFees[0].outputs[0].recipient, orders[0].outputs[0].recipient);
-        assertEq(afterFees[0].outputs[1].token, orders[0].outputs[1].token);
-        assertEq(afterFees[0].outputs[1].amount, orders[0].outputs[1].amount);
-        assertEq(afterFees[0].outputs[1].recipient, orders[0].outputs[1].recipient);
-        assertEq(afterFees[0].outputs[2].token, orders[0].outputs[1].token);
-        assertEq(
-            afterFees[0].outputs[2].amount, (orders[0].outputs[1].amount + orders[0].outputs[1].amount) * feeBps / 10000
-        );
-        assertEq(afterFees[0].outputs[2].recipient, RECIPIENT);
+        assertEq(order.outputs.length, 2);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 3);
+        assertEq(afterFees.outputs[0].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[0].amount, order.outputs[0].amount);
+        assertEq(afterFees.outputs[0].recipient, order.outputs[0].recipient);
+        assertEq(afterFees.outputs[1].token, order.outputs[1].token);
+        assertEq(afterFees.outputs[1].amount, order.outputs[1].amount);
+        assertEq(afterFees.outputs[1].recipient, order.outputs[1].recipient);
+        assertEq(afterFees.outputs[2].token, order.outputs[1].token);
+        assertEq(afterFees.outputs[2].amount, (order.outputs[1].amount + order.outputs[1].amount) * feeBps / 10000);
+        assertEq(afterFees.outputs[2].recipient, RECIPIENT);
     }
 
     function testTakeFeesTooMuch() public {
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0] = createOrderWithInterfaceFee(1 ether, false);
+        ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
         feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.FeeTooLarge.selector);
-        fees.takeFees(orders);
+        fees.takeFees(order);
     }
 
     function testTakeFeesDuplicate() public {
@@ -153,13 +145,12 @@ contract ProtocolFeesTest is Test {
         vm.prank(PROTOCOL_FEE_OWNER);
         fees.setProtocolFeeController(address(controller));
 
-        ResolvedOrder[] memory orders = new ResolvedOrder[](1);
-        orders[0] = createOrderWithInterfaceFee(1 ether, false);
+        ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
         controller.setFee(address(tokenIn), address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.DuplicateFeeOutput.selector);
-        fees.takeFees(orders);
+        fees.takeFees(order);
     }
 
     function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {

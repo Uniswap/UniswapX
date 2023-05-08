@@ -69,11 +69,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        _takeFees(orders);
         bool directTaker = fillContract == DIRECT_TAKER_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
+                _takeFees(order);
                 order.validate(msg.sender);
                 transferInputTokens(order, directTaker ? msg.sender : fillContract);
 

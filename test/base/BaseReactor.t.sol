@@ -615,7 +615,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
-        snapStart(string.concat(name(), "BaseExecuteSingleWithFee"));
+        _snapStart("BaseExecuteSingleWithFee");
         reactor.execute(signedOrder, address(fillContract), bytes(""));
         snapEnd();
 

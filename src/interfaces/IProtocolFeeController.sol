@@ -8,5 +8,5 @@ interface IProtocolFeeController {
     /// @notice Get fee outputs for the given orders
     /// @param orders The orders to get fee outputs for
     /// @return List of list of fee outputs to append for each provided order
-    function getFeeOutputs(ResolvedOrder[] memory orders) external view returns (OutputToken[][] memory);
+    function getFeeOutputs(ResolvedOrder memory orders) external view returns (OutputToken[] memory);
 }

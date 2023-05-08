@@ -8,7 +8,7 @@ import {ProtocolFees} from "../../../src/base/ProtocolFees.sol";
 contract MockProtocolFees is ProtocolFees {
     constructor(address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {}
 
-    function takeFees(ResolvedOrder[] memory orders) external view returns (ResolvedOrder[] memory) {
+    function takeFees(ResolvedOrder memory orders) external view returns (ResolvedOrder memory) {
         _takeFees(orders);
         return orders;
     }
