@@ -44,25 +44,33 @@ abstract contract ProtocolFees is Owned {
         OutputToken[] memory newOutputs = new OutputToken[](
             outputsLength + feeOutputsLength
         );
-        for (uint256 j = 0; j < outputsLength; j++) {
-            newOutputs[j] = order.outputs[j];
+
+        unchecked {
+            for (uint256 i = 0; i < outputsLength; i++) {
+                newOutputs[i] = order.outputs[i];
+            }
         }
 
-        for (uint256 j = 0; j < feeOutputs.length; j++) {
-            OutputToken memory feeOutput = feeOutputs[j];
+        for (uint256 i = 0; i < feeOutputs.length;) {
+            OutputToken memory feeOutput = feeOutputs[i];
             // assert no duplicates
-            for (uint256 k = 0; k < j; k++) {
-                if (feeOutput.token == feeOutputs[k].token) {
-                    revert DuplicateFeeOutput();
+            unchecked {
+                for (uint256 j = 0; j < i; j++) {
+                    if (feeOutput.token == feeOutputs[j].token) {
+                        revert DuplicateFeeOutput();
+                    }
                 }
             }
 
             // assert not greater than MAX_FEE_BPS
             uint256 tokenValue;
-            for (uint256 k = 0; k < outputsLength; k++) {
-                OutputToken memory output = order.outputs[k];
+            for (uint256 j = 0; j < outputsLength;) {
+                OutputToken memory output = order.outputs[j];
                 if (output.token == feeOutput.token) {
                     tokenValue += output.amount;
+                }
+                unchecked {
+                    j++;
                 }
             }
 
@@ -74,7 +82,11 @@ abstract contract ProtocolFees is Owned {
             if (tokenValue == 0) revert InvalidFeeToken();
 
             if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) revert FeeTooLarge();
-            newOutputs[outputsLength + j] = feeOutput;
+            newOutputs[outputsLength + i] = feeOutput;
+
+            unchecked {
+                i++;
+            }
         }
 
         order.outputs = newOutputs;
