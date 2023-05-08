@@ -344,7 +344,7 @@ contract EthOutputDirectTakerTest is Test, PermitSignature, GasSnapshot, DeployP
         });
 
         vm.prank(directTaker);
-        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
+        vm.expectRevert(CurrencyLibrary.NotEnoughETHDirectTaker.selector);
         reactor.execute{value: outputAmount - 1}(
             SignedOrder(abi.encode(order), signOrder(makerPrivateKey1, address(permit2), order)), address(1), bytes("")
         );

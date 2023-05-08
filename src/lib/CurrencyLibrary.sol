@@ -16,6 +16,7 @@ library CurrencyLibrary {
 
     /// @notice Thrown when a native transfer fails
     error NativeTransferFailed();
+    error NotEnoughETHDirectTaker();
 
     /// @notice Get the balance of a currency for addr
     /// @param currency The currency to get the balance of
@@ -51,6 +52,7 @@ library CurrencyLibrary {
     /// @param permit2 The deployed permit2 address
     function transferFromDirectTaker(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2) internal {
         if (isNative(currency)) {
+            if (msg.value < amount) revert NotEnoughETHDirectTaker();
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
