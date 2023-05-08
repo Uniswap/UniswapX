@@ -36,13 +36,15 @@ abstract contract ProtocolFees is Owned {
         }
 
         OutputToken[] memory feeOutputs = feeController.getFeeOutputs(order);
+        uint256 outputsLength = order.outputs.length;
+        uint256 feeOutputsLength = feeOutputs.length;
 
         // apply fee outputs
         // fill new outputs with old outputs
         OutputToken[] memory newOutputs = new OutputToken[](
-            order.outputs.length + feeOutputs.length
+            outputsLength + feeOutputsLength
         );
-        for (uint256 j = 0; j < order.outputs.length; j++) {
+        for (uint256 j = 0; j < outputsLength; j++) {
             newOutputs[j] = order.outputs[j];
         }
 
@@ -57,7 +59,7 @@ abstract contract ProtocolFees is Owned {
 
             // assert not greater than MAX_FEE_BPS
             uint256 tokenValue;
-            for (uint256 k = 0; k < order.outputs.length; k++) {
+            for (uint256 k = 0; k < outputsLength; k++) {
                 OutputToken memory output = order.outputs[k];
                 if (output.token == feeOutput.token) {
                     tokenValue += output.amount;
@@ -72,7 +74,7 @@ abstract contract ProtocolFees is Owned {
             if (tokenValue == 0) revert InvalidFeeToken();
 
             if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) revert FeeTooLarge();
-            newOutputs[order.outputs.length + j] = feeOutput;
+            newOutputs[outputsLength + j] = feeOutput;
         }
 
         order.outputs = newOutputs;
