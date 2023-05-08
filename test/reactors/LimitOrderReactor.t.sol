@@ -10,7 +10,7 @@ import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
-import {MockMaker} from "../util/mock/users/MockMaker.sol";
+import {MockSwapper} from "../util/mock/users/MockSwapper.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
