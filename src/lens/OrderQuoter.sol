@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
 import {BaseReactor} from "../reactors/BaseReactor.sol";
 import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 
@@ -19,7 +20,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param sig The order signature
     /// @return result The ResolvedOrder
     function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
-        try BaseReactor(getReactor(order)).execute(SignedOrder(order, sig), this, bytes("")) {}
+        try IReactor(getReactor(order)).execute(SignedOrder(order, sig), this, bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
         }
@@ -28,7 +29,7 @@ contract OrderQuoter is IReactorCallback {
     /// @notice Return the reactor of a given order (abi.encoded bytes).
     /// @param order abi-encoded order, including `reactor` as the first encoded struct member
     /// @return reactor
-    function getReactor(bytes memory order) public pure returns (address payable reactor) {
+    function getReactor(bytes memory order) public pure returns (IReactor reactor) {
         assembly {
             let orderInfoOffsetPointer := add(order, ORDER_INFO_OFFSET)
             reactor := mload(add(orderInfoOffsetPointer, mload(orderInfoOffsetPointer)))

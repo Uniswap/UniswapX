@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
+import {IReactor} from "../../src/interfaces/IReactor.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
@@ -179,8 +180,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(maker))
         });
-        address reactor = quoter.getReactor(abi.encode(order));
-        assertEq(reactor, address(0x1234));
+        IReactor reactor = quoter.getReactor(abi.encode(order));
+        assertEq(address(reactor), address(0x1234));
     }
 
     function testGetReactorDutchOrder() public {
@@ -193,8 +194,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
             input: DutchInput(address(tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
-        address reactor = quoter.getReactor(abi.encode(order));
-        assertEq(reactor, address(0x2345));
+        IReactor reactor = quoter.getReactor(abi.encode(order));
+        assertEq(address(reactor), address(0x2345));
     }
 
     function testGetReactorMockOrder() public {
@@ -210,7 +211,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
             mockField8: 0,
             mockField9: 0
         });
-        address reactor = quoter.getReactor(abi.encode(order));
-        assertEq(reactor, address(0x3456));
+        IReactor reactor = quoter.getReactor(abi.encode(order));
+        assertEq(address(reactor), address(0x3456));
     }
 }
