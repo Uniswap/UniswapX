@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 import {OrderInfo, ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {CurrencyLibrary} from "./CurrencyLibrary.sol";
 
-struct ExpectedBalance {
-    address recipient;
-    address token;
-    uint256 expectedBalance;
-}
-
 library ExpectedBalanceLib {
+    struct ExpectedBalance {
+        address recipient;
+        address token;
+        uint256 expectedBalance;
+    }
+
     using CurrencyLibrary for address;
 
     error InsufficientOutput();
