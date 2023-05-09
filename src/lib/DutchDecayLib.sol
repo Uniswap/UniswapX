@@ -27,7 +27,7 @@ library DutchDecayLib {
             revert EndTimeBeforeStartTime();
         } else if (endTime <= block.timestamp || startAmount == endAmount || startTime == endTime) {
             decayedAmount = endAmount;
-        } else if (startTime > block.timestamp) {
+        } else if (startTime >= block.timestamp) {
             decayedAmount = startAmount;
         } else {
             unchecked {

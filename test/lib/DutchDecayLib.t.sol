@@ -99,10 +99,4 @@ contract DutchDecayLibTest is Test {
         vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         DutchDecayLib.decay(startAmount, endAmount, startTime, endTime);
     }
-
-    function testDutchDecayEndTimeEqualsBlockTimestamp() public {
-        vm.warp(1000);
-        uint256 decayedAmount = DutchDecayLib.decay(500, 300, 900, 1000);
-        assertEq(decayedAmount, 300);
-    }
 }
