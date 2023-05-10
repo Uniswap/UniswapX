@@ -15,7 +15,7 @@ import {
 import {OrderInfo, InputToken, OutputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchLimitOrderReactor} from "../util/mock/MockDutchLimitOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -595,7 +595,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, swapper)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
@@ -604,7 +604,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, swapper)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
 
         fill.setOutputAmount(outputAmount / 2);

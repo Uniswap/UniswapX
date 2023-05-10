@@ -15,7 +15,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
@@ -252,7 +252,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, outputAmount, swapper),
+            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });
@@ -345,7 +345,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
                 0
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, outputAmount, swapper),
+            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });
@@ -355,7 +355,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
                 1
                 ),
             input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
-            outputs: OutputsBuilder.single(CurrencyLibrary.NATIVE, 2 * outputAmount, swapper),
+            outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
         });

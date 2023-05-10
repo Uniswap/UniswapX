@@ -15,7 +15,7 @@ import {
 import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ExclusiveDutchLimitOrderLib} from "../../src/lib/ExclusiveDutchLimitOrderLib.sol";
@@ -249,7 +249,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, swapper)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
@@ -260,7 +260,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(CurrencyLibrary.NATIVE, outputAmount, outputAmount, swapper)
+            outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
 
         fill.setOutputAmount(outputAmount / 2);

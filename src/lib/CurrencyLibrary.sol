@@ -6,11 +6,11 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
+address constant NATIVE = 0x0000000000000000000000000000000000000000;
+
 /// @title CurrencyLibrary
 /// @dev This library allows for transferring native ETH and ERC20s via direct taker OR fill contract.
 library CurrencyLibrary {
-    address constant NATIVE = 0x0000000000000000000000000000000000000000;
-
     using SafeTransferLib for ERC20;
 
     /// @notice Thrown when a native transfer fails
