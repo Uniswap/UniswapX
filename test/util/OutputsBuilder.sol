@@ -11,7 +11,6 @@ library OutputsBuilder {
         return result;
     }
 
-    /// TODO: Support multiple tokens + recipients
     function multiple(address token, uint256[] memory amounts, address recipient)
         internal
         pure
@@ -20,6 +19,18 @@ library OutputsBuilder {
         OutputToken[] memory result = new OutputToken[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             result[i] = OutputToken(token, amounts[i], recipient, false);
+        }
+        return result;
+    }
+
+    function multiple(address[] memory tokens, uint256[] memory amounts, address[] memory recipients)
+        internal
+        pure
+        returns (OutputToken[] memory)
+    {
+        OutputToken[] memory result = new OutputToken[](amounts.length);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            result[i] = OutputToken(tokens[i], amounts[i], recipients[i], false);
         }
         return result;
     }

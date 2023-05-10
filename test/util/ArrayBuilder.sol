@@ -28,6 +28,16 @@ library ArrayBuilder {
         }
     }
 
+    /// @dev Fill a address[] with a single value
+    /// @param length uint256
+    /// @param value address
+    function fill(uint256 length, address value) internal pure returns (address[] memory addresses) {
+        addresses = new address[](length);
+        for (uint256 i = 0; i < length; ++i) {
+            addresses[i] = value;
+        }
+    }
+
     /// @dev Set the value at index `i` in a to b
     /// @param a uint256[][]
     /// @param i uint256
@@ -47,6 +57,17 @@ library ArrayBuilder {
             amounts[i] = a[i];
         }
         amounts[a.length] = b;
+    }
+
+    /// @dev Push a address onto a address[]
+    /// @param a uint256[]
+    /// @param b uint256
+    function push(address[] memory a, address b) internal pure returns (address[] memory addresses) {
+        addresses = new address[](a.length + 1);
+        for (uint256 i = 0; i < a.length; ++i) {
+            addresses[i] = a[i];
+        }
+        addresses[a.length] = b;
     }
 
     /// @dev Push a uint256[] onto a uint256[][]
