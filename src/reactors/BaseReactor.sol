@@ -9,7 +9,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
-import {ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol";
+import {ExpectedBalance, ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IPSFees} from "../base/IPSFees.sol";
@@ -21,7 +21,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
     using ExpectedBalanceLib for ResolvedOrder[];
-    using ExpectedBalanceLib for ExpectedBalanceLib.ExpectedBalance[];
+    using ExpectedBalanceLib for ExpectedBalance[];
     using CurrencyLibrary for address;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
@@ -88,7 +88,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         if (directTaker) {
             _processDirectTakerFill(orders);
         } else {
-            ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+            ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
             fillContract.reactorCallback(orders, msg.sender, fillData);
             expectedBalances.check();
         }

@@ -5,14 +5,14 @@ import {Test} from "forge-std/Test.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {OrderInfo, ResolvedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
-import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
+import {ExpectedBalanceLib, ExpectedBalance} from "../../src/lib/ExpectedBalanceLib.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {MockExpectedBalanceLib} from "../util/mock/MockExpectedBalanceLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 contract ExpectedBalanceTest is Test {
     using ExpectedBalanceLib for ResolvedOrder[];
-    using ExpectedBalanceLib for ExpectedBalanceLib.ExpectedBalance[];
+    using ExpectedBalanceLib for ExpectedBalance[];
     using OrderInfoBuilder for OrderInfo;
 
     struct TestGetExpectedBalanceConfig {
@@ -40,7 +40,7 @@ contract ExpectedBalanceTest is Test {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = OutputsBuilder.single(address(token1), amount, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -51,7 +51,7 @@ contract ExpectedBalanceTest is Test {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = OutputsBuilder.single(NATIVE, amount, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -63,7 +63,7 @@ contract ExpectedBalanceTest is Test {
         token1.mint(recipient1, preAmount);
         orders[0].outputs = OutputsBuilder.single(address(token1), amount, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -75,7 +75,7 @@ contract ExpectedBalanceTest is Test {
         vm.deal(recipient1, preAmount);
         orders[0].outputs = OutputsBuilder.single(NATIVE, amount, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -89,7 +89,7 @@ contract ExpectedBalanceTest is Test {
         amounts[1] = amount2;
         orders[0].outputs = OutputsBuilder.multiple(address(token1), amounts, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -103,7 +103,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs[1] = OutputToken(NATIVE, amount, recipient2, false);
         orders[0].outputs[2] = OutputToken(NATIVE, amount, recipient2, false);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
         assertEq(expectedBalances[0].token, NATIVE);
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -123,7 +123,7 @@ contract ExpectedBalanceTest is Test {
         amounts[1] = amount2;
         orders[0].outputs = OutputsBuilder.multiple(address(token1), amounts, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -136,7 +136,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs[0] = OutputToken(address(token1), amount, recipient1, false);
         orders[0].outputs[1] = OutputToken(address(token2), amount, recipient1, false);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -152,7 +152,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1, false);
         orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2, false);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -172,7 +172,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1, false);
         orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2, false);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -187,7 +187,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs = OutputsBuilder.single(address(token1), amount1, recipient1);
         orders[1].outputs = OutputsBuilder.single(address(token1), amount2, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -202,7 +202,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs = OutputsBuilder.multiple(address(token1), amounts, recipient1);
         orders[1].outputs = OutputsBuilder.multiple(address(token1), amounts, recipient1);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 1);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -214,7 +214,7 @@ contract ExpectedBalanceTest is Test {
         orders[0].outputs = OutputsBuilder.single(address(token1), amount1, recipient1);
         orders[1].outputs = OutputsBuilder.single(address(token1), amount2, recipient2);
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
         assertEq(expectedBalances[0].token, address(token1));
         assertEq(expectedBalances[0].recipient, recipient1);
@@ -235,7 +235,7 @@ contract ExpectedBalanceTest is Test {
             orders[0].outputs[i] = OutputToken(token, config.amount, config.recipient, false);
         }
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertFuzzSanity(test, expectedBalances);
     }
 
@@ -249,13 +249,13 @@ contract ExpectedBalanceTest is Test {
             orders[i].outputs = OutputsBuilder.single(token, config.amount, config.recipient);
         }
 
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
+        ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertFuzzSanity(test, expectedBalances);
     }
 
     function assertFuzzSanity(
         TestGetExpectedBalanceConfig[] memory test,
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances
+        ExpectedBalance[] memory expectedBalances
     ) internal {
         assertLe(expectedBalances.length, test.length);
 
@@ -301,27 +301,27 @@ contract ExpectedBalanceTest is Test {
 
     function testCheck(uint256 expected, uint256 balance) public {
         vm.assume(balance >= expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
         token1.mint(recipient1, balance);
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
     function testCheckNative(uint256 expected, uint256 balance) public {
         vm.assume(balance >= expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, NATIVE, expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, NATIVE, expected);
         vm.deal(recipient1, balance);
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
     function testCheckMany(uint128 expected, uint128 balance) public {
         vm.assume(balance >= expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](4);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
-        expectedBalances[1] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token2), expected);
-        expectedBalances[2] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token1), expected);
-        expectedBalances[3] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token2), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](4);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
+        expectedBalances[1] = ExpectedBalance(recipient1, address(token2), expected);
+        expectedBalances[2] = ExpectedBalance(recipient2, address(token1), expected);
+        expectedBalances[3] = ExpectedBalance(recipient2, address(token2), expected);
         token1.mint(recipient1, balance);
         token2.mint(recipient1, balance);
         token1.mint(recipient2, balance);
@@ -331,8 +331,8 @@ contract ExpectedBalanceTest is Test {
 
     function testCheckInsufficientOutput(uint256 expected, uint256 balance) public {
         vm.assume(balance < expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
         token1.mint(recipient1, balance);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
         mockExpectedBalanceLib.check(expectedBalances);
@@ -340,8 +340,8 @@ contract ExpectedBalanceTest is Test {
 
     function testCheckInsufficientOutputNative(uint256 expected, uint256 balance) public {
         vm.assume(balance < expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](1);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, NATIVE, expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
+        expectedBalances[0] = ExpectedBalance(recipient1, NATIVE, expected);
         vm.deal(recipient1, balance);
         vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
         mockExpectedBalanceLib.check(expectedBalances);
@@ -349,10 +349,10 @@ contract ExpectedBalanceTest is Test {
 
     function testCheckInsufficientOutputFirstOfMany(uint128 expected, uint128 balance) public {
         vm.assume(balance < expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](3);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
-        expectedBalances[1] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token1), expected);
-        expectedBalances[2] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token2), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](3);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
+        expectedBalances[1] = ExpectedBalance(recipient2, address(token1), expected);
+        expectedBalances[2] = ExpectedBalance(recipient2, address(token2), expected);
         token1.mint(recipient1, balance);
         token1.mint(recipient2, expected);
         token2.mint(recipient2, expected);
@@ -362,10 +362,10 @@ contract ExpectedBalanceTest is Test {
 
     function testCheckInsufficientOutputMiddleOfMany(uint128 expected, uint128 balance) public {
         vm.assume(balance < expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](3);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
-        expectedBalances[1] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token1), expected);
-        expectedBalances[2] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token2), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](3);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
+        expectedBalances[1] = ExpectedBalance(recipient2, address(token1), expected);
+        expectedBalances[2] = ExpectedBalance(recipient2, address(token2), expected);
         token1.mint(recipient1, expected);
         token1.mint(recipient2, balance);
         token2.mint(recipient2, expected);
@@ -375,10 +375,10 @@ contract ExpectedBalanceTest is Test {
 
     function testCheckInsufficientOutputLastOfMany(uint128 expected, uint128 balance) public {
         vm.assume(balance < expected);
-        ExpectedBalanceLib.ExpectedBalance[] memory expectedBalances = new ExpectedBalanceLib.ExpectedBalance[](3);
-        expectedBalances[0] = ExpectedBalanceLib.ExpectedBalance(recipient1, address(token1), expected);
-        expectedBalances[1] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token1), expected);
-        expectedBalances[2] = ExpectedBalanceLib.ExpectedBalance(recipient2, address(token2), expected);
+        ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](3);
+        expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
+        expectedBalances[1] = ExpectedBalance(recipient2, address(token1), expected);
+        expectedBalances[2] = ExpectedBalance(recipient2, address(token2), expected);
         token1.mint(recipient1, expected);
         token1.mint(recipient2, expected);
         token2.mint(recipient2, balance);
