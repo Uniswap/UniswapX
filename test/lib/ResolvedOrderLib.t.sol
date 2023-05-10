@@ -45,7 +45,7 @@ contract ResolvedOrderLibTest is Test {
         validationContract.setValid(false);
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -53,7 +53,7 @@ contract ResolvedOrderLibTest is Test {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -61,7 +61,7 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 1000));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
@@ -73,7 +73,7 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 888));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
@@ -83,7 +83,7 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 1000));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x123));
     }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IReactor} from "../interfaces/IReactor.sol";
+import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
@@ -18,7 +19,7 @@ struct OrderInfo {
     // The timestamp after which this order is no longer valid
     uint256 deadline;
     // Custom validation contract
-    address validationContract;
+    IValidationCallback validationContract;
     // Encoded validation params for validationContract
     bytes validationData;
 }

@@ -21,8 +21,8 @@ library ResolvedOrderLib {
         }
 
         if (
-            resolvedOrder.info.validationContract != address(0)
-                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
+            address(resolvedOrder.info.validationContract) != address(0)
+                && !resolvedOrder.info.validationContract.validate(filler, resolvedOrder)
         ) {
             revert ValidationFailed();
         }

@@ -128,7 +128,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -172,7 +172,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -202,7 +202,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(orderReactor).withOfferer(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -226,7 +226,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),

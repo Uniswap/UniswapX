@@ -11,7 +11,6 @@ struct ExpectedBalance {
 }
 
 library ExpectedBalanceLib {
-
     using CurrencyLibrary for address;
 
     error InsufficientOutput();

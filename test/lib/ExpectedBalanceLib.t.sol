@@ -253,10 +253,9 @@ contract ExpectedBalanceTest is Test {
         assertFuzzSanity(test, expectedBalances);
     }
 
-    function assertFuzzSanity(
-        TestGetExpectedBalanceConfig[] memory test,
-        ExpectedBalance[] memory expectedBalances
-    ) internal {
+    function assertFuzzSanity(TestGetExpectedBalanceConfig[] memory test, ExpectedBalance[] memory expectedBalances)
+        internal
+    {
         assertLe(expectedBalances.length, test.length);
 
         // assert each recipient in test with nonzero value has an entry

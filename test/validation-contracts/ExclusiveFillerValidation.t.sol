@@ -54,7 +54,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
@@ -85,7 +85,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
@@ -114,7 +114,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp - 50)
                 ),
             startTime: block.timestamp,
@@ -142,7 +142,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
-                .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
+                .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp)
                 ),
             startTime: block.timestamp,
