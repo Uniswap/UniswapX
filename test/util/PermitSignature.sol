@@ -66,7 +66,7 @@ contract PermitSignature is Test {
             nonce: info.nonce,
             deadline: info.deadline
         });
-        return getPermitSignature(privateKey, permit2, permit, info.reactor, typeHash, orderHash);
+        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
     }
 
     function signOrder(uint256 privateKey, address permit2, LimitOrder memory order)

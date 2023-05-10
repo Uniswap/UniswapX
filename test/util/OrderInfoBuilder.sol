@@ -2,11 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
+import {IReactor} from "../../src/interfaces/IReactor.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
         return OrderInfo({
-            reactor: reactor,
+            reactor: IReactor(reactor),
             offerer: address(0),
             nonce: 0,
             deadline: block.timestamp + 100,

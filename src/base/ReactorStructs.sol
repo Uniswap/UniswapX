@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {IReactor} from "../interfaces/IReactor.sol";
+
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
 struct OrderInfo {
     // The address of the reactor that this order is targeting
     // Note that this must be included in every order so the offerer
     // signature commits to the specific reactor that they trust to fill their order properly
-    address reactor;
+    IReactor reactor;
     // The address of the user which created the order
     // Note that this must be included so that order hashes are unique by offerer
     address offerer;
