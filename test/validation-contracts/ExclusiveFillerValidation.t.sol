@@ -59,7 +59,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
@@ -90,7 +90,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
@@ -119,7 +119,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 
@@ -147,7 +147,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
 

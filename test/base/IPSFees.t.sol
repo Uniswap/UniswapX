@@ -71,7 +71,7 @@ contract IPSFeesTest is Test {
         outputs[3] = OutputToken(address(tokenIn), ONE, INTERFACE_FEE_RECIPIENT, true);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
@@ -97,7 +97,7 @@ contract IPSFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut), ONE, INTERFACE_FEE_RECIPIENT, true);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
@@ -116,7 +116,7 @@ contract IPSFeesTest is Test {
     function testNoFeeOutput() public {
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(0)),
             sig: hex"00",
             hash: bytes32(0)
@@ -136,7 +136,7 @@ contract IPSFeesTest is Test {
         outputs[2] = OutputToken(address(tokenOut), ONE, RECIPIENT, false);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
@@ -218,7 +218,7 @@ contract IPSFeesTest is Test {
         outputs[1] = OutputToken(outputToken, amount, INTERFACE_FEE_RECIPIENT, true);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)

@@ -89,7 +89,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -130,7 +130,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -174,7 +174,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -204,7 +204,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(orderReactor).withOfferer(swapper).withDeadline(deadline).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -228,7 +228,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -251,7 +251,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -296,7 +296,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -306,7 +306,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -344,7 +344,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -354,7 +354,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -396,7 +396,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), output1, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -406,7 +406,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
+            input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: OutputsBuilder.multiple(address(tokenOut), output2, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -453,7 +453,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1,
             sig: hex"00",
             hash: bytes32(0)
@@ -463,7 +463,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
+            input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2,
             sig: hex"00",
             hash: bytes32(0)
@@ -495,7 +495,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -545,7 +545,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
                 123
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)

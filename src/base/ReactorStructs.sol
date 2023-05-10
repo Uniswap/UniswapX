@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
@@ -26,7 +27,7 @@ struct OrderInfo {
 
 /// @dev tokens that need to be sent from the offerer in order to satisfy an order
 struct InputToken {
-    address token;
+    ERC20 token;
     uint256 amount;
     // Needed for dutch decaying inputs
     uint256 maxAmount;

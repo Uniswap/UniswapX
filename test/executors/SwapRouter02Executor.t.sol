@@ -96,7 +96,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE, ONE),
+            InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
             keccak256(abi.encode(1))
@@ -117,7 +117,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
 
@@ -155,7 +155,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             // The output will resolve to 2
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(maker))
         });
@@ -206,7 +206,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: outputs
         });
 
@@ -260,7 +260,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
         });
         bytes memory sig1 = signOrder(makerPrivateKey, address(permit2), order1);
@@ -272,7 +272,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
+            input: DutchInput(tokenIn, inputAmount * 3, inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, maker)
         });
         bytes memory sig2 = signOrder(makerPrivateKey, address(permit2), order2);
@@ -306,7 +306,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(maker))
         });
 
@@ -357,7 +357,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE, ONE),
+            InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
             keccak256(abi.encode(1))

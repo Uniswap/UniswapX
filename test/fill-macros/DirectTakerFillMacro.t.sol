@@ -87,7 +87,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, maker1)
         });
 
@@ -118,7 +118,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: dutchOutputs
         });
 
@@ -148,7 +148,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
+            input: DutchInput(tokenIn1, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE * 2, ONE * 2, maker1)
         });
         DutchOutput[] memory order2Outputs = new DutchOutput[](2);
@@ -158,7 +158,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn2), ONE * 3, ONE * 3),
+            input: DutchInput(tokenIn2, ONE * 3, ONE * 3),
             outputs: order2Outputs
         });
 
@@ -196,7 +196,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
+            input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs1
         });
 
@@ -207,7 +207,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn2), ONE * 2, ONE * 2),
+            input: DutchInput(tokenIn2, ONE * 2, ONE * 2),
             outputs: dutchOutputs2
         });
 
@@ -220,7 +220,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn3), ONE * 3, ONE * 3),
+            input: DutchInput(tokenIn3, ONE * 3, ONE * 3),
             outputs: dutchOutputs3
         });
 
@@ -257,7 +257,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, maker1)
         });
 
@@ -285,7 +285,7 @@ contract DirectTakerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, maker1)
         });
 

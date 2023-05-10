@@ -61,7 +61,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -91,7 +91,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -115,7 +115,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -143,7 +143,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
                 validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
@@ -159,7 +159,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         order.outputs[0].isFeeOutput = true;
@@ -186,7 +186,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         order.outputs[0].isFeeOutput = true;
@@ -202,7 +202,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 
@@ -219,7 +219,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 
@@ -228,7 +228,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             swapperPrivateKey,
             address(permit2),
             OrderInfoBuilder.init(address(this)).withOfferer(address(swapper)),
-            order.input.token,
+            address(order.input.token),
             order.input.amount,
             LIMIT_ORDER_TYPE_HASH,
             orderHash
@@ -242,7 +242,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 

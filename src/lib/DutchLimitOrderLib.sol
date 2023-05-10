@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev An amount of output tokens that decreases linearly over time
 struct DutchOutput {
-    // The ERC20 token address
+    // The ERC20 token address (or native ETH address)
     address token;
     // The amount of tokens at the start of the time period
     uint256 startAmount;
@@ -21,7 +22,7 @@ struct DutchOutput {
 /// @dev An amount of input tokens that increases linearly over time
 struct DutchInput {
     // The ERC20 token address
-    address token;
+    ERC20 token;
     // The amount of tokens at the start of the time period
     uint256 startAmount;
     // The amount of tokens at the end of the time period
