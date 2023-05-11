@@ -333,7 +333,7 @@ contract ExpectedBalanceTest is Test {
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
         expectedBalances[0] = ExpectedBalance(recipient1, address(token1), expected);
         token1.mint(recipient1, balance);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, balance, expected));
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
@@ -342,7 +342,7 @@ contract ExpectedBalanceTest is Test {
         ExpectedBalance[] memory expectedBalances = new ExpectedBalance[](1);
         expectedBalances[0] = ExpectedBalance(recipient1, NATIVE, expected);
         vm.deal(recipient1, balance);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, balance, expected));
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
@@ -355,7 +355,7 @@ contract ExpectedBalanceTest is Test {
         token1.mint(recipient1, balance);
         token1.mint(recipient2, expected);
         token2.mint(recipient2, expected);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, balance, expected));
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
@@ -368,7 +368,7 @@ contract ExpectedBalanceTest is Test {
         token1.mint(recipient1, expected);
         token1.mint(recipient2, balance);
         token2.mint(recipient2, expected);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, balance, expected));
         mockExpectedBalanceLib.check(expectedBalances);
     }
 
@@ -381,7 +381,7 @@ contract ExpectedBalanceTest is Test {
         token1.mint(recipient1, expected);
         token1.mint(recipient2, expected);
         token2.mint(recipient2, balance);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, balance, expected));
         mockExpectedBalanceLib.check(expectedBalances);
     }
 }

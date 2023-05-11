@@ -13,7 +13,7 @@ struct ExpectedBalance {
 library ExpectedBalanceLib {
     using CurrencyLibrary for address;
 
-    error InsufficientOutput();
+    error InsufficientOutput(uint256 actualBalance, uint256 expectedBalance);
 
     /// @notice fetches expected post-fill balances for all recipient-token output pairs
     function getExpectedBalances(ResolvedOrder[] memory orders)
@@ -96,7 +96,7 @@ library ExpectedBalanceLib {
             ExpectedBalance memory expected = expectedBalances[i];
             uint256 balance = expected.token.balanceOf(expected.recipient);
             if (balance < expected.expectedBalance) {
-                revert InsufficientOutput();
+                revert InsufficientOutput(balance, expected.expectedBalance);
             }
         }
     }

@@ -102,7 +102,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
         fill.setOutputAmount(ONE);
 
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
         reactor.execute(SignedOrder(abi.encode(order), sig), fill, bytes(""));
     }
 

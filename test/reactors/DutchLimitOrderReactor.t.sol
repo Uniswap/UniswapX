@@ -574,7 +574,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         });
 
         fill.setOutputAmount(outputAmount);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 4 ether, 6 ether));
         reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
@@ -608,7 +608,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         });
 
         fill.setOutputAmount(outputAmount / 2);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
         reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
