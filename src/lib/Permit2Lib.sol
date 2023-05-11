@@ -14,7 +14,10 @@ library Permit2Lib {
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: order.input.maxAmount}),
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token),
+                amount: order.input.maxAmount
+            }),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });

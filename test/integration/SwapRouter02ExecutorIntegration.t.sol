@@ -87,8 +87,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         bytes[] memory multicallData1 = new bytes[](1);
         bytes[] memory multicallData2 = new bytes[](1);
 
-        ExactInputSingleParams memory params1 =
-            ExactInputSingleParams(address(WETH), address(DAI), 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0);
+        ExactInputSingleParams memory params1 = ExactInputSingleParams(
+            address(WETH), address(DAI), 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0
+        );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
         dloReactor.execute(
             SignedOrder(abi.encode(order1), signOrder(makerPrivateKey, PERMIT2, order1)),

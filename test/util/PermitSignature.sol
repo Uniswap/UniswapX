@@ -75,7 +75,13 @@ contract PermitSignature is Test {
         returns (bytes memory sig)
     {
         return signOrder(
-            privateKey, permit2, order.info, address(order.input.token), order.input.amount, LIMIT_ORDER_TYPE_HASH, order.hash()
+            privateKey,
+            permit2,
+            order.info,
+            address(order.input.token),
+            order.input.amount,
+            LIMIT_ORDER_TYPE_HASH,
+            order.hash()
         );
     }
 
