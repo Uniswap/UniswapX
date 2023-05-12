@@ -47,11 +47,18 @@ library LimitOrderLib {
 
     /// @notice returns the hash of an output token struct
     function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
-        bytes32[] memory outputHashes = new bytes32[](outputs.length);
-        for (uint256 i = 0; i < outputs.length; i++) {
-            outputHashes[i] = hash(outputs[i]);
+        unchecked {
+            bytes memory packedHashes = new bytes(32 * outputs.length);
+
+            for (uint256 i = 0; i < outputs.length; i++) {
+                bytes32 outputHash = hash(outputs[i]);
+                assembly {
+                    mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), outputHash)
+                }
+            }
+
+            return keccak256(packedHashes);
         }
-        return keccak256(abi.encodePacked(outputHashes));
     }
 
     /// @notice hash the given order
