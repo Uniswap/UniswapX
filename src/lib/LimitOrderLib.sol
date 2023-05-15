@@ -8,7 +8,7 @@ import {OrderInfoLib} from "./OrderInfoLib.sol";
 struct LimitOrder {
     // generic order information
     OrderInfo info;
-    // The tokens that the offerer will provide when settling the order
+    // The tokens that the swapper will provide when settling the order
     InputToken input;
     // The tokens that must be received to satisfy the order
     OutputToken[] outputs;
