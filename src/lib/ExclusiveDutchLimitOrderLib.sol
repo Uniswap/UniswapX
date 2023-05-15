@@ -16,7 +16,7 @@ struct ExclusiveDutchLimitOrder {
     address exclusiveFiller;
     // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order
     uint256 exclusivityOverrideBps;
-    // The tokens that the offerer will provide when settling the order
+    // The tokens that the swapper will provide when settling the order
     DutchInput input;
     // The tokens that must be received to satisfy the order
     DutchOutput[] outputs;

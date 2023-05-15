@@ -26,8 +26,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     MockFillContract fillContract;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
-    uint256 makerPrivateKey;
-    address maker;
+    uint256 swapperPrivateKey;
+    address swapper;
     DutchLimitOrderReactor reactor;
     ISignatureTransfer permit2;
     ExclusiveFillerValidation exclusiveFillerValidation;
@@ -36,8 +36,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
-        makerPrivateKey = 0x12341234;
-        maker = vm.addr(makerPrivateKey);
+        swapperPrivateKey = 0x12341234;
+        swapper = vm.addr(swapperPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
@@ -48,31 +48,31 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount);
+        tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
         // Below snapshot can be compared to `DutchExecuteSingle.snap` to compare an execute with and without
         // exclusive filler validation
         snapStart("testExclusiveFillerSucceeds");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
         snapEnd();
-        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
@@ -81,25 +81,25 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount);
+        tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
@@ -111,29 +111,29 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount);
+        tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         vm.warp(1000);
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp - 50)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
         vm.prank(address(0x123));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );
-        assertEq(tokenOut.balanceOf(maker), outputAmount);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
@@ -142,25 +142,25 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
-        tokenIn.mint(address(maker), inputAmount);
+        tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
-        tokenIn.forceApprove(maker, address(permit2), type(uint256).max);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(maker).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(address(exclusiveFillerValidation)).withValidationData(
                 abi.encode(address(this), block.timestamp)
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, maker)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(makerPrivateKey, address(permit2), order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             address(fillContract),
             bytes("")
         );

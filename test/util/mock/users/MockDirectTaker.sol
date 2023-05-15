@@ -5,7 +5,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SignedOrder} from "../../../../src/base/ReactorStructs.sol";
 import {IReactor} from "../../../../src/interfaces/IReactor.sol";
 
-contract MockDirectTaker {
+contract MockDirectFiller {
     function approve(address token, address to, uint256 amount) external {
         ERC20(token).approve(to, amount);
     }

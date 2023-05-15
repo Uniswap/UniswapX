@@ -108,7 +108,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
     }
 
     // startAmount is expected to always be greater than endAmount
-    // otherwise the order decays out of favor for the offerer
+    // otherwise the order decays out of favor for the swapper
     function testStartAmountLessThanEndAmount() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 900, 1000, address(0), false);
@@ -461,7 +461,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         endAmounts0[0] = startAmounts0[0];
         endAmounts0[1] = startAmounts0[1];
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
@@ -469,7 +469,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         });
 
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -487,7 +487,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper2).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -524,14 +524,14 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -557,14 +557,14 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -591,14 +591,14 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
 
         DutchLimitOrder[] memory orders = new DutchLimitOrder[](2);
         orders[0] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
