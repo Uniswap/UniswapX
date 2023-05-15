@@ -93,11 +93,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
         });
-        bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-
-        vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
         fill.setOutputAmount(ONE);
 
