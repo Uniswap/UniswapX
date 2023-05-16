@@ -67,7 +67,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // exclusive filler validation
         snapStart("testExclusiveFillerSucceeds");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), fillContract, bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            fillContract,
+            bytes("")
         );
         snapEnd();
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
@@ -97,7 +99,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), fillContract, bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            fillContract,
+            bytes("")
         );
     }
 
@@ -125,7 +129,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         vm.prank(address(0x123));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), fillContract, bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            fillContract,
+            bytes("")
         );
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
@@ -154,7 +160,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         vm.prank(address(0x123));
         vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), fillContract, bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            fillContract,
+            bytes("")
         );
     }
 }

@@ -72,7 +72,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, IReactorCallback fillContract, bytes calldata fillData) internal {
-        bool directTaker = address(fillContract) == DIRECT_FILL;
+        bool directFill = address(fillContract) == DIRECT_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];

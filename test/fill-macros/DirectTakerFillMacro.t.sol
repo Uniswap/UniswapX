@@ -88,7 +88,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper11)
+            outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
 
         vm.prank(directFiller);
