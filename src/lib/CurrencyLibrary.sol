@@ -15,7 +15,7 @@ library CurrencyLibrary {
 
     /// @notice Thrown when a native transfer fails
     error NativeTransferFailed();
-    error NotEnoughETHDirectTaker();
+    error NotEnoughETHDirectFiller();
 
     /// @notice Get the balance of a currency for addr
     /// @param currency The currency to get the balance of
@@ -53,7 +53,7 @@ library CurrencyLibrary {
         internal
     {
         if (isNative(currency)) {
-            if (msg.value < amount) revert NotEnoughETHDirectTaker();
+            if (msg.value < amount) revert NotEnoughETHDirectFiller();
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {

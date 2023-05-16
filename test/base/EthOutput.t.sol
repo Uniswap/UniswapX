@@ -346,7 +346,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        vm.expectRevert(CurrencyLibrary.NotEnoughETHDirectTaker.selector);
+        vm.expectRevert(CurrencyLibrary.NotEnoughETHDirectFiller.selector);
         reactor.execute{value: outputAmount - 1}(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
             IReactorCallback(address(1)),
