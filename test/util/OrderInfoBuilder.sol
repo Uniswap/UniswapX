@@ -9,7 +9,7 @@ library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
         return OrderInfo({
             reactor: IReactor(reactor),
-            offerer: address(0),
+            swapper: address(0),
             nonce: 0,
             deadline: block.timestamp + 100,
             validationContract: IValidationCallback(address(0)),
@@ -17,8 +17,8 @@ library OrderInfoBuilder {
         });
     }
 
-    function withOfferer(OrderInfo memory info, address _offerer) internal pure returns (OrderInfo memory) {
-        info.offerer = _offerer;
+    function withSwapper(OrderInfo memory info, address _swapper) internal pure returns (OrderInfo memory) {
+        info.swapper = _swapper;
         return info;
     }
 

@@ -9,12 +9,12 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 ///  should be included as the first field in any concrete order types
 struct OrderInfo {
     // The address of the reactor that this order is targeting
-    // Note that this must be included in every order so the offerer
+    // Note that this must be included in every order so the swapper
     // signature commits to the specific reactor that they trust to fill their order properly
     IReactor reactor;
     // The address of the user which created the order
-    // Note that this must be included so that order hashes are unique by offerer
-    address offerer;
+    // Note that this must be included so that order hashes are unique by swapper
+    address swapper;
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
     // The timestamp after which this order is no longer valid
@@ -25,7 +25,7 @@ struct OrderInfo {
     bytes validationData;
 }
 
-/// @dev tokens that need to be sent from the offerer in order to satisfy an order
+/// @dev tokens that need to be sent from the swapper in order to satisfy an order
 struct InputToken {
     ERC20 token;
     uint256 amount;
@@ -50,7 +50,7 @@ struct ResolvedOrder {
     bytes32 hash;
 }
 
-/// @dev external struct including a generic encoded order and offerer signature
+/// @dev external struct including a generic encoded order and swapper signature
 ///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract
 struct SignedOrder {
     bytes order;

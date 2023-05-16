@@ -9,7 +9,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 address constant NATIVE = 0x0000000000000000000000000000000000000000;
 
 /// @title CurrencyLibrary
-/// @dev This library allows for transferring native ETH and ERC20s via direct taker OR fill contract.
+/// @dev This library allows for transferring native ETH and ERC20s via direct filler OR fill contract.
 library CurrencyLibrary {
     using SafeTransferLib for ERC20;
 
@@ -49,7 +49,7 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     /// @param permit2 The deployed permit2 address
-    function transferFromDirectTaker(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2)
+    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2)
         internal
     {
         if (isNative(currency)) {
