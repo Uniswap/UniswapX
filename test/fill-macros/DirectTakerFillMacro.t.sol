@@ -199,8 +199,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         feeController.setFee(address(tokenIn3), address(tokenOut3), feeBps);
 
         tokenIn1.mint(address(swapper1), ONE);
-        tokenIn2.mint(address(swapper1), ONE * 2);
-        tokenIn3.mint(address(swapper1), ONE * 3);
+        tokenIn2.mint(address(swapper2), ONE * 2);
+        tokenIn3.mint(address(swapper2), ONE * 3);
         tokenOut1.mint(directFiller, ONE * (10000 + feeBps) / 10000);
         tokenOut2.mint(directFiller, ONE * 2 * (10000 + feeBps) / 10000);
         tokenOut3.mint(directFiller, ONE * 3 * (10000 + feeBps) / 10000);
@@ -250,9 +250,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
         assertEq(tokenOut1.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
-        assertEq(tokenOut2.balanceOf(swapper1), ONE * 2);
+        assertEq(tokenOut2.balanceOf(swapper2), ONE * 2);
         assertEq(tokenOut2.balanceOf(address(feeRecipient)), ONE * 2 * feeBps / 10000);
-        assertEq(tokenOut3.balanceOf(swapper1), ONE * 3);
+        assertEq(tokenOut3.balanceOf(swapper2), ONE * 3);
         assertEq(tokenOut3.balanceOf(address(feeRecipient)), ONE * 3 * feeBps / 10000);
 
         assertEq(tokenIn1.balanceOf(directFiller), ONE);

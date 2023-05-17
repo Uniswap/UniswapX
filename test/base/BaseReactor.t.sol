@@ -595,7 +595,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
