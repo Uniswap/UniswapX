@@ -36,7 +36,7 @@ contract LimitOrderReactor is BaseReactor {
         ISignatureTransfer(permit2).permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),
-            order.info.offerer,
+            order.info.swapper,
             order.hash,
             LimitOrderLib.PERMIT2_ORDER_TYPE,
             order.sig

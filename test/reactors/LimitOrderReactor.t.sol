@@ -55,7 +55,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     function testExecuteWithValidationContract() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -85,17 +85,13 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenOut.mint(address(fill), ONE);
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
         });
-        bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-
-        vm.expectEmit(false, false, false, true, address(reactor));
-        emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
         fill.setOutputAmount(ONE);
 
@@ -109,7 +105,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         amounts[0] = ONE / 2;
         amounts[1] = ONE / 2;
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -137,7 +133,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     function testExecuteWithValidationContractChangeSig() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -165,7 +161,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
 
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
@@ -194,7 +190,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     function testExecuteInsufficientPermit() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
@@ -211,7 +207,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     function testExecuteIncorrectSpender() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
@@ -220,7 +216,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         bytes memory sig = signOrder(
             swapperPrivateKey,
             address(permit2),
-            OrderInfoBuilder.init(address(this)).withOfferer(address(swapper)),
+            OrderInfoBuilder.init(address(this)).withSwapper(address(swapper)),
             order.input.token,
             order.input.amount,
             LIMIT_ORDER_TYPE_HASH,
@@ -234,7 +230,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     function testExecuteIncorrectToken() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(address(swapper)),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });

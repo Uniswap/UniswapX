@@ -95,7 +95,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         endAmounts0[0] = startAmounts0[0];
         endAmounts0[1] = startAmounts0[1];
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -105,7 +105,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         });
 
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -125,7 +125,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         endAmounts2[1] = startAmounts2[1];
         endAmounts2[2] = startAmounts2[2];
         orders[2] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper2).withDeadline(block.timestamp + 100)
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -164,7 +164,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -173,7 +173,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -201,7 +201,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -210,7 +210,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -239,7 +239,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
 
         ExclusiveDutchLimitOrder[] memory orders = new ExclusiveDutchLimitOrder[](2);
         orders[0] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -248,7 +248,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             startTime: block.timestamp,
@@ -271,7 +271,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         tokenOut.mint(address(fillContract), amountOut);
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
@@ -307,7 +307,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         tokenOut.mint(address(fillContract), uint256(amountOut) * 2);
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
@@ -352,7 +352,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
         }
 
         ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             exclusiveFiller: exclusive,

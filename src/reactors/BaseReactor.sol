@@ -16,7 +16,7 @@ import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
-///     using arbitrary fill methods specified by a taker
+///     using arbitrary fill methods specified by a filler
 abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
@@ -25,11 +25,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     using CurrencyLibrary for address;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
-    // the direct taker did not include enough ETH in their call to execute/executeBatch
+    // the direct filler did not include enough ETH in their call to execute/executeBatch
     error InsufficientEth();
 
     address public immutable permit2;
-    address public constant DIRECT_TAKER_FILL = address(1);
+    address public constant DIRECT_FILL = address(1);
 
     constructor(address _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
@@ -69,21 +69,21 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        bool directTaker = fillContract == DIRECT_TAKER_FILL;
+        bool directFill = fillContract == DIRECT_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _takeFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, directTaker ? msg.sender : fillContract);
+                transferInputTokens(order, directFill ? msg.sender : fillContract);
 
                 // Batch fills are all-or-nothing so emit fill events now to save a loop
-                emit Fill(orders[i].hash, msg.sender, order.info.offerer, order.info.nonce);
+                emit Fill(orders[i].hash, msg.sender, order.info.swapper, order.info.nonce);
             }
         }
 
-        if (directTaker) {
-            _processDirectTakerFill(orders);
+        if (directFill) {
+            _processDirectFill(orders);
         } else {
             ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
             IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
@@ -91,10 +91,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         }
     }
 
-    /// @notice Process transferring tokens from a direct taker to the recipients
+    /// @notice Process transferring tokens from a direct filler to the recipients
     /// @dev in the case of ETH outputs, ETh should be provided as value in the execute call
     /// @param orders The orders to process
-    function _processDirectTakerFill(ResolvedOrder[] memory orders) internal {
+    function _processDirectFill(ResolvedOrder[] memory orders) internal {
         // track outputs from msg.value as the contract may have
         // a standing ETH balance due to collected fees
         unchecked {
@@ -103,7 +103,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 ResolvedOrder memory order = orders[i];
                 for (uint256 j = 0; j < order.outputs.length; j++) {
                     OutputToken memory output = order.outputs[j];
-                    output.token.transferFromDirectTaker(output.recipient, output.amount, permit2);
+                    output.token.transferFromDirectFiller(output.recipient, output.amount, permit2);
 
                     if (output.token.isNative()) {
                         if (ethAvailable >= output.amount) {
@@ -115,7 +115,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 }
             }
 
-            // refund any remaining ETH to the taker
+            // refund any remaining ETH to the filler
             if (ethAvailable > 0) {
                 NATIVE.transfer(msg.sender, ethAvailable);
             }

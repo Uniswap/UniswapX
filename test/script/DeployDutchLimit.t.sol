@@ -28,21 +28,21 @@ contract DeployDutchLimitTest is Test, PermitSignature {
     // running this against the deployment since it's a pretty good end-to-end test
     // ensuring all of the contracts are properly set up and integrated with each other
     function quoteTest(DutchLimitDeployment memory deployment) public {
-        uint256 makerPrivateKey = 0x12341234;
-        address maker = vm.addr(makerPrivateKey);
+        uint256 swapperPrivateKey = 0x12341234;
+        address swapper = vm.addr(swapperPrivateKey);
 
-        deployment.tokenIn.mint(address(maker), ONE);
-        deployment.tokenIn.forceApprove(maker, address(deployment.permit2), ONE);
+        deployment.tokenIn.mint(address(swapper), ONE);
+        deployment.tokenIn.forceApprove(swapper, address(deployment.permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(deployment.tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(deployment.reactor)).withOfferer(address(maker)),
+            info: OrderInfoBuilder.init(address(deployment.reactor)).withSwapper(address(swapper)),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(address(deployment.tokenIn), ONE, ONE),
             outputs: dutchOutputs
         });
-        bytes memory sig = signOrder(makerPrivateKey, address(deployment.permit2), order);
+        bytes memory sig = signOrder(swapperPrivateKey, address(deployment.permit2), order);
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
         assertEq(quote.input.token, address(deployment.tokenIn));

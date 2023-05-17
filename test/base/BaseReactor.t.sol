@@ -94,7 +94,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
@@ -133,7 +133,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -177,7 +177,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         validationContract.setValid(false);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -207,7 +207,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(orderReactor).withOfferer(swapper).withDeadline(deadline).withValidationContract(
+            info: OrderInfoBuilder.init(orderReactor).withSwapper(swapper).withDeadline(deadline).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -231,7 +231,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline).withValidationContract(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
                 address(validationContract)
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -256,7 +256,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(deadline),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
@@ -299,7 +299,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder[] memory orders = new ResolvedOrder[](2);
 
         orders[0] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -309,7 +309,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         });
 
         orders[1] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
@@ -347,7 +347,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder[] memory orders = new ResolvedOrder[](2);
 
         orders[0] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
@@ -357,7 +357,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         });
 
         orders[1] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
@@ -399,7 +399,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder[] memory orders = new ResolvedOrder[](2);
 
         orders[0] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -409,7 +409,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         });
 
         orders[1] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
@@ -456,7 +456,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         ResolvedOrder[] memory orders = new ResolvedOrder[](2);
 
         orders[0] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
             input: InputToken(address(tokenIn), ONE, ONE),
@@ -466,7 +466,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         });
 
         orders[1] = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
             input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
@@ -500,7 +500,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
@@ -548,7 +548,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
 
         ResolvedOrder memory order = ResolvedOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withOfferer(swapper).withDeadline(block.timestamp + 100).withNonce(
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 123
                 ),
             input: InputToken(address(tokenIn), inputAmount, inputAmount),

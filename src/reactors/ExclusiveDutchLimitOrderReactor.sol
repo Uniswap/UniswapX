@@ -54,7 +54,7 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
         ISignatureTransfer(permit2).permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),
-            order.info.offerer,
+            order.info.swapper,
             order.hash,
             ExclusiveDutchLimitOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
