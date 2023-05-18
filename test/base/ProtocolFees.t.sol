@@ -268,6 +268,84 @@ contract ProtocolFeesTest is Test {
         assertEq(afterFees.outputs[4].recipient, RECIPIENT);
     }
 
+    // The same as testTakeFeesMultipleOutputTokensWithInterfaceFee but enable fees for tokenOut as well
+    function testTakeFeesMultipleOutputTokensWithInterfaceFeeBothFees() public {
+        OutputToken[] memory outputs = new OutputToken[](4);
+        outputs[0] = OutputToken(address(tokenOut), 1 ether, SWAPPER);
+        outputs[1] = OutputToken(address(tokenOut), 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        outputs[2] = OutputToken(address(tokenOut2), 2 ether, SWAPPER);
+        outputs[3] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(0)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: outputs,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+        feeController.setFee(address(tokenIn), address(tokenOut), 5);
+        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 6);
+        assertEq(afterFees.outputs[0].token, address(tokenOut));
+        assertEq(afterFees.outputs[0].amount, 1 ether);
+        assertEq(afterFees.outputs[0].recipient, SWAPPER);
+        assertEq(afterFees.outputs[1].token, address(tokenOut));
+        assertEq(afterFees.outputs[1].amount, 1 ether / 20);
+        assertEq(afterFees.outputs[1].recipient, INTERFACE_FEE_RECIPIENT);
+        assertEq(afterFees.outputs[2].token, address(tokenOut2));
+        assertEq(afterFees.outputs[2].amount, 2 ether);
+        assertEq(afterFees.outputs[2].recipient, SWAPPER);
+        assertEq(afterFees.outputs[3].token, address(tokenOut2));
+        assertEq(afterFees.outputs[3].amount, 2 ether / 20);
+        assertEq(afterFees.outputs[3].recipient, INTERFACE_FEE_RECIPIENT);
+        assertEq(afterFees.outputs[4].token, address(tokenOut));
+        assertEq(afterFees.outputs[4].amount, 1 ether * 21 / 20 * 5 / 10000);
+        assertEq(afterFees.outputs[4].recipient, RECIPIENT);
+        assertEq(afterFees.outputs[5].token, address(tokenOut2));
+        assertEq(afterFees.outputs[5].amount, 2 ether * 21 / 20 * 3 / 10000);
+        assertEq(afterFees.outputs[5].recipient, RECIPIENT);
+    }
+
+    // The same as testTakeFeesMultipleOutputTokensWithInterfaceFeeBothFees but change the order of outputs
+    function testTakeFeesMultipleOutputTokensWithInterfaceFeeBothFeesChangeOrder() public {
+        OutputToken[] memory outputs = new OutputToken[](4);
+        outputs[3] = OutputToken(address(tokenOut), 1 ether, SWAPPER);
+        outputs[1] = OutputToken(address(tokenOut), 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        outputs[2] = OutputToken(address(tokenOut2), 2 ether, SWAPPER);
+        outputs[0] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(0)),
+            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            outputs: outputs,
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+        feeController.setFee(address(tokenIn), address(tokenOut), 5);
+        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 6);
+        assertEq(afterFees.outputs[3].token, address(tokenOut));
+        assertEq(afterFees.outputs[3].amount, 1 ether);
+        assertEq(afterFees.outputs[3].recipient, SWAPPER);
+        assertEq(afterFees.outputs[1].token, address(tokenOut));
+        assertEq(afterFees.outputs[1].amount, 1 ether / 20);
+        assertEq(afterFees.outputs[1].recipient, INTERFACE_FEE_RECIPIENT);
+        assertEq(afterFees.outputs[2].token, address(tokenOut2));
+        assertEq(afterFees.outputs[2].amount, 2 ether);
+        assertEq(afterFees.outputs[2].recipient, SWAPPER);
+        assertEq(afterFees.outputs[0].token, address(tokenOut2));
+        assertEq(afterFees.outputs[0].amount, 2 ether / 20);
+        assertEq(afterFees.outputs[0].recipient, INTERFACE_FEE_RECIPIENT);
+        assertEq(afterFees.outputs[5].token, address(tokenOut));
+        assertEq(afterFees.outputs[5].amount, 1 ether * 21 / 20 * 5 / 10000);
+        assertEq(afterFees.outputs[5].recipient, RECIPIENT);
+        assertEq(afterFees.outputs[4].token, address(tokenOut2));
+        assertEq(afterFees.outputs[4].amount, 2 ether * 21 / 20 * 3 / 10000);
+        assertEq(afterFees.outputs[4].recipient, RECIPIENT);
+    }
+
     function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](1);
         address outputToken = isEthOutput ? NATIVE : address(tokenOut);
