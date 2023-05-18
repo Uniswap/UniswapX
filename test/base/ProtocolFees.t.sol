@@ -230,7 +230,7 @@ contract ProtocolFeesTest is Test {
     function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](1);
         address outputToken = isEthOutput ? NATIVE : address(tokenOut);
-        outputs[0] = OutputToken(outputToken, amount, RECIPIENT);
+        outputs[0] = OutputToken(outputToken, amount, SWAPPER);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
             input: InputToken(address(tokenIn), 1 ether, 1 ether),
