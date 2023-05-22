@@ -246,9 +246,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.prank(0x47173B170C64d16393a52e6C480b3Ad8c302ba1e);
         UNI.transfer(address(swapRouter02Executor), 1000 * ONE);
 
-        address[] memory tokensToApproveForSwapRouter02 = new address[](2);
-        tokensToApproveForSwapRouter02[0] = address(DAI);
-        tokensToApproveForSwapRouter02[1] = address(UNI);
+        ERC20[] memory tokensToApproveForSwapRouter02 = new ERC20[](2);
+        tokensToApproveForSwapRouter02[0] = DAI;
+        tokensToApproveForSwapRouter02[1] = UNI;
         bytes[] memory multicallData = new bytes[](3);
         address[] memory daiToEthPath = new address[](2);
         daiToEthPath[0] = address(DAI);
@@ -270,7 +270,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testMulticallOnlyOwner() public {
         vm.prank(address(0xbeef));
         vm.expectRevert("UNAUTHORIZED");
-        swapRouter02Executor.multicall(new address[](0), new bytes[](0));
+        swapRouter02Executor.multicall(new ERC20[](0), new bytes[](0));
     }
 
     // Swapper's order has input = 2000 DAI and output = 1 ETH. 213039886077866602 excess wei of ETH will remain in
