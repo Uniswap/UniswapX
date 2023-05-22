@@ -5,9 +5,15 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
 
 contract ExclusiveFillerValidation is IValidationCallback {
+    error NotExclusiveFiller();
+
     function validate(address filler, ResolvedOrder calldata resolvedOrder) external view returns (bool) {
         (address exclusiveFiller, uint256 lastExclusiveTimestamp) =
             abi.decode(resolvedOrder.info.validationData, (address, uint256));
-        return lastExclusiveTimestamp < block.timestamp || filler == exclusiveFiller;
+        if (lastExclusiveTimestamp < block.timestamp || filler == exclusiveFiller) {
+            return true;
+        } else {
+            revert NotExclusiveFiller();
+        }
     }
 }

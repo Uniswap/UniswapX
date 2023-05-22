@@ -97,7 +97,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         });
 
         vm.prank(address(0x123));
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(ExclusiveFillerValidation.NotExclusiveFiller.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             fillContract,
@@ -158,7 +158,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         });
 
         vm.prank(address(0x123));
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(ExclusiveFillerValidation.NotExclusiveFiller.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             fillContract,

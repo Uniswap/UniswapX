@@ -182,7 +182,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(MockValidationContract.MockValidationError.selector);
         reactor.execute(signedOrder, fillContract, bytes(""));
     }
 

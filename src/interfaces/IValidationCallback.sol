@@ -8,6 +8,6 @@ interface IValidationCallback {
     /// @notice Called by the reactor for custom validation of an order
     /// @param filler The filler of the order
     /// @param resolvedOrder The resolved order to fill
-    /// @return true if valid, else false
+    /// @return true if valid, else will revert
     function validate(address filler, ResolvedOrder calldata resolvedOrder) external view returns (bool);
 }

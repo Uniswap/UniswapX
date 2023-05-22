@@ -5,6 +5,8 @@ import {IValidationCallback} from "../../../src/interfaces/IValidationCallback.s
 import {OrderInfo, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 
 contract MockValidationContract is IValidationCallback {
+    error MockValidationError();
+
     bool public valid;
 
     function setValid(bool _valid) external {
@@ -12,6 +14,10 @@ contract MockValidationContract is IValidationCallback {
     }
 
     function validate(address, ResolvedOrder memory) external view returns (bool) {
-        return valid;
+        if (valid) {
+            return true;
+        } else {
+            revert MockValidationError();
+        }
     }
 }
