@@ -13,10 +13,8 @@ contract MockValidationContract is IValidationCallback {
         valid = _valid;
     }
 
-    function validate(address, ResolvedOrder memory) external view returns (bool) {
-        if (valid) {
-            return true;
-        } else {
+    function validate(address, ResolvedOrder memory) external view {
+        if (!valid) {
             revert MockValidationError();
         }
     }
