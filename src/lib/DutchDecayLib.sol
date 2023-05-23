@@ -42,6 +42,46 @@ library DutchDecayLib {
         }
     }
 
+    function decayPositive(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+        internal
+        view
+        returns (uint256 decayedAmount)
+    {
+        if (endTime < startTime) {
+            revert EndTimeBeforeStartTime();
+        } else if (endTime <= block.timestamp) {
+            decayedAmount = endAmount;
+        } else if (startTime >= block.timestamp) {
+            decayedAmount = startAmount;
+        } else {
+            unchecked {
+                uint256 elapsed = block.timestamp - startTime;
+                uint256 duration = endTime - startTime;
+                decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
+            }
+        }
+    }
+
+    function decayNegative(uint256 startAmount, uint256 endAmount, uint256 startTime, uint256 endTime)
+        internal
+        view
+        returns (uint256 decayedAmount)
+    {
+        if (endTime < startTime) {
+            revert EndTimeBeforeStartTime();
+        } else if (endTime <= block.timestamp) {
+            decayedAmount = endAmount;
+        } else if (startTime >= block.timestamp) {
+            decayedAmount = startAmount;
+        } else {
+            unchecked {
+                uint256 elapsed = block.timestamp - startTime;
+                uint256 duration = endTime - startTime;
+                decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+            }
+        }
+    }
+
     /// @notice returns a decayed output using the given dutch spec and times
     /// @param output The output to decay
     /// @param startTime The time to start decaying
@@ -56,7 +96,7 @@ library DutchDecayLib {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedOutput = DutchDecayLib.decay(output.startAmount, output.endAmount, startTime, endTime);
+        uint256 decayedOutput = DutchDecayLib.decayNegative(output.startAmount, output.endAmount, startTime, endTime);
         result = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
     }
 
@@ -93,7 +133,7 @@ library DutchDecayLib {
             revert IncorrectAmounts();
         }
 
-        uint256 decayedInput = DutchDecayLib.decay(input.startAmount, input.endAmount, startTime, endTime);
+        uint256 decayedInput = DutchDecayLib.decayPositive(input.startAmount, input.endAmount, startTime, endTime);
         result = InputToken(input.token, decayedInput, input.endAmount);
     }
 }
