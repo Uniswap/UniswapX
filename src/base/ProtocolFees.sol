@@ -27,10 +27,10 @@ abstract contract ProtocolFees is Owned {
 
     constructor(address _owner) Owned(_owner) {}
 
-    /// @notice Takes fees from the orders
+    /// @notice Injects fees into an order
     /// @dev modifies the orders to include protocol fee outputs
-    /// @param order The encoded order to take fees from
-    function _takeFees(ResolvedOrder memory order) internal view {
+    /// @param order The encoded order to inject fees into
+    function _injectFees(ResolvedOrder memory order) internal view {
         if (address(feeController) == address(0)) {
             return;
         }

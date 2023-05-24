@@ -9,7 +9,7 @@ contract MockProtocolFees is ProtocolFees {
     constructor(address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {}
 
     function takeFees(ResolvedOrder memory order) external view returns (ResolvedOrder memory) {
-        _takeFees(order);
+        _injectFees(order);
         return order;
     }
 }

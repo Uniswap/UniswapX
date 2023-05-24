@@ -73,7 +73,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
-                _takeFees(order);
+                _injectFees(order);
                 order.validate(msg.sender);
                 transferInputTokens(order, directFill ? msg.sender : fillContract);
 
