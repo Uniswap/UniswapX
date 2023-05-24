@@ -51,7 +51,7 @@ abstract contract ProtocolFees is Owned {
             }
         }
 
-        for (uint256 i = 0; i < feeOutputs.length;) {
+        for (uint256 i = 0; i < feeOutputsLength;) {
             OutputToken memory feeOutput = feeOutputs[i];
             // assert no duplicates
             unchecked {
