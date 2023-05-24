@@ -7,8 +7,6 @@ import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeContro
 
 /// @notice Mock protocol fee controller
 contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
-    error InvalidFee();
-
     uint256 private constant BPS = 10000;
     address public immutable feeRecipient;
 
