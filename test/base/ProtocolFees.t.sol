@@ -13,6 +13,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplicates.sol";
+import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
 
 contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -343,6 +344,19 @@ contract ProtocolFeesTest is Test {
         assertEq(afterFees.outputs[4].token, address(tokenOut2));
         assertEq(afterFees.outputs[4].amount, 2 ether * 21 / 20 * 3 / 10000);
         assertEq(afterFees.outputs[4].recipient, RECIPIENT);
+    }
+
+    function testTakeFeesInvalidFeeToken() public {
+        MockFeeControllerZeroFee controller = new MockFeeControllerZeroFee(RECIPIENT);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        fees.setProtocolFeeController(address(controller));
+
+        ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
+        uint256 feeBps = 5;
+        controller.setFee(address(tokenIn), address(tokenOut), feeBps);
+
+        vm.expectRevert(ProtocolFees.InvalidFeeToken.selector);
+        fees.takeFees(order);
     }
 
     function createOrder(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
