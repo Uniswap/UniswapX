@@ -83,6 +83,7 @@ contract ProtocolFeesTest is Test {
 
     function testTakeFeesFuzzOutputs(uint128 inputAmount, uint128[] memory outputAmounts, uint256 feeBps) public {
         vm.assume(feeBps <= 5);
+        vm.assume(outputAmounts.length > 0);
         OutputToken[] memory outputs = new OutputToken[](outputAmounts.length);
         for (uint256 i = 0; i < outputAmounts.length; i++) {
             outputs[i] = OutputToken(address(tokenOut), outputAmounts[i], RECIPIENT);
@@ -94,9 +95,7 @@ contract ProtocolFeesTest is Test {
             sig: hex"00",
             hash: bytes32(0)
         });
-        for (uint256 i = 0; i < outputs.length; i++) {
-            feeController.setFee(address(tokenIn), address(outputs[i].token), feeBps);
-        }
+        feeController.setFee(address(tokenIn), address(outputs[0].token), feeBps);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertGe(afterFees.outputs.length, outputs.length);
