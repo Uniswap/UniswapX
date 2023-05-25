@@ -15,6 +15,7 @@ import {
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
+import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
@@ -110,7 +111,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+        feeController.setFee(tokenIn1, address(tokenOut1), feeBps);
 
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
@@ -194,9 +195,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
-        feeController.setFee(address(tokenIn2), address(tokenOut2), feeBps);
-        feeController.setFee(address(tokenIn3), address(tokenOut3), feeBps);
+        feeController.setFee(tokenIn1, address(tokenOut1), feeBps);
+        feeController.setFee(tokenIn2, address(tokenOut2), feeBps);
+        feeController.setFee(tokenIn3, address(tokenOut3), feeBps);
 
         tokenIn1.mint(address(swapper1), ONE);
         tokenIn2.mint(address(swapper2), ONE * 2);

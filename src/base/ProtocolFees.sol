@@ -75,7 +75,7 @@ abstract contract ProtocolFees is Owned {
             }
 
             // allow fee on input token as well
-            if (order.input.token == feeOutput.token) {
+            if (address(order.input.token) == feeOutput.token) {
                 tokenValue += order.input.amount;
             }
 

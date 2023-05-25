@@ -588,7 +588,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
@@ -596,7 +596,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -615,7 +615,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
         _snapStart("BaseExecuteSingleWithFee");
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         snapEnd();
 
         uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;

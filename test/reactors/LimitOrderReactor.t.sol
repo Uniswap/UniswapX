@@ -155,7 +155,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
         tokenOut.mint(address(fillContract), ONE);
 
         tokenIn.forceApprove(swapper, address(permit2), ONE);

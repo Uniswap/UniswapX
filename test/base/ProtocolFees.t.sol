@@ -69,7 +69,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFees() public {
         ResolvedOrder memory order = createOrder(1 ether, false);
         uint256 feeBps = 3;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         assertEq(order.outputs.length, 1);
         ResolvedOrder memory afterFees = fees.takeFees(order);
@@ -91,12 +91,12 @@ contract ProtocolFeesTest is Test {
         }
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(outputs[0].token), feeBps);
+        feeController.setFee(tokenIn, address(outputs[0].token), feeBps);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertGe(afterFees.outputs.length, outputs.length);
@@ -118,7 +118,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFeesWithInterfaceFee() public {
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 3;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         assertEq(order.outputs.length, 2);
         ResolvedOrder memory afterFees = fees.takeFees(order);
@@ -137,7 +137,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFeesTooMuch() public {
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.FeeTooLarge.selector);
         fees.takeFees(order);
@@ -150,7 +150,7 @@ contract ProtocolFeesTest is Test {
 
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
-        controller.setFee(address(tokenIn), address(tokenOut), feeBps);
+        controller.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.DuplicateFeeOutput.selector);
         fees.takeFees(order);
@@ -163,13 +163,13 @@ contract ProtocolFeesTest is Test {
         outputs[1] = OutputToken(address(tokenOut2), 2 ether, SWAPPER);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 4);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 4);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 4);
@@ -201,12 +201,12 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 5);
@@ -242,12 +242,12 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut), 1 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 5);
@@ -277,13 +277,13 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 5);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 5);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 6);
@@ -316,13 +316,13 @@ contract ProtocolFeesTest is Test {
         outputs[0] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 5);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 5);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 6);
@@ -353,7 +353,7 @@ contract ProtocolFeesTest is Test {
 
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 5;
-        controller.setFee(address(tokenIn), address(tokenOut), feeBps);
+        controller.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.InvalidFeeToken.selector);
         fees.takeFees(order);
@@ -365,7 +365,7 @@ contract ProtocolFeesTest is Test {
         outputs[0] = OutputToken(outputToken, amount, SWAPPER);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
@@ -383,7 +383,7 @@ contract ProtocolFeesTest is Test {
         outputs[1] = OutputToken(outputToken, amount, INTERFACE_FEE_RECIPIENT);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
