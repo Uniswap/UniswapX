@@ -12,12 +12,12 @@ import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {ExpectedBalance, ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {IPSFees} from "../base/IPSFees.sol";
+import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a filler
-abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGuard {
+abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
     using ExpectedBalanceLib for ResolvedOrder[];
@@ -31,9 +31,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
     address public immutable permit2;
     address public constant DIRECT_FILL = address(1);
 
-    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
-        IPSFees(_protocolFeeBps, _protocolFeeRecipient)
-    {
+    constructor(address _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
     }
 
@@ -76,7 +74,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, IPSFees, ReentrancyGua
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
-                _takeFees(order);
+                _injectFees(order);
                 order.validate(msg.sender);
                 transferInputTokens(order, directFill ? msg.sender : address(fillContract));
 

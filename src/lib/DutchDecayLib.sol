@@ -57,7 +57,7 @@ library DutchDecayLib {
         }
 
         uint256 decayedOutput = DutchDecayLib.decay(output.startAmount, output.endAmount, startTime, endTime);
-        result = OutputToken(output.token, decayedOutput, output.recipient, output.isFeeOutput);
+        result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
     /// @notice returns a decayed output array using the given dutch spec and times

@@ -15,8 +15,6 @@ struct DutchOutput {
     uint256 endAmount;
     // The address who must receive the tokens to satisfy the order
     address recipient;
-    // True if this output represents a fee
-    bool isFeeOutput;
 }
 
 /// @dev An amount of input tokens that increases linearly over time
@@ -47,7 +45,7 @@ library DutchLimitOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes internal constant DUTCH_OUTPUT_TYPE =
-        "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient,bool isFeeOutput)";
+        "DutchOutput(address token,uint256 startAmount,uint256 endAmount,address recipient)";
     bytes32 internal constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
     bytes internal constant DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
@@ -72,14 +70,7 @@ library DutchLimitOrderLib {
 
     function hash(DutchOutput memory output) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(
-                DUTCH_OUTPUT_TYPE_HASH,
-                output.token,
-                output.startAmount,
-                output.endAmount,
-                output.recipient,
-                output.isFeeOutput
-            )
+            abi.encode(DUTCH_OUTPUT_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
         );
     }
 

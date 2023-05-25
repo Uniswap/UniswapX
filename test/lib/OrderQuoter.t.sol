@@ -29,8 +29,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     using OrderInfoBuilder for OrderInfo;
 
     uint256 constant ONE = 10 ** 18;
-    address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(1);
 
     OrderQuoter quoter;
     MockERC20 tokenIn;
@@ -49,8 +48,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         swapper = vm.addr(swapperPrivateKey);
         tokenIn.mint(address(swapper), ONE);
         permit2 = ISignatureTransfer(deployPermit2());
-        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
-        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
     }
 
     function testQuoteLimitOrder() public {
@@ -71,7 +70,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     function testQuoteDutchOrder() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
             startTime: block.timestamp,
@@ -92,7 +91,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         vm.warp(block.timestamp + 100);
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
             startTime: block.timestamp - 100,
@@ -113,7 +112,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         vm.warp(block.timestamp + 100);
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
             startTime: block.timestamp - 100,
@@ -161,7 +160,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     function testQuoteDutchOrderEndBeforeStart() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
             startTime: block.timestamp + 1000,
@@ -186,7 +185,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
 
     function testGetReactorDutchOrder() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(0x2345)),
             startTime: block.timestamp + 1000,

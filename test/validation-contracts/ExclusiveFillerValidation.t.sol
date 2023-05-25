@@ -20,8 +20,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(1);
 
     MockFillContract fillContract;
     MockERC20 tokenIn;
@@ -39,7 +38,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
 

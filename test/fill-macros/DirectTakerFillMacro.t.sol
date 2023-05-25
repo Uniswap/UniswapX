@@ -13,12 +13,13 @@ import {
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
-import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
@@ -28,8 +29,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(2);
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -59,7 +59,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         swapper2 = vm.addr(swapperPrivateKey2);
         directFiller = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
@@ -105,15 +105,22 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
     // The same as testSingleOrder, but with a 10% fee.
     function testSingleOrderWithFee() public {
+        address feeRecipient = address(1);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
         tokenIn1.mint(address(swapper1), inputAmount);
-        tokenOut1.mint(directFiller, outputAmount);
+        tokenOut1.mint(directFiller, outputAmount * (10000 + feeBps) / 10000);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, swapper1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, swapper1, true);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), outputAmount * 9 / 10, outputAmount * 9 / 10, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, swapper1);
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -130,8 +137,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             bytes("")
         );
         snapEnd();
-        assertEq(tokenOut1.balanceOf(swapper1), outputAmount * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), outputAmount / 10);
+        assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
+        assertEq(tokenOut1.balanceOf(address(feeRecipient)), outputAmount * feeBps / 10000);
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
     }
 
@@ -152,8 +159,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE * 2, ONE * 2, swapper1)
         });
         DutchOutput[] memory order2Outputs = new DutchOutput[](2);
-        order2Outputs[0] = DutchOutput(address(tokenOut1), ONE, ONE, swapper2, false);
-        order2Outputs[1] = DutchOutput(address(tokenOut2), ONE * 3, ONE * 3, swapper2, false);
+        order2Outputs[0] = DutchOutput(address(tokenOut1), ONE, ONE, swapper2);
+        order2Outputs[1] = DutchOutput(address(tokenOut2), ONE * 3, ONE * 3, swapper2);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -182,16 +189,25 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
     // 2nd order by swapper2, input = 2 tokenIn2 and outputs = [2 tokenOut2]
     // 2nd order by swapper2, input = 3 tokenIn3 and outputs = [3 tokenOut3]
     function testThreeOrdersWithFees() public {
+        address feeRecipient = address(1);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+        feeController.setFee(address(tokenIn2), address(tokenOut2), feeBps);
+        feeController.setFee(address(tokenIn3), address(tokenOut3), feeBps);
+
         tokenIn1.mint(address(swapper1), ONE);
         tokenIn2.mint(address(swapper2), ONE * 2);
         tokenIn3.mint(address(swapper2), ONE * 3);
-        tokenOut1.mint(directFiller, ONE);
-        tokenOut2.mint(directFiller, ONE * 2);
-        tokenOut3.mint(directFiller, ONE * 3);
+        tokenOut1.mint(directFiller, ONE * (10000 + feeBps) / 10000);
+        tokenOut2.mint(directFiller, ONE * 2 * (10000 + feeBps) / 10000);
+        tokenOut3.mint(directFiller, ONE * 3 * (10000 + feeBps) / 10000);
 
         DutchOutput[] memory dutchOutputs1 = new DutchOutput[](2);
-        dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, swapper1, false);
-        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, swapper1, true);
+        dutchOutputs1[0] = DutchOutput(address(tokenOut1), ONE * 9 / 10, ONE * 9 / 10, swapper1);
+        dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, swapper1);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -201,8 +217,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         DutchOutput[] memory dutchOutputs2 = new DutchOutput[](2);
-        dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, swapper2, false);
-        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, swapper2, true);
+        dutchOutputs2[0] = DutchOutput(address(tokenOut2), ONE * 2 * 9 / 10, ONE * 2 * 9 / 10, swapper2);
+        dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, swapper2);
         DutchLimitOrder memory order2 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -212,8 +228,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         DutchOutput[] memory dutchOutputs3 = new DutchOutput[](2);
-        dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, swapper2, false);
-        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, swapper2, true);
+        dutchOutputs3[0] = DutchOutput(address(tokenOut3), ONE * 3 * 9 / 10, ONE * 3 * 9 / 10, swapper2);
+        dutchOutputs3[1] = DutchOutput(address(tokenOut3), ONE * 3 / 10, ONE * 3 / 10, swapper2);
         DutchLimitOrder memory order3 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
@@ -232,12 +248,12 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         reactor.executeBatch(signedOrders, IReactorCallback(address(1)), bytes(""));
         snapEnd();
 
-        assertEq(tokenOut1.balanceOf(swapper1), ONE * 9 / 10);
-        assertEq(tokenOut1.balanceOf(address(reactor)), ONE / 10);
-        assertEq(tokenOut2.balanceOf(swapper2), ONE * 2 * 9 / 10);
-        assertEq(tokenOut2.balanceOf(address(reactor)), ONE * 2 / 10);
-        assertEq(tokenOut3.balanceOf(swapper2), ONE * 3 * 9 / 10);
-        assertEq(tokenOut3.balanceOf(address(reactor)), ONE * 3 / 10);
+        assertEq(tokenOut1.balanceOf(swapper1), ONE);
+        assertEq(tokenOut1.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
+        assertEq(tokenOut2.balanceOf(swapper2), ONE * 2);
+        assertEq(tokenOut2.balanceOf(address(feeRecipient)), ONE * 2 * feeBps / 10000);
+        assertEq(tokenOut3.balanceOf(swapper2), ONE * 3);
+        assertEq(tokenOut3.balanceOf(address(feeRecipient)), ONE * 3 * feeBps / 10000);
 
         assertEq(tokenIn1.balanceOf(directFiller), ONE);
         assertEq(tokenIn2.balanceOf(directFiller), 2 * ONE);

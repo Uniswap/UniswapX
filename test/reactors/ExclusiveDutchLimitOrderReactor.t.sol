@@ -30,15 +30,12 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
     using OrderInfoBuilder for OrderInfo;
     using ExclusiveDutchLimitOrderLib for ExclusiveDutchLimitOrder;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
-
     function name() public pure override returns (string memory) {
         return "ExclusiveDutchLimitOrder";
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         return reactor;
     }
 
@@ -57,8 +54,7 @@ contract ExclusiveDutchLimitOrderReactorExecuteTest is PermitSignature, DeployPe
                 token: output.token,
                 startAmount: output.amount,
                 endAmount: output.amount,
-                recipient: output.recipient,
-                isFeeOutput: output.isFeeOutput
+                recipient: output.recipient
             });
         }
 

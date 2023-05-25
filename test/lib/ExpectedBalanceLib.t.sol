@@ -99,9 +99,9 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceMultiOutputSomeDuplicate(uint128 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = new OutputToken[](3);
-        orders[0].outputs[0] = OutputToken(NATIVE, amount, recipient1, false);
-        orders[0].outputs[1] = OutputToken(NATIVE, amount, recipient2, false);
-        orders[0].outputs[2] = OutputToken(NATIVE, amount, recipient2, false);
+        orders[0].outputs[0] = OutputToken(NATIVE, amount, recipient1);
+        orders[0].outputs[1] = OutputToken(NATIVE, amount, recipient2);
+        orders[0].outputs[2] = OutputToken(NATIVE, amount, recipient2);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
@@ -133,8 +133,8 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceMultiOutputMultiToken(uint256 amount) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = new OutputToken[](2);
-        orders[0].outputs[0] = OutputToken(address(token1), amount, recipient1, false);
-        orders[0].outputs[1] = OutputToken(address(token2), amount, recipient1, false);
+        orders[0].outputs[0] = OutputToken(address(token1), amount, recipient1);
+        orders[0].outputs[1] = OutputToken(address(token2), amount, recipient1);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
@@ -149,8 +149,8 @@ contract ExpectedBalanceTest is Test {
     function testGetExpectedBalanceMultipleRecipients(uint128 amount1, uint128 amount2) public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](1);
         orders[0].outputs = new OutputToken[](2);
-        orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1, false);
-        orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2, false);
+        orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1);
+        orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
@@ -169,8 +169,8 @@ contract ExpectedBalanceTest is Test {
         token1.mint(recipient1, preAmount);
         token1.mint(recipient2, preAmount);
         orders[0].outputs = new OutputToken[](2);
-        orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1, false);
-        orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2, false);
+        orders[0].outputs[0] = OutputToken(address(token1), amount1, recipient1);
+        orders[0].outputs[1] = OutputToken(address(token1), amount2, recipient2);
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
         assertEq(expectedBalances.length, 2);
@@ -232,7 +232,7 @@ contract ExpectedBalanceTest is Test {
             TestGetExpectedBalanceConfig memory config = test[i];
             address token = config.useToken1 ? address(token1) : address(token2);
             MockERC20(token).mint(config.recipient, config.preBalance);
-            orders[0].outputs[i] = OutputToken(token, config.amount, config.recipient, false);
+            orders[0].outputs[i] = OutputToken(token, config.amount, config.recipient);
         }
 
         ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();

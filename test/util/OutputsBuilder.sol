@@ -7,7 +7,7 @@ import {DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
 library OutputsBuilder {
     function single(address token, uint256 amount, address recipient) internal pure returns (OutputToken[] memory) {
         OutputToken[] memory result = new OutputToken[](1);
-        result[0] = OutputToken(token, amount, recipient, false);
+        result[0] = OutputToken(token, amount, recipient);
         return result;
     }
 
@@ -19,7 +19,7 @@ library OutputsBuilder {
     {
         OutputToken[] memory result = new OutputToken[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
-            result[i] = OutputToken(token, amounts[i], recipient, false);
+            result[i] = OutputToken(token, amounts[i], recipient);
         }
         return result;
     }
@@ -30,7 +30,7 @@ library OutputsBuilder {
         returns (DutchOutput[] memory)
     {
         DutchOutput[] memory result = new DutchOutput[](1);
-        result[0] = DutchOutput(token, startAmount, endAmount, recipient, false);
+        result[0] = DutchOutput(token, startAmount, endAmount, recipient);
         return result;
     }
 
@@ -43,7 +43,7 @@ library OutputsBuilder {
     {
         DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
         for (uint256 i = 0; i < startAmounts.length; i++) {
-            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient, false);
+            result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient);
         }
         return result;
     }
