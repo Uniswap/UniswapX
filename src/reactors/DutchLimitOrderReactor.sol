@@ -18,9 +18,7 @@ contract DutchLimitOrderReactor is BaseReactor {
     error DeadlineBeforeEndTime();
     error InputAndOutputDecay();
 
-    constructor(address _permit2, uint256 _protocolFeeBps, address _protocolFeeRecipient)
-        BaseReactor(_permit2, _protocolFeeBps, _protocolFeeRecipient)
-    {}
+    constructor(address _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder calldata signedOrder)
