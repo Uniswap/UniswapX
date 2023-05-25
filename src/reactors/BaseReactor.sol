@@ -35,9 +35,6 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         permit2 = _permit2;
     }
 
-    /// @notice Needed for reactor (which takes custody of fees) to receive ETH fees
-    receive() external payable {}
-
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order, IReactorCallback fillContract, bytes calldata fillData)
         external
