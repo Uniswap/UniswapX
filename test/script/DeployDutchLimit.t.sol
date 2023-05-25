@@ -34,7 +34,7 @@ contract DeployDutchLimitTest is Test, PermitSignature {
         deployment.tokenIn.mint(address(swapper), ONE);
         deployment.tokenIn.forceApprove(swapper, address(deployment.permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
-        dutchOutputs[0] = DutchOutput(address(deployment.tokenOut), ONE, ONE * 9 / 10, address(0), false);
+        dutchOutputs[0] = DutchOutput(address(deployment.tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchLimitOrder memory order = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(deployment.reactor)).withSwapper(address(swapper)),
             startTime: block.timestamp,

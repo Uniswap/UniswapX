@@ -10,8 +10,8 @@ import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
-import {MockSwapper} from "../util/mock/users/MockSwapper.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -25,8 +25,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     using LimitOrderLib for LimitOrder;
 
     string constant LIMIT_ORDER_TYPE_NAME = "LimitOrder";
-    address constant PROTOCOL_FEE_RECIPIENT = address(1);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
 
     function setUp() public {
         tokenIn.mint(address(swapper), ONE);
@@ -38,7 +36,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         return reactor;
     }
 
@@ -151,13 +149,22 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function testExecuteWithFeeOutput() public {
+        address feeRecipient = address(1);
+        MockFeeController feeController = new MockFeeController(feeRecipient);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        uint256 feeBps = 5;
+        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        tokenOut.mint(address(fillContract), ONE);
+
         tokenIn.forceApprove(swapper, address(permit2), ONE);
+        tokenIn.forceApprove(swapper, address(permit2), ONE);
+
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
             input: InputToken(address(tokenIn), ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
-        order.outputs[0].isFeeOutput = true;
         bytes32 orderHash = order.hash();
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
 
@@ -173,24 +180,11 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
-        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart);
-        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - ONE);
-    }
-
-    function testExecuteWithFeeOutputChangeSig() public {
-        tokenIn.forceApprove(swapper, address(permit2), ONE);
-        LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
-            outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
-        });
-        order.outputs[0].isFeeOutput = true;
-        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-
-        order.outputs[0].isFeeOutput = false;
-
-        vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + ONE);
+        assertEq(
+            tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - (ONE * (feeBps + 10000) / 10000)
+        );
+        assertEq(tokenOut.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
     }
 
     function testExecuteInsufficientPermit() public {

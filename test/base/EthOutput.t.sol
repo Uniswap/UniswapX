@@ -16,7 +16,7 @@ import {
     DutchInput,
     DutchOutput
 } from "../../src/reactors/DutchLimitOrderReactor.sol";
-import {IPSFees} from "../../src/base/IPSFees.sol";
+import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -28,8 +28,7 @@ import {DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
 contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(2);
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -51,7 +50,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
     }
@@ -93,8 +92,8 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(fillContract), ONE * 5);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1, false);
+        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -143,8 +142,8 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(fillContract), ONE * 4);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1, false);
+        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -187,8 +186,8 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(reactor), ONE * 100);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
-        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1, false);
-        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1, false);
+        dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
         DutchLimitOrder memory order1 = DutchLimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
@@ -226,8 +225,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
     using OrderInfoBuilder for OrderInfo;
     using DutchLimitOrderLib for DutchLimitOrder;
 
-    address constant PROTOCOL_FEE_RECIPIENT = address(2);
-    uint256 constant PROTOCOL_FEE_BPS = 5000;
+    address constant PROTOCOL_FEE_OWNER = address(2);
     uint256 constant ONE = 10 ** 18;
 
     MockERC20 tokenIn1;
@@ -257,7 +255,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         swapper2 = vm.addr(swapperPrivateKey2);
         directFiller = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_BPS, PROTOCOL_FEE_RECIPIENT);
+        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
@@ -418,47 +416,5 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert(BaseReactor.InsufficientEth.selector);
         reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, address(1), bytes(""));
-    }
-
-    // Fill 2 orders, with ETH and ERC20 outputs:
-    // 1st order: from swapper1, input = 1 tokenIn1, output = 1 tokenOut1
-    // 2nd order: from swapper2, input = 1 tokenIn1, output = [1 ETH, 0.05 ETH (fee)]
-    function testEthOutputMixedOutputsAndFees() public {
-        tokenIn1.mint(address(swapper1), ONE);
-        tokenIn1.mint(address(swapper2), ONE);
-        tokenOut1.mint(address(directFiller), ONE);
-        vm.deal(directFiller, 2 * ONE);
-
-        DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
-            outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE, ONE, swapper1)
-        });
-        DutchOutput[] memory order2DutchOutputs = new DutchOutput[](2);
-        order2DutchOutputs[0] = DutchOutput(NATIVE, ONE, ONE, swapper2, false);
-        order2DutchOutputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, swapper2, true);
-        DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
-            outputs: order2DutchOutputs
-        });
-        SignedOrder[] memory signedOrders = new SignedOrder[](2);
-        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey1, address(permit2), order1));
-        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
-
-        vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroTestEthOutputMixedOutputsAndFees");
-        reactor.executeBatch{value: ONE * 21 / 20}(signedOrders, address(1), bytes(""));
-        snapEnd();
-        assertEq(tokenIn1.balanceOf(directFiller), 2 * ONE);
-        assertEq(swapper2.balance, ONE);
-        assertEq(address(reactor).balance, ONE / 20);
-        assertEq(tokenOut1.balanceOf(swapper1), ONE);
-        assertEq(directFiller.balance, ONE * 19 / 20);
-        assertEq(IPSFees(reactor).feesOwed(NATIVE, swapper2), 25000000000000000);
     }
 }

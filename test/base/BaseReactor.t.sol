@@ -14,6 +14,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 
@@ -23,6 +24,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     using ArrayBuilder for uint256[][];
 
     uint256 constant ONE = 10 ** 18;
+    address internal constant PROTOCOL_FEE_OWNER = address(1);
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
@@ -30,6 +32,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     MockFillContract fillContract;
     MockValidationContract validationContract;
     ISignatureTransfer permit2;
+    MockFeeController feeController;
+    address feeRecipient;
     BaseReactor reactor;
     uint256 swapperPrivateKey;
     address swapper;
@@ -47,6 +51,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         fillContract = new MockFillContract();
         validationContract = new MockValidationContract();
         validationContract.setValid(true);
+        feeRecipient = makeAddr("feeRecipient");
+        feeController = new MockFeeController(feeRecipient);
         createReactor();
     }
 
@@ -573,6 +579,51 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
         reactor.execute(signedOrder, address(fillContract), bytes(""));
+    }
+
+    /// @dev Basic execute test with protocol fee, checks balance before and after
+    function testBaseExecuteWithFee(uint128 inputAmount, uint128 outputAmount, uint256 deadline, uint8 feeBps) public {
+        vm.assume(deadline > block.timestamp);
+        vm.assume(feeBps <= 5);
+
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        // Seed both swapper and fillContract with enough tokens (important for dutch order)
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        ResolvedOrder memory order = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(this), swapper, order.info.nonce);
+        // execute order
+        _snapStart("BaseExecuteSingleWithFee");
+        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        snapEnd();
+
+        uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount - feeAmount);
+        assertEq(tokenOut.balanceOf(address(feeRecipient)), feeAmount);
     }
 
     function _checkpointBalances()

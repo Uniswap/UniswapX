@@ -47,7 +47,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         swapper2 = vm.addr(swapper2PrivateKey);
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
-        dloReactor = new DutchLimitOrderReactor(PERMIT2, 100, address(0));
+        dloReactor = new DutchLimitOrderReactor(PERMIT2, address(0));
         swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this), SWAPROUTER02);
 
         // Swapper max approves permit post
@@ -347,51 +347,6 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             address(swapRouter02Executor),
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
-    }
-
-    // Swapper's order has input = 2000 DAI and output = [1 ETH, 0.05 ETH (fee)].
-    function testSwapDaiToETHViaV2WithFee() public {
-        DutchOutput[] memory outputs = new DutchOutput[](2);
-        outputs[0] = DutchOutput(NATIVE, ONE, ONE, swapper, false);
-        outputs[1] = DutchOutput(NATIVE, ONE / 20, ONE / 20, swapper, true);
-        DutchLimitOrder memory order = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
-            input: DutchInput(address(DAI), 2000 * ONE, 2000 * ONE),
-            outputs: outputs
-        });
-
-        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
-        tokensToApproveForSwapRouter02[0] = DAI;
-        bytes[] memory multicallData = new bytes[](2);
-        address[] memory path = new address[](2);
-        path[0] = DAI;
-        path[1] = WETH;
-        multicallData[0] =
-            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
-        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
-
-        // Swapper max approves permit post
-        vm.prank(swapper);
-        ERC20(DAI).approve(PERMIT2, type(uint256).max);
-
-        // Transfer 2000 DAI to swapper
-        vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
-        ERC20(DAI).transfer(swapper, 2000 * ONE);
-
-        dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
-            address(swapRouter02Executor),
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
-        );
-        assertEq(ERC20(DAI).balanceOf(swapper), 0);
-        assertEq(ERC20(DAI).balanceOf(address(swapRouter02Executor)), 0);
-        assertEq(swapper.balance, ONE);
-        assertEq(address(swapRouter02Executor).balance, 163039886077866602);
-        assertEq(address(dloReactor).balance, ONE / 20);
-        assertEq(dloReactor.feesOwed(NATIVE, address(0)), 500000000000000);
-        assertEq(dloReactor.feesOwed(NATIVE, swapper), 49500000000000000);
     }
 
     // Test a batch execute, dai -> ETH via v2. Order 1: input = 2000 DAI, output = 1 ETH. Order 2: input = 1000 DAI,
