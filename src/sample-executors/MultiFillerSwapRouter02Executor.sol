@@ -32,7 +32,8 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         weth = WETH(payable(ISwapRouter02(_swapRouter02).WETH9()));
     }
 
-    function addWhitelistedCaller(address _whitelistedCaller) onlyOwner() external {
+    /// @param _whitelistedCaller The filler address to whitelist
+    function addWhitelistedCaller(address _whitelistedCaller) external onlyOwner {
         whitelistedCallers[_whitelistedCaller] = true;
     }
 
