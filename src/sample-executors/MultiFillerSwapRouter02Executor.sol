@@ -37,6 +37,11 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         whitelistedCallers[_whitelistedCaller] = true;
     }
 
+    /// @param _whitelistedCaller The filler address to remove from whitelist
+    function removeWhitelistedCaller(address _whitelistedCaller) external onlyOwner {
+        whitelistedCallers[_whitelistedCaller] = false;
+    }
+
     /// @param resolvedOrders The orders to fill
     /// @param filler This filler must be `whitelistedCaller`
     /// @param fillData It has the below encoded:
