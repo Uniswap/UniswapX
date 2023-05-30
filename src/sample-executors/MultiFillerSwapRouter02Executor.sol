@@ -11,6 +11,8 @@ import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
+/// @dev This is the same functionality as SwapRouter02Executor, but it allows the owner
+///      to whitelist multiple fillers to execute trades.
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
