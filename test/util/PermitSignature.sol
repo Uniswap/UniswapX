@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
@@ -66,7 +66,7 @@ contract PermitSignature is Test {
             nonce: info.nonce,
             deadline: info.deadline
         });
-        return getPermitSignature(privateKey, permit2, permit, info.reactor, typeHash, orderHash);
+        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
     }
 
     function signOrder(uint256 privateKey, address permit2, LimitOrder memory order)
@@ -75,7 +75,13 @@ contract PermitSignature is Test {
         returns (bytes memory sig)
     {
         return signOrder(
-            privateKey, permit2, order.info, order.input.token, order.input.amount, LIMIT_ORDER_TYPE_HASH, order.hash()
+            privateKey,
+            permit2,
+            order.info,
+            address(order.input.token),
+            order.input.amount,
+            LIMIT_ORDER_TYPE_HASH,
+            order.hash()
         );
     }
 
@@ -88,7 +94,7 @@ contract PermitSignature is Test {
             privateKey,
             permit2,
             order.info,
-            order.input.token,
+            address(order.input.token),
             order.input.endAmount,
             DUTCH_LIMIT_ORDER_TYPE_HASH,
             order.hash()
@@ -104,7 +110,7 @@ contract PermitSignature is Test {
             privateKey,
             permit2,
             order.info,
-            order.input.token,
+            address(order.input.token),
             order.input.endAmount,
             EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH,
             order.hash()

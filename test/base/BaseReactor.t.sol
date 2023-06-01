@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {Test} from "forge-std/Test.sol";
-import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
@@ -17,6 +16,7 @@ import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
@@ -95,7 +95,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -115,7 +115,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
         _snapStart("ExecuteSingle");
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -134,9 +134,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -156,7 +156,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
         _snapStart("ExecuteSingleValidation");
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -178,9 +178,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -188,8 +188,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        vm.expectRevert(MockValidationContract.MockValidationError.selector);
+        reactor.execute(signedOrder, fillContract, bytes(""));
     }
 
     /// @dev Execute with an invalid reactor
@@ -208,9 +208,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(orderReactor).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -219,7 +219,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(ResolvedOrderLib.InvalidReactor.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
     }
 
     /// @dev Execute with a deadline already passed
@@ -232,9 +232,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -244,7 +244,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         // cannot enforce selector as some reactors early throw in this case
         vm.expectRevert();
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
     }
 
     /// @dev Basic execute test for native currency, checks balance before and after
@@ -257,7 +257,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -274,7 +274,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
         _snapStart("ExecuteSingleNativeOutput");
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -302,7 +302,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -312,7 +312,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -325,7 +325,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHashes[1], address(this), swapper, orders[1].info.nonce);
 
         _snapStart("ExecuteBatch");
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount);
@@ -350,7 +350,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -360,7 +360,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), 2 * inputAmount, 2 * inputAmount),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -373,7 +373,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHashes[1], address(this), swapper, orders[1].info.nonce);
 
         _snapStart("ExecuteBatchNativeOutput");
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         snapEnd();
 
         assertEq(swapper.balance, totalOutputAmount);
@@ -402,7 +402,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), output1, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -412,7 +412,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
+            input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: OutputsBuilder.multiple(address(tokenOut), output2, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -425,7 +425,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHashes[1], address(this), swapper, orders[1].info.nonce);
 
         _snapStart("ExecuteBatchMultipleOutputs");
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount);
@@ -459,7 +459,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1,
             sig: hex"00",
             hash: bytes32(0)
@@ -469,7 +469,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            input: InputToken(address(tokenIn), ONE * 2, ONE * 2),
+            input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2,
             sig: hex"00",
             hash: bytes32(0)
@@ -482,7 +482,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHashes[1], address(this), swapper, orders[1].info.nonce);
 
         _snapStart("ExecuteBatchMultipleOutputsDifferentTokens");
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         snapEnd();
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
@@ -501,7 +501,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -517,7 +517,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -535,7 +535,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         signedOrder.sig = oldSignature;
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
     }
 
     /// @dev Base test preventing nonce reuse
@@ -551,7 +551,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 123
                 ),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -567,7 +567,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -578,7 +578,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         order.info.deadline = block.timestamp + 101;
         (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
     }
 
     /// @dev Basic execute test with protocol fee, checks balance before and after
@@ -588,7 +588,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
@@ -596,7 +596,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
             hash: bytes32(0)
@@ -615,7 +615,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
         // execute order
         _snapStart("BaseExecuteSingleWithFee");
-        reactor.execute(signedOrder, address(fillContract), bytes(""));
+        reactor.execute(signedOrder, fillContract, bytes(""));
         snapEnd();
 
         uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;

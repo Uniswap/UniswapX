@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
@@ -12,7 +12,7 @@ library ResolvedOrderLib {
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
     function validate(ResolvedOrder memory resolvedOrder, address filler) internal view {
-        if (address(this) != resolvedOrder.info.reactor) {
+        if (address(this) != address(resolvedOrder.info.reactor)) {
             revert InvalidReactor();
         }
 
@@ -20,11 +20,8 @@ library ResolvedOrderLib {
             revert DeadlinePassed();
         }
 
-        if (
-            resolvedOrder.info.validationContract != address(0)
-                && !IValidationCallback(resolvedOrder.info.validationContract).validate(filler, resolvedOrder)
-        ) {
-            revert ValidationFailed();
+        if (address(resolvedOrder.info.validationContract) != address(0)) {
+            resolvedOrder.info.validationContract.validate(filler, resolvedOrder);
         }
     }
 }

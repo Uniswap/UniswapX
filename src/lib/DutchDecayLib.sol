@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
 import {DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
@@ -25,9 +25,9 @@ library DutchDecayLib {
     {
         if (endTime < startTime) {
             revert EndTimeBeforeStartTime();
-        } else if (endTime < block.timestamp || startAmount == endAmount || startTime == endTime) {
+        } else if (endTime <= block.timestamp) {
             decayedAmount = endAmount;
-        } else if (startTime > block.timestamp) {
+        } else if (startTime >= block.timestamp) {
             decayedAmount = startAmount;
         } else {
             unchecked {

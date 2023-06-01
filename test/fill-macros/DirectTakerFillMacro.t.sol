@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
@@ -15,6 +15,7 @@ import {
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
+import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
@@ -87,7 +88,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
 
@@ -95,7 +96,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         snapStart("DirectFillerFillMacroSingleOrder");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            address(1),
+            IReactorCallback(address(1)),
             bytes("")
         );
         snapEnd();
@@ -110,7 +111,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
+        feeController.setFee(tokenIn1, address(tokenOut1), feeBps);
 
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
@@ -125,7 +126,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: dutchOutputs
         });
 
@@ -133,7 +134,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         snapStart("DirectFillerFillMacroSingleOrderWithFee");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            address(1),
+            IReactorCallback(address(1)),
             bytes("")
         );
         snapEnd();
@@ -155,7 +156,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
+            input: DutchInput(tokenIn1, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE * 2, ONE * 2, swapper1)
         });
         DutchOutput[] memory order2Outputs = new DutchOutput[](2);
@@ -165,7 +166,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn2), ONE * 3, ONE * 3),
+            input: DutchInput(tokenIn2, ONE * 3, ONE * 3),
             outputs: order2Outputs
         });
 
@@ -174,7 +175,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTwoOrders");
-        reactor.executeBatch(signedOrders, address(1), bytes(""));
+        reactor.executeBatch(signedOrders, IReactorCallback(address(1)), bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), 2 * ONE);
@@ -194,9 +195,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn1), address(tokenOut1), feeBps);
-        feeController.setFee(address(tokenIn2), address(tokenOut2), feeBps);
-        feeController.setFee(address(tokenIn3), address(tokenOut3), feeBps);
+        feeController.setFee(tokenIn1, address(tokenOut1), feeBps);
+        feeController.setFee(tokenIn2, address(tokenOut2), feeBps);
+        feeController.setFee(tokenIn3, address(tokenOut3), feeBps);
 
         tokenIn1.mint(address(swapper1), ONE);
         tokenIn2.mint(address(swapper2), ONE * 2);
@@ -212,7 +213,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), ONE, ONE),
+            input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs1
         });
 
@@ -223,7 +224,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn2), ONE * 2, ONE * 2),
+            input: DutchInput(tokenIn2, ONE * 2, ONE * 2),
             outputs: dutchOutputs2
         });
 
@@ -235,7 +236,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
                 .withNonce(1),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn3), ONE * 3, ONE * 3),
+            input: DutchInput(tokenIn3, ONE * 3, ONE * 3),
             outputs: dutchOutputs3
         });
 
@@ -245,7 +246,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroThreeOrdersWithFees");
-        reactor.executeBatch(signedOrders, address(1), bytes(""));
+        reactor.executeBatch(signedOrders, IReactorCallback(address(1)), bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
@@ -272,7 +273,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
 
@@ -280,7 +281,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.expectRevert(bytes("TRANSFER_FROM_FAILED"));
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            address(1),
+            IReactorCallback(address(1)),
             bytes("")
         );
     }
@@ -300,7 +301,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn1), inputAmount, inputAmount),
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
 
@@ -308,7 +309,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.expectRevert(abi.encodeWithSignature("InsufficientAllowance(uint256)", 0));
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            address(1),
+            IReactorCallback(address(1)),
             bytes("")
         );
     }

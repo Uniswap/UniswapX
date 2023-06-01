@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
@@ -67,7 +67,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         swapRouter02Executor =
-            new SwapRouter02Executor(address(this), address(reactor), address(this), address(mockSwapRouter));
+        new SwapRouter02Executor(address(this), address(reactor), address(this), ISwapRouter02(address(mockSwapRouter)));
 
         // Do appropriate max approvals
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
@@ -95,7 +95,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE, ONE),
+            InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
             keccak256(abi.encode(1))
@@ -116,7 +116,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
         });
 
@@ -137,7 +137,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
@@ -154,7 +154,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             // The output will resolve to 2
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE * 2, ONE * 2, address(swapper))
         });
@@ -177,7 +177,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -199,7 +199,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         bytes memory sig1 = signOrder(swapperPrivateKey, address(permit2), order1);
@@ -211,7 +211,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount * 3, inputAmount * 3),
+            input: DutchInput(tokenIn, inputAmount * 3, inputAmount * 3),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
         bytes memory sig2 = signOrder(swapperPrivateKey, address(permit2), order2);
@@ -230,7 +230,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
         reactor.executeBatch(
-            signedOrders, address(swapRouter02Executor), abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);
@@ -245,7 +245,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), ONE, ONE),
+            input: DutchInput(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
         });
 
@@ -268,7 +268,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            address(swapRouter02Executor),
+            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -296,7 +296,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes memory sig = hex"1234";
         resolvedOrders[0] = ResolvedOrder(
             OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            InputToken(address(tokenIn), ONE, ONE),
+            InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
             keccak256(abi.encode(1))
@@ -319,11 +319,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     function testUnwrapWETHNotOwner() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xbeef));
-        swapRouter02Executor.unwrapWETH(address(this));
-    }
-
-    function testUnwrapWETHInsuffucientBalance() public {
-        vm.expectRevert(SwapRouter02Executor.InsufficientWETHBalance.selector);
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
