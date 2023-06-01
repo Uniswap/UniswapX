@@ -436,4 +436,36 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         assertEq(tokenIn1.balanceOf(directFiller), 6 * ONE);
         assertEq(directFiller.balance, 0);
     }
+
+    // The same as testEth2Outputs, but only give directFiller 2.5 ETH which is only sufficient to fill the 1st order
+    // but not the 2nd.
+    function test2EthOutputOrdersButOnlyEnoughEthToFill1() public {
+        uint256 inputAmount = 10 ** 18;
+
+        tokenIn1.mint(address(swapper1), inputAmount * 2);
+        vm.deal(directFiller, ONE * 5 / 2);
+
+        DutchLimitOrder memory order1 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper1)
+        });
+        DutchLimitOrder memory order2 = DutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, swapper1)
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey1, address(permit2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey1, address(permit2), order2));
+
+        vm.prank(directFiller);
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
+        reactor.executeBatch{value: ONE * 5 / 2}(signedOrders, IReactorCallback(address(1)), bytes(""));
+    }
 }
