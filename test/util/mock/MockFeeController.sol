@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.0;
 
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {ResolvedOrder, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @notice Mock protocol fee controller
 contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
@@ -14,14 +15,14 @@ contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
         feeRecipient = _feeRecipient;
     }
 
-    mapping(address tokenIn => mapping(address tokenOut => uint256)) public fees;
+    mapping(ERC20 tokenIn => mapping(address tokenOut => uint256)) public fees;
 
     /// @inheritdoc IProtocolFeeController
     function getFeeOutputs(ResolvedOrder memory order) external view override returns (OutputToken[] memory result) {
         result = new OutputToken[](order.outputs.length);
 
         // use max size for now, one fee per output as overestimate
-        address tokenIn = order.input.token;
+        ERC20 tokenIn = order.input.token;
         uint256 feeCount;
 
         for (uint256 j = 0; j < order.outputs.length; j++) {
@@ -56,7 +57,7 @@ contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
         }
     }
 
-    function setFee(address tokenIn, address tokenOut, uint256 fee) external onlyOwner {
+    function setFee(ERC20 tokenIn, address tokenOut, uint256 fee) external onlyOwner {
         fees[tokenIn][tokenOut] = fee;
     }
 }

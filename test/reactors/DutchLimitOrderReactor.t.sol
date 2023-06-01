@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -50,7 +50,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -58,7 +58,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs[0].amount, 943);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     // Test multiple dutch outputs get resolved correctly. Use same time points as
@@ -73,7 +73,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -83,7 +83,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs[1].amount, 9429);
         assertEq(resolvedOrder.outputs[2].amount, 1429);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     // Test that when startTime = now, that the output = startAmount
@@ -95,7 +95,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -103,7 +103,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     // startAmount is expected to always be greater than endAmount
@@ -115,7 +115,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(block.timestamp + 100),
             block.timestamp,
             block.timestamp + 100,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
@@ -133,7 +133,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659029740,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -153,7 +153,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130541,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -167,7 +167,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659120540,
             1659130540,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -182,7 +182,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(100),
             50,
             101,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -196,7 +196,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
             50,
             100,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -205,7 +205,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 950);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     function testOutputDecaysCorrectlyWhenEndtimeLtNowLtDeadline() public {
@@ -215,7 +215,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
             50,
             100,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -224,7 +224,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 900);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     function testOutputDecaysCorrectlyWhenEndtimeEqNowLtDeadline() public {
@@ -234,7 +234,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
             50,
             100,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -243,7 +243,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 900);
         assertEq(resolvedOrder.input.amount, 0);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     function testInputDecaysCorrectlyWhenNowLtEndtimeLtDeadline() public {
@@ -253,7 +253,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
             50,
             100,
-            DutchInput(address(0), 800, 1000),
+            DutchInput(MockERC20(address(0)), 800, 1000),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -262,7 +262,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.input.amount, 900);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     function testInputDecaysCorrectlyWhenEndtimeLtNowLtDeadline() public {
@@ -272,7 +272,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1000),
             50,
             100,
-            DutchInput(address(0), 800, 1000),
+            DutchInput(MockERC20(address(0)), 800, 1000),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -281,7 +281,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 1000);
         assertEq(resolvedOrder.input.amount, 1000);
-        assertEq(resolvedOrder.input.token, address(0));
+        assertEq(address(resolvedOrder.input.token), address(0));
     }
 
     function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
@@ -295,7 +295,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
             startTime,
             endTime,
-            DutchInput(address(0), 0, 0),
+            DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -314,7 +314,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
             1659130540,
-            DutchInput(address(0), 100, 110),
+            DutchInput(MockERC20(address(0)), 100, 110),
             dutchOutputs
         );
         vm.expectRevert(DutchLimitOrderReactor.InputAndOutputDecay.selector);
@@ -329,7 +329,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
             1659130540,
-            DutchInput(address(0), 110, 100),
+            DutchInput(MockERC20(address(0)), 110, 100),
             dutchOutputs
         );
         vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
@@ -344,7 +344,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             1659130500,
             1659130540,
-            DutchInput(address(0), 100, 100),
+            DutchInput(MockERC20(address(0)), 100, 100),
             dutchOutputs
         );
         vm.expectRevert(DutchDecayLib.IncorrectAmounts.selector);
@@ -361,7 +361,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
             mockNow + 1,
             1659130540,
-            DutchInput(address(0), 2000, 2500),
+            DutchInput(MockERC20(address(0)), 2000, 2500),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -379,7 +379,7 @@ contract DutchLimitOrderReactorValidationTest is Test, DeployPermit2 {
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659100641),
             1659029740,
             1659100641,
-            DutchInput(address(0), 2000, 2500),
+            DutchInput(MockERC20(address(0)), 2000, 2500),
             dutchOutputs
         );
         bytes memory sig = hex"1234";
@@ -459,7 +459,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), 10 ** 18, 10 ** 18),
+            input: DutchInput(tokenIn, 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, swapper)
         });
 
@@ -469,7 +469,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), 2 ether, 2 ether),
+            input: DutchInput(tokenIn, 2 ether, 2 ether),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 ether, 3 ether, swapper)
         });
 
@@ -486,7 +486,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 .withNonce(2),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), 3 ether, 3 ether),
+            input: DutchInput(tokenIn, 3 ether, 3 ether),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, swapper2)
         });
         SignedOrder[] memory signedOrders = generateSignedOrders(orders);
@@ -499,7 +499,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
         emit Fill(orders[1].hash(), address(this), swapper, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
-        reactor.executeBatch(signedOrders, address(fillContract), bytes(""));
+        reactor.executeBatch(signedOrders, fillContract, bytes(""));
         assertEq(tokenOut.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(swapper2), 12 ether);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 ether);
@@ -522,7 +522,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
@@ -531,12 +531,12 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
+            input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
 
         vm.expectRevert();
-        reactor.executeBatch(generateSignedOrders(orders), address(fillContract), bytes(""));
+        reactor.executeBatch(generateSignedOrders(orders), fillContract, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output tokens to the recipient
@@ -555,7 +555,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
@@ -564,13 +564,13 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount * 2, inputAmount * 2),
+            input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
 
         fill.setOutputAmount(outputAmount);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 4 ether, 6 ether));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     // Execute 2 dutch limit orders, but executor does not send enough output ETH to the recipient
@@ -589,7 +589,7 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = DutchLimitOrder({
@@ -598,13 +598,13 @@ contract DutchLimitOrderReactorExecuteTest is PermitSignature, DeployPermit2, Ba
                 ),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(tokenIn), inputAmount, inputAmount),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
 
         fill.setOutputAmount(outputAmount / 2);
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.executeBatch(generateSignedOrders(orders), address(fill), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
+        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
     }
 
     function generateSignedOrders(DutchLimitOrder[] memory orders) private view returns (SignedOrder[] memory result) {
