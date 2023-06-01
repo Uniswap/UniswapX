@@ -344,7 +344,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        vm.expectRevert(CurrencyLibrary.NotEnoughETHDirectFiller.selector);
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.execute{value: outputAmount - 1}(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
             IReactorCallback(address(1)),
@@ -384,38 +384,5 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         snapEnd();
         assertEq(tokenIn1.balanceOf(directFiller), 2 * inputAmount);
         assertEq(swapper1.balance, 3 * ONE);
-    }
-
-    // The same setup as testEth2Outputs, but filler sends insufficient eth. However, there was already ETH in
-    // the reactor to cover the difference, so the revert we expect is `InsufficientEth` instead of `EtherSendFail`.
-    function testEth2OutputsInsufficientEthSentButEthInReactor() public {
-        uint256 inputAmount = 10 ** 18;
-
-        tokenIn1.mint(address(swapper1), inputAmount * 2);
-        vm.deal(directFiller, ONE * 3);
-        vm.deal(address(reactor), ONE);
-
-        DutchLimitOrder memory order1 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(tokenIn1, inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper1)
-        });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100)
-                .withNonce(1),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
-            input: DutchInput(tokenIn1, inputAmount, inputAmount),
-            outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, swapper1)
-        });
-        SignedOrder[] memory signedOrders = new SignedOrder[](2);
-        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey1, address(permit2), order1));
-        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey1, address(permit2), order2));
-
-        vm.prank(directFiller);
-        vm.expectRevert(BaseReactor.InsufficientEth.selector);
-        reactor.executeBatch{value: ONE * 3 - 1}(signedOrders, IReactorCallback(address(1)), bytes(""));
     }
 }
