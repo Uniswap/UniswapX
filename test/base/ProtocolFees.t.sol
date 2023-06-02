@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {Test} from "forge-std/Test.sol";
-import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OutputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
@@ -14,6 +14,16 @@ import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplicates.sol";
 import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {
+    ExclusiveDutchLimitOrderReactor,
+    ExclusiveDutchLimitOrder,
+    DutchInput,
+    DutchOutput
+} from "../../src/reactors/ExclusiveDutchLimitOrderReactor.sol";
 
 contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -388,5 +398,57 @@ contract ProtocolFeesTest is Test {
             sig: hex"00",
             hash: bytes32(0)
         });
+    }
+}
+
+// The purpose of ProtocolFeesGasComparisonTest is to see how much gas increases when interface and/or
+// protocol fees are added.
+contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2 {
+    using OrderInfoBuilder for OrderInfo;
+
+    address constant PROTOCOL_FEE_OWNER = address(2);
+
+    MockERC20 tokenIn1;
+    MockERC20 tokenOut1;
+    uint256 swapperPrivateKey1;
+    address swapper1;
+    ExclusiveDutchLimitOrderReactor reactor;
+    IAllowanceTransfer permit2;
+    MockFillContract fillContract;
+
+    function setUp() public {
+        tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
+        tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
+        fillContract = new MockFillContract();
+        swapperPrivateKey1 = 0x12341234;
+        swapper1 = vm.addr(swapperPrivateKey1);
+        permit2 = IAllowanceTransfer(deployPermit2());
+        reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
+    }
+
+    // Fill one order (from swapper1, input = 1 tokenIn, output = 1 tokenOut
+    function testEthOutput() public {
+        tokenIn1.mint(address(swapper1), 1 ether);
+        tokenOut1.mint(address(fillContract), 1 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 1 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 1 ether);
     }
 }
