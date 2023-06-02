@@ -427,11 +427,15 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
+        // Keep non 0 balances in swapper1 and INTERFACE_FEE_RECIPIENT to simulate best case gas scenario
+        tokenOut1.mint(swapper1, 1 ether);
+        tokenOut1.mint(INTERFACE_FEE_RECIPIENT, 1 ether);
+        tokenIn1.mint(address(fillContract), 1 ether);
     }
 
     // Fill an order without fees: input = 1 tokenIn, output = 1 tokenOut
     function testNoFees() public {
-        tokenIn1.mint(address(swapper1), 1 ether);
+        tokenIn1.mint(swapper1, 1 ether);
         tokenOut1.mint(address(fillContract), 1 ether);
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
@@ -452,8 +456,8 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             bytes("")
         );
         snapEnd();
-        assertEq(tokenIn1.balanceOf(address(fillContract)), 1 ether);
-        assertEq(tokenOut1.balanceOf(address(swapper1)), 1 ether);
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
     }
 
     // Fill an order with an interface fee: input = 1 tokenIn, output = [1 tokenOut to swapper1, 0.05 tokenOut to interface]
@@ -480,8 +484,8 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             bytes("")
         );
         snapEnd();
-        assertEq(tokenIn1.balanceOf(address(fillContract)), 1 ether);
-        assertEq(tokenOut1.balanceOf(address(swapper1)), 1 ether);
-        assertEq(tokenOut1.balanceOf(address(INTERFACE_FEE_RECIPIENT)), 1 ether / 20);
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(INTERFACE_FEE_RECIPIENT)), 21 ether / 20);
     }
 }
