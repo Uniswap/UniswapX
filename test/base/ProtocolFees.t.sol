@@ -18,6 +18,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {
     ExclusiveDutchLimitOrderReactor,
@@ -409,6 +410,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
 
     address constant PROTOCOL_FEE_OWNER = address(1001);
     address constant INTERFACE_FEE_RECIPIENT = address(1002);
+    address constant PROTOCOL_FEE_RECIPIENT = address(1003);
 
     MockERC20 tokenIn1;
     MockERC20 tokenOut1;
@@ -417,15 +419,21 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
     ExclusiveDutchLimitOrderReactor reactor;
     IAllowanceTransfer permit2;
     MockFillContract fillContract;
+    MockFeeController feeController;
 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
         tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
-        fillContract = new MockFillContract();
         swapperPrivateKey1 = 0x12341234;
         swapper1 = vm.addr(swapperPrivateKey1);
+
+        fillContract = new MockFillContract();
+        feeController = new MockFeeController(PROTOCOL_FEE_RECIPIENT);
         permit2 = IAllowanceTransfer(deployPermit2());
         reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         // Keep non 0 balances in swapper1 and INTERFACE_FEE_RECIPIENT to simulate best case gas scenario
         tokenOut1.mint(swapper1, 1 ether);
@@ -478,6 +486,38 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-InterfaceFee");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(INTERFACE_FEE_RECIPIENT)), 21 ether / 20);
+    }
+
+    // Fill an order with an interface fee and protocol fee: input = 1 tokenIn,
+    // output = [1 tokenOut to swapper1, 0.05 tokenOut to interface]. Protocol fee = 5bps
+    function testInterfaceAndProtocolFee() public {
+        feeController.setFee(tokenIn1, address(tokenOut1), 5);
+
+        tokenIn1.mint(address(swapper1), 1 ether);
+        tokenOut1.mint(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
             fillContract,
