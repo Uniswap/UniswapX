@@ -90,32 +90,22 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     }
 
     /// @notice Process transferring tokens from a direct filler to the recipients
-    /// @dev in the case of ETH outputs, ETh should be provided as value in the execute call
+    /// @dev in the case of ETH outputs, ETH should be provided as value in the execute call
     /// @param orders The orders to process
     function _processDirectFill(ResolvedOrder[] memory orders) internal {
-        // track outputs from msg.value as the contract may have
-        // a standing ETH balance due to collected fees
         unchecked {
-            uint256 ethAvailable = msg.value;
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 for (uint256 j = 0; j < order.outputs.length; j++) {
                     OutputToken memory output = order.outputs[j];
                     output.token.transferFromDirectFiller(output.recipient, output.amount, IAllowanceTransfer(permit2));
-
-                    if (output.token.isNative()) {
-                        if (ethAvailable >= output.amount) {
-                            ethAvailable -= output.amount;
-                        } else {
-                            revert InsufficientEth();
-                        }
-                    }
                 }
             }
 
-            // refund any remaining ETH to the filler
-            if (ethAvailable > 0) {
-                NATIVE.transfer(msg.sender, ethAvailable);
+            // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+            // `execute()` or `executeBatch()`
+            if (address(this).balance > 0) {
+                NATIVE.transfer(msg.sender, address(this).balance);
             }
         }
     }
