@@ -435,9 +435,11 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         reactor.setProtocolFeeController(address(feeController));
 
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
-        // Keep non 0 balances in swapper1 and INTERFACE_FEE_RECIPIENT to simulate best case gas scenario
+        // Keep non 0 balances in swapper1, INTERFACE_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT to simulate best
+        // case gas scenario
         tokenOut1.mint(swapper1, 1 ether);
         tokenOut1.mint(INTERFACE_FEE_RECIPIENT, 1 ether);
+        tokenOut1.mint(PROTOCOL_FEE_RECIPIENT, 1 ether);
         tokenIn1.mint(address(fillContract), 1 ether);
     }
 
@@ -524,8 +526,13 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             bytes("")
         );
         snapEnd();
+        // fillContract had 1 tokenIn1 preminted to it
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
-        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
-        assertEq(tokenOut1.balanceOf(address(INTERFACE_FEE_RECIPIENT)), 21 ether / 20);
+        // swapper had 1 tokenOut1 preminted to it
+        assertEq(tokenOut1.balanceOf(swapper1), 2 ether);
+        // INTERFACE_FEE_RECIPIENT had 1 tokenOut1 preminted to it
+        assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), 21 ether / 20);
+        // Protocol fee is 5 bps * 1.05
+        assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), 1 ether + 21 ether / 20 * 5 / 10000);
     }
 }
