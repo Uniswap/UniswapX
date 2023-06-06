@@ -442,6 +442,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         tokenOut1.mint(PROTOCOL_FEE_RECIPIENT, 1 ether);
         tokenIn1.mint(address(fillContract), 1 ether);
         vm.deal(swapper1, 1 ether);
+        vm.deal(INTERFACE_FEE_RECIPIENT, 1 ether);
     }
 
     // Fill an order without fees: input = 1 tokenIn, output = 1 tokenOut
@@ -537,6 +538,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), 1 ether + 21 ether / 20 * 5 / 10000);
     }
 
+    // The same as `testNoFees`, but output = 1 ether
     function testNoFeesEthOutput() public {
         tokenIn1.mint(swapper1, 1 ether);
         vm.deal(address(fillContract), 1 ether);
@@ -561,5 +563,34 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
         assertEq(swapper1.balance, 2 ether);
+    }
+
+    // Fill an order with an interface fee: input = 1 tokenIn, output = [1 ether to swapper1, 0.05 ether to interface]
+    function testInterfaceFeeEthOutput() public {
+        tokenIn1.mint(address(swapper1), 1 ether);
+        vm.deal(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(NATIVE, 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            startTime: block.timestamp,
+            endTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(swapper1.balance, 2 ether);
+        assertEq(INTERFACE_FEE_RECIPIENT.balance, 21 ether / 20);
     }
 }
