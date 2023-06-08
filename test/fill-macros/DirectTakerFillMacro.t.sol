@@ -81,8 +81,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
@@ -119,8 +119,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         dutchOutputs[1] = DutchOutput(address(tokenOut1), outputAmount / 10, outputAmount / 10, swapper1);
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: dutchOutputs
         });
@@ -149,8 +149,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), ONE * 2, ONE * 2, swapper1)
         });
@@ -159,8 +159,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         order2Outputs[1] = DutchOutput(address(tokenOut2), ONE * 3, ONE * 3, swapper2);
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn2, ONE * 3, ONE * 3),
             outputs: order2Outputs
         });
@@ -206,8 +206,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         dutchOutputs1[1] = DutchOutput(address(tokenOut1), ONE / 10, ONE / 10, swapper1);
         DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs1
         });
@@ -217,8 +217,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         dutchOutputs2[1] = DutchOutput(address(tokenOut2), ONE * 2 / 10, ONE * 2 / 10, swapper2);
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn2, ONE * 2, ONE * 2),
             outputs: dutchOutputs2
         });
@@ -229,8 +229,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         DutchOrder memory order3 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn3, ONE * 3, ONE * 3),
             outputs: dutchOutputs3
         });
@@ -266,8 +266,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });
@@ -294,8 +294,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
         });

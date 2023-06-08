@@ -86,7 +86,7 @@ contract DutchOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(address(resolvedOrder.input.token), address(0));
     }
 
-    // Test that when startTime = now, that the output = startAmount
+    // Test that when decayStartTime = now, that the output = startAmount
     function testResolveStartTimeEqualsNow() public {
         vm.warp(1659029740);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
@@ -284,17 +284,20 @@ contract DutchOrderReactorValidationTest is Test, DeployPermit2 {
         assertEq(address(resolvedOrder.input.token), address(0));
     }
 
-    function testDecayNeverOutOfBounds(uint256 startTime, uint256 startAmount, uint256 endTime, uint256 endAmount)
-        public
-    {
-        vm.assume(startTime < endTime);
+    function testDecayNeverOutOfBounds(
+        uint256 decayStartTime,
+        uint256 startAmount,
+        uint256 decayEndTime,
+        uint256 endAmount
+    ) public {
+        vm.assume(decayStartTime < decayEndTime);
         vm.assume(startAmount > endAmount);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), startAmount, endAmount, address(0));
         DutchOrder memory dlo = DutchOrder(
-            OrderInfoBuilder.init(address(reactor)).withDeadline(endTime),
-            startTime,
-            endTime,
+            OrderInfoBuilder.init(address(reactor)).withDeadline(decayEndTime),
+            decayStartTime,
+            decayEndTime,
             DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );
@@ -423,8 +426,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
 
         DutchOrder memory order = DutchOrder({
             info: request.info,
-            startTime: block.timestamp,
-            endTime: request.info.deadline,
+            decayStartTime: block.timestamp,
+            decayEndTime: request.info.deadline,
             input: DutchInput(request.input.token, request.input.amount, request.input.amount),
             outputs: outputs
         });
@@ -457,8 +460,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         endAmounts0[1] = startAmounts0[1];
         orders[0] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, 10 ** 18, 10 ** 18),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts0, endAmounts0, swapper)
         });
@@ -467,8 +470,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, 2 ether, 2 ether),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), 3 ether, 3 ether, swapper)
         });
@@ -484,8 +487,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         orders[2] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(2),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, 3 ether, 3 ether),
             outputs: OutputsBuilder.multipleDutch(address(tokenOut), startAmounts2, endAmounts2, swapper2)
         });
@@ -520,8 +523,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         DutchOrder[] memory orders = new DutchOrder[](2);
         orders[0] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
@@ -529,8 +532,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
@@ -553,8 +556,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         DutchOrder[] memory orders = new DutchOrder[](2);
         orders[0] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
@@ -562,8 +565,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
@@ -587,8 +590,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         DutchOrder[] memory orders = new DutchOrder[](2);
         orders[0] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
@@ -596,8 +599,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });

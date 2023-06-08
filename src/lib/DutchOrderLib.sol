@@ -31,9 +31,9 @@ struct DutchOrder {
     // generic order information
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
-    uint256 startTime;
+    uint256 decayStartTime;
     // The time at which price becomes static
-    uint256 endTime;
+    uint256 decayEndTime;
     // The tokens that the swapper will provide when settling the order
     DutchInput input;
     // The tokens that must be received to satisfy the order
@@ -51,8 +51,8 @@ library DutchOrderLib {
     bytes internal constant DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
         "DutchOrder(",
         "OrderInfo info,",
-        "uint256 startTime,",
-        "uint256 endTime,",
+        "uint256 decayStartTime,",
+        "uint256 decayEndTime,",
         "address inputToken,",
         "uint256 inputStartAmount,",
         "uint256 inputEndAmount,",
@@ -97,8 +97,8 @@ library DutchOrderLib {
             abi.encode(
                 ORDER_TYPE_HASH,
                 order.info.hash(),
-                order.startTime,
-                order.endTime,
+                order.decayStartTime,
+                order.decayEndTime,
                 order.input.token,
                 order.input.startAmount,
                 order.input.endAmount,

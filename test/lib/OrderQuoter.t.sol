@@ -68,8 +68,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -89,8 +89,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp - 100,
-            endTime: 201,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: 201,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -110,8 +110,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp - 100,
-            endTime: 201,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: 201,
             input: DutchInput(tokenIn, ONE * 9 / 10, ONE),
             outputs: dutchOutputs
         });
@@ -158,8 +158,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp + 1000,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp + 1000,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -183,8 +183,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(0x2345)),
-            startTime: block.timestamp + 1000,
-            endTime: block.timestamp + 1100,
+            decayStartTime: block.timestamp + 1000,
+            decayEndTime: block.timestamp + 1100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });

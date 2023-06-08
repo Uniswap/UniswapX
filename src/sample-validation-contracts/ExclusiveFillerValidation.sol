@@ -9,7 +9,7 @@ contract ExclusiveFillerValidation is IValidationCallback {
 
     function validate(address filler, ResolvedOrder calldata resolvedOrder) external view {
         (address exclusiveFiller, uint256 lastExclusiveTimestamp) =
-            abi.decode(resolvedOrder.info.validationData, (address, uint256));
+            abi.decode(resolvedOrder.info.additionalValidationData, (address, uint256));
         if (lastExclusiveTimestamp >= block.timestamp && filler != exclusiveFiller) {
             revert NotExclusiveFiller();
         }
