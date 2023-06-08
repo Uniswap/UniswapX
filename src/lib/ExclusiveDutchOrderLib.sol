@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
-import {DutchOutput, DutchInput, DutchLimitOrderLib} from "./DutchLimitOrderLib.sol";
+import {DutchOutput, DutchInput, DutchOrderLib} from "./DutchOrderLib.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
-struct ExclusiveDutchLimitOrder {
+struct ExclusiveDutchOrder {
     // generic order information
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
@@ -22,13 +22,13 @@ struct ExclusiveDutchLimitOrder {
     DutchOutput[] outputs;
 }
 
-/// @notice helpers for handling dutch limit order objects
-library ExclusiveDutchLimitOrderLib {
-    using DutchLimitOrderLib for DutchOutput[];
+/// @notice helpers for handling dutch order objects
+library ExclusiveDutchOrderLib {
+    using DutchOrderLib for DutchOutput[];
     using OrderInfoLib for OrderInfo;
 
     bytes internal constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
-        "ExclusiveDutchLimitOrder(",
+        "ExclusiveDutchOrder(",
         "OrderInfo info,",
         "uint256 startTime,",
         "uint256 endTime,",
@@ -41,25 +41,25 @@ library ExclusiveDutchLimitOrderLib {
     );
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE, DutchLimitOrderLib.DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
+        EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE, DutchOrderLib.DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
     string internal constant PERMIT2_ORDER_TYPE = string(
         abi.encodePacked(
-            "ExclusiveDutchLimitOrder witness)",
-            DutchLimitOrderLib.DUTCH_OUTPUT_TYPE,
+            "ExclusiveDutchOrder witness)",
+            DutchOrderLib.DUTCH_OUTPUT_TYPE,
             EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE,
             OrderInfoLib.ORDER_INFO_TYPE,
-            DutchLimitOrderLib.TOKEN_PERMISSIONS_TYPE
+            DutchOrderLib.TOKEN_PERMISSIONS_TYPE
         )
     );
 
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
-    function hash(ExclusiveDutchLimitOrder memory order) internal pure returns (bytes32) {
+    function hash(ExclusiveDutchOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,

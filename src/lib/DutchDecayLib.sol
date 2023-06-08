@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
-import {DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
+import {DutchOutput, DutchInput} from "../lib/DutchOrderLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 
-/// @notice helpers for handling dutch limit order objects
+/// @notice helpers for handling dutch order objects
 library DutchDecayLib {
     using FixedPointMathLib for uint256;
 
