@@ -43,13 +43,13 @@ contract DeployExclusiveDutchLimitTest is Test, PermitSignature {
             endTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 0,
-            input: DutchInput(address(deployment.tokenIn), ONE, ONE),
+            input: DutchInput(deployment.tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(deployment.permit2), order);
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
-        assertEq(quote.input.token, address(deployment.tokenIn));
+        assertEq(address(quote.input.token), address(deployment.tokenIn));
         assertEq(quote.input.amount, ONE);
         assertEq(quote.outputs[0].token, address(deployment.tokenOut));
         assertEq(quote.outputs[0].amount, ONE);
