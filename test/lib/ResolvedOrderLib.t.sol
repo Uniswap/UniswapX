@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
@@ -43,9 +43,9 @@ contract ResolvedOrderLibTest is Test {
     function testValidationContractInvalid() public {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(false);
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(MockValidationContract.MockValidationError.selector);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -53,7 +53,7 @@ contract ResolvedOrderLibTest is Test {
         MockValidationContract validationContract = new MockValidationContract();
         validationContract.setValid(true);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(address(validationContract));
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -61,9 +61,9 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 1000));
-        vm.expectRevert(ResolvedOrderLib.ValidationFailed.selector);
+        vm.expectRevert(ExclusiveFillerValidation.NotExclusiveFiller.selector);
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
 
@@ -73,7 +73,7 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 888));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
@@ -83,7 +83,7 @@ contract ResolvedOrderLibTest is Test {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            address(exclusiveFillerValidation)
+            exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 1000));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x123));
     }

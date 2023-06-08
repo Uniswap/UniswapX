@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
@@ -15,6 +15,7 @@ import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
+import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -56,9 +57,9 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -72,7 +73,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -86,17 +87,17 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
 
         fill.setOutputAmount(ONE);
 
-        vm.expectRevert(ExpectedBalanceLib.InsufficientOutput.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fill), bytes(""));
+        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fill, bytes(""));
     }
 
     function testExecuteWithDuplicateOutputs() public {
@@ -106,9 +107,9 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         amounts[1] = ONE / 2;
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -122,7 +123,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -134,18 +135,18 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                address(validationContract)
+                validationContract
                 ),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
 
         // change validation contract, ensure that sig fails
-        order.info.validationContract = address(0);
+        order.info.validationContract = IValidationCallback(address(0));
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
     }
 
     function testExecuteWithFeeOutput() public {
@@ -154,7 +155,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         uint256 feeBps = 5;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
         tokenOut.mint(address(fillContract), ONE);
 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
@@ -162,7 +163,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes32 orderHash = order.hash();
@@ -176,7 +177,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -191,7 +192,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 
@@ -201,14 +202,14 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         );
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
     }
 
     function testExecuteIncorrectSpender() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 
@@ -217,21 +218,21 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             swapperPrivateKey,
             address(permit2),
             OrderInfoBuilder.init(address(this)).withSwapper(address(swapper)),
-            order.input.token,
+            address(order.input.token),
             order.input.amount,
             LIMIT_ORDER_TYPE_HASH,
             orderHash
         );
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
     }
 
     function testExecuteIncorrectToken() public {
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)),
-            input: InputToken(address(tokenIn), ONE, ONE),
+            input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
 
@@ -240,6 +241,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             swapperPrivateKey, address(permit2), order.info, address(tokenOut), ONE, LIMIT_ORDER_TYPE_HASH, orderHash
         );
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), address(fillContract), bytes(""));
+        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
     }
 }

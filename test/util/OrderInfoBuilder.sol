@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../../src/base/ReactorStructs.sol";
+import {IReactor} from "../../src/interfaces/IReactor.sol";
+import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
         return OrderInfo({
-            reactor: reactor,
+            reactor: IReactor(reactor),
             swapper: address(0),
             nonce: 0,
             deadline: block.timestamp + 100,
-            validationContract: address(0),
+            validationContract: IValidationCallback(address(0)),
             validationData: bytes("")
         });
     }
@@ -30,7 +32,7 @@ library OrderInfoBuilder {
         return info;
     }
 
-    function withValidationContract(OrderInfo memory info, address _validationContract)
+    function withValidationContract(OrderInfo memory info, IValidationCallback _validationContract)
         internal
         pure
         returns (OrderInfo memory)

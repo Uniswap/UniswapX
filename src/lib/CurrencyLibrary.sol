@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
@@ -42,17 +42,20 @@ library CurrencyLibrary {
     }
 
     /// @notice Transfer currency from msg.sender to the recipient
-    /// @dev if curency is ETH, the value must have been sent in the execute call and is transferred directly
-    /// @dev if curency is token, the value is transferred from msg.sender via permit2
+    /// @dev if currency is ETH, the value must have been sent in the execute call and is transferred directly
+    /// @dev if currency is token, the value is transferred from msg.sender via permit2
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
-    function transferFromDirectFiller(address currency, address recipient, uint256 amount, address permit2) internal {
+    /// @param permit2 The deployed permit2 address
+    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2)
+        internal
+    {
         if (isNative(currency)) {
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
-            IAllowanceTransfer(permit2).transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
+            permit2.transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
         }
     }
 

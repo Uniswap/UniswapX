@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
@@ -9,7 +9,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
-import {ExpectedBalanceLib, ExpectedBalance} from "../lib/ExpectedBalanceLib.sol";
+import {ExpectedBalance, ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
@@ -35,10 +35,8 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         permit2 = _permit2;
     }
 
-    receive() external payable {}
-
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, address fillContract, bytes calldata fillData)
+    function execute(SignedOrder calldata order, IReactorCallback fillContract, bytes calldata fillData)
         external
         payable
         override
@@ -51,7 +49,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, address fillContract, bytes calldata fillData)
+    function executeBatch(SignedOrder[] calldata orders, IReactorCallback fillContract, bytes calldata fillData)
         external
         payable
         override
@@ -68,14 +66,14 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(ResolvedOrder[] memory orders, address fillContract, bytes calldata fillData) internal {
-        bool directFill = fillContract == DIRECT_FILL;
+    function _fill(ResolvedOrder[] memory orders, IReactorCallback fillContract, bytes calldata fillData) internal {
+        bool directFill = address(fillContract) == DIRECT_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, directFill ? msg.sender : fillContract);
+                transferInputTokens(order, directFill ? msg.sender : address(fillContract));
 
                 // Batch fills are all-or-nothing so emit fill events now to save a loop
                 emit Fill(orders[i].hash, msg.sender, order.info.swapper, order.info.nonce);
@@ -86,38 +84,28 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
             _processDirectFill(orders);
         } else {
             ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
-            IReactorCallback(fillContract).reactorCallback(orders, msg.sender, fillData);
+            fillContract.reactorCallback(orders, msg.sender, fillData);
             expectedBalances.check();
         }
     }
 
     /// @notice Process transferring tokens from a direct filler to the recipients
-    /// @dev in the case of ETH outputs, ETh should be provided as value in the execute call
+    /// @dev in the case of ETH outputs, ETH should be provided as value in the execute call
     /// @param orders The orders to process
     function _processDirectFill(ResolvedOrder[] memory orders) internal {
-        // track outputs from msg.value as the contract may have
-        // a standing ETH balance due to collected fees
         unchecked {
-            uint256 ethAvailable = msg.value;
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 for (uint256 j = 0; j < order.outputs.length; j++) {
                     OutputToken memory output = order.outputs[j];
-                    output.token.transferFromDirectFiller(output.recipient, output.amount, permit2);
-
-                    if (output.token.isNative()) {
-                        if (ethAvailable >= output.amount) {
-                            ethAvailable -= output.amount;
-                        } else {
-                            revert InsufficientEth();
-                        }
-                    }
+                    output.token.transferFromDirectFiller(output.recipient, output.amount, IAllowanceTransfer(permit2));
                 }
             }
 
-            // refund any remaining ETH to the filler
-            if (ethAvailable > 0) {
-                NATIVE.transfer(msg.sender, ethAvailable);
+            // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+            // `execute()` or `executeBatch()`
+            if (address(this).balance > 0) {
+                NATIVE.transfer(msg.sender, address(this).balance);
             }
         }
     }

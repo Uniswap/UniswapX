@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -14,7 +14,10 @@ library Permit2Lib {
         returns (ISignatureTransfer.PermitTransferFrom memory)
     {
         return ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: order.input.token, amount: order.input.maxAmount}),
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token),
+                amount: order.input.maxAmount
+            }),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });

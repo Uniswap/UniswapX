@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {DutchLimitDeployment, DeployDutchLimit} from "../../script/DeployDutchLimit.s.sol";
@@ -39,13 +39,13 @@ contract DeployDutchLimitTest is Test, PermitSignature {
             info: OrderInfoBuilder.init(address(deployment.reactor)).withSwapper(address(swapper)),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
-            input: DutchInput(address(deployment.tokenIn), ONE, ONE),
+            input: DutchInput(deployment.tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(deployment.permit2), order);
         ResolvedOrder memory quote = deployment.quoter.quote(abi.encode(order), sig);
 
-        assertEq(quote.input.token, address(deployment.tokenIn));
+        assertEq(address(quote.input.token), address(deployment.tokenIn));
         assertEq(quote.input.amount, ONE);
         assertEq(quote.outputs[0].token, address(deployment.tokenOut));
         assertEq(quote.outputs[0].amount, ONE);
