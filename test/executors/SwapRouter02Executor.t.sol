@@ -5,12 +5,7 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
-import {
-    DutchLimitOrderReactor,
-    DutchLimitOrder,
-    DutchInput,
-    DutchOutput
-} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
@@ -37,7 +32,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     address swapper;
     SwapRouter02Executor swapRouter02Executor;
     MockSwapRouter mockSwapRouter;
-    DutchLimitOrderReactor reactor;
+    DutchOrderReactor reactor;
     ISignatureTransfer permit2;
 
     uint256 constant ONE = 10 ** 18;
@@ -65,7 +60,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         swapRouter02Executor =
         new SwapRouter02Executor(address(this), address(reactor), address(this), ISwapRouter02(address(mockSwapRouter)));
 
@@ -112,7 +107,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
     // There will be 0.5 output token remaining in SwapRouter02Executor.
     function testExecute() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
@@ -150,7 +145,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
     // there will be an overflow error when reactor tries to transfer 2 outputToken out of fill contract.
     function testExecuteInsufficientOutput() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
@@ -195,7 +190,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -205,7 +200,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes memory sig1 = signOrder(swapperPrivateKey, address(permit2), order1);
         signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
 
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
@@ -241,7 +236,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     function testNotWhitelistedCaller() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,

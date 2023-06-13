@@ -10,21 +10,16 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {
-    DutchLimitOrderReactor,
-    DutchLimitOrder,
-    DutchInput,
-    DutchOutput
-} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
+import {DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 
-// This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and MockFillContract for fillContract.
+// This contract will test ETH outputs using DutchOrderReactor as the reactor and MockFillContract for fillContract.
 // Note that this contract only tests ETH outputs when NOT using direct filler.
 contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, GasSnapshot {
     using OrderInfoBuilder for OrderInfo;
@@ -38,7 +33,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
     address swapper1;
     uint256 swapperPrivateKey2;
     address swapper2;
-    DutchLimitOrderReactor reactor;
+    DutchOrderReactor reactor;
     IAllowanceTransfer permit2;
     MockFillContract fillContract;
 
@@ -51,7 +46,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
     }
@@ -62,7 +57,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         vm.deal(address(fillContract), ONE);
 
         vm.warp(1000);
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp - 100,
             endTime: block.timestamp + 100,
@@ -95,21 +90,21 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, swapper2)
         });
-        DutchLimitOrder memory order3 = DutchLimitOrder({
+        DutchOrder memory order3 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -145,21 +140,21 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, swapper2)
         });
-        DutchLimitOrder memory order3 = DutchLimitOrder({
+        DutchOrder memory order3 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -189,21 +184,21 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, swapper2)
         });
-        DutchLimitOrder memory order3 = DutchLimitOrder({
+        DutchOrder memory order3 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -221,10 +216,10 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
     }
 }
 
-// This contract will test ETH outputs using DutchLimitOrderReactor as the reactor and direct filler.
+// This contract will test ETH outputs using DutchOrderReactor as the reactor and direct filler.
 contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
-    using DutchLimitOrderLib for DutchLimitOrder;
+    using DutchOrderLib for DutchOrder;
 
     address constant PROTOCOL_FEE_OWNER = address(2);
     uint256 constant ONE = 10 ** 18;
@@ -240,7 +235,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
     uint256 swapperPrivateKey2;
     address swapper2;
     address directFiller;
-    DutchLimitOrderReactor reactor;
+    DutchOrderReactor reactor;
     IAllowanceTransfer permit2;
 
     function setUp() public {
@@ -256,7 +251,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         swapper2 = vm.addr(swapperPrivateKey2);
         directFiller = address(888);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
@@ -280,7 +275,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.mint(address(swapper1), inputAmount);
         vm.deal(directFiller, outputAmount);
 
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -307,7 +302,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.mint(address(swapper1), inputAmount);
         vm.deal(directFiller, outputAmount * 2);
 
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -335,7 +330,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.mint(address(swapper1), inputAmount);
         vm.deal(directFiller, outputAmount);
 
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -359,14 +354,14 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.mint(address(swapper1), inputAmount * 2);
         vm.deal(directFiller, ONE * 3);
 
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper1)
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -399,21 +394,21 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 2 * ONE, 2 * ONE, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 3 * ONE, 3 * ONE, swapper1);
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: dutchOutputs
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, 3 * ONE, 3 * ONE, swapper2)
         });
-        DutchLimitOrder memory order3 = DutchLimitOrder({
+        DutchOrder memory order3 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,
@@ -445,14 +440,14 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.mint(address(swapper1), inputAmount * 2);
         vm.deal(directFiller, ONE * 5 / 2);
 
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
             input: DutchInput(tokenIn1, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper1)
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100)
                 .withNonce(1),
             startTime: block.timestamp,

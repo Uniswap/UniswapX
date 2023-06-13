@@ -21,11 +21,11 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {
-    ExclusiveDutchLimitOrderReactor,
-    ExclusiveDutchLimitOrder,
+    ExclusiveDutchOrderReactor,
+    ExclusiveDutchOrder,
     DutchInput,
     DutchOutput
-} from "../../src/reactors/ExclusiveDutchLimitOrderReactor.sol";
+} from "../../src/reactors/ExclusiveDutchOrderReactor.sol";
 
 contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -416,7 +416,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
     MockERC20 tokenOut1;
     uint256 swapperPrivateKey1;
     address swapper1;
-    ExclusiveDutchLimitOrderReactor reactor;
+    ExclusiveDutchOrderReactor reactor;
     IAllowanceTransfer permit2;
     MockFillContract fillContract;
     MockFeeController feeController;
@@ -430,7 +430,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         fillContract = new MockFillContract();
         feeController = new MockFeeController(PROTOCOL_FEE_RECIPIENT);
         permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new ExclusiveDutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new ExclusiveDutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
 
@@ -453,7 +453,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -481,7 +481,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -513,7 +513,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
         dutchOutputs[1] = DutchOutput(address(tokenOut1), 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -546,7 +546,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -574,7 +574,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
         dutchOutputs[1] = DutchOutput(NATIVE, 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
@@ -606,7 +606,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
         dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
         dutchOutputs[1] = DutchOutput(NATIVE, 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
-        ExclusiveDutchLimitOrder memory order = ExclusiveDutchLimitOrder({
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
             startTime: block.timestamp,
             endTime: block.timestamp + 100,
