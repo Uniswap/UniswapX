@@ -23,7 +23,7 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
     using ExclusivityOverrideLib for ResolvedOrder;
 
     error DeadlineBeforeEndTime();
-    error EndTimeBeforeStartTime();
+    error OrderEndTimeBeforeStartTime();
     error InputAndOutputDecay();
 
     constructor(address _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
@@ -73,7 +73,7 @@ contract ExclusiveDutchLimitOrderReactor is BaseReactor {
         }
 
         if (order.endTime < order.startTime) {
-            revert EndTimeBeforeStartTime();
+            revert OrderEndTimeBeforeStartTime();
         }
 
         if (order.input.startAmount != order.input.endAmount) {
