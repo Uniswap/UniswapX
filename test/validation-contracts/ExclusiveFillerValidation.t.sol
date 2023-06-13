@@ -56,8 +56,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
@@ -89,8 +89,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp + 50)
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
@@ -104,7 +104,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         );
     }
 
-    // Ensure a different filler (not the one encoded in validationData) is able to execute after last exclusive
+    // Ensure a different filler (not the one encoded in additionalValidationData) is able to execute after last exclusive
     // timestamp
     function testNonExclusiveFillerSucceedsPastExclusiveTimestamp() public {
         uint256 inputAmount = 10 ** 18;
@@ -120,8 +120,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp - 50)
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
@@ -150,8 +150,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(this), block.timestamp)
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });

@@ -64,16 +64,16 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapWethToDaiViaV3() public {
         DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(swapper))
         });
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withNonce(1),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 1600 * ONE, 1600 * ONE, address(swapper))
         });
@@ -113,8 +113,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapWethToDaiViaV2() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(swapper))
         });
@@ -144,8 +144,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         uint256 output = 300 * 10 ** 6;
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(USDT), output, output, address(swapper))
         });
@@ -180,8 +180,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         deal(address(USDT), address(swapper), input);
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(USDT, input, input),
             outputs: OutputsBuilder.singleDutch(address(WETH), output, output, address(swapper))
         });
@@ -209,8 +209,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapWethToDaiViaV2InsufficientOutput() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 4000 * ONE, 4000 * ONE, address(swapper))
         });
@@ -273,8 +273,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapDaiToETHViaV2() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, 2000 * ONE, 2000 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, address(swapper))
         });
@@ -312,8 +312,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     function testSwapDaiToEthViaV2ButInsufficientDai() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, 2000 * ONE, 2000 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, address(swapper))
         });
@@ -360,15 +360,15 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 2000, ONE * 2000),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper)
         });
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 1000, ONE * 1000),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE / 2, ONE / 2, swapper2)
         });

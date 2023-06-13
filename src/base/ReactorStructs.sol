@@ -20,9 +20,9 @@ struct OrderInfo {
     // The timestamp after which this order is no longer valid
     uint256 deadline;
     // Custom validation contract
-    IValidationCallback validationContract;
-    // Encoded validation params for validationContract
-    bytes validationData;
+    IValidationCallback additionalValidationContract;
+    // Encoded validation params for additionalValidationContract
+    bytes additionalValidationData;
 }
 
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order

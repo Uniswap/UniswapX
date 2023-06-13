@@ -60,8 +60,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
 
         ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: request.info,
-            startTime: block.timestamp,
-            endTime: request.info.deadline,
+            decayStartTime: block.timestamp,
+            decayEndTime: request.info.deadline,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(request.input.token, request.input.amount, request.input.amount),
@@ -96,8 +96,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         endAmounts0[1] = startAmounts0[1];
         orders[0] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, 10 ** 18, 10 ** 18),
@@ -108,8 +108,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, 2 ether, 2 ether),
@@ -127,8 +127,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         orders[2] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100)
                 .withNonce(2),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, 3 ether, 3 ether),
@@ -165,8 +165,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         ExclusiveDutchOrder[] memory orders = new ExclusiveDutchOrder[](2);
         orders[0] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -176,8 +176,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
@@ -202,8 +202,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         ExclusiveDutchOrder[] memory orders = new ExclusiveDutchOrder[](2);
         orders[0] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -213,8 +213,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
@@ -240,8 +240,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         ExclusiveDutchOrder[] memory orders = new ExclusiveDutchOrder[](2);
         orders[0] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -251,8 +251,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
                 ),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -272,8 +272,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
 
         ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: 300,
             input: DutchInput(tokenIn, amountIn, amountIn),
@@ -308,8 +308,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
 
         ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: overrideAmt,
             input: DutchInput(tokenIn, amountIn, amountIn),
@@ -353,8 +353,8 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
 
         ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             exclusiveFiller: exclusive,
             exclusivityOverrideBps: overrideAmt,
             input: DutchInput(tokenIn, amountIn, amountIn),

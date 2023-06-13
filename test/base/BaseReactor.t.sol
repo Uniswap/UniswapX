@@ -30,7 +30,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     MockERC20 tokenOut;
     MockERC20 tokenOut2;
     MockFillContract fillContract;
-    MockValidationContract validationContract;
+    MockValidationContract additionalValidationContract;
     ISignatureTransfer permit2;
     MockFeeController feeController;
     address feeRecipient;
@@ -49,8 +49,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         swapper = vm.addr(swapperPrivateKey);
         permit2 = ISignatureTransfer(deployPermit2());
         fillContract = new MockFillContract();
-        validationContract = new MockValidationContract();
-        validationContract.setValid(true);
+        additionalValidationContract = new MockValidationContract();
+        additionalValidationContract.setValid(true);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
         createReactor();
@@ -134,7 +134,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -174,11 +174,11 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-        validationContract.setValid(false);
+        additionalValidationContract.setValid(false);
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -208,7 +208,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(orderReactor).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -232,7 +232,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
