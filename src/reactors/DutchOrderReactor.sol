@@ -33,8 +33,8 @@ contract DutchOrderReactor is BaseReactor {
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
-            input: order.input.decay(order.startTime, order.endTime),
-            outputs: order.outputs.decay(order.startTime, order.endTime),
+            input: order.input.decay(order.decayStartTime, order.decayEndTime),
+            outputs: order.outputs.decay(order.decayStartTime, order.decayEndTime),
             sig: signedOrder.sig,
             hash: order.hash()
         });
@@ -53,13 +53,13 @@ contract DutchOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
-    /// - deadline must be greater than or equal than endTime
-    /// - endTime must be greater than or equal to startTime
+    /// - deadline must be greater than or equal than decayEndTime
+    /// - decayEndTime must be greater than or equal to decayStartTime
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchOrder memory order) internal pure {
-        if (order.info.deadline < order.endTime) {
+        if (order.info.deadline < order.decayEndTime) {
             revert DeadlineBeforeEndTime();
         }
 

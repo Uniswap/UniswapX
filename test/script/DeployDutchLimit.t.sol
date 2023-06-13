@@ -37,8 +37,8 @@ contract DeployDutchTest is Test, PermitSignature {
         dutchOutputs[0] = DutchOutput(address(deployment.tokenOut), ONE, ONE * 9 / 10, address(0));
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(deployment.reactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(deployment.tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });

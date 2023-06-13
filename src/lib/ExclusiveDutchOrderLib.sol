@@ -9,10 +9,10 @@ struct ExclusiveDutchOrder {
     // generic order information
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
-    uint256 startTime;
+    uint256 decayStartTime;
     // The time at which price becomes static
-    uint256 endTime;
-    // The address who has exclusive rights to the order until startTime
+    uint256 decayEndTime;
+    // The address who has exclusive rights to the order until decayStartTime
     address exclusiveFiller;
     // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order
     uint256 exclusivityOverrideBps;
@@ -30,8 +30,8 @@ library ExclusiveDutchOrderLib {
     bytes internal constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
         "ExclusiveDutchOrder(",
         "OrderInfo info,",
-        "uint256 startTime,",
-        "uint256 endTime,",
+        "uint256 decayStartTime,",
+        "uint256 decayEndTime,",
         "address exclusiveFiller,",
         "uint256 exclusivityOverrideBps,",
         "address inputToken,",
@@ -64,8 +64,8 @@ library ExclusiveDutchOrderLib {
             abi.encode(
                 ORDER_TYPE_HASH,
                 order.info.hash(),
-                order.startTime,
-                order.endTime,
+                order.decayStartTime,
+                order.decayEndTime,
                 order.exclusiveFiller,
                 order.exclusivityOverrideBps,
                 order.input.token,
