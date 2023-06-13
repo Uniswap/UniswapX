@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {OutputToken} from "../../src/base/ReactorStructs.sol";
-import {DutchOutput} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 
 library OutputsBuilder {
     function single(address token, uint256 amount, address recipient) internal pure returns (OutputToken[] memory) {

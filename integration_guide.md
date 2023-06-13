@@ -4,13 +4,13 @@ There are three components to integrating as a filler: defining a filler executi
 
 ## 1. Defining a Filler Execution Strategy
 
-To execute a discovered order, a filler needs to call one of the `execute` methods ([source](https://github.com/Uniswap/gouda/blob/de36900fa074784bda215b902d4854bdffab09ba/src/reactors/BaseReactor.sol#L31)) of the Dutch Limit Order Reactor, providing it with the orders to execute along with the address of the executor contract that defines their fill strategy.
+To execute a discovered order, a filler needs to call one of the `execute` methods ([source](https://github.com/Uniswap/gouda/blob/de36900fa074784bda215b902d4854bdffab09ba/src/reactors/BaseReactor.sol#L31)) of the Dutch Order Reactor, providing it with the orders to execute along with the address of the executor contract that defines their fill strategy.
 
 The simplest fill strategy is called `Direct Filler`, where the trade is executed directly against tokens held in the fillers address. To use this strategy, we’ve provided a short cut so fillers do not need to deploy an executor contract. They can simply call `execute` with filler address `address(1)` to fill against themselves (see [source](https://github.com/Uniswap/gouda/blob/de36900fa074784bda215b902d4854bdffab09ba/src/reactors/BaseReactor.sol#L73)):
 
 ```solidity
 // Execute direct filler order
-DutchLimitOrderReactor.execute(order, address(1)); 
+DutchOrderReactor.execute(order, address(1)); 
 ```
 
 More sophisticated fillers can implement arbitrarily complex strategies by deploying their own Executor contracts. This contract should implement the [IReactorCallback](https://github.com/Uniswap/gouda/blob/main/src/interfaces/IReactorCallback.sol) interface, which takes in an order with input tokens and returns the allotted number of output tokens to the caller. To use an executor contract, fillers simply specify it’s address when calling `execute`:
@@ -19,7 +19,7 @@ More sophisticated fillers can implement arbitrarily complex strategies by deplo
 // Execute custom fill strategy
 address executor = /* Address of deployed executor contract */ ;
 bytes fillData = /* Call data to be sent to your executor contract */; 
-DutchLimitOrderReactor.execute(order, executor, fillData); 
+DutchOrderReactor.execute(order, executor, fillData); 
 ```
 
 For convenience, we’ve provided an [example Executor Contract](https://github.com/Uniswap/gouda/tree/main/src/sample-executors) which demonstrates how a filler could implement a strategy that executes a Gouda order against a Uniswap V3 pool.
@@ -31,7 +31,7 @@ All signed orders created through the Uniswap UI will be available via the [Goud
 1. Call `GET` on the `prod/dutch-auction/orders` of the Gouda Orders Endpoint to retrieve open signed orders
 2. Decode returned orders using the [Gouda SDK](https://github.com/Uniswap/gouda-sdk/#parsing-orders)
 3. Determine which orders you would like to execute
-4. Send a new transaction to the [execute](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L29) or [executeBatch](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L37) methods of the [Dutch Limit Order Reactor](https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol) specifying the signed orders you’d like to fill and the address of your executor contract
+4. Send a new transaction to the [execute](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L29) or [executeBatch](https://github.com/Uniswap/gouda/blob/a2025e3306312fc284a29daebdcabb88b50037c2/src/reactors/BaseReactor.sol#L37) methods of the [Dutch Order Reactor](https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchOrderReactor.sol) specifying the signed orders you’d like to fill and the address of your executor contract
 
 If the order is valid, it will be competing against other fillers attempts to execute it in a gas auction. For this reason, we recommend submitting these transactions through a service like [Flashbots Protect](https://docs.flashbots.net/flashbots-protect/overview).
 
@@ -123,5 +123,5 @@ data: {
 
 | Contract | Address | Source |
 | --- | --- | --- |
-| Dutch Limit Order Reactor | https://etherscan.io/address/0xbd7f9d0239f81c94b728d827a87b9864972661ec | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchLimitOrderReactor.sol |
+| Dutch Order Reactor | https://etherscan.io/address/0xbd7f9d0239f81c94b728d827a87b9864972661ec | https://github.com/Uniswap/gouda/blob/main/src/reactors/DutchOrderReactor.sol |
 | Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
