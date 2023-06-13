@@ -27,7 +27,7 @@ struct DutchInput {
     uint256 endAmount;
 }
 
-struct DutchLimitOrder {
+struct DutchOrder {
     // generic order information
     OrderInfo info;
     // The time at which the DutchOutputs start decaying
@@ -40,8 +40,8 @@ struct DutchLimitOrder {
     DutchOutput[] outputs;
 }
 
-/// @notice helpers for handling dutch limit order objects
-library DutchLimitOrderLib {
+/// @notice helpers for handling dutch order objects
+library DutchOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes internal constant DUTCH_OUTPUT_TYPE =
@@ -49,7 +49,7 @@ library DutchLimitOrderLib {
     bytes32 internal constant DUTCH_OUTPUT_TYPE_HASH = keccak256(DUTCH_OUTPUT_TYPE);
 
     bytes internal constant DUTCH_LIMIT_ORDER_TYPE = abi.encodePacked(
-        "DutchLimitOrder(",
+        "DutchOrder(",
         "OrderInfo info,",
         "uint256 startTime,",
         "uint256 endTime,",
@@ -66,7 +66,7 @@ library DutchLimitOrderLib {
 
     string internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("DutchLimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+        string(abi.encodePacked("DutchOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     function hash(DutchOutput memory output) internal pure returns (bytes32) {
         return keccak256(
@@ -92,7 +92,7 @@ library DutchLimitOrderLib {
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
-    function hash(DutchLimitOrder memory order) internal pure returns (bytes32) {
+    function hash(DutchOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,

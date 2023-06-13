@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {BaseReactor} from "./BaseReactor.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
-import {DutchLimitOrderLib, DutchLimitOrder, DutchOutput, DutchInput} from "../lib/DutchLimitOrderLib.sol";
+import {ExclusiveDutchOrderLib, ExclusiveDutchOrder, DutchOutput, DutchInput} from "../lib/ExclusiveDutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
 
-/// @notice Reactor for dutch limit orders
-contract DutchLimitOrderReactor is BaseReactor {
+/// @notice Reactor for exclusive dutch orders
+contract ExclusiveDutchOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
-    using DutchLimitOrderLib for DutchLimitOrder;
+    using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
+    using ExclusivityOverrideLib for ResolvedOrder;
 
     error DeadlineBeforeEndTime();
+    error EndTimeBeforeStartTime();
     error InputAndOutputDecay();
 
     constructor(address _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
@@ -28,7 +31,7 @@ contract DutchLimitOrderReactor is BaseReactor {
         override
         returns (ResolvedOrder memory resolvedOrder)
     {
-        DutchLimitOrder memory order = abi.decode(signedOrder.order, (DutchLimitOrder));
+        ExclusiveDutchOrder memory order = abi.decode(signedOrder.order, (ExclusiveDutchOrder));
         _validateOrder(order);
 
         resolvedOrder = ResolvedOrder({
@@ -38,6 +41,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: order.hash()
         });
+        resolvedOrder.handleOverride(order.exclusiveFiller, order.startTime, order.exclusivityOverrideBps);
     }
 
     /// @inheritdoc BaseReactor
@@ -47,7 +51,7 @@ contract DutchLimitOrderReactor is BaseReactor {
             order.transferDetails(to),
             order.info.swapper,
             order.hash,
-            DutchLimitOrderLib.PERMIT2_ORDER_TYPE,
+            ExclusiveDutchOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }
@@ -58,9 +62,13 @@ contract DutchLimitOrderReactor is BaseReactor {
     /// - if there's input decay, outputs must not decay
     /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
-    function _validateOrder(DutchLimitOrder memory order) internal pure {
+    function _validateOrder(ExclusiveDutchOrder memory order) internal pure {
         if (order.info.deadline < order.endTime) {
             revert DeadlineBeforeEndTime();
+        }
+
+        if (order.endTime < order.startTime) {
+            revert EndTimeBeforeStartTime();
         }
 
         if (order.input.startAmount != order.input.endAmount) {
