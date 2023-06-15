@@ -29,7 +29,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     error InsufficientEth();
 
     address public immutable permit2;
-    address public constant DIRECT_FILL = address(1);
+    IReactorCallback public constant DIRECT_FILL = IReactorCallback(address(1));
 
     constructor(address _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
@@ -67,7 +67,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, IReactorCallback fillContract, bytes calldata fillData) internal {
-        bool directFill = address(fillContract) == DIRECT_FILL;
+        bool directFill = fillContract == DIRECT_FILL;
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
