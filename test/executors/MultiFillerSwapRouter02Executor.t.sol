@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
+import {MultiFillerSwapRouter02Executor} from "../../src/sample-executors/MultiFillerSwapRouter02Executor.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -20,7 +20,7 @@ import {ISwapRouter02} from "../../src/external/ISwapRouter02.sol";
 import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
-contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
+contract MultiFillerSwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 fillerPrivateKey;
@@ -30,10 +30,24 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     WETH weth;
     address filler;
     address swapper;
-    SwapRouter02Executor swapRouter02Executor;
+    MultiFillerSwapRouter02Executor multiFillerSwapRouter02Executor;
     MockSwapRouter mockSwapRouter;
     DutchOrderReactor reactor;
     ISignatureTransfer permit2;
+
+    // mock whitelisted callers
+    address[10] whitelistedFillers = [
+        address(this),
+        address(0x1),
+        address(0x2),
+        address(0x3),
+        address(0x4),
+        address(0x5),
+        address(0x6),
+        address(0x7),
+        address(0x8),
+        address(0x9)
+    ];
 
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
@@ -61,8 +75,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         mockSwapRouter = new MockSwapRouter(address(weth));
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
-        swapRouter02Executor =
-        new SwapRouter02Executor(address(this), address(reactor), address(this), ISwapRouter02(address(mockSwapRouter)));
+        multiFillerSwapRouter02Executor =
+        new MultiFillerSwapRouter02Executor(address(reactor), address(this), ISwapRouter02(address(mockSwapRouter)), whitelistedFillers);
 
         // Do appropriate max approvals
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
@@ -79,7 +93,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
@@ -95,12 +109,12 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             sig,
             keccak256(abi.encode(1))
         );
-        tokenIn.mint(address(swapRouter02Executor), ONE);
+        tokenIn.mint(address(multiFillerSwapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.prank(address(reactor));
-        swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+        multiFillerSwapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(multiFillerSwapRouter02Executor)), 0);
         assertEq(tokenOut.balanceOf(address(swapper)), ONE);
     }
 
@@ -124,7 +138,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
@@ -132,14 +146,14 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
+            multiFillerSwapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
 
         assertEq(tokenIn.balanceOf(swapper), 0);
-        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenIn.balanceOf(address(multiFillerSwapRouter02Executor)), 0);
         assertEq(tokenOut.balanceOf(swapper), ONE / 2);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE / 2);
+        assertEq(tokenOut.balanceOf(address(multiFillerSwapRouter02Executor)), ONE / 2);
     }
 
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
@@ -163,7 +177,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
@@ -172,7 +186,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
+            multiFillerSwapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -180,7 +194,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3
     // and outputs = [2]. Mint swapper 10 input and mint mockSwapRouter 10 output. After
     // the execution, swapper should have 6 input / 3 output, mockSwapRouter should have
-    // 4 input / 6 output, and swapRouter02Executor should have 0 input / 1 output.
+    // 4 input / 6 output, and multiFillerSwapRouter02Executor should have 0 input / 1 output.
     function testExecuteBatch() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = inputAmount;
@@ -218,21 +232,21 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: inputAmount * 4,
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
         reactor.executeBatch(
-            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            signedOrders, multiFillerSwapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 ether);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), 4 ether);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 10 ** 18);
-        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(address(multiFillerSwapRouter02Executor)), 10 ** 18);
+        assertEq(tokenIn.balanceOf(address(multiFillerSwapRouter02Executor)), 0);
     }
 
     function testNotWhitelistedCaller() public {
@@ -253,17 +267,17 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
         vm.prank(address(0xbeef));
-        vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
+        vm.expectRevert(MultiFillerSwapRouter02Executor.CallerNotWhitelisted.selector);
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
+            multiFillerSwapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
@@ -280,7 +294,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         bytes[] memory multicallData = new bytes[](1);
         IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
-            recipient: address(swapRouter02Executor),
+            recipient: address(multiFillerSwapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
@@ -296,17 +310,17 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             sig,
             keccak256(abi.encode(1))
         );
-        tokenIn.mint(address(swapRouter02Executor), ONE);
+        tokenIn.mint(address(multiFillerSwapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
-        vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
-        swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+        vm.expectRevert(MultiFillerSwapRouter02Executor.MsgSenderNotReactor.selector);
+        multiFillerSwapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
     }
 
     function testUnwrapWETH() public {
         vm.deal(address(weth), 1 ether);
-        deal(address(weth), address(swapRouter02Executor), ONE);
+        deal(address(weth), address(multiFillerSwapRouter02Executor), ONE);
         uint256 balanceBefore = address(this).balance;
-        swapRouter02Executor.unwrapWETH(address(this));
+        multiFillerSwapRouter02Executor.unwrapWETH(address(this));
         uint256 balanceAfter = address(this).balance;
         assertEq(balanceAfter - balanceBefore, 1 ether);
     }
@@ -314,13 +328,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     function testUnwrapWETHNotOwner() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xbeef));
-        swapRouter02Executor.unwrapWETH(address(this));
+        multiFillerSwapRouter02Executor.unwrapWETH(address(this));
     }
 
     function testWithdrawETH() public {
-        vm.deal(address(swapRouter02Executor), 1 ether);
+        vm.deal(address(multiFillerSwapRouter02Executor), 1 ether);
         uint256 balanceBefore = address(this).balance;
-        swapRouter02Executor.withdrawETH(address(this));
+        multiFillerSwapRouter02Executor.withdrawETH(address(this));
         uint256 balanceAfter = address(this).balance;
         assertEq(balanceAfter - balanceBefore, 1 ether);
     }
@@ -328,6 +342,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     function testWithdrawETHNotOwner() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xbeef));
-        swapRouter02Executor.withdrawETH(address(this));
+        multiFillerSwapRouter02Executor.withdrawETH(address(this));
     }
 }

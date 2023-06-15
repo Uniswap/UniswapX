@@ -144,7 +144,7 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, WhitelistedFillerS
     error EtherSendFail();
     error InsufficientWETHBalance();
 
-    address private immutable swapRouter02;
+    ISwapRouter02 private immutable swapRouter02;
     address private immutable reactor;
     WETH private immutable weth;
 
@@ -154,13 +154,13 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, WhitelistedFillerS
     // This contract supports up to a maximum of 10 whitelisted fillers
     // the addresses MUST be set in descending order
     // if you want to set less than the maximum number of fillers, set the rest to 0x0
-    constructor(address _reactor, address _owner, address _swapRouter02, address[10] memory _fillers)
+    constructor(address _reactor, address _owner, ISwapRouter02 _swapRouter02, address[10] memory _fillers)
         Owned(_owner)
         WhitelistedFillerStorage(_fillers)
     {
         reactor = _reactor;
         swapRouter02 = _swapRouter02;
-        weth = WETH(payable(ISwapRouter02(_swapRouter02).WETH9()));
+        weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
     /// @param resolvedOrders The orders to fill
@@ -183,10 +183,10 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, WhitelistedFillerS
             abi.decode(fillData, (address[], bytes[]));
 
         for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(swapRouter02, type(uint256).max);
+            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
         }
 
-        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
+        swapRouter02.multicall(type(uint256).max, multicallData);
 
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             ResolvedOrder memory order = resolvedOrders[i];
@@ -202,9 +202,9 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, WhitelistedFillerS
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(address[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
         for (uint256 i = 0; i < tokensToApprove.length; i++) {
-            ERC20(tokensToApprove[i]).approve(swapRouter02, type(uint256).max);
+            ERC20(tokensToApprove[i]).approve(address(swapRouter02), type(uint256).max);
         }
-        ISwapRouter02(swapRouter02).multicall(type(uint256).max, multicallData);
+        swapRouter02.multicall(type(uint256).max, multicallData);
     }
 
     /// @notice Unwraps the contract's WETH9 balance and sends it to the recipient as ETH. Can only be called by owner.
