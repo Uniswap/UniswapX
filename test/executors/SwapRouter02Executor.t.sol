@@ -62,7 +62,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         permit2 = ISignatureTransfer(deployPermit2());
         reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
         swapRouter02Executor =
-        new SwapRouter02Executor(address(this), address(reactor), address(this), ISwapRouter02(address(mockSwapRouter)));
+        new SwapRouter02Executor(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
 
         // Do appropriate max approvals
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
