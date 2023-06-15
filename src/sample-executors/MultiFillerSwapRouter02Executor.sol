@@ -70,7 +70,6 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, WhitelistedFillerS
     // @param _owner The owner of this contract
     // @param _swapRouter02 The address of the SwapRouter02 contract
     // This contract supports up to a maximum of 10 whitelisted fillers
-    // the addresses MUST be set in descending order
     // if you want to set less than the maximum number of fillers, set the rest to 0x0
     constructor(address _reactor, address _owner, ISwapRouter02 _swapRouter02, address[10] memory _fillers)
         Owned(_owner)
