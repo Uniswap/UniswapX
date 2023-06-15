@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -98,19 +98,6 @@ contract ExclusivityOverrideLibTest is Test {
         vm.prank(caller);
         vm.expectRevert(ExclusivityOverrideLib.NoExclusiveOverride.selector);
         exclusivity.handleOverride(order, exclusive, block.timestamp + 1, 0);
-    }
-
-    function testHandleOverrideInvalidAmount(address caller, address exclusive, uint256 overrideAmt, uint128 amount)
-        public
-    {
-        vm.assume(caller != exclusive);
-        vm.assume(exclusive != address(0));
-        vm.assume(overrideAmt > 10000);
-        ResolvedOrder memory order;
-        order.outputs = OutputsBuilder.single(token1, amount, recipient);
-        vm.prank(caller);
-        vm.expectRevert(ExclusivityOverrideLib.InvalidOverrideAmount.selector);
-        exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
     }
 
     function testHandleOverride() public {

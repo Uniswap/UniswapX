@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.0;
 
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {Test} from "forge-std/Test.sol";
-import {InputToken, OutputToken, OrderInfo, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OutputToken, OrderInfo, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
@@ -14,6 +14,18 @@ import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplicates.sol";
 import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
+import {
+    ExclusiveDutchOrderReactor,
+    ExclusiveDutchOrder,
+    DutchInput,
+    DutchOutput
+} from "../../src/reactors/ExclusiveDutchOrderReactor.sol";
 
 contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
@@ -69,7 +81,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFees() public {
         ResolvedOrder memory order = createOrder(1 ether, false);
         uint256 feeBps = 3;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         assertEq(order.outputs.length, 1);
         ResolvedOrder memory afterFees = fees.takeFees(order);
@@ -91,12 +103,12 @@ contract ProtocolFeesTest is Test {
         }
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), inputAmount, inputAmount),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(outputs[0].token), feeBps);
+        feeController.setFee(tokenIn, address(outputs[0].token), feeBps);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertGe(afterFees.outputs.length, outputs.length);
@@ -118,7 +130,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFeesWithInterfaceFee() public {
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 3;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         assertEq(order.outputs.length, 2);
         ResolvedOrder memory afterFees = fees.takeFees(order);
@@ -137,7 +149,7 @@ contract ProtocolFeesTest is Test {
     function testTakeFeesTooMuch() public {
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
-        feeController.setFee(address(tokenIn), address(tokenOut), feeBps);
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.FeeTooLarge.selector);
         fees.takeFees(order);
@@ -150,7 +162,7 @@ contract ProtocolFeesTest is Test {
 
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 10;
-        controller.setFee(address(tokenIn), address(tokenOut), feeBps);
+        controller.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.DuplicateFeeOutput.selector);
         fees.takeFees(order);
@@ -163,13 +175,13 @@ contract ProtocolFeesTest is Test {
         outputs[1] = OutputToken(address(tokenOut2), 2 ether, SWAPPER);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 4);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 4);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 4);
@@ -201,12 +213,12 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 5);
@@ -242,12 +254,12 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut), 1 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 5);
@@ -277,13 +289,13 @@ contract ProtocolFeesTest is Test {
         outputs[3] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 5);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 5);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 6);
@@ -316,13 +328,13 @@ contract ProtocolFeesTest is Test {
         outputs[0] = OutputToken(address(tokenOut2), 2 ether / 20, INTERFACE_FEE_RECIPIENT);
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
-        feeController.setFee(address(tokenIn), address(tokenOut), 5);
-        feeController.setFee(address(tokenIn), address(tokenOut2), 3);
+        feeController.setFee(tokenIn, address(tokenOut), 5);
+        feeController.setFee(tokenIn, address(tokenOut2), 3);
 
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertEq(afterFees.outputs.length, 6);
@@ -353,7 +365,7 @@ contract ProtocolFeesTest is Test {
 
         ResolvedOrder memory order = createOrderWithInterfaceFee(1 ether, false);
         uint256 feeBps = 5;
-        controller.setFee(address(tokenIn), address(tokenOut), feeBps);
+        controller.setFee(tokenIn, address(tokenOut), feeBps);
 
         vm.expectRevert(ProtocolFees.InvalidFeeToken.selector);
         fees.takeFees(order);
@@ -365,7 +377,7 @@ contract ProtocolFeesTest is Test {
         outputs[0] = OutputToken(outputToken, amount, SWAPPER);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
@@ -383,10 +395,240 @@ contract ProtocolFeesTest is Test {
         outputs[1] = OutputToken(outputToken, amount, INTERFACE_FEE_RECIPIENT);
         return ResolvedOrder({
             info: OrderInfoBuilder.init(address(0)),
-            input: InputToken(address(tokenIn), 1 ether, 1 ether),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
             hash: bytes32(0)
         });
+    }
+}
+
+// The purpose of ProtocolFeesGasComparisonTest is to see how much gas increases when interface and/or
+// protocol fees are added.
+contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, GasSnapshot {
+    using OrderInfoBuilder for OrderInfo;
+
+    address constant PROTOCOL_FEE_OWNER = address(1001);
+    address constant INTERFACE_FEE_RECIPIENT = address(1002);
+    address constant PROTOCOL_FEE_RECIPIENT = address(1003);
+
+    MockERC20 tokenIn1;
+    MockERC20 tokenOut1;
+    uint256 swapperPrivateKey1;
+    address swapper1;
+    ExclusiveDutchOrderReactor reactor;
+    IAllowanceTransfer permit2;
+    MockFillContract fillContract;
+    MockFeeController feeController;
+
+    function setUp() public {
+        tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
+        tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
+        swapperPrivateKey1 = 0x12341234;
+        swapper1 = vm.addr(swapperPrivateKey1);
+
+        fillContract = new MockFillContract();
+        feeController = new MockFeeController(PROTOCOL_FEE_RECIPIENT);
+        permit2 = IAllowanceTransfer(deployPermit2());
+        reactor = new ExclusiveDutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+
+        tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
+        // Keep non 0 balances in swapper1, INTERFACE_FEE_RECIPIENT, PROTOCOL_FEE_RECIPIENT to simulate best
+        // case gas scenario
+        tokenOut1.mint(swapper1, 1 ether);
+        tokenOut1.mint(INTERFACE_FEE_RECIPIENT, 1 ether);
+        tokenOut1.mint(PROTOCOL_FEE_RECIPIENT, 1 ether);
+        tokenIn1.mint(address(fillContract), 1 ether);
+        vm.deal(swapper1, 1 ether);
+        vm.deal(INTERFACE_FEE_RECIPIENT, 1 ether);
+        vm.deal(PROTOCOL_FEE_RECIPIENT, 1 ether);
+    }
+
+    // Fill an order without fees: input = 1 tokenIn, output = 1 tokenOut
+    function testNoFees() public {
+        tokenIn1.mint(swapper1, 1 ether);
+        tokenOut1.mint(address(fillContract), 1 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-NoFees");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
+    }
+
+    // Fill an order with an interface fee: input = 1 tokenIn, output = [1 tokenOut to swapper1, 0.05 tokenOut to interface]
+    function testInterfaceFee() public {
+        tokenIn1.mint(address(swapper1), 1 ether);
+        tokenOut1.mint(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceFee");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
+        assertEq(tokenOut1.balanceOf(address(INTERFACE_FEE_RECIPIENT)), 21 ether / 20);
+    }
+
+    // Fill an order with an interface fee and protocol fee: input = 1 tokenIn,
+    // output = [1 tokenOut to swapper1, 0.05 tokenOut to interface]. Protocol fee = 5bps
+    function testInterfaceAndProtocolFee() public {
+        feeController.setFee(tokenIn1, address(tokenOut1), 5);
+
+        tokenIn1.mint(address(swapper1), 1 ether);
+        tokenOut1.mint(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(address(tokenOut1), 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(address(tokenOut1), 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        // fillContract had 1 tokenIn1 preminted to it
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        // swapper had 1 tokenOut1 preminted to it
+        assertEq(tokenOut1.balanceOf(swapper1), 2 ether);
+        // INTERFACE_FEE_RECIPIENT had 1 tokenOut1 preminted to it
+        assertEq(tokenOut1.balanceOf(INTERFACE_FEE_RECIPIENT), 21 ether / 20);
+        // Protocol fee is 5 bps * 1.05
+        assertEq(tokenOut1.balanceOf(PROTOCOL_FEE_RECIPIENT), 1 ether + 21 ether / 20 * 5 / 10000);
+    }
+
+    // The same as `testNoFees`, but output = 1 ether
+    function testNoFeesEthOutput() public {
+        tokenIn1.mint(swapper1, 1 ether);
+        vm.deal(address(fillContract), 1 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-NoFeesEthOutput");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(swapper1.balance, 2 ether);
+    }
+
+    // Fill an order with an interface fee: input = 1 tokenIn, output = [1 ether to swapper1, 0.05 ether to interface]
+    function testInterfaceFeeEthOutput() public {
+        tokenIn1.mint(address(swapper1), 1 ether);
+        vm.deal(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(NATIVE, 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        assertEq(swapper1.balance, 2 ether);
+        assertEq(INTERFACE_FEE_RECIPIENT.balance, 21 ether / 20);
+    }
+
+    // Fill an order with an interface fee and protocol fee: input = 1 tokenIn,
+    // output = [1 ether to swapper1, 0.05 ether to interface]. Protocol fee = 5bps
+    function testInterfaceAndProtocolFeeEthOutput() public {
+        feeController.setFee(tokenIn1, NATIVE, 5);
+
+        tokenIn1.mint(address(swapper1), 1 ether);
+        vm.deal(address(fillContract), 2 ether);
+
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](2);
+        dutchOutputs[0] = DutchOutput(NATIVE, 1 ether, 1 ether, swapper1);
+        dutchOutputs[1] = DutchOutput(NATIVE, 1 ether / 20, 1 ether / 20, INTERFACE_FEE_RECIPIENT);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: DutchInput(tokenIn1, 1 ether, 1 ether),
+            outputs: dutchOutputs
+        });
+        snapStart("ProtocolFeesGasComparisonTest-InterfaceAndProtocolFeeEthOutput");
+        reactor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            fillContract,
+            bytes("")
+        );
+        snapEnd();
+        // fillContract had 1 tokenIn1 preminted to it
+        assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
+        // swapper had 1 tokenOut1 preminted to it
+        assertEq(swapper1.balance, 2 ether);
+        // INTERFACE_FEE_RECIPIENT had 1 tokenOut1 preminted to it
+        assertEq(INTERFACE_FEE_RECIPIENT.balance, 21 ether / 20);
+        // Protocol fee is 5 bps * 1.05
+        assertEq(PROTOCOL_FEE_RECIPIENT.balance, 1 ether + 21 ether / 20 * 5 / 10000);
     }
 }
