@@ -23,8 +23,7 @@ contract WhitelistedFillerStorage {
     address private immutable f10;
 
     constructor(address[10] memory _fillers) {
-        require(_fillers.length <= 10, "Too many fillers");
-        require(_fillers.length > 0, "No fillers");
+        require(_fillers.length == 10, "Invalid amount of fillers");
         // assign fillers to their respective storage slots
         f1 = _fillers[0];
         f2 = _fillers[1];
