@@ -130,11 +130,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
+        snapStart("SwapRouter02Executor.testExecute");
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
+        snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
@@ -224,9 +226,11 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
 
+        snapStart("SwapRouter02Executor.testExecuteBatch");
         reactor.executeBatch(
             signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
+        snapEnd();
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 ether);
