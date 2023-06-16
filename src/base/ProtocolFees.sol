@@ -19,6 +19,8 @@ abstract contract ProtocolFees is Owned {
     error FeeTooLarge();
     error InvalidFeeToken();
 
+    event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
+
     uint256 private constant BPS = 10_000;
     uint256 private constant MAX_FEE_BPS = 5;
 
@@ -94,8 +96,10 @@ abstract contract ProtocolFees is Owned {
 
     /// @notice sets the protocol fee controller
     /// @dev only callable by the owner
-    /// @param _feeController the new fee controller
-    function setProtocolFeeController(address _feeController) external onlyOwner {
-        feeController = IProtocolFeeController(_feeController);
+    /// @param _newFeeController the new fee controller
+    function setProtocolFeeController(address _newFeeController) external onlyOwner {
+        address oldFeeController = address(feeController);
+        feeController = IProtocolFeeController(_newFeeController);
+        emit ProtocolFeeControllerSet(oldFeeController, _newFeeController);
     }
 }
