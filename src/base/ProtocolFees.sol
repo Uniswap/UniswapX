@@ -15,9 +15,9 @@ abstract contract ProtocolFees is Owned {
     using FixedPointMathLib for uint256;
     using CurrencyLibrary for address;
 
-    error DuplicateFeeOutput();
-    error FeeTooLarge();
-    error InvalidFeeToken();
+    error DuplicateFeeOutput(address duplicateToken);
+    error FeeTooLarge(address token, uint256 amount, address recipient);
+    error InvalidFeeToken(address feeToken);
 
     event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
 
@@ -59,7 +59,7 @@ abstract contract ProtocolFees is Owned {
             unchecked {
                 for (uint256 j = 0; j < i; j++) {
                     if (feeOutput.token == feeOutputs[j].token) {
-                        revert DuplicateFeeOutput();
+                        revert DuplicateFeeOutput(feeOutput.token);
                     }
                 }
             }
@@ -81,9 +81,11 @@ abstract contract ProtocolFees is Owned {
                 tokenValue += order.input.amount;
             }
 
-            if (tokenValue == 0) revert InvalidFeeToken();
+            if (tokenValue == 0) revert InvalidFeeToken(feeOutput.token);
 
-            if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) revert FeeTooLarge();
+            if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) {
+                revert FeeTooLarge(feeOutput.token, feeOutput.amount, feeOutput.recipient);
+            }
             newOutputs[outputsLength + i] = feeOutput;
 
             unchecked {
