@@ -151,7 +151,14 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 10;
         feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFees.FeeTooLarge.selector,
+                address(tokenOut),
+                order.outputs[0].amount * 2 * 10 / 10000,
+                RECIPIENT
+            )
+        );
         fees.takeFees(order);
     }
 
@@ -164,7 +171,7 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 10;
         controller.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.DuplicateFeeOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ProtocolFees.DuplicateFeeOutput.selector, tokenOut));
         fees.takeFees(order);
     }
 
@@ -367,7 +374,7 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 5;
         controller.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.InvalidFeeToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(ProtocolFees.InvalidFeeToken.selector, address(0)));
         fees.takeFees(order);
     }
 
