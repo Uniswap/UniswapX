@@ -71,7 +71,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(ERC20[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
         for (uint256 i = 0; i < tokensToApprove.length; i++) {
-            tokensToApprove[i].approve(address(swapRouter02), type(uint256).max);
+            tokensToApprove[i].safeApprove(address(swapRouter02), type(uint256).max);
         }
         swapRouter02.multicall(type(uint256).max, multicallData);
     }

@@ -27,6 +27,7 @@ abstract contract ProtocolFees is Owned {
     /// @dev The address of the fee controller
     IProtocolFeeController public feeController;
 
+    // @notice Required to customize owner from constructor of BaseReactor.sol
     constructor(address _owner) Owned(_owner) {}
 
     /// @notice Injects fees into an order
