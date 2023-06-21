@@ -31,6 +31,8 @@ contract ProtocolFeesTest is Test {
     using OrderInfoBuilder for OrderInfo;
     using ResolvedOrderLib for OrderInfo;
 
+    event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
+
     address constant INTERFACE_FEE_RECIPIENT = address(10);
     address constant PROTOCOL_FEE_OWNER = address(11);
     address constant RECIPIENT = address(12);
@@ -54,6 +56,9 @@ contract ProtocolFeesTest is Test {
 
     function testSetFeeController() public {
         assertEq(address(fees.feeController()), address(feeController));
+        vm.expectEmit(true, true, false, false);
+        emit ProtocolFeeControllerSet(address(feeController), address(2));
+
         vm.prank(PROTOCOL_FEE_OWNER);
         fees.setProtocolFeeController(address(2));
         assertEq(address(fees.feeController()), address(2));
@@ -151,7 +156,14 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 10;
         feeController.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.FeeTooLarge.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFees.FeeTooLarge.selector,
+                address(tokenOut),
+                order.outputs[0].amount * 2 * 10 / 10000,
+                RECIPIENT
+            )
+        );
         fees.takeFees(order);
     }
 
@@ -164,7 +176,7 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 10;
         controller.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.DuplicateFeeOutput.selector);
+        vm.expectRevert(abi.encodeWithSelector(ProtocolFees.DuplicateFeeOutput.selector, tokenOut));
         fees.takeFees(order);
     }
 
@@ -367,7 +379,7 @@ contract ProtocolFeesTest is Test {
         uint256 feeBps = 5;
         controller.setFee(tokenIn, address(tokenOut), feeBps);
 
-        vm.expectRevert(ProtocolFees.InvalidFeeToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(ProtocolFees.InvalidFeeToken.selector, address(0)));
         fees.takeFees(order);
     }
 
