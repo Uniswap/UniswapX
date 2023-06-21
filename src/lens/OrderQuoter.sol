@@ -9,6 +9,7 @@ import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol"
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders
 contract OrderQuoter is IReactorCallback {
+    /// @notice thrown if reactorCallback receives more than one order
     error OrdersLengthIncorrect();
 
     uint256 constant ORDER_INFO_OFFSET = 64;
