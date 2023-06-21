@@ -15,8 +15,11 @@ abstract contract ProtocolFees is Owned {
     using FixedPointMathLib for uint256;
     using CurrencyLibrary for address;
 
+    /// @notice thrown if two fee outputs have the same token
     error DuplicateFeeOutput(address duplicateToken);
+    /// @notice thrown if a given fee output is greater than MAX_FEE_BPS of the order outputs
     error FeeTooLarge(address token, uint256 amount, address recipient);
+    /// @notice thrown if a fee output token does not have a corresponding non-fee output
     error InvalidFeeToken(address feeToken);
 
     event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);

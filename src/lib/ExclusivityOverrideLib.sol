@@ -11,6 +11,7 @@ import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 library ExclusivityOverrideLib {
     using FixedPointMathLib for uint256;
 
+    /// @notice thrown when an order has strict exclusivity and the filler does not have it
     error NoExclusiveOverride();
 
     uint256 private constant STRICT_EXCLUSIVITY = 0;
@@ -39,9 +40,13 @@ library ExclusivityOverrideLib {
 
         // scale outputs by override amount
         OutputToken[] memory outputs = order.outputs;
-        for (uint256 i = 0; i < outputs.length; i++) {
+        for (uint256 i = 0; i < outputs.length;) {
             OutputToken memory output = outputs[i];
             output.amount = output.amount.mulDivDown(BPS + exclusivityOverrideBps, BPS);
+
+            unchecked {
+                i++;
+            }
         }
     }
 
