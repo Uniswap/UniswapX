@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
@@ -48,7 +48,7 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     /// @param permit2 The deployed permit2 address
-    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IAllowanceTransfer permit2)
+    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IPermit2 permit2)
         internal
     {
         if (isNative(currency)) {

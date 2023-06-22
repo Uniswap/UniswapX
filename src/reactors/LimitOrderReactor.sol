@@ -5,14 +5,14 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {LimitOrderLib, LimitOrder} from "../lib/LimitOrderLib.sol";
 import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders
 contract LimitOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using LimitOrderLib for LimitOrder;
 
-    constructor(address _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
+    constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder calldata signedOrder)
@@ -33,7 +33,7 @@ contract LimitOrderReactor is BaseReactor {
 
     /// @inheritdoc BaseReactor
     function transferInputTokens(ResolvedOrder memory order, address to) internal override {
-        ISignatureTransfer(permit2).permitWitnessTransferFrom(
+        permit2.permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),
             order.info.swapper,

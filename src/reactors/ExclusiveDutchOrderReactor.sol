@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {BaseReactor} from "./BaseReactor.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
@@ -21,7 +21,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     error OrderEndTimeBeforeStartTime();
     error InputAndOutputDecay();
 
-    constructor(address _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
+    constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
     function resolve(SignedOrder calldata signedOrder)
@@ -46,7 +46,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
 
     /// @inheritdoc BaseReactor
     function transferInputTokens(ResolvedOrder memory order, address to) internal override {
-        ISignatureTransfer(permit2).permitWitnessTransferFrom(
+        permit2.permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),
             order.info.swapper,

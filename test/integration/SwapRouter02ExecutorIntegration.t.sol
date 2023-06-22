@@ -12,6 +12,7 @@ import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -24,7 +25,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     ERC20 constant USDT = ERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     ISwapRouter02 constant SWAPROUTER02 = ISwapRouter02(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
     address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
-    address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     uint256 constant ONE = 1000000000000000000;
 
     address swapper;
@@ -47,7 +48,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        WETH.approve(PERMIT2, type(uint256).max);
+        WETH.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 3 WETH to swapper
         vm.prank(WHALE);
@@ -87,7 +88,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
         dloReactor.execute(
-            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, PERMIT2, order1)),
+            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData1)
         );
@@ -99,7 +100,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ExactInputSingleParams(address(WETH), address(DAI), 500, address(swapRouter02Executor), ONE, 1600 * ONE, 0);
         multicallData2[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params2);
         dloReactor.execute(
-            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, PERMIT2, order2)),
+            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(PERMIT2), order2)),
             swapRouter02Executor,
             abi.encode(new address[](0), multicallData2)
         );
@@ -129,7 +130,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 3000 * ONE, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -160,7 +161,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, output, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -176,7 +177,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        USDT.safeApprove(PERMIT2, type(uint256).max);
+        USDT.safeApprove(address(PERMIT2), type(uint256).max);
         deal(address(USDT), address(swapper), input);
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -196,7 +197,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, input, output, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -226,7 +227,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         vm.expectRevert("Too little received");
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -291,14 +292,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 2000 DAI to swapper
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper, 2000 * ONE);
 
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -331,7 +332,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Maker max approves permit post
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 2000 DAI to swapper
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
@@ -339,7 +340,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         vm.expectRevert("Too little received");
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -349,9 +350,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // output = 0.5 ETH.
     function testBatchSwapDaiToEthViaV2() public {
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
         vm.prank(swapper2);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper, 2000 * ONE);
@@ -373,8 +374,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE / 2, ONE / 2, swapper2)
         });
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
-        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, PERMIT2, order1));
-        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapper2PrivateKey, PERMIT2, order2));
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapper2PrivateKey, address(PERMIT2), order2));
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(DAI);

@@ -12,7 +12,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
@@ -34,7 +34,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
     uint256 swapperPrivateKey2;
     address swapper2;
     DutchOrderReactor reactor;
-    IAllowanceTransfer permit2;
+    IPermit2 permit2;
     MockFillContract fillContract;
 
     function setUp() public {
@@ -45,8 +45,8 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         swapper1 = vm.addr(swapperPrivateKey1);
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
-        permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
     }
@@ -236,7 +236,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
     address swapper2;
     address directFiller;
     DutchOrderReactor reactor;
-    IAllowanceTransfer permit2;
+    IPermit2 permit2;
 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
@@ -250,8 +250,8 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
         directFiller = address(888);
-        permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
