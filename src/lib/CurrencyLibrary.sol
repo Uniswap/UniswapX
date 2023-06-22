@@ -48,9 +48,7 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     /// @param permit2 The deployed permit2 address
-    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IPermit2 permit2)
-        internal
-    {
+    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IPermit2 permit2) internal {
         if (isNative(currency)) {
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
