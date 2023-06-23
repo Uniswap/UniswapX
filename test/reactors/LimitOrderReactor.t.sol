@@ -7,7 +7,7 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -37,7 +37,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         return reactor;
     }
 

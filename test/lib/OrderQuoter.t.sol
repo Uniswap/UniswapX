@@ -8,7 +8,7 @@ import {IReactor} from "../../src/interfaces/IReactor.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockSwapper} from "../util/mock/users/MockSwapper.sol";
@@ -33,7 +33,7 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     address swapper;
     LimitOrderReactor limitOrderReactor;
     DutchOrderReactor dutchOrderReactor;
-    ISignatureTransfer permit2;
+    IPermit2 permit2;
 
     function setUp() public {
         quoter = new OrderQuoter();
@@ -42,9 +42,9 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         tokenIn.mint(address(swapper), ONE);
-        permit2 = ISignatureTransfer(deployPermit2());
-        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
-        dutchOrderReactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        limitOrderReactor = new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+        dutchOrderReactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
     function testQuoteLimitOrder() public {

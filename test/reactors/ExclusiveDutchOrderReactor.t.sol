@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     ExclusiveDutchOrderReactor,
@@ -35,7 +34,7 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new ExclusiveDutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new ExclusiveDutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         return reactor;
     }
 

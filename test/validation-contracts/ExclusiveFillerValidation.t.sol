@@ -14,7 +14,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/ExclusiveFillerValidation.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
@@ -28,7 +28,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     uint256 swapperPrivateKey;
     address swapper;
     DutchOrderReactor reactor;
-    ISignatureTransfer permit2;
+    IPermit2 permit2;
     ExclusiveFillerValidation exclusiveFillerValidation;
 
     function setUp() public {
@@ -37,8 +37,8 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         tokenOut = new MockERC20("Output", "OUT", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
-        permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
 
