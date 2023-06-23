@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -31,7 +31,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     MockERC20 tokenOut2;
     MockFillContract fillContract;
     MockValidationContract additionalValidationContract;
-    ISignatureTransfer permit2;
+    IPermit2 permit2;
     MockFeeController feeController;
     address feeRecipient;
     BaseReactor reactor;
@@ -47,7 +47,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
-        permit2 = ISignatureTransfer(deployPermit2());
+        permit2 = IPermit2(deployPermit2());
         fillContract = new MockFillContract();
         additionalValidationContract = new MockValidationContract();
         additionalValidationContract.setValid(true);

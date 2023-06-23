@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     DutchOrderReactor,
@@ -34,11 +34,11 @@ contract DutchOrderReactorValidationTest is Test, DeployPermit2 {
     address constant PROTOCOL_FEE_OWNER = address(1);
 
     MockDutchOrderReactor reactor;
-    ISignatureTransfer permit2;
+    IPermit2 permit2;
 
     function setUp() public {
-        permit2 = ISignatureTransfer(deployPermit2());
-        reactor = new MockDutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new MockDutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
     // 1000 - (1000-900) * (1659087340-1659029740) / (1659130540-1659029740) = 943
@@ -401,7 +401,7 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         return reactor;
     }
 

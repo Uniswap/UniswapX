@@ -3,8 +3,7 @@ pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
@@ -40,7 +39,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
     address swapper2;
     address directFiller;
     DutchOrderReactor reactor;
-    IAllowanceTransfer permit2;
+    IPermit2 permit2;
 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
@@ -54,8 +53,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
         directFiller = address(888);
-        permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new DutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);

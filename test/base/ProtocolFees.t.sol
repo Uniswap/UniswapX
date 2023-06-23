@@ -16,7 +16,7 @@ import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplica
 import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
@@ -429,7 +429,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
     uint256 swapperPrivateKey1;
     address swapper1;
     ExclusiveDutchOrderReactor reactor;
-    IAllowanceTransfer permit2;
+    IPermit2 permit2;
     MockFillContract fillContract;
     MockFeeController feeController;
 
@@ -441,8 +441,8 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
 
         fillContract = new MockFillContract();
         feeController = new MockFeeController(PROTOCOL_FEE_RECIPIENT);
-        permit2 = IAllowanceTransfer(deployPermit2());
-        reactor = new ExclusiveDutchOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        reactor = new ExclusiveDutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
 
