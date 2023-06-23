@@ -3,34 +3,33 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console2.sol";
 import "forge-std/Script.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {ExclusiveDutchLimitOrderReactor} from "../src/reactors/ExclusiveDutchLimitOrderReactor.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {ExclusiveDutchOrderReactor} from "../src/reactors/ExclusiveDutchOrderReactor.sol";
 import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 import {DeployPermit2} from "../test/util/DeployPermit2.sol";
 import {MockERC20} from "../test/util/mock/MockERC20.sol";
 
-struct ExclusiveDutchLimitDeployment {
-    ISignatureTransfer permit2;
-    ExclusiveDutchLimitOrderReactor reactor;
+struct ExclusiveDutchDeployment {
+    IPermit2 permit2;
+    ExclusiveDutchOrderReactor reactor;
     OrderQuoter quoter;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
 }
 
-contract DeployExclusiveDutchLimit is Script, DeployPermit2 {
+contract DeployExclusiveDutch is Script, DeployPermit2 {
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address constant UNI_TIMELOCK = 0x1a9C8182C09F50C8318d769245beA52c32BE35BC;
 
     function setUp() public {}
 
-    function run() public returns (ExclusiveDutchLimitDeployment memory deployment) {
+    function run() public returns (ExclusiveDutchDeployment memory deployment) {
         vm.startBroadcast();
         if (PERMIT2.code.length == 0) {
             deployPermit2();
         }
 
-        ExclusiveDutchLimitOrderReactor reactor =
-            new ExclusiveDutchLimitOrderReactor{salt: 0x00}(address(PERMIT2), UNI_TIMELOCK);
+        ExclusiveDutchOrderReactor reactor = new ExclusiveDutchOrderReactor{salt: 0x00}(IPermit2(PERMIT2), UNI_TIMELOCK);
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
@@ -43,6 +42,6 @@ contract DeployExclusiveDutchLimit is Script, DeployPermit2 {
 
         vm.stopBroadcast();
 
-        return ExclusiveDutchLimitDeployment(ISignatureTransfer(PERMIT2), reactor, quoter, tokenIn, tokenOut);
+        return ExclusiveDutchDeployment(IPermit2(PERMIT2), reactor, quoter, tokenIn, tokenOut);
     }
 }
