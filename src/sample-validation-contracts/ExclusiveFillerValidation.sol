@@ -5,13 +5,14 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
 
 contract ExclusiveFillerValidation is IValidationCallback {
-    error NotExclusiveFiller();
+    /// @notice thrown if the filler does not have fill rights
+    error NotExclusiveFiller(address filler);
 
     function validate(address filler, ResolvedOrder calldata resolvedOrder) external view {
         (address exclusiveFiller, uint256 lastExclusiveTimestamp) =
-            abi.decode(resolvedOrder.info.validationData, (address, uint256));
+            abi.decode(resolvedOrder.info.additionalValidationData, (address, uint256));
         if (lastExclusiveTimestamp >= block.timestamp && filler != exclusiveFiller) {
-            revert NotExclusiveFiller();
+            revert NotExclusiveFiller(filler);
         }
     }
 }

@@ -8,15 +8,11 @@ import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Execu
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {
-    DutchLimitOrderReactor,
-    DutchLimitOrder,
-    DutchInput,
-    DutchOutput
-} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -29,7 +25,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     ERC20 constant USDT = ERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     ISwapRouter02 constant SWAPROUTER02 = ISwapRouter02(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45);
     address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
-    address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     uint256 constant ONE = 1000000000000000000;
 
     address swapper;
@@ -38,7 +34,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     uint256 swapper2PrivateKey;
     address filler;
     SwapRouter02Executor swapRouter02Executor;
-    DutchLimitOrderReactor dloReactor;
+    DutchOrderReactor dloReactor;
 
     function setUp() public {
         swapperPrivateKey = 0xbabe;
@@ -47,12 +43,12 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         swapper2 = vm.addr(swapper2PrivateKey);
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
-        dloReactor = new DutchLimitOrderReactor(PERMIT2, address(0));
-        swapRouter02Executor = new SwapRouter02Executor(address(this), address(dloReactor), address(this), SWAPROUTER02);
+        dloReactor = new DutchOrderReactor(PERMIT2, address(0));
+        swapRouter02Executor = new SwapRouter02Executor(address(this), dloReactor, address(this), SWAPROUTER02);
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        WETH.approve(PERMIT2, type(uint256).max);
+        WETH.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 3 WETH to swapper
         vm.prank(WHALE);
@@ -67,18 +63,18 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // There will be 288797467469336654155 wei of DAI in SwapRouter02Executor after the 1st order is filled.
     // There will be 332868886072663242927 wei of DAI in SwapRouter02Executor after the 2nd order is filled.
     function testSwapWethToDaiViaV3() public {
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(swapper))
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withNonce(1),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 1600 * ONE, 1600 * ONE, address(swapper))
         });
@@ -92,7 +88,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
         dloReactor.execute(
-            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, PERMIT2, order1)),
+            SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData1)
         );
@@ -104,7 +100,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ExactInputSingleParams(address(WETH), address(DAI), 500, address(swapRouter02Executor), ONE, 1600 * ONE, 0);
         multicallData2[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params2);
         dloReactor.execute(
-            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, PERMIT2, order2)),
+            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(PERMIT2), order2)),
             swapRouter02Executor,
             abi.encode(new address[](0), multicallData2)
         );
@@ -116,10 +112,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Swapper creates order of input = 2 WETH and output = 3000 DAI. Trade via Uniswap V2.
     // There will be 275438458971501955836 wei of DAI in SwapRouter02Executor after.
     function testSwapWethToDaiViaV2() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 3000 * ONE, 3000 * ONE, address(swapper))
         });
@@ -134,7 +130,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 3000 * ONE, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -147,10 +143,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // There will be 275438458971501955836 wei of USDT in SwapRouter02Executor after.
     function testSwapWethToUsdtViaV2() public {
         uint256 output = 300 * 10 ** 6;
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(USDT), output, output, address(swapper))
         });
@@ -165,7 +161,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, output, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -181,12 +177,12 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        USDT.safeApprove(PERMIT2, type(uint256).max);
+        USDT.safeApprove(address(PERMIT2), type(uint256).max);
         deal(address(USDT), address(swapper), input);
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(USDT, input, input),
             outputs: OutputsBuilder.singleDutch(address(WETH), output, output, address(swapper))
         });
@@ -201,7 +197,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, input, output, path, address(swapRouter02Executor)
         );
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -212,10 +208,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Exact same test as testSwapWethToDaiViaV2, but the order requests 4000 DAI output, which is too much for
     // given 2 WETH input. Should revert with "Too little received".
     function testSwapWethToDaiViaV2InsufficientOutput() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(WETH, 2 * ONE, 2 * ONE),
             outputs: OutputsBuilder.singleDutch(address(DAI), 4000 * ONE, 4000 * ONE, address(swapper))
         });
@@ -231,7 +227,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         vm.expectRevert("Too little received");
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -276,10 +272,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // Swapper's order has input = 2000 DAI and output = 1 ETH. 213039886077866602 excess wei of ETH will remain in
     // swapRouter02Executor.
     function testSwapDaiToETHViaV2() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, 2000 * ONE, 2000 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, address(swapper))
         });
@@ -296,14 +292,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Swapper max approves permit post
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 2000 DAI to swapper
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper, 2000 * ONE);
 
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -315,10 +311,10 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
     // Swapper's order has input = 2000 DAI and output = 2 ETH. This is not enough DAI, so revert with "Too little received".
     function testSwapDaiToEthViaV2ButInsufficientDai() public {
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp - 100,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, 2000 * ONE, 2000 * ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE * 2, ONE * 2, address(swapper))
         });
@@ -336,7 +332,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         // Maker max approves permit post
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 2000 DAI to swapper
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
@@ -344,7 +340,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         vm.expectRevert("Too little received");
         dloReactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, PERMIT2, order)),
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
             swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
@@ -354,32 +350,32 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     // output = 0.5 ETH.
     function testBatchSwapDaiToEthViaV2() public {
         vm.prank(swapper);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
         vm.prank(swapper2);
-        DAI.approve(PERMIT2, type(uint256).max);
+        DAI.approve(address(PERMIT2), type(uint256).max);
 
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper, 2000 * ONE);
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper2, 1000 * ONE);
 
-        DutchLimitOrder memory order1 = DutchLimitOrder({
+        DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 2000, ONE * 2000),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, swapper)
         });
-        DutchLimitOrder memory order2 = DutchLimitOrder({
+        DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(DAI, ONE * 1000, ONE * 1000),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE / 2, ONE / 2, swapper2)
         });
         SignedOrder[] memory signedOrders = new SignedOrder[](2);
-        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, PERMIT2, order1));
-        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapper2PrivateKey, PERMIT2, order2));
+        signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1));
+        signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapper2PrivateKey, address(PERMIT2), order2));
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(DAI);

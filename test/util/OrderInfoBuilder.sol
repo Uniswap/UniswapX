@@ -12,8 +12,8 @@ library OrderInfoBuilder {
             swapper: address(0),
             nonce: 0,
             deadline: block.timestamp + 100,
-            validationContract: IValidationCallback(address(0)),
-            validationData: bytes("")
+            additionalValidationContract: IValidationCallback(address(0)),
+            additionalValidationData: bytes("")
         });
     }
 
@@ -32,21 +32,21 @@ library OrderInfoBuilder {
         return info;
     }
 
-    function withValidationContract(OrderInfo memory info, IValidationCallback _validationContract)
+    function withValidationContract(OrderInfo memory info, IValidationCallback _additionalValidationContract)
         internal
         pure
         returns (OrderInfo memory)
     {
-        info.validationContract = _validationContract;
+        info.additionalValidationContract = _additionalValidationContract;
         return info;
     }
 
-    function withValidationData(OrderInfo memory info, bytes memory _validationData)
+    function withValidationData(OrderInfo memory info, bytes memory _additionalValidationData)
         internal
         pure
         returns (OrderInfo memory)
     {
-        info.validationData = _validationData;
+        info.additionalValidationData = _additionalValidationData;
         return info;
     }
 }

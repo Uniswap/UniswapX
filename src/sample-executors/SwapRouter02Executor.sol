@@ -6,6 +6,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
@@ -15,15 +16,17 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
+    /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
+    /// @notice thrown if reactorCallback is called by an adress other than the reactor
     error MsgSenderNotReactor();
 
     ISwapRouter02 private immutable swapRouter02;
     address private immutable whitelistedCaller;
-    address private immutable reactor;
+    IReactor private immutable reactor;
     WETH private immutable weth;
 
-    constructor(address _whitelistedCaller, address _reactor, address _owner, ISwapRouter02 _swapRouter02)
+    constructor(address _whitelistedCaller, IReactor _reactor, address _owner, ISwapRouter02 _swapRouter02)
         Owned(_owner)
     {
         whitelistedCaller = _whitelistedCaller;
@@ -41,7 +44,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
         external
     {
-        if (msg.sender != reactor) {
+        if (msg.sender != address(reactor)) {
             revert MsgSenderNotReactor();
         }
         if (filler != whitelistedCaller) {
@@ -71,7 +74,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(ERC20[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
         for (uint256 i = 0; i < tokensToApprove.length; i++) {
-            tokensToApprove[i].approve(address(swapRouter02), type(uint256).max);
+            tokensToApprove[i].safeApprove(address(swapRouter02), type(uint256).max);
         }
         swapRouter02.multicall(type(uint256).max, multicallData);
     }

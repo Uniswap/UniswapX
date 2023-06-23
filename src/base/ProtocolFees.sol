@@ -15,9 +15,14 @@ abstract contract ProtocolFees is Owned {
     using FixedPointMathLib for uint256;
     using CurrencyLibrary for address;
 
-    error DuplicateFeeOutput();
-    error FeeTooLarge();
-    error InvalidFeeToken();
+    /// @notice thrown if two fee outputs have the same token
+    error DuplicateFeeOutput(address duplicateToken);
+    /// @notice thrown if a given fee output is greater than MAX_FEE_BPS of the order outputs
+    error FeeTooLarge(address token, uint256 amount, address recipient);
+    /// @notice thrown if a fee output token does not have a corresponding non-fee output
+    error InvalidFeeToken(address feeToken);
+
+    event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
 
     uint256 private constant BPS = 10_000;
     uint256 private constant MAX_FEE_BPS = 5;
@@ -25,6 +30,7 @@ abstract contract ProtocolFees is Owned {
     /// @dev The address of the fee controller
     IProtocolFeeController public feeController;
 
+    // @notice Required to customize owner from constructor of BaseReactor.sol
     constructor(address _owner) Owned(_owner) {}
 
     /// @notice Injects fees into an order
@@ -57,7 +63,7 @@ abstract contract ProtocolFees is Owned {
             unchecked {
                 for (uint256 j = 0; j < i; j++) {
                     if (feeOutput.token == feeOutputs[j].token) {
-                        revert DuplicateFeeOutput();
+                        revert DuplicateFeeOutput(feeOutput.token);
                     }
                 }
             }
@@ -79,9 +85,11 @@ abstract contract ProtocolFees is Owned {
                 tokenValue += order.input.amount;
             }
 
-            if (tokenValue == 0) revert InvalidFeeToken();
+            if (tokenValue == 0) revert InvalidFeeToken(feeOutput.token);
 
-            if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) revert FeeTooLarge();
+            if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) {
+                revert FeeTooLarge(feeOutput.token, feeOutput.amount, feeOutput.recipient);
+            }
             newOutputs[outputsLength + i] = feeOutput;
 
             unchecked {
@@ -94,8 +102,10 @@ abstract contract ProtocolFees is Owned {
 
     /// @notice sets the protocol fee controller
     /// @dev only callable by the owner
-    /// @param _feeController the new fee controller
-    function setProtocolFeeController(address _feeController) external onlyOwner {
-        feeController = IProtocolFeeController(_feeController);
+    /// @param _newFeeController the new fee controller
+    function setProtocolFeeController(address _newFeeController) external onlyOwner {
+        address oldFeeController = address(feeController);
+        feeController = IProtocolFeeController(_newFeeController);
+        emit ProtocolFeeControllerSet(oldFeeController, _newFeeController);
     }
 }

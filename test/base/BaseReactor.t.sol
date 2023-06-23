@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -30,8 +30,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     MockERC20 tokenOut;
     MockERC20 tokenOut2;
     MockFillContract fillContract;
-    MockValidationContract validationContract;
-    ISignatureTransfer permit2;
+    MockValidationContract additionalValidationContract;
+    IPermit2 permit2;
     MockFeeController feeController;
     address feeRecipient;
     BaseReactor reactor;
@@ -47,10 +47,10 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
-        permit2 = ISignatureTransfer(deployPermit2());
+        permit2 = IPermit2(deployPermit2());
         fillContract = new MockFillContract();
-        validationContract = new MockValidationContract();
-        validationContract.setValid(true);
+        additionalValidationContract = new MockValidationContract();
+        additionalValidationContract.setValid(true);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
         createReactor();
@@ -134,7 +134,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -174,11 +174,11 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-        validationContract.setValid(false);
+        additionalValidationContract.setValid(false);
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -208,7 +208,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(orderReactor).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
@@ -232,7 +232,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
         ResolvedOrder memory order = ResolvedOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),

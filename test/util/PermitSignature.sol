@@ -6,14 +6,14 @@ import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
-import {DutchLimitOrder, DutchLimitOrderLib} from "../../src/lib/DutchLimitOrderLib.sol";
-import {ExclusiveDutchLimitOrder, ExclusiveDutchLimitOrderLib} from "../../src/lib/ExclusiveDutchLimitOrderLib.sol";
+import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
+import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
-    using DutchLimitOrderLib for DutchLimitOrder;
-    using ExclusiveDutchLimitOrderLib for ExclusiveDutchLimitOrder;
+    using DutchOrderLib for DutchOrder;
+    using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -26,10 +26,10 @@ contract PermitSignature is Test {
         keccak256(abi.encodePacked(TYPEHASH_STUB, LimitOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant DUTCH_LIMIT_ORDER_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, DutchLimitOrderLib.PERMIT2_ORDER_TYPE));
+        keccak256(abi.encodePacked(TYPEHASH_STUB, DutchOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, ExclusiveDutchLimitOrderLib.PERMIT2_ORDER_TYPE));
+        keccak256(abi.encodePacked(TYPEHASH_STUB, ExclusiveDutchOrderLib.PERMIT2_ORDER_TYPE));
 
     function getPermitSignature(
         uint256 privateKey,
@@ -85,7 +85,7 @@ contract PermitSignature is Test {
         );
     }
 
-    function signOrder(uint256 privateKey, address permit2, DutchLimitOrder memory order)
+    function signOrder(uint256 privateKey, address permit2, DutchOrder memory order)
         internal
         view
         returns (bytes memory sig)
@@ -101,7 +101,7 @@ contract PermitSignature is Test {
         );
     }
 
-    function signOrder(uint256 privateKey, address permit2, ExclusiveDutchLimitOrder memory order)
+    function signOrder(uint256 privateKey, address permit2, ExclusiveDutchOrder memory order)
         internal
         view
         returns (bytes memory sig)

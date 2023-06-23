@@ -7,7 +7,7 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -37,7 +37,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        reactor = new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         return reactor;
     }
 
@@ -57,7 +57,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
@@ -87,7 +87,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
@@ -107,7 +107,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         amounts[1] = ONE / 2;
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(swapper))
@@ -135,7 +135,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
-                validationContract
+                additionalValidationContract
                 ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
@@ -143,7 +143,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
 
         // change validation contract, ensure that sig fails
-        order.info.validationContract = IValidationCallback(address(0));
+        order.info.additionalValidationContract = IValidationCallback(address(0));
 
         vm.expectRevert(InvalidSigner.selector);
         reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));

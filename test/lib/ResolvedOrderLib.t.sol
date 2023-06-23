@@ -41,19 +41,19 @@ contract ResolvedOrderLibTest is Test {
     }
 
     function testValidationContractInvalid() public {
-        MockValidationContract validationContract = new MockValidationContract();
-        validationContract.setValid(false);
+        MockValidationContract additionalValidationContract = new MockValidationContract();
+        additionalValidationContract.setValid(false);
         vm.expectRevert(MockValidationContract.MockValidationError.selector);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(additionalValidationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
     function testValidationContractValid() public {
-        MockValidationContract validationContract = new MockValidationContract();
-        validationContract.setValid(true);
+        MockValidationContract additionalValidationContract = new MockValidationContract();
+        additionalValidationContract.setValid(true);
         mockResolvedOrder.info =
-            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(validationContract);
+            OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(additionalValidationContract);
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
@@ -63,11 +63,11 @@ contract ResolvedOrderLibTest is Test {
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
             exclusiveFillerValidation
         ).withValidationData(abi.encode(address(0x123), 1000));
-        vm.expectRevert(ExclusiveFillerValidation.NotExclusiveFiller.selector);
+        vm.expectRevert(abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(0x234)));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
 
-    // The filler is not the same filler as the filler encoded in validationData, but we are past the last
+    // The filler is not the same filler as the filler encoded in additionalValidationData, but we are past the last
     // exclusive timestamp, so it will not revert.
     function testExclusiveFillerValidationInvalidFillerPastTimestamp() public {
         vm.warp(900);

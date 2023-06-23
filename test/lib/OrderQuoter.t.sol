@@ -8,19 +8,14 @@ import {IReactor} from "../../src/interfaces/IReactor.sol";
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockSwapper} from "../util/mock/users/MockSwapper.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockOrder} from "../util/mock/MockOrderStruct.sol";
 import {LimitOrderReactor, LimitOrder} from "../../src/reactors/LimitOrderReactor.sol";
-import {
-    DutchLimitOrderReactor,
-    DutchLimitOrder,
-    DutchOutput,
-    DutchInput
-} from "../../src/reactors/DutchLimitOrderReactor.sol";
+import {DutchOrderReactor, DutchOrder, DutchOutput, DutchInput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -37,8 +32,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     uint256 swapperPrivateKey;
     address swapper;
     LimitOrderReactor limitOrderReactor;
-    DutchLimitOrderReactor dutchOrderReactor;
-    ISignatureTransfer permit2;
+    DutchOrderReactor dutchOrderReactor;
+    IPermit2 permit2;
 
     function setUp() public {
         quoter = new OrderQuoter();
@@ -47,9 +42,9 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         tokenIn.mint(address(swapper), ONE);
-        permit2 = ISignatureTransfer(deployPermit2());
-        limitOrderReactor = new LimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
-        dutchOrderReactor = new DutchLimitOrderReactor(address(permit2), PROTOCOL_FEE_OWNER);
+        permit2 = IPermit2(deployPermit2());
+        limitOrderReactor = new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+        dutchOrderReactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
     function testQuoteLimitOrder() public {
@@ -71,10 +66,10 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -92,10 +87,10 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp - 100,
-            endTime: 201,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: 201,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -113,10 +108,10 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE, address(0));
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp - 100,
-            endTime: 201,
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: 201,
             input: DutchInput(tokenIn, ONE * 9 / 10, ONE),
             outputs: dutchOutputs
         });
@@ -161,10 +156,10 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dutchOrderReactor)).withSwapper(address(swapper)),
-            startTime: block.timestamp + 1000,
-            endTime: block.timestamp + 100,
+            decayStartTime: block.timestamp + 1000,
+            decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
@@ -186,10 +181,10 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     function testGetReactorDutchOrder() public {
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(tokenOut), ONE, ONE * 9 / 10, address(0));
-        DutchLimitOrder memory order = DutchLimitOrder({
+        DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(0x2345)),
-            startTime: block.timestamp + 1000,
-            endTime: block.timestamp + 1100,
+            decayStartTime: block.timestamp + 1000,
+            decayEndTime: block.timestamp + 1100,
             input: DutchInput(tokenIn, ONE, ONE),
             outputs: dutchOutputs
         });
