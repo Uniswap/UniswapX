@@ -13,8 +13,6 @@ struct DutchDeployment {
     IPermit2 permit2;
     DutchOrderReactor reactor;
     OrderQuoter quoter;
-    MockERC20 tokenIn;
-    MockERC20 tokenOut;
 }
 
 contract DeployDutch is Script, DeployPermit2 {
@@ -35,13 +33,8 @@ contract DeployDutch is Script, DeployPermit2 {
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
         console2.log("Quoter", address(quoter));
 
-        MockERC20 tokenIn = new MockERC20{salt: 0x00}("Token A", "TA", 18);
-        console2.log("tokenA", address(tokenIn));
-        MockERC20 tokenOut = new MockERC20{salt: 0x00}("Token B", "TB", 18);
-        console2.log("tokenB", address(tokenOut));
-
         vm.stopBroadcast();
 
-        return DutchDeployment(PERMIT2, reactor, quoter, tokenIn, tokenOut);
+        return DutchDeployment(PERMIT2, reactor, quoter);
     }
 }
