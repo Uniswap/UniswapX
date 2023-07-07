@@ -1,59 +1,54 @@
-# What is UniswapX?
+# UniswapX
 
-[UniswapX](https://github.com/uniswap/UniswapX) is an off-chain order execution protocol meant to generalize token swaps across liquidity sources and provide price improvement for users. “Swappers” generate signed messages specifying the terms of their trade, in the form of a linear-decay Dutch order.
+[![Integration Tests](https://github.com/Uniswap/uniswapx/actions/workflows/test-integration.yml/badge.svg)](https://github.com/Uniswap/uniswapx/actions/workflows/test-integration.yml)
+[![Unit Tests](https://github.com/Uniswap/uniswapx/actions/workflows/test.yml/badge.svg)](https://github.com/Uniswap/uniswapx/actions/workflows/test.yml)
 
-<p align="center">
-<img width="575" alt="image" src="https://user-images.githubusercontent.com/8218221/216129758-df0ae2a3-05a7-44a2-bd79-0c7b1c10b8cb.png">
-</p>
+UniswapX is an intent-based ERC20 swap settlement protocol that provides swappers with a gasless experience, MEV protection, and access to arbitrary liquidity sources. Swappers generate signed orders which specify the intents of their swap, and fillers compete using arbitrary fill strategies to satisfy these orders.
 
-“Fillers" read these orders and execute them, taking input assets from the swapper and fulfilling output assets. Fillers are entitled to keep any spread or profits they are able to generate by fulfilling orders. [Build a filler integration](integration_guide.md).
 
-## UniswapX Order Flow:
+## UniswapX Protocol Architecture
 
-To Swappers on the Uniswap front end, UniswapX orders look just like any other Uniswap order but behind the scenes they have a completely different flow.
-<p align="center">
-<img width="787" alt="image" src="https://user-images.githubusercontent.com/8218221/216479887-9f2ae4b3-9225-4ee3-86d4-797118082c88.png">
-</p>
+![Architecture](./assets/uniswapx-architecture.png)
 
-1. A UniswapX order starts with a swapper on a Uniswap front end requesting a quote by entering two tokens and an input or output amount
-2. That request is sent to UniswapX’s private network of RFQ Fillers who provide quotes for the proposed order. The best quote provided, is returned to the swapper on the Uniswap front end
-3. The quote is transformed into a decaying Dutch Order by the Uniswap front end. It will decay over a preset number of blocks from the winning RFQ quote to Uniswap router price. If the swapper accepts the order they will sign it.
-4. The signed order is first broadcast to the winner of the RFQ. They will have a set a number of blocks to fill at their winning bid price
-5. If the RFQ winner fades, the signed order is then broadcast publicly. Any filler is then able to compete to fill the order at the given price in its decay curve.
+### Reactors
 
-## UniswapX Protocol Architecture:
+Order Reactors _settle_ UniswapX orders. They are responsible for validating orders of a specific type, resolving them into inputs and outputs, and executing them against the filler's strategy, and verifying that the order was successfully fulfilled.
 
-The UniswapX Protocol uses two types of contract, **Order Reactors** and **Order Executors,** to allow a network of Fillers to execute signed orders created through the Uniswap front end and signed via [Permit2](https://github.com/Uniswap/permit2):
+Reactors process orders using the following steps:
+- Validate the order
+- Resolve the order into inputs and outputs
+- Pull input tokens from the swapper to the fillContract using permit2 `permitWitnessTransferFrom` with the order as witness
+- Call `reactorCallback` on the fillContract
+- Verify that the output tokens were received by the output recipients
 
-<p align="center">
-<img width="850" alt="image" src="https://user-images.githubusercontent.com/8218221/216130577-e7f9263b-b5a7-463a-b082-6b8bc4d7d41c.png">
-</p>
+Reactors implement the [IReactor](./src/interfaces/IReactor.sol) interface which abstracts the specifics of the order specification. This allows for different reactor implementations with different order formats to be used with the same interface, allowing for shared infrastructure and easy extension by fillers.
 
-**[Order Reactors](https://github.com/Uniswap/UniswapX/blob/main/src/interfaces/IReactor.sol)** are contracts that take in a specific type of order objects (like Dutch Orders), validate them, convert them to generic orders, and then execute them against a Filler’s Executor contract.
+Current reactor implementations:
+- [LimitOrderReactor](./src/reactors/LimitOrderReactor.sol): A reactor that settles simple static limit orders
+- [DutchOrderReactor](./src/reactors/DutchOrderReactor.sol): A reactor that settles linear-decay dutch orders
+- [ExclusiveDutchOrderReactor](./src/reactors/ExclusiveDutchOrderReactor.sol): A reactor that settles linear-decay dutch orders with a period of exclusivity before decay begins
 
-The **[Dutch Order Reactor](https://github.com/Uniswap/UniswapX/blob/main/src/reactors/DutchOrderReactor.sol)** is Uniswaps Labs currently deployed reactor that allows execution of decaying Dutch Orders created through Uniswaps interface.
+### Fill Contracts
 
-**[Order Executors](https://github.com/Uniswap/UniswapX/blob/main/src/interfaces/IReactorCallback.sol)** (called **[ReactorCallback](https://github.com/Uniswap/UniswapX/blob/main/src/interfaces/IReactorCallback.sol))** are contracts created by fillers that defines their individual execution strategy which will be called by the reactor, in order to execute requested orders (you can find sample executor contracts [here](https://github.com/Uniswap/UniswapX/tree/main/src/sample-executors))
+Order fillContracts _fill_ UniswapX orders. They specify the filler's strategy for fulfilling orders and are called by the reactor with `reactorCallback`.
+
+Some sample fillContract implementations are provided in this repository:
+- [SwapRouter02Executor](./src/sample-executors/SwapRouter02Executor.sol): A fillContract that uses UniswapV2 and UniswapV3 via the SwapRouter02 router
+
+### Direct Fill
+
+If a filler wants to fill orders using funds on-hand rather than a fillContract, they can do so gas efficiently using the `directFill` macro by specifying `address(1)` as the fillContract. This will pull tokens from the filler using `msg.sender` to satisfy the order outputs.
 
 # Integrating with UniswapX
 See [Filler Integration Guide](integration_guide.md)
 
-# Helpful Links
-
-| Name  | Description | Link |
-| --- | --- | --- |
-| UniswapX Orders Endpoint | Publicly available endpoint for querying open UniswapX Orders | https://nwktw6mvek.execute-api.us-east-2.amazonaws.com/prod/api-docs  |
-| Order Creation UI | A test UI that allows you to create, sign and broadcast UniswapX orders. |https://interface-UniswapX.vercel.app/ |
-| Permit2 | Uniswap’s permit protocol used by swappers to sign orders.  | https://github.com/Uniswap/permit2 |
-
-
 # Deployment Addresses
 
-| Contract | Address | Source |
-| --- | --- | --- |
-| Dutch Order Reactor | https://etherscan.io/address/0x81f570f48BE8d3D358404f257b5bDC4A88eefA50 | https://github.com/Uniswap/UniswapX/blob/main/src/reactors/DutchOrderReactor.sol |
-| Permit2 | https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3 | https://github.com/Uniswap/permit2  |
-
+| Contract                      | Address                                                                                                               | Source                                                                                                                    |
+| ---                           | ---                                                                                                                   | ---                                                                                                                       |
+| Exclusive Dutch Order Reactor | [0xe80bF394d190851E215D5F67B67f8F5A52783F1E](https://etherscan.io/address/0xe80bF394d190851E215D5F67B67f8F5A52783F1E) | [ExclusiveDutchOrderReactor](https://github.com/Uniswap/UniswapX/blob/v1.0.0/src/reactors/ExclusiveDutchOrderReactor.sol) |
+| OrderQuoter                   | [0x7714520f383C998e8822E8743FD6f90A2979689b](https://etherscan.io/address/0x7714520f383C998e8822E8743FD6f90A2979689b) | [OrderQuoter](https://github.com/Uniswap/UniswapX/blob/v1.0.0/src/OrderQuoter.sol)                                        |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                                                                             |
 
 # Usage
 
@@ -70,5 +65,3 @@ forge test
 # run integration tests
 FOUNDRY_PROFILE=integration forge test
 ```
-# Disclaimer
-This is EXPERIMENTAL, UNAUDITED code. Do not use in production.
