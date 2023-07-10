@@ -1,6 +1,6 @@
 # Integrating as a Filler
 
-There are three components to integrating as a filler: defining a filler execution strategy, retrieving & executing discovered orders and enrolling in the UniswapX RFQ program.
+There are multiple components to integrating as a filler: defining a filler execution strategy and retrieving & executing discovered orders.
 
 ## 1. Defining a Filler Execution Strategy
 
