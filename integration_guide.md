@@ -26,7 +26,7 @@ For convenience, we’ve provided an [example Executor Contract](https://github.
 
 ## 2. Retrieve & Execute Signed Orders
 
-All signed orders created through the Uniswap UI will be available via the [UniswapX Orders Endpoint](https://api.uniswap.org/v2/order). It’s up to the individual filler to architect their own systems for finding and executing profitable orders, but the basic flow is as follows:
+All signed orders created through the Uniswap UI will be available via the [UniswapX Orders Endpoint](https://api.uniswap.org/v2/orders). It’s up to the individual filler to architect their own systems for finding and executing profitable orders, but the basic flow is as follows:
 
 1. Call `GET` on the `prod/dutch-auction/orders` of the UniswapX Orders Endpoint to retrieve open signed orders
 2. Decode returned orders using the [UniswapX SDK](https://github.com/Uniswap/UniswapX-sdk/#parsing-orders)
