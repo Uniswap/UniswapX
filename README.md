@@ -40,7 +40,7 @@ Some sample fillContract implementations are provided in this repository:
 If a filler wants to fill orders using funds on-hand rather than a fillContract, they can do so gas efficiently using the `directFill` macro by specifying `address(1)` as the fillContract. This will pull tokens from the filler using `msg.sender` to satisfy the order outputs.
 
 # Integrating with UniswapX
-Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/createfiller).
+Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/guides/createfiller).
 
 # Deployment Addresses
 
