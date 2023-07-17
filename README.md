@@ -65,3 +65,7 @@ forge test
 # run integration tests
 FOUNDRY_PROFILE=integration forge test
 ```
+
+# Audit
+
+This codebase was audited by [ABDK](./audit/ABDK.pdf).
