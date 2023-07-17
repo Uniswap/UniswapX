@@ -66,6 +66,10 @@ forge test
 FOUNDRY_PROFILE=integration forge test
 ```
 
+# Audit
+
+This codebase was audited by [ABDK](./audit/ABDK.pdf).
+
 ## Bug Bounty
 
 This repository is subject to the Uniswap Labs Bug Bounty program, per the terms defined [here](https://uniswap.org/bug-bounty).
