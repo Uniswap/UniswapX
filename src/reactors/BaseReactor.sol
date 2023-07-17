@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -13,7 +12,7 @@ import {ExpectedBalance, ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 
 /// @notice Generic reactor logic for settling off-chain signed orders
 ///     using arbitrary fill methods specified by a filler
@@ -28,7 +27,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     // the direct filler did not include enough ETH in their call to execute/executeBatch
     error InsufficientEth();
 
+    /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
+
+    /// @notice special fillContract address used to indicate a direct fill
+    /// @dev direct fills transfer tokens directly from the filler to the swapper
     IReactorCallback public constant DIRECT_FILL = IReactorCallback(address(1));
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {

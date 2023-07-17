@@ -11,7 +11,15 @@ struct ExactInputSingleParams {
     uint160 sqrtPriceLimitX96;
 }
 
+struct ExactInputParams {
+    bytes path;
+    address recipient;
+    uint256 amountIn;
+    uint256 amountOutMinimum;
+}
+
 interface ISwapRouter02 {
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
     function multicall(uint256 deadline, bytes[] calldata data) external payable returns (bytes[] memory results);
     function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] calldata path, address to)

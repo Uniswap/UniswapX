@@ -16,8 +16,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {ISwapRouter02} from "../../src/external/ISwapRouter02.sol";
-import {IUniV3SwapRouter} from "../../src/external/IUniV3SwapRouter.sol";
+import {ISwapRouter02, ExactInputParams} from "../../src/external/ISwapRouter02.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -77,13 +76,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
         bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
@@ -122,13 +121,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         reactor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
@@ -161,13 +160,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         vm.expectRevert("TRANSFER_FAILED");
         reactor.execute(
@@ -216,13 +215,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: inputAmount * 4,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         reactor.executeBatch(
             signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
@@ -251,13 +250,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         vm.prank(address(0xbeef));
         vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
@@ -278,13 +277,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
         bytes[] memory multicallData = new bytes[](1);
-        IUniV3SwapRouter.ExactInputParams memory exactInputParams = IUniV3SwapRouter.ExactInputParams({
+        ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
             recipient: address(swapRouter02Executor),
             amountIn: ONE,
             amountOutMinimum: 0
         });
-        multicallData[0] = abi.encodeWithSelector(IUniV3SwapRouter.exactInput.selector, exactInputParams);
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
         bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);

@@ -15,7 +15,10 @@ contract DutchOrderReactor is BaseReactor {
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
 
+    /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
+
+    /// @notice thrown when an order's inputs and outputs both decay
     error InputAndOutputDecay();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}

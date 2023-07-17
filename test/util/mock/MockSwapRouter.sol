@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Path} from "../lib/Path.sol";
-import {IUniV3SwapRouter} from "../../../src/external/IUniV3SwapRouter.sol";
+import {ISwapRouter02, ExactInputParams} from "../../../src/external/ISwapRouter02.sol";
 
 contract MockSwapRouter {
     using SafeTransferLib for ERC20;
@@ -22,7 +22,7 @@ contract MockSwapRouter {
         swapRate = newRate;
     }
 
-    function exactInput(IUniV3SwapRouter.ExactInputParams calldata params) external returns (uint256 amountOut) {
+    function exactInput(ExactInputParams calldata params) external returns (uint256 amountOut) {
         bytes memory path = params.path;
         (address tokenIn,,) = path.decodeFirstPool();
 

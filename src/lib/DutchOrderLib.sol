@@ -68,12 +68,18 @@ library DutchOrderLib {
     string internal constant PERMIT2_ORDER_TYPE =
         string(abi.encodePacked("DutchOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
+    /// @notice hash the given output
+    /// @param output the output to hash
+    /// @return the eip-712 output hash
     function hash(DutchOutput memory output) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(DUTCH_OUTPUT_TYPE_HASH, output.token, output.startAmount, output.endAmount, output.recipient)
         );
     }
 
+    /// @notice hash the given outputs
+    /// @param outputs the outputs to hash
+    /// @return the eip-712 outputs hash
     function hash(DutchOutput[] memory outputs) internal pure returns (bytes32) {
         unchecked {
             bytes memory packedHashes = new bytes(32 * outputs.length);

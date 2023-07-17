@@ -7,7 +7,7 @@ import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {ExclusiveDutchOrderLib, ExclusiveDutchOrder, DutchOutput, DutchInput} from "../lib/ExclusiveDutchOrderLib.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for exclusive dutch orders
 contract ExclusiveDutchOrderReactor is BaseReactor {
@@ -17,8 +17,13 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     using DutchDecayLib for DutchInput;
     using ExclusivityOverrideLib for ResolvedOrder;
 
+    /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
+
+    /// @notice thrown when an order's end time is before its start time
     error OrderEndTimeBeforeStartTime();
+
+    /// @notice thrown when an order's inputs and outputs both decay
     error InputAndOutputDecay();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
