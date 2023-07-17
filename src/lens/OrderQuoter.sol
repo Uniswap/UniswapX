@@ -37,6 +37,8 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
+    /// @notice Return the order info of a given order (abi-encoded bytes).
+    /// @param order abi-encoded order, including `reactor` as the first encoded struct member
     function parseRevertReason(bytes memory reason) private pure returns (ResolvedOrder memory order) {
         if (reason.length < 192) {
             assembly {
@@ -47,6 +49,10 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
+    /// @notice Reactor callback function
+    /// @dev reverts with the resolved order as reason
+    /// @param resolvedOrders The resolved orders
+    /// @param filler The filler of the order
     function reactorCallback(ResolvedOrder[] memory resolvedOrders, address filler, bytes memory) external view {
         require(filler == address(this));
         if (resolvedOrders.length != 1) {

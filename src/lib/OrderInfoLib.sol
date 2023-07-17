@@ -9,6 +9,8 @@ library OrderInfoLib {
         "OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline,address additionalValidationContract,bytes additionalValidationData)";
     bytes32 internal constant ORDER_INFO_TYPE_HASH = keccak256(ORDER_INFO_TYPE);
 
+    /// @notice hash an OrderInfo object
+    /// @param info The OrderInfo object to hash
     function hash(OrderInfo memory info) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(

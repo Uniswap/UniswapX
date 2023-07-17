@@ -16,6 +16,7 @@ library ExpectedBalanceLib {
     error InsufficientOutput(uint256 actualBalance, uint256 expectedBalance);
 
     /// @notice fetches expected post-fill balances for all recipient-token output pairs
+    /// @param orders The orders to fetch balances for
     function getExpectedBalances(ResolvedOrder[] memory orders)
         internal
         view
@@ -91,6 +92,7 @@ library ExpectedBalanceLib {
     }
 
     /// @notice Asserts expected balances are satisfied
+    /// @param expectedBalances The expected balances to check
     function check(ExpectedBalance[] memory expectedBalances) internal view {
         for (uint256 i = 0; i < expectedBalances.length; i++) {
             ExpectedBalance memory expected = expectedBalances[i];

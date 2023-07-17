@@ -5,9 +5,11 @@ import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 library ResolvedOrderLib {
+    /// @notice thrown when the order targets a different reactor
     error InvalidReactor();
+
+    /// @notice thrown if the order has expired
     error DeadlinePassed();
-    error ValidationFailed();
 
     /// @notice Validates a resolved order, reverting if invalid
     /// @param filler The filler of the order
