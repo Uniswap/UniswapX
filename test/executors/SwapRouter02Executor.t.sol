@@ -142,7 +142,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
-    // there will be an overflow error when reactor tries to transfer 2 outputToken out of fill contract.
+    // be an overflow error when reactor tries to transfer 2 outputToken out of fill contract.
     function testExecuteInsufficientOutput() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
@@ -268,7 +268,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     // Very similar to `testReactorCallback`, but do not vm.prank the reactor when calling `reactorCallback`, so reverts
-    // in
+    // in `reactorCallback`.
     function testMsgSenderNotReactor() public {
         OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
