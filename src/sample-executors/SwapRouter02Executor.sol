@@ -8,7 +8,7 @@ import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, OutputToken, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
@@ -20,6 +20,8 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     error CallerNotWhitelisted();
     /// @notice thrown if reactorCallback is called by an adress other than the reactor
     error MsgSenderNotReactor();
+    /// @notice thrown if native transfer fails to the reactor
+    error NativeTransferFailed();
 
     ISwapRouter02 private immutable swapRouter02;
     address private immutable whitelistedCaller;
@@ -35,20 +37,32 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
+    /// @notice assume that we already have all output tokens
+    function execute(SignedOrder calldata order, bytes memory fillData) external {
+        if (msg.sender != whitelistedCaller) {
+            revert CallerNotWhitelisted();
+        }
+
+        reactor.execute(order, fillData);
+    }
+
+    /// @notice assume that we already have all output tokens
+    function executeBatch(SignedOrder[] calldata orders, bytes memory fillData) external {
+        if (msg.sender != whitelistedCaller) {
+            revert CallerNotWhitelisted();
+        }
+
+        reactor.executeBatch(orders, fillData);
+    }
+
     /// @param resolvedOrders The orders to fill
-    /// @param filler This filler must be `whitelistedCaller`
     /// @param fillData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
-        external
-    {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
         if (msg.sender != address(reactor)) {
             revert MsgSenderNotReactor();
-        }
-        if (filler != whitelistedCaller) {
-            revert CallerNotWhitelisted();
         }
 
         (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
@@ -64,7 +78,13 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
             ResolvedOrder memory order = resolvedOrders[i];
             for (uint256 j = 0; j < order.outputs.length; j++) {
                 OutputToken memory output = order.outputs[j];
-                output.token.transfer(output.recipient, output.amount);
+                if (output.token.isNative()) {
+                    (bool success,) = address(reactor).call{value: output.amount}("");
+                    if (!success) revert NativeTransferFailed();
+                } else {
+                    // TODO: fix to be a param
+                    ERC20(output.token).safeApprove(address(reactor), type(uint256).max);
+                }
             }
         }
     }

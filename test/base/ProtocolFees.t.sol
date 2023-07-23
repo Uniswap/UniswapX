@@ -439,10 +439,10 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
         swapperPrivateKey1 = 0x12341234;
         swapper1 = vm.addr(swapperPrivateKey1);
 
-        fillContract = new MockFillContract();
         feeController = new MockFeeController(PROTOCOL_FEE_RECIPIENT);
         permit2 = IPermit2(deployPermit2());
         reactor = new ExclusiveDutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+        fillContract = new MockFillContract(address(reactor));
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
 
@@ -475,11 +475,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-NoFees");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
         assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
@@ -503,11 +499,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-InterfaceFee");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
         assertEq(tokenOut1.balanceOf(address(swapper1)), 2 ether);
@@ -535,11 +527,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         // fillContract had 1 tokenIn1 preminted to it
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
@@ -568,11 +556,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-NoFeesEthOutput");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
         assertEq(swapper1.balance, 2 ether);
@@ -596,11 +580,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);
         assertEq(swapper1.balance, 2 ether);
@@ -628,11 +608,7 @@ contract ProtocolFeesGasComparisonTest is Test, PermitSignature, DeployPermit2, 
             outputs: dutchOutputs
         });
         snapStart("ProtocolFeesGasComparisonTest-InterfaceAndProtocolFeeEthOutput");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         // fillContract had 1 tokenIn1 preminted to it
         assertEq(tokenIn1.balanceOf(address(fillContract)), 2 ether);

@@ -15,7 +15,6 @@ import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
-import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 
@@ -40,13 +39,13 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
     function setUp() public {
         tokenIn1 = new MockERC20("tokenIn1", "IN1", 18);
         tokenOut1 = new MockERC20("tokenOut1", "OUT1", 18);
-        fillContract = new MockFillContract();
         swapperPrivateKey1 = 0x12341234;
         swapper1 = vm.addr(swapperPrivateKey1);
         swapperPrivateKey2 = 0x12341235;
         swapper2 = vm.addr(swapperPrivateKey2);
         permit2 = IPermit2(deployPermit2());
         reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+        fillContract = new MockFillContract(address(reactor));
         tokenIn1.forceApprove(swapper1, address(permit2), type(uint256).max);
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
     }
@@ -65,11 +64,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, 0, swapper1)
         });
         snapStart("EthOutputTestEthOutput");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
         // There is 0.5 ETH remaining in the fillContract as output has decayed to 0.5 ETH
@@ -118,7 +113,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         snapStart("EthOutputTest3OrdersWithEthAndERC20Outputs");
-        reactor.executeBatch(signedOrders, fillContract, bytes(""));
+        fillContract.executeBatch(signedOrders);
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), 3 * ONE);
         assertEq(swapper1.balance, 2 * ONE);
@@ -168,7 +163,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch(signedOrders, fillContract, bytes(""));
+        fillContract.executeBatch(signedOrders);
     }
 
     // Same as `test3OrdersWithEthAndERC20Outputs` but the fillContract does not have enough ETH. The reactor DOES
@@ -212,7 +207,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch(signedOrders, fillContract, bytes(""));
+        fillContract.executeBatch(signedOrders);
     }
 }
 
@@ -256,15 +251,9 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn3.forceApprove(swapper2, address(permit2), type(uint256).max);
-        tokenOut1.forceApprove(directFiller, address(permit2), type(uint256).max);
-        tokenOut2.forceApprove(directFiller, address(permit2), type(uint256).max);
-        tokenOut3.forceApprove(directFiller, address(permit2), type(uint256).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut1), address(reactor), type(uint160).max, type(uint48).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut2), address(reactor), type(uint160).max, type(uint48).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut3), address(reactor), type(uint160).max, type(uint48).max);
+        tokenOut1.forceApprove(directFiller, address(reactor), type(uint256).max);
+        tokenOut2.forceApprove(directFiller, address(reactor), type(uint256).max);
+        tokenOut3.forceApprove(directFiller, address(reactor), type(uint256).max);
     }
 
     // Fill 1 order with requested output = 2 ETH.
@@ -286,9 +275,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTestEth1Output");
         reactor.execute{value: outputAmount}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
         snapEnd();
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
@@ -312,9 +299,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         reactor.execute{value: outputAmount * 2}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
         // check directFiller received refund
         assertEq(directFiller.balance, outputAmount);
@@ -341,9 +326,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.execute{value: outputAmount - 1}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
     }
 
@@ -375,7 +358,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTestEth2Outputs");
-        reactor.executeBatch{value: ONE * 3}(signedOrders, IReactorCallback(address(1)), bytes(""));
+        reactor.executeBatch{value: ONE * 3}(signedOrders, bytes(""));
         snapEnd();
         assertEq(tokenIn1.balanceOf(directFiller), 2 * inputAmount);
         assertEq(swapper1.balance, 3 * ONE);
@@ -423,7 +406,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
 
         vm.prank(directFiller);
-        reactor.executeBatch{value: ONE * 5}(signedOrders, IReactorCallback(address(1)), bytes(""));
+        reactor.executeBatch{value: ONE * 5}(signedOrders, bytes(""));
         assertEq(tokenOut1.balanceOf(swapper1), 3 * ONE);
         assertEq(swapper1.balance, 2 * ONE);
         assertEq(swapper2.balance, 3 * ONE);
@@ -461,6 +444,6 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch{value: ONE * 5 / 2}(signedOrders, IReactorCallback(address(1)), bytes(""));
+        reactor.executeBatch{value: ONE * 5 / 2}(signedOrders, bytes(""));
     }
 }

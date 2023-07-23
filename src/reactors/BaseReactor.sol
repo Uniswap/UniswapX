@@ -8,7 +8,6 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
-import {ExpectedBalance, ExpectedBalanceLib} from "../lib/ExpectedBalanceLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
@@ -19,8 +18,6 @@ import {SignedOrder, ResolvedOrder, OutputToken} from "../base/ReactorStructs.so
 abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
-    using ExpectedBalanceLib for ResolvedOrder[];
-    using ExpectedBalanceLib for ExpectedBalance[];
     using CurrencyLibrary for address;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
@@ -39,20 +36,15 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, IReactorCallback fillContract, bytes calldata fillData)
-        external
-        payable
-        override
-        nonReentrant
-    {
+    function execute(SignedOrder calldata order, bytes calldata fillData) external payable override nonReentrant {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
-        _fill(resolvedOrders, fillContract, fillData);
+        _fill(resolvedOrders, fillData);
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, IReactorCallback fillContract, bytes calldata fillData)
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata fillData)
         external
         payable
         override
@@ -65,53 +57,48 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
-        _fill(resolvedOrders, fillContract, fillData);
+        _fill(resolvedOrders, fillData);
     }
 
     /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(ResolvedOrder[] memory orders, IReactorCallback fillContract, bytes calldata fillData) internal {
-        bool directFill = fillContract == DIRECT_FILL;
+    function _fill(ResolvedOrder[] memory orders, bytes calldata fillData) internal {
         unchecked {
             for (uint256 i = 0; i < orders.length; i++) {
                 ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, directFill ? msg.sender : address(fillContract));
-
-                // Batch fills are all-or-nothing so emit fill events now to save a loop
-                emit Fill(orders[i].hash, msg.sender, order.info.swapper, order.info.nonce);
+                transferInputTokens(order, msg.sender);
             }
         }
 
-        if (directFill) {
-            _processDirectFill(orders);
-        } else {
-            ExpectedBalance[] memory expectedBalances = orders.getExpectedBalances();
-            fillContract.reactorCallback(orders, msg.sender, fillData);
-            expectedBalances.check();
+        if (fillData.length > 0) {
+            IReactorCallback(msg.sender).reactorCallback(orders, fillData);
+        }
+
+        // attempt to transfer all currencies to all recipients
+        unchecked {
+            // transfer output tokens to their respective recipients
+            for (uint256 i = 0; i < orders.length; i++) {
+                ResolvedOrder memory resolvedOrder = orders[i];
+                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
+                    OutputToken memory output = resolvedOrder.outputs[j];
+                    output.token.transferFill(output.recipient, output.amount);
+                }
+
+                emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
+            }
+        }
+
+        // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+        // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
+        // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(msg.sender, address(this).balance);
         }
     }
 
-    /// @notice Process transferring tokens from a direct filler to the recipients
-    /// @dev in the case of ETH outputs, ETH should be provided as value in the execute call
-    /// @param orders The orders to process
-    function _processDirectFill(ResolvedOrder[] memory orders) internal {
-        unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
-                ResolvedOrder memory order = orders[i];
-                for (uint256 j = 0; j < order.outputs.length; j++) {
-                    OutputToken memory output = order.outputs[j];
-                    output.token.transferFromDirectFiller(output.recipient, output.amount, permit2);
-                }
-            }
-
-            // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
-            // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
-            // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
-            if (address(this).balance > 0) {
-                NATIVE.transfer(msg.sender, address(this).balance);
-            }
-        }
+    receive() external payable {
+        // receive native asset to support native output
     }
 
     /// @notice Resolve order-type specific requirements into a generic order with the final inputs and outputs.

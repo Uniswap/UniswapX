@@ -14,7 +14,7 @@ import {
 } from "../../src/reactors/DutchOrderReactor.sol";
 import {OrderInfo, InputToken, OutputToken, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
-import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockDutchOrderReactor} from "../util/mock/MockDutchOrderReactor.sol";
@@ -502,7 +502,7 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         emit Fill(orders[1].hash(), address(this), swapper, orders[1].info.nonce);
         vm.expectEmit(false, false, false, true);
         emit Fill(orders[2].hash(), address(this), swapper2, orders[2].info.nonce);
-        reactor.executeBatch(signedOrders, fillContract, bytes(""));
+        fillContract.executeBatch(signedOrders);
         assertEq(tokenOut.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(swapper2), 12 ether);
         assertEq(tokenIn.balanceOf(address(fillContract)), 6 ether);
@@ -539,13 +539,13 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         });
 
         vm.expectRevert();
-        reactor.executeBatch(generateSignedOrders(orders), fillContract, bytes(""));
+        fillContract.executeBatch(generateSignedOrders(orders));
     }
 
     // Execute 2 dutch orders, but executor does not send enough output tokens to the recipient
     // should fail with InsufficientOutput error from balance checks
     function testExecuteBatchInsufficientOutputSent() public {
-        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride(address(reactor));
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -572,14 +572,14 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         });
 
         fill.setOutputAmount(outputAmount);
-        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 4 ether, 6 ether));
-        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        fill.executeBatch(generateSignedOrders(orders));
     }
 
     // Execute 2 dutch orders, but executor does not send enough output ETH to the recipient
     // should fail with InsufficientOutput error from balance checks
     function testExecuteBatchInsufficientOutputSentNative() public {
-        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride(address(reactor));
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = inputAmount;
 
@@ -606,8 +606,8 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         });
 
         fill.setOutputAmount(outputAmount / 2);
-        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
-        reactor.executeBatch(generateSignedOrders(orders), fill, bytes(""));
+        vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
+        fill.executeBatch(generateSignedOrders(orders));
     }
 
     function generateSignedOrders(DutchOrder[] memory orders) private view returns (SignedOrder[] memory result) {

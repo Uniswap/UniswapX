@@ -6,7 +6,6 @@ import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "..
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
-import {ExpectedBalanceLib} from "../../src/lib/ExpectedBalanceLib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -73,7 +72,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -82,7 +81,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function testExecuteInsufficientOutput() public {
-        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride();
+        MockFillContractWithOutputOverride fill = new MockFillContractWithOutputOverride(address(reactor));
         tokenOut.mint(address(fill), ONE);
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         LimitOrder memory order = LimitOrder({
@@ -96,8 +95,8 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
 
         fill.setOutputAmount(ONE);
 
-        vm.expectRevert(abi.encodeWithSelector(ExpectedBalanceLib.InsufficientOutput.selector, 1 ether, 2 ether));
-        reactor.execute(SignedOrder(abi.encode(order), sig), fill, bytes(""));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
     }
 
     function testExecuteWithDuplicateOutputs() public {
@@ -123,7 +122,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -146,7 +145,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         order.info.additionalValidationContract = IValidationCallback(address(0));
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
     }
 
     function testExecuteWithFeeOutput() public {
@@ -177,7 +176,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         vm.expectEmit(false, false, false, true, address(reactor));
         emit Fill(orderHash, address(this), swapper, order.info.nonce);
 
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - ONE);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + ONE);
@@ -202,7 +201,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         );
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
     }
 
     function testExecuteIncorrectSpender() public {
@@ -225,7 +224,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         );
 
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
     }
 
     function testExecuteIncorrectToken() public {
@@ -241,6 +240,6 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
             swapperPrivateKey, address(permit2), order.info, address(tokenOut), ONE, LIMIT_ORDER_TYPE_HASH, orderHash
         );
         vm.expectRevert(InvalidSigner.selector);
-        reactor.execute(SignedOrder(abi.encode(order), sig), fillContract, bytes(""));
+        fillContract.execute(SignedOrder(abi.encode(order), sig));
     }
 }

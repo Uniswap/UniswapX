@@ -28,33 +28,28 @@ library CurrencyLibrary {
         }
     }
 
-    /// @notice Transfer currency to recipient
+    /// @notice Transfer currency from the filler to recipient
+    /// @dev for native outputs we will already have the currency in local balance
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
-    function transfer(address currency, address recipient, uint256 amount) internal {
+    function transferFill(address currency, address recipient, uint256 amount) internal {
         if (isNative(currency)) {
+            // we will have received native assets directly so can directly transfer
             (bool success,) = recipient.call{value: amount}("");
             if (!success) revert NativeTransferFailed();
         } else {
-            ERC20(currency).safeTransfer(recipient, amount);
+            // else the caller must have approved the token for the fill
+            ERC20(currency).safeTransferFrom(msg.sender, recipient, amount);
         }
     }
 
-    /// @notice Transfer currency from msg.sender to the recipient
-    /// @dev if currency is ETH, the value must have been sent in the execute call and is transferred directly
-    /// @dev if currency is token, the value is transferred from msg.sender via permit2
-    /// @param currency The currency to transfer
+    /// @notice Transfer native currency to recipient
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
-    /// @param permit2 The deployed permit2 address
-    function transferFromDirectFiller(address currency, address recipient, uint256 amount, IPermit2 permit2) internal {
-        if (isNative(currency)) {
-            (bool success,) = recipient.call{value: amount}("");
-            if (!success) revert NativeTransferFailed();
-        } else {
-            permit2.transferFrom(msg.sender, recipient, SafeCast.toUint160(amount), currency);
-        }
+    function transferNative(address recipient, uint256 amount) internal {
+        (bool success,) = recipient.call{value: amount}("");
+        if (!success) revert NativeTransferFailed();
     }
 
     /// @notice returns true if currency is native

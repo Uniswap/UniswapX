@@ -59,15 +59,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         tokenIn1.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn2.forceApprove(swapper2, address(permit2), type(uint256).max);
         tokenIn3.forceApprove(swapper2, address(permit2), type(uint256).max);
-        tokenOut1.forceApprove(directFiller, address(permit2), type(uint256).max);
-        tokenOut2.forceApprove(directFiller, address(permit2), type(uint256).max);
-        tokenOut3.forceApprove(directFiller, address(permit2), type(uint256).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut1), address(reactor), type(uint160).max, type(uint48).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut2), address(reactor), type(uint160).max, type(uint48).max);
-        vm.prank(directFiller);
-        permit2.approve(address(tokenOut3), address(reactor), type(uint160).max, type(uint48).max);
+        tokenOut1.forceApprove(directFiller, address(reactor), type(uint256).max);
+        tokenOut2.forceApprove(directFiller, address(reactor), type(uint256).max);
+        tokenOut3.forceApprove(directFiller, address(reactor), type(uint256).max);
     }
 
     // Execute a single order made by swapper1, input = 1 tokenIn1 and outputs = [2 tokenOut1].
@@ -89,9 +83,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrder");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
@@ -127,9 +119,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrderWithFee");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
@@ -169,7 +159,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTwoOrders");
-        reactor.executeBatch(signedOrders, IReactorCallback(address(1)), bytes(""));
+        reactor.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), 2 * ONE);
@@ -240,7 +230,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroThreeOrdersWithFees");
-        reactor.executeBatch(signedOrders, IReactorCallback(address(1)), bytes(""));
+        reactor.executeBatch(signedOrders, bytes(""));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
@@ -274,16 +264,14 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert(bytes("TRANSFER_FROM_FAILED"));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
     }
 
     // Same test as `testSingleOrder`, but filler lacks approval for tokenOut1
     function testFillerLacksApproval() public {
         vm.prank(directFiller);
-        permit2.approve(address(tokenOut1), address(reactor), 0, type(uint48).max);
+        tokenOut1.approve(address(reactor), 0);
 
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = 2 * inputAmount;
@@ -300,11 +288,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        vm.expectRevert(abi.encodeWithSignature("InsufficientAllowance(uint256)", 0));
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            IReactorCallback(address(1)),
-            bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
         );
     }
 }
