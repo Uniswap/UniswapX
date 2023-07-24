@@ -287,7 +287,7 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         emit Fill(order.hash(), address(exclusive), swapper, order.info.nonce);
 
         vm.prank(exclusive);
-        reactor.execute(signedOrder, abi.encodePacked(FillDataLib.DIRECT_FILL));
+        reactor.execute(signedOrder, abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK));
         assertEq(tokenOut.balanceOf(swapper), amountOut);
         assertEq(tokenIn.balanceOf(address(exclusive)), amountIn);
     }

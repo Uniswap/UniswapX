@@ -33,7 +33,7 @@ contract MockFillContract is IReactorCallback {
 
     /// @notice assume that we already have all output tokens
     function executeBatchDirect(SignedOrder[] calldata orders) external {
-        reactor.executeBatch(orders, abi.encodePacked(FillDataLib.DIRECT_FILL));
+        reactor.executeBatch(orders, abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK));
     }
 
     /// @notice assume that we already have all output tokens
