@@ -55,37 +55,38 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         reactor.executeBatch(orders, fillData);
     }
 
-    /// @param resolvedOrders The orders to fill
+    /// @notice fill UniswapX orders using SwapRouter02
     /// @param fillData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata fillData) external {
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata fillData) external {
         if (msg.sender != address(reactor)) {
             revert MsgSenderNotReactor();
         }
 
-        (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
-            abi.decode(fillData, (address[], bytes[]));
+        (
+            address[] memory tokensToApproveForSwapRouter02,
+            address[] memory tokensToApproveForReactor,
+            bytes[] memory multicallData
+        ) = abi.decode(fillData, (address[], address[], bytes[]));
 
-        for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
+        unchecked {
+            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
+                ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
+            }
+
+            for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
+                ERC20(tokensToApproveForReactor[i]).safeApprove(address(reactor), type(uint256).max);
+            }
         }
 
         swapRouter02.multicall(type(uint256).max, multicallData);
 
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            ResolvedOrder memory order = resolvedOrders[i];
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                OutputToken memory output = order.outputs[j];
-                if (output.token.isNative()) {
-                    (bool success,) = address(reactor).call{value: output.amount}("");
-                    if (!success) revert NativeTransferFailed();
-                } else {
-                    // TODO: fix to be a param
-                    ERC20(output.token).safeApprove(address(reactor), type(uint256).max);
-                }
-            }
+        // transfer any native balance to the reactor
+        // it will refund any excess
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(address(reactor), address(this).balance);
         }
     }
 
