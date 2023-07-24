@@ -19,7 +19,7 @@ Reactors process orders using the following steps:
 - Resolve the order into inputs and outputs
 - Pull input tokens from the swapper to the fillContract using permit2 `permitWitnessTransferFrom` with the order as witness
 - Call `reactorCallback` on the fillContract
-- Verify that the output tokens were received by the output recipients
+- Transfer output tokens from the fillContract to the output recipients
 
 Reactors implement the [IReactor](./src/interfaces/IReactor.sol) interface which abstracts the specifics of the order specification. This allows for different reactor implementations with different order formats to be used with the same interface, allowing for shared infrastructure and easy extension by fillers.
 
@@ -37,7 +37,7 @@ Some sample fillContract implementations are provided in this repository:
 
 ### Direct Fill
 
-If a filler wants to fill orders using funds on-hand rather than a fillContract, they can do so gas efficiently using the `directFill` macro by specifying `address(1)` as the fillContract. This will pull tokens from the filler using `msg.sender` to satisfy the order outputs.
+If a filler wants to fill orders using funds on-hand rather than a fillContract, they can do so gas efficiently using by specifying `bytes(0x01)` as the fillData. This sentinel will cause the reactor to pull tokens from the filler using `msg.sender` without calling `reactorCallback` to satisfy the order outputs.
 
 # Integrating with UniswapX
 Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/guides/createfiller).
