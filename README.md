@@ -37,7 +37,7 @@ Some sample fillContract implementations are provided in this repository:
 
 ### Direct Fill
 
-If a filler wants to fill orders using funds on-hand rather than a fillContract, they can do so gas efficiently using by specifying `bytes(0x01)` as the fillData. This sentinel will cause the reactor to pull tokens from the filler using `msg.sender` without calling `reactorCallback` to satisfy the order outputs.
+If a filler wants to simply fill orders using funds on-hand rather than a fillContract strategy, they can do so gas efficiently by specifying `bytes(0x01)` as the fillData. This sentinel will cause the reactor to skip the `reactorCallback` and simply pull tokens from the filler using `msg.sender`.
 
 # Integrating with UniswapX
 Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/guides/createfiller).
