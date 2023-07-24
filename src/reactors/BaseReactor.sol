@@ -60,8 +60,9 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @notice validates and fills a list of orders, marking it as filled
     function _fill(ResolvedOrder[] memory orders, bytes calldata fillData) internal {
+        uint256 ordersLength = orders.length;
         unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 order.validate(msg.sender);
@@ -76,9 +77,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         // attempt to transfer all currencies to all recipients
         unchecked {
             // transfer output tokens to their respective recipients
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedOrder memory resolvedOrder = orders[i];
-                for (uint256 j = 0; j < resolvedOrder.outputs.length; j++) {
+                uint256 outputsLength = resolvedOrder.outputs.length;
+                for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     output.token.transferFill(output.recipient, output.amount);
                 }
