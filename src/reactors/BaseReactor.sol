@@ -69,7 +69,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
             }
         }
 
-        if (!fillData.skipReactorCallback()) {
+        if (fillData.executeReactorCallback()) {
             IReactorCallback(msg.sender).reactorCallback(orders, fillData);
         }
 

@@ -20,8 +20,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     error CallerNotWhitelisted();
     /// @notice thrown if reactorCallback is called by an adress other than the reactor
     error MsgSenderNotReactor();
-    /// @notice thrown if native transfer fails to the reactor
-    error NativeTransferFailed();
 
     ISwapRouter02 private immutable swapRouter02;
     address private immutable whitelistedCaller;
