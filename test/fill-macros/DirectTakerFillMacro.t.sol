@@ -8,6 +8,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {FillDataLib} from "../../src/lib/FillDataLib.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -83,7 +84,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrder");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
@@ -119,7 +121,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrderWithFee");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
@@ -159,7 +162,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTwoOrders");
-        reactor.executeBatch(signedOrders, bytes(""));
+        reactor.executeBatch(signedOrders, abi.encodePacked(FillDataLib.DIRECT_FILL));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), 2 * ONE);
@@ -230,7 +233,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroThreeOrdersWithFees");
-        reactor.executeBatch(signedOrders, bytes(""));
+        reactor.executeBatch(signedOrders, abi.encodePacked(FillDataLib.DIRECT_FILL));
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
@@ -264,7 +267,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert(bytes("TRANSFER_FROM_FAILED"));
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
     }
 
@@ -290,7 +294,8 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert("TRANSFER_FROM_FAILED");
         reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
     }
 }

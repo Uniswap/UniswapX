@@ -21,7 +21,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param sig The order signature
     /// @return result The ResolvedOrder
     function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
-        try IReactor(getReactor(order)).execute(SignedOrder(order, sig), bytes("11")) {}
+        try IReactor(getReactor(order)).execute(SignedOrder(order, sig), bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
         }

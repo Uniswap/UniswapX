@@ -28,12 +28,12 @@ contract MockFillContractWithOutputOverride is IReactorCallback {
 
     /// @notice assume that we already have all output tokens
     function execute(SignedOrder calldata order) external {
-        reactor.execute(order, hex"11");
+        reactor.execute(order, hex"");
     }
 
     /// @notice assume that we already have all output tokens
     function executeBatch(SignedOrder[] calldata orders) external {
-        reactor.executeBatch(orders, hex"11");
+        reactor.executeBatch(orders, hex"");
     }
 
     /// @notice assume that we already have all output tokens

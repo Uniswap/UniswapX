@@ -13,6 +13,7 @@ import {
 } from "../../src/reactors/ExclusiveDutchOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
+import {FillDataLib} from "../../src/lib/FillDataLib.sol";
 import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -286,7 +287,7 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         emit Fill(order.hash(), address(exclusive), swapper, order.info.nonce);
 
         vm.prank(exclusive);
-        reactor.execute(signedOrder, hex"");
+        reactor.execute(signedOrder, abi.encodePacked(FillDataLib.DIRECT_FILL));
         assertEq(tokenOut.balanceOf(swapper), amountOut);
         assertEq(tokenIn.balanceOf(address(exclusive)), amountIn);
     }

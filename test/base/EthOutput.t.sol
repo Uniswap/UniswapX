@@ -6,6 +6,7 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {FillDataLib} from "../../src/lib/FillDataLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -275,7 +276,8 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTestEth1Output");
         reactor.execute{value: outputAmount}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
         snapEnd();
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
@@ -299,7 +301,8 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         reactor.execute{value: outputAmount * 2}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
         // check directFiller received refund
         assertEq(directFiller.balance, outputAmount);
@@ -326,7 +329,8 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         vm.prank(directFiller);
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         reactor.execute{value: outputAmount - 1}(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), bytes("")
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
+            abi.encodePacked(FillDataLib.DIRECT_FILL)
         );
     }
 
@@ -358,7 +362,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTestEth2Outputs");
-        reactor.executeBatch{value: ONE * 3}(signedOrders, bytes(""));
+        reactor.executeBatch{value: ONE * 3}(signedOrders, abi.encodePacked(FillDataLib.DIRECT_FILL));
         snapEnd();
         assertEq(tokenIn1.balanceOf(directFiller), 2 * inputAmount);
         assertEq(swapper1.balance, 3 * ONE);
@@ -406,7 +410,7 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
 
         vm.prank(directFiller);
-        reactor.executeBatch{value: ONE * 5}(signedOrders, bytes(""));
+        reactor.executeBatch{value: ONE * 5}(signedOrders, abi.encodePacked(FillDataLib.DIRECT_FILL));
         assertEq(tokenOut1.balanceOf(swapper1), 3 * ONE);
         assertEq(swapper1.balance, 2 * ONE);
         assertEq(swapper2.balance, 3 * ONE);
@@ -444,6 +448,6 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
-        reactor.executeBatch{value: ONE * 5 / 2}(signedOrders, bytes(""));
+        reactor.executeBatch{value: ONE * 5 / 2}(signedOrders, abi.encodePacked(FillDataLib.DIRECT_FILL));
     }
 }

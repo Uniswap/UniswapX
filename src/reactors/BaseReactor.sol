@@ -8,6 +8,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
+import {FillDataLib} from "../lib/FillDataLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
@@ -19,6 +20,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
     using CurrencyLibrary for address;
+    using FillDataLib for bytes;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
     // the direct filler did not include enough ETH in their call to execute/executeBatch
@@ -26,10 +28,6 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
-
-    /// @notice special fillContract address used to indicate a direct fill
-    /// @dev direct fills transfer tokens directly from the filler to the swapper
-    IReactorCallback public constant DIRECT_FILL = IReactorCallback(address(1));
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
@@ -71,7 +69,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
             }
         }
 
-        if (fillData.length > 0) {
+        if (!fillData.isDirectFill()) {
             IReactorCallback(msg.sender).reactorCallback(orders, fillData);
         }
 
