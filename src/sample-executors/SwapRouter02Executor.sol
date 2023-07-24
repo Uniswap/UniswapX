@@ -36,7 +36,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     /// @notice assume that we already have all output tokens
-    function execute(SignedOrder calldata order, bytes memory fillData) external {
+    function execute(SignedOrder calldata order, bytes calldata fillData) external {
         if (msg.sender != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
@@ -45,7 +45,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     /// @notice assume that we already have all output tokens
-    function executeBatch(SignedOrder[] calldata orders, bytes memory fillData) external {
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata fillData) external {
         if (msg.sender != whitelistedCaller) {
             revert CallerNotWhitelisted();
         }
