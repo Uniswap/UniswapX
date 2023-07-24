@@ -36,8 +36,7 @@ library CurrencyLibrary {
     function transferFill(address currency, address recipient, uint256 amount) internal {
         if (isNative(currency)) {
             // we will have received native assets directly so can directly transfer
-            (bool success,) = recipient.call{value: amount}("");
-            if (!success) revert NativeTransferFailed();
+            transferNative(recipient, amount);
         } else {
             // else the caller must have approved the token for the fill
             ERC20(currency).safeTransferFrom(msg.sender, recipient, amount);
