@@ -66,6 +66,10 @@ forge test
 FOUNDRY_PROFILE=integration forge test
 ```
 
+# Fee-on-Transfer Disclaimer
+
+Note that UniswapX handles fee-on-transfer tokens by transferring the full output amounts to the spender. This means that the actual amount received by the recipient will be _after_ fees.
+
 # Audit
 
 This codebase was audited by [ABDK](./audit/ABDK.pdf).
