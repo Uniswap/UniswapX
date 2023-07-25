@@ -92,6 +92,29 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
     }
 
+    // Execute a single order made by swapper1, input = 1 tokenIn1 and outputs = [2 tokenOut1].
+    function testFillDataPassed() public {
+        uint256 inputAmount = 10 ** 18;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn1.mint(address(swapper1), inputAmount);
+        tokenOut1.mint(directFiller, outputAmount);
+
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper1).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(tokenIn1, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut1), outputAmount, outputAmount, swapper1)
+        });
+
+        vm.prank(directFiller);
+        // throws because attempting to call reactorCallback on an EOA
+        // and solidity high level calls add a codesize check
+        vm.expectRevert();
+        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), hex"");
+    }
+
     // The same as testSingleOrder, but with a 10% fee.
     function testSingleOrderWithFee() public {
         address feeRecipient = address(1);
