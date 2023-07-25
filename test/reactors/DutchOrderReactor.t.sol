@@ -401,8 +401,7 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
-        return reactor;
+        return new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo

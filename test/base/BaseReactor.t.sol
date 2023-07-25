@@ -16,6 +16,7 @@ import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoubleExecution.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 
 abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPermit2 {
@@ -52,7 +53,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         additionalValidationContract.setValid(true);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
-        createReactor();
+        reactor = createReactor();
 
         fillContract = new MockFillContract(address(reactor));
     }
@@ -580,6 +581,50 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
         fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test executing two orders on two reactors at once
+    /// @dev executing the second order inside the callback of the first's execution
+    function testBaseExecuteTwoReactorsAtOnce() public {
+        BaseReactor otherReactor = createReactor();
+        MockFillContractDoubleExecution doubleExecutionFillContract =
+            new MockFillContractDoubleExecution(address(reactor), address(otherReactor));
+        // Seed both swapper and fillContract with enough tokens (important for dutch order)
+        tokenIn.mint(address(swapper), 2 ether);
+        tokenOut.mint(address(doubleExecutionFillContract), 2 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        ResolvedOrder memory order1 = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, swapper),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        ResolvedOrder memory order2 = ResolvedOrder({
+            info: OrderInfoBuilder.init(address(otherReactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withNonce(1234),
+            input: InputToken(tokenIn, 1 ether, 1 ether),
+            outputs: OutputsBuilder.single(address(tokenOut), 1 ether, swapper),
+            sig: hex"00",
+            hash: bytes32(0)
+        });
+
+        (SignedOrder memory signedOrder1, bytes32 orderHash1) = createAndSignOrder(order1);
+        (SignedOrder memory signedOrder2, bytes32 orderHash2) = createAndSignOrder(order2);
+
+        (uint256 swapperInputBalanceStart,, uint256 swapperOutputBalanceStart,) = _checkpointBalances();
+
+        // TODO: expand to allow for custom fillData in 3rd param
+        vm.expectEmit(true, true, true, true, address(otherReactor));
+        emit Fill(orderHash2, address(doubleExecutionFillContract), swapper, order2.info.nonce);
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash1, address(doubleExecutionFillContract), swapper, order1.info.nonce);
+        doubleExecutionFillContract.execute(signedOrder1, signedOrder2);
+
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - 2 ether);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + 2 ether);
     }
 
     /// @dev Basic execute test with protocol fee, checks balance before and after

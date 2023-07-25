@@ -36,8 +36,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     function createReactor() public override returns (BaseReactor) {
-        reactor = new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
-        return reactor;
+        return new LimitOrderReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
