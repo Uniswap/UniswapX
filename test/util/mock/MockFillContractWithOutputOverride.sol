@@ -43,8 +43,7 @@ contract MockFillContractWithOutputOverride is IReactorCallback {
                 OutputToken memory output = resolvedOrders[i].outputs[j];
                 uint256 amount = outputAmount == 0 ? output.amount : outputAmount;
                 if (output.token.isNative()) {
-                    (bool success,) = address(reactor).call{value: amount}("");
-                    if (!success) revert NativeTransferFailed();
+                    CurrencyLibrary.transferNative(address(reactor), amount);
                 } else {
                     ERC20(output.token).approve(address(reactor), type(uint256).max);
                 }

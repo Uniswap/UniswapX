@@ -37,8 +37,7 @@ contract MockFillContract is IReactorCallback {
             for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
                 OutputToken memory output = resolvedOrders[i].outputs[j];
                 if (output.token.isNative()) {
-                    (bool success,) = address(reactor).call{value: output.amount}("");
-                    if (!success) revert NativeTransferFailed();
+                    CurrencyLibrary.transferNative(address(reactor), output.amount);
                 } else {
                     ERC20(output.token).approve(address(reactor), type(uint256).max);
                 }
