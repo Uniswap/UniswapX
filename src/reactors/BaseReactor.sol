@@ -8,7 +8,6 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
 import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
-import {FillDataLib} from "../lib/FillDataLib.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
@@ -20,7 +19,6 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     using SafeTransferLib for ERC20;
     using ResolvedOrderLib for ResolvedOrder;
     using CurrencyLibrary for address;
-    using FillDataLib for bytes;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
     // the direct filler did not include enough ETH in their call to execute/executeBatch
@@ -34,15 +32,45 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     }
 
     /// @inheritdoc IReactor
-    function execute(SignedOrder calldata order, bytes calldata fillData) external payable override nonReentrant {
+    function execute(SignedOrder calldata order) external payable override nonReentrant {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
-        _fill(resolvedOrders, fillData);
+        _prepare(resolvedOrders);
+        _fill(resolvedOrders);
     }
 
     /// @inheritdoc IReactor
-    function executeBatch(SignedOrder[] calldata orders, bytes calldata fillData)
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
+        external
+        payable
+        override
+        nonReentrant
+    {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
+        resolvedOrders[0] = resolve(order);
+
+        _prepare(resolvedOrders);
+        IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        _fill(resolvedOrders);
+    }
+
+    /// @inheritdoc IReactor
+    function executeBatch(SignedOrder[] calldata orders) external payable override nonReentrant {
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+
+        unchecked {
+            for (uint256 i = 0; i < orders.length; i++) {
+                resolvedOrders[i] = resolve(orders[i]);
+            }
+        }
+
+        _prepare(resolvedOrders);
+        _fill(resolvedOrders);
+    }
+
+    /// @inheritdoc IReactor
+    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
         external
         payable
         override
@@ -55,11 +83,15 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
-        _fill(resolvedOrders, fillData);
+
+        _prepare(resolvedOrders);
+        IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        _fill(resolvedOrders);
     }
 
-    /// @notice validates and fills a list of orders, marking it as filled
-    function _fill(ResolvedOrder[] memory orders, bytes calldata fillData) internal {
+    /// @notice validates, injects fees, and transfers input tokens in preparation for order fill
+    /// @param orders The orders to prepare
+    function _prepare(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
@@ -69,11 +101,12 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 transferInputTokens(order, msg.sender);
             }
         }
+    }
 
-        if (fillData.executeReactorCallback()) {
-            IReactorCallback(msg.sender).reactorCallback(orders, fillData);
-        }
-
+    /// @notice fills a list of orders, ensuring all outputs are satisfied
+    /// @param orders The orders to fill
+    function _fill(ResolvedOrder[] memory orders) internal {
+        uint256 ordersLength = orders.length;
         // attempt to transfer all currencies to all recipients
         unchecked {
             // transfer output tokens to their respective recipients

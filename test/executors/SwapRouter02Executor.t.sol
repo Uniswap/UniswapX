@@ -86,7 +86,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
+        bytes memory callbackData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
@@ -100,7 +100,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.prank(address(reactor));
-        swapRouter02Executor.reactorCallback(resolvedOrders, fillData);
+        swapRouter02Executor.reactorCallback(resolvedOrders, callbackData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
         assertEq(tokenOut.balanceOf(address(swapper)), 0);
@@ -354,7 +354,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
+        bytes memory callbackData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
@@ -368,7 +368,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
-        swapRouter02Executor.reactorCallback(resolvedOrders, fillData);
+        swapRouter02Executor.reactorCallback(resolvedOrders, callbackData);
     }
 
     function testUnwrapWETH() public {

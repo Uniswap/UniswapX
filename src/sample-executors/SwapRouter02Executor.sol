@@ -34,7 +34,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     modifier onlyReactor() {
-        if (msg.sender != reactor) {
+        if (msg.sender != address(reactor)) {
             revert MsgSenderNotReactor();
         }
         _;
@@ -51,12 +51,12 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     /// @notice assume that we already have all output tokens
     function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
-        reactor.execute(order, callbackData);
+        reactor.executeWithCallback(order, callbackData);
     }
 
     /// @notice assume that we already have all output tokens
     function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
-        reactor.executeBatch(orders, callbackData);
+        reactor.executeBatchWithCallback(orders, callbackData);
     }
 
     /// @notice fill UniswapX orders using SwapRouter02

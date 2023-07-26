@@ -8,7 +8,6 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
-import {FillDataLib} from "../../src/lib/FillDataLib.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -83,10 +82,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrder");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK)
-        );
+        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
@@ -112,7 +108,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         // throws because attempting to call reactorCallback on an EOA
         // and solidity high level calls add a codesize check
         vm.expectRevert();
-        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), hex"");
+        reactor.executeWithCallback(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)), hex""
+        );
     }
 
     // The same as testSingleOrder, but with a 10% fee.
@@ -143,10 +141,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroSingleOrderWithFee");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK)
-        );
+        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
         snapEnd();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
         assertEq(tokenOut1.balanceOf(address(feeRecipient)), outputAmount * feeBps / 10000);
@@ -185,7 +180,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroTwoOrders");
-        reactor.executeBatch(signedOrders, abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK));
+        reactor.executeBatch(signedOrders);
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), 2 * ONE);
@@ -256,7 +251,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.prank(directFiller);
         snapStart("DirectFillerFillMacroThreeOrdersWithFees");
-        reactor.executeBatch(signedOrders, abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK));
+        reactor.executeBatch(signedOrders);
         snapEnd();
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
@@ -289,10 +284,7 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         vm.expectRevert(bytes("TRANSFER_FROM_FAILED"));
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK)
-        );
+        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
     }
 
     // Same test as `testSingleOrder`, but filler lacks approval for tokenOut1
@@ -316,9 +308,6 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
 
         vm.prank(directFiller);
         vm.expectRevert("TRANSFER_FROM_FAILED");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)),
-            abi.encodePacked(FillDataLib.SKIP_REACTOR_CALLBACK)
-        );
+        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
     }
 }

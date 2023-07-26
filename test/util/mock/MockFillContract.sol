@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../../src/lib/CurrencyLibrary.sol";
-import {FillDataLib} from "../../../src/lib/FillDataLib.sol";
 import {ResolvedOrder, OutputToken, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {BaseReactor} from "../../../src/reactors/BaseReactor.sol";
 import {IReactor} from "../../../src/interfaces/IReactor.sol";
@@ -23,12 +22,12 @@ contract MockFillContract is IReactorCallback {
 
     /// @notice assume that we already have all output tokens
     function execute(SignedOrder calldata order) external {
-        reactor.execute(order, hex"");
+        reactor.executeWithCallback(order, hex"");
     }
 
     /// @notice assume that we already have all output tokens
     function executeBatch(SignedOrder[] calldata orders) external {
-        reactor.executeBatch(orders, hex"");
+        reactor.executeBatchWithCallback(orders, hex"");
     }
 
     /// @notice assume that we already have all output tokens

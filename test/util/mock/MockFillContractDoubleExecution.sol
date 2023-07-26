@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../../src/lib/CurrencyLibrary.sol";
-import {FillDataLib} from "../../../src/lib/FillDataLib.sol";
 import {ResolvedOrder, OutputToken, SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {BaseReactor} from "../../../src/reactors/BaseReactor.sol";
 import {IReactor} from "../../../src/interfaces/IReactor.sol";
@@ -25,7 +24,7 @@ contract MockFillContractDoubleExecution is IReactorCallback {
 
     /// @notice assume that we already have all output tokens
     function execute(SignedOrder calldata order, SignedOrder calldata other) external {
-        reactor1.execute(order, abi.encode(other));
+        reactor1.executeWithCallback(order, abi.encode(other));
     }
 
     /// @notice assume that we already have all output tokens
@@ -42,7 +41,7 @@ contract MockFillContractDoubleExecution is IReactorCallback {
         }
 
         if (msg.sender == address(reactor1)) {
-            reactor2.execute(abi.decode(otherSignedOrder, (SignedOrder)), hex"");
+            reactor2.executeWithCallback(abi.decode(otherSignedOrder, (SignedOrder)), hex"");
         }
     }
 }
