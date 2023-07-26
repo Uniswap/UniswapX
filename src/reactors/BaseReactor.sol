@@ -57,10 +57,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
     /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] calldata orders) external payable override nonReentrant {
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+        uint256 ordersLength = orders.length;
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
@@ -76,10 +77,11 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         override
         nonReentrant
     {
-        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](orders.length);
+        uint256 ordersLength = orders.length;
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < ordersLength; i++) {
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
