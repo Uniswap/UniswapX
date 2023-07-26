@@ -30,14 +30,14 @@ Current reactor implementations:
 
 ### Fill Contracts
 
-Order fillContracts _fill_ UniswapX orders. They specify the filler's strategy for fulfilling orders and are called by the reactor with `reactorCallback`.
+Order fillContracts _fill_ UniswapX orders. They specify the filler's strategy for fulfilling orders and are called by the reactor with `reactorCallback` when using `executeWithCallback` or `executeBatchWithCallback`.
 
 Some sample fillContract implementations are provided in this repository:
 - [SwapRouter02Executor](./src/sample-executors/SwapRouter02Executor.sol): A fillContract that uses UniswapV2 and UniswapV3 via the SwapRouter02 router
 
 ### Direct Fill
 
-If a filler wants to simply fill orders using funds on-hand rather than a fillContract strategy, they can do so gas efficiently by specifying `bytes(0x01)` as the callbackData. This sentinel will cause the reactor to skip the `reactorCallback` and simply pull tokens from the filler using `msg.sender`.
+If a filler wants to simply fill orders using funds on-hand rather than a fillContract strategy, they can do so gas efficiently by using `execute` or `executeBatch`. These functions cause the reactor to skip the `reactorCallback` and simply pull tokens from the filler using `msg.sender`.
 
 # Integrating with UniswapX
 Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/guides/createfiller).

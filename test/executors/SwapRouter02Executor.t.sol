@@ -338,7 +338,6 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
     }
 
     // Very similar to `testReactorCallback`, but do not vm.prank the reactor when calling `reactorCallback`, so reverts
-    // in
     function testMsgSenderNotReactor() public {
         OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
