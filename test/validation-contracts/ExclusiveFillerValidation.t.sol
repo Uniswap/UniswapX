@@ -32,13 +32,13 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
     ExclusiveFillerValidation exclusiveFillerValidation;
 
     function setUp() public {
-        fillContract = new MockFillContract();
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
         reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+        fillContract = new MockFillContract(address(reactor));
         exclusiveFillerValidation = new ExclusiveFillerValidation();
     }
 
@@ -54,7 +54,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
-                abi.encode(address(this), block.timestamp + 50)
+                abi.encode(address(fillContract), block.timestamp + 50)
                 ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
@@ -65,11 +65,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         // Below snapshot can be compared to `DutchExecuteSingle.snap` to compare an execute with and without
         // exclusive filler validation
         snapStart("testExclusiveFillerSucceeds");
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)));
         snapEnd();
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
@@ -87,7 +83,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
-                abi.encode(address(this), block.timestamp + 50)
+                abi.encode(address(0x1234), block.timestamp + 50)
                 ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
@@ -95,13 +91,10 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
-        vm.prank(address(0x123));
-        vm.expectRevert(abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(0x123)));
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            fillContract,
-            bytes("")
+        vm.expectRevert(
+            abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(fillContract))
         );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)));
     }
 
     // Ensure a different filler (not the one encoded in additionalValidationData) is able to execute after last exclusive
@@ -118,7 +111,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
-                abi.encode(address(this), block.timestamp - 50)
+                abi.encode(address(0x1234), block.timestamp - 50)
                 ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
@@ -126,12 +119,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
-        vm.prank(address(0x123));
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            fillContract,
-            bytes("")
-        );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)));
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
@@ -148,7 +136,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
-                abi.encode(address(this), block.timestamp)
+                abi.encode(address(0x1234), block.timestamp)
                 ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
@@ -156,12 +144,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
 
-        vm.prank(address(0x123));
-        vm.expectRevert(abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(0x123)));
-        reactor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            fillContract,
-            bytes("")
+        vm.expectRevert(
+            abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(fillContract))
         );
+        fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)));
     }
 }

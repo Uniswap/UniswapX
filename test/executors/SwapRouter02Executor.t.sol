@@ -75,6 +75,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
         bytes[] memory multicallData = new bytes[](1);
         ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
@@ -83,7 +86,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
+        bytes memory callbackData = abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
@@ -97,10 +100,11 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.prank(address(reactor));
-        swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+        swapRouter02Executor.reactorCallback(resolvedOrders, callbackData);
         assertEq(tokenIn.balanceOf(address(mockSwapRouter)), ONE);
-        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), 0);
-        assertEq(tokenOut.balanceOf(address(swapper)), ONE);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
+        assertEq(tokenOut.balanceOf(address(swapper)), 0);
+        assertEq(tokenOut.allowance(address(swapRouter02Executor), address(reactor)), type(uint256).max);
     }
 
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
@@ -120,6 +124,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
         bytes[] memory multicallData = new bytes[](1);
         ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
@@ -129,16 +136,75 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        reactor.execute(
+        snapStart("SwapRouter02ExecutorExecute");
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+        snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
         assertEq(tokenOut.balanceOf(swapper), ONE / 2);
         assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE / 2);
+    }
+
+    function testExecuteAlreadyApproved() public {
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(tokenIn, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
+        });
+
+        tokenIn.mint(swapper, 2 * ONE);
+        tokenOut.mint(address(mockSwapRouter), 2 * ONE);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        ExactInputParams memory exactInputParams = ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
+
+        swapRouter02Executor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+
+        DutchOrder memory order2 = DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1234
+                ),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(tokenIn, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
+        });
+
+        tokensToApproveForSwapRouter02 = new address[](0);
+        tokensToApproveForReactor = new address[](0);
+
+        snapStart("SwapRouter02ExecutorExecuteAlreadyApproved");
+        swapRouter02Executor.execute(
+            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(permit2), order2)),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(swapper), ONE);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE);
     }
 
     // Requested output = 2 & input = 1. SwapRouter swaps at 1 to 1 rate, so there will
@@ -159,6 +225,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
         bytes[] memory multicallData = new bytes[](1);
         ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
@@ -168,11 +237,10 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        vm.expectRevert("TRANSFER_FAILED");
-        reactor.execute(
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
     }
 
@@ -214,6 +282,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
 
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
         bytes[] memory multicallData = new bytes[](1);
         ExactInputParams memory exactInputParams = ExactInputParams({
             path: abi.encodePacked(tokenIn, FEE, tokenOut),
@@ -223,8 +294,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        reactor.executeBatch(
-            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
+        swapRouter02Executor.executeBatch(
+            signedOrders, abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);
@@ -260,15 +331,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         vm.prank(address(0xbeef));
         vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
-        reactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
-            swapRouter02Executor,
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
     }
 
     // Very similar to `testReactorCallback`, but do not vm.prank the reactor when calling `reactorCallback`, so reverts
-    // in
     function testMsgSenderNotReactor() public {
         OutputToken[] memory outputs = new OutputToken[](1);
         outputs[0].token = address(tokenOut);
@@ -284,7 +353,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             amountOutMinimum: 0
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
-        bytes memory fillData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
+        bytes memory callbackData = abi.encode(tokensToApproveForSwapRouter02, multicallData);
 
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         bytes memory sig = hex"1234";
@@ -298,7 +367,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
         vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
-        swapRouter02Executor.reactorCallback(resolvedOrders, address(this), fillData);
+        swapRouter02Executor.reactorCallback(resolvedOrders, callbackData);
     }
 
     function testUnwrapWETH() public {

@@ -6,19 +6,20 @@ import {IReactorCallback} from "./IReactorCallback.sol";
 
 /// @notice Interface for order execution reactors
 interface IReactor {
-    /// @notice Execute a single order using the given fill specification
+    /// @notice Execute a single order
     /// @param order The order definition and valid signature to execute
-    /// @param fillContract The contract which will fill the order
-    /// @param fillData The fillData to pass to the fillContract callback
-    function execute(SignedOrder calldata order, IReactorCallback fillContract, bytes calldata fillData)
-        external
-        payable;
+    function execute(SignedOrder calldata order) external payable;
 
-    /// @notice Execute the given orders at once with the specified fill specification
+    /// @notice Execute a single order using the given callback data
+    /// @param order The order definition and valid signature to execute
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable;
+
+    /// @notice Execute the given orders at once
     /// @param orders The order definitions and valid signatures to execute
-    /// @param fillContract The contract which will fill the order
-    /// @param fillData The fillData to pass to the fillContract callback
-    function executeBatch(SignedOrder[] calldata orders, IReactorCallback fillContract, bytes calldata fillData)
-        external
-        payable;
+    function executeBatch(SignedOrder[] calldata orders) external payable;
+
+    /// @notice Execute the given orders at once using a callback with the given callback data
+    /// @param orders The order definitions and valid signatures to execute
+    /// @param callbackData The callbackData to pass to the callback
+    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData) external payable;
 }
