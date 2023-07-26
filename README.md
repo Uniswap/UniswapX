@@ -37,7 +37,7 @@ Some sample fillContract implementations are provided in this repository:
 
 ### Direct Fill
 
-If a filler wants to simply fill orders using funds on-hand rather than a fillContract strategy, they can do so gas efficiently by using `execute` or `executeBatch`. These functions cause the reactor to skip the `reactorCallback` and simply pull tokens from the filler using `msg.sender`.
+If a filler wants to simply fill orders using funds held by an address rather than using a fillContract strategy, they can do so gas efficiently by using `execute` or `executeBatch`. These functions cause the reactor to skip the `reactorCallback` and simply pull tokens from the filler using `msg.sender`.
 
 # Integrating with UniswapX
 Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/contracts/uniswapx/guides/createfiller).
@@ -68,7 +68,7 @@ FOUNDRY_PROFILE=integration forge test
 
 # Fee-on-Transfer Disclaimer
 
-Note that UniswapX handles fee-on-transfer tokens by transferring the full output amounts to the spender. This means that the actual amount received by the recipient will be _after_ fees.
+Note that UniswapX handles fee-on-transfer tokens by transferring the amount specified to the recipient. This means that the actual amount received by the recipient will be _after_ fees.
 
 # Audit
 
