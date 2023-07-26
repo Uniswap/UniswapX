@@ -21,7 +21,7 @@ contract OrderQuoter is IReactorCallback {
     /// @param sig The order signature
     /// @return result The ResolvedOrder
     function quote(bytes memory order, bytes memory sig) external returns (ResolvedOrder memory result) {
-        try IReactor(getReactor(order)).execute(SignedOrder(order, sig), this, bytes("")) {}
+        try IReactor(getReactor(order)).executeWithCallback(SignedOrder(order, sig), bytes("")) {}
         catch (bytes memory reason) {
             result = parseRevertReason(reason);
         }
@@ -52,9 +52,7 @@ contract OrderQuoter is IReactorCallback {
     /// @notice Reactor callback function
     /// @dev reverts with the resolved order as reason
     /// @param resolvedOrders The resolved orders
-    /// @param filler The filler of the order
-    function reactorCallback(ResolvedOrder[] memory resolvedOrders, address filler, bytes memory) external view {
-        require(filler == address(this));
+    function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory) external pure {
         if (resolvedOrders.length != 1) {
             revert OrdersLengthIncorrect();
         }

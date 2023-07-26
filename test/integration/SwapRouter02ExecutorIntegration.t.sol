@@ -80,6 +80,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         });
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
         bytes[] memory multicallData1 = new bytes[](1);
         bytes[] memory multicallData2 = new bytes[](1);
 
@@ -87,10 +90,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             address(WETH), address(DAI), 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0
         );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData1)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData1)
         );
         assertEq(WETH.balanceOf(swapper), ONE);
         assertEq(DAI.balanceOf(swapper), 3000 * ONE);
@@ -99,10 +101,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ExactInputSingleParams memory params2 =
             ExactInputSingleParams(address(WETH), address(DAI), 500, address(swapRouter02Executor), ONE, 1600 * ONE, 0);
         multicallData2[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params2);
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(PERMIT2), order2)),
-            swapRouter02Executor,
-            abi.encode(new address[](0), multicallData2)
+            abi.encode(new address[](0), new address[](0), multicallData2)
         );
         assertEq(WETH.balanceOf(swapper), 0);
         assertEq(DAI.balanceOf(swapper), 4600 * ONE);
@@ -122,6 +123,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = address(WETH);
@@ -129,10 +133,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[0] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 3000 * ONE, path, address(swapRouter02Executor)
         );
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(WETH.balanceOf(swapper), ONE);
         assertEq(DAI.balanceOf(swapper), 3000 * ONE);
@@ -153,6 +156,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(USDT);
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = address(WETH);
@@ -160,10 +166,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[0] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, output, path, address(swapRouter02Executor)
         );
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(WETH.balanceOf(swapper), ONE);
         assertEq(USDT.balanceOf(swapper), output);
@@ -189,6 +194,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(USDT);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(WETH);
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = address(USDT);
@@ -196,10 +204,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         multicallData[0] = abi.encodeWithSelector(
             ISwapRouter02.swapExactTokensForTokens.selector, input, output, path, address(swapRouter02Executor)
         );
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(USDT.balanceOf(swapper), 0);
         assertEq(WETH.balanceOf(swapper), 4 * ONE);
@@ -218,6 +225,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
         bytes[] memory multicallData = new bytes[](1);
         address[] memory path = new address[](2);
         path[0] = address(WETH);
@@ -226,10 +236,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             ISwapRouter02.swapExactTokensForTokens.selector, 2 * ONE, 4000 * ONE, path, address(swapRouter02Executor)
         );
         vm.expectRevert("Too little received");
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
     }
 
@@ -245,6 +254,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ERC20[] memory tokensToApproveForSwapRouter02 = new ERC20[](2);
         tokensToApproveForSwapRouter02[0] = DAI;
         tokensToApproveForSwapRouter02[1] = UNI;
+
         bytes[] memory multicallData = new bytes[](3);
         address[] memory daiToEthPath = new address[](2);
         daiToEthPath[0] = address(DAI);
@@ -282,6 +292,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(DAI);
+
+        address[] memory tokensToApproveForReactor = new address[](0);
         bytes[] memory multicallData = new bytes[](2);
         address[] memory path = new address[](2);
         path[0] = address(DAI);
@@ -298,10 +310,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.prank(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         DAI.transfer(swapper, 2000 * ONE);
 
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(DAI.balanceOf(swapper), 0);
         assertEq(DAI.balanceOf(address(swapRouter02Executor)), 0);
@@ -321,6 +332,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(DAI);
+
+        address[] memory tokensToApproveForReactor = new address[](0);
         bytes[] memory multicallData = new bytes[](2);
         address[] memory path = new address[](2);
         path[0] = address(DAI);
@@ -339,10 +352,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         DAI.transfer(swapper, 2000 * ONE);
 
         vm.expectRevert("Too little received");
-        dloReactor.execute(
+        swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
-            swapRouter02Executor,
-            abi.encode(tokensToApproveForSwapRouter02, multicallData)
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
     }
 
@@ -379,6 +391,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(DAI);
+
+        address[] memory tokensToApproveForReactor = new address[](0);
         bytes[] memory multicallData = new bytes[](2);
         address[] memory path = new address[](2);
         path[0] = address(DAI);
@@ -388,8 +402,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         );
         multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
 
-        dloReactor.executeBatch(
-            signedOrders, swapRouter02Executor, abi.encode(tokensToApproveForSwapRouter02, multicallData)
+        swapRouter02Executor.executeBatch(
+            signedOrders, abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         assertEq(swapper.balance, ONE);
         assertEq(swapper2.balance, ONE / 2);

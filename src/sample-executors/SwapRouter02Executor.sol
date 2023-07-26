@@ -8,7 +8,7 @@ import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, OutputToken, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
@@ -26,6 +26,20 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     IReactor private immutable reactor;
     WETH private immutable weth;
 
+    modifier onlyWhitelistedCaller() {
+        if (msg.sender != whitelistedCaller) {
+            revert CallerNotWhitelisted();
+        }
+        _;
+    }
+
+    modifier onlyReactor() {
+        if (msg.sender != address(reactor)) {
+            revert MsgSenderNotReactor();
+        }
+        _;
+    }
+
     constructor(address _whitelistedCaller, IReactor _reactor, address _owner, ISwapRouter02 _swapRouter02)
         Owned(_owner)
     {
@@ -35,37 +49,44 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
-    /// @param resolvedOrders The orders to fill
-    /// @param filler This filler must be `whitelistedCaller`
-    /// @param fillData It has the below encoded:
+    /// @notice assume that we already have all output tokens
+    function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
+        reactor.executeWithCallback(order, callbackData);
+    }
+
+    /// @notice assume that we already have all output tokens
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
+        reactor.executeBatchWithCallback(orders, callbackData);
+    }
+
+    /// @notice fill UniswapX orders using SwapRouter02
+    /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, address filler, bytes calldata fillData)
-        external
-    {
-        if (msg.sender != address(reactor)) {
-            revert MsgSenderNotReactor();
-        }
-        if (filler != whitelistedCaller) {
-            revert CallerNotWhitelisted();
-        }
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
+        (
+            address[] memory tokensToApproveForSwapRouter02,
+            address[] memory tokensToApproveForReactor,
+            bytes[] memory multicallData
+        ) = abi.decode(callbackData, (address[], address[], bytes[]));
 
-        (address[] memory tokensToApproveForSwapRouter02, bytes[] memory multicallData) =
-            abi.decode(fillData, (address[], bytes[]));
+        unchecked {
+            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
+                ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
+            }
 
-        for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
-            ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
+            for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
+                ERC20(tokensToApproveForReactor[i]).safeApprove(address(reactor), type(uint256).max);
+            }
         }
 
         swapRouter02.multicall(type(uint256).max, multicallData);
 
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
-            ResolvedOrder memory order = resolvedOrders[i];
-            for (uint256 j = 0; j < order.outputs.length; j++) {
-                OutputToken memory output = order.outputs[j];
-                output.token.transfer(output.recipient, output.amount);
-            }
+        // transfer any native balance to the reactor
+        // it will refund any excess
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(address(reactor), address(this).balance);
         }
     }
 
