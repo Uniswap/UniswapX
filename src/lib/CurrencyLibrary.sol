@@ -29,7 +29,7 @@ library CurrencyLibrary {
         }
     }
 
-    /// @notice Transfer currency from the filler to recipient
+    /// @notice Transfer currency from the caller to recipient
     /// @dev for native outputs we will already have the currency in local balance
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
