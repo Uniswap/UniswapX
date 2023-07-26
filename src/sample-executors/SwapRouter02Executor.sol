@@ -26,6 +26,20 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     IReactor private immutable reactor;
     WETH private immutable weth;
 
+    modifier onlyWhitelistedCaller() {
+        if (msg.sender != whitelistedCaller) {
+            revert CallerNotWhitelisted();
+        }
+        _;
+    }
+
+    modifier onlyReactor() {
+        if (msg.sender != reactor) {
+            revert MsgSenderNotReactor();
+        }
+        _;
+    }
+
     constructor(address _whitelistedCaller, IReactor _reactor, address _owner, ISwapRouter02 _swapRouter02)
         Owned(_owner)
     {
@@ -36,38 +50,26 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     /// @notice assume that we already have all output tokens
-    function execute(SignedOrder calldata order, bytes calldata fillData) external {
-        if (msg.sender != whitelistedCaller) {
-            revert CallerNotWhitelisted();
-        }
-
-        reactor.execute(order, fillData);
+    function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
+        reactor.execute(order, callbackData);
     }
 
     /// @notice assume that we already have all output tokens
-    function executeBatch(SignedOrder[] calldata orders, bytes calldata fillData) external {
-        if (msg.sender != whitelistedCaller) {
-            revert CallerNotWhitelisted();
-        }
-
-        reactor.executeBatch(orders, fillData);
+    function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
+        reactor.executeBatch(orders, callbackData);
     }
 
     /// @notice fill UniswapX orders using SwapRouter02
-    /// @param fillData It has the below encoded:
+    /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata fillData) external {
-        if (msg.sender != address(reactor)) {
-            revert MsgSenderNotReactor();
-        }
-
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
         (
             address[] memory tokensToApproveForSwapRouter02,
             address[] memory tokensToApproveForReactor,
             bytes[] memory multicallData
-        ) = abi.decode(fillData, (address[], address[], bytes[]));
+        ) = abi.decode(callbackData, (address[], address[], bytes[]));
 
         unchecked {
             for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
