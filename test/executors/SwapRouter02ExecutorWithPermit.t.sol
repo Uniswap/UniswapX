@@ -66,6 +66,8 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         new SwapRouter02ExecutorWithPermit(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
 
         // sign permit for tokenIn
+        uint256 amount = type(uint256).max - 1; // infinite approval to permit2
+        uint256 deadline = type(uint256).max - 1; // never expires
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -75,9 +77,9 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
                         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
                         swapper,
                         address(permit2),
-                        (type(uint256).max - 1), // infinite approval to permit2
+                        amount, 
                         tokenIn.nonces(swapper),
-                        (type(uint256).max - 1) // never expires
+                        deadline 
                     )
                 )
             )
@@ -89,9 +91,11 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
 
         tokenInPermitData = abi.encode(
             address(tokenIn),
-            abi.encode(swapper, address(permit2), (type(uint256).max - 1), (type(uint256).max - 1), v, r, s)
+            abi.encode(swapper, address(permit2), amount, deadline, v, r, s)
         );
     }
+
+    // TODO: test permit reuse, permit not enough to cover
 
     // no testReactorCallback since we need to land the permit first
 
