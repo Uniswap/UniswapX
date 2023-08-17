@@ -97,7 +97,42 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
 
     // TODO: test permit reuse, permit not enough to cover
 
-    // no testReactorCallback since we need to land the permit first
+    /// @notice no testReactorCallback test since we need to land the permit first
+    function testReactorCallback() public {}
+
+    function testExecuteWithoutPermit() public {
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(tokenIn, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
+        });
+
+        tokenIn.mint(swapper, ONE);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        ExactInputParams memory exactInputParams = ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02ExecutorWithPermit),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
+
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        swapRouter02ExecutorWithPermit.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+    }
 
     // Output will resolve to 0.5. Input = 1. SwapRouter exchanges at 1 to 1 rate.
     // There will be 0.5 output token remaining in SwapRouter02ExecutorWithPermit.
@@ -188,6 +223,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         tokensToApproveForSwapRouter02 = new address[](0);
         tokensToApproveForReactor = new address[](0);
 
+        // after permit, we can now use the standard execute flow
         snapStart("SwapRouter02ExecutorWithPermitExecuteAlreadyApproved");
         swapRouter02ExecutorWithPermit.execute(
             SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(permit2), order2)),
@@ -243,7 +279,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
     // and outputs = [2]. Mint swapper 10 input and mint mockSwapRouter 10 output. After
     // the execution, swapper should have 6 input / 3 output, mockSwapRouter should have
     // 4 input / 6 output, and swapRouter02ExecutorWithPermit should have 0 input / 1 output.
-    function testExecuteWithPermitBatchWithPermit() public {
+    function testExecuteWithPermitBatch() public {
         uint256 inputAmount = 10 ** 18;
         uint256 outputAmount = inputAmount;
 
