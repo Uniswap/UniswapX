@@ -21,10 +21,10 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @notice thrown if reactorCallback is called by an adress other than the reactor
     error MsgSenderNotReactor();
 
-    ISwapRouter02 private immutable swapRouter02;
-    address private immutable whitelistedCaller;
-    IReactor private immutable reactor;
-    WETH private immutable weth;
+    ISwapRouter02 public immutable swapRouter02;
+    address public immutable whitelistedCaller;
+    IReactor public immutable reactor;
+    WETH public immutable weth;
 
     modifier onlyWhitelistedCaller() {
         if (msg.sender != whitelistedCaller) {

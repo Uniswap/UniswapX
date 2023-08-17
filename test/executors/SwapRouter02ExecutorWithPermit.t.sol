@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
 import {SwapRouter02ExecutorWithPermit} from "../../src/sample-executors/SwapRouter02ExecutorWithPermit.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -77,9 +78,9 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
                         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
                         swapper,
                         address(permit2),
-                        amount, 
+                        amount,
                         tokenIn.nonces(swapper),
-                        deadline 
+                        deadline
                     )
                 )
             )
@@ -89,10 +90,8 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, swapper);
 
-        tokenInPermitData = abi.encode(
-            address(tokenIn),
-            abi.encode(swapper, address(permit2), amount, deadline, v, r, s)
-        );
+        tokenInPermitData =
+            abi.encode(address(tokenIn), abi.encode(swapper, address(permit2), amount, deadline, v, r, s));
     }
 
     // TODO: test permit reuse, permit not enough to cover
@@ -366,7 +365,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         vm.prank(address(0xbeef));
-        vm.expectRevert(SwapRouter02ExecutorWithPermit.CallerNotWhitelisted.selector);
+        vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
         swapRouter02ExecutorWithPermit.executeWithPermit(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             abi.encode(tokensToApproveForSwapRouter02, multicallData),
@@ -403,7 +402,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         );
         tokenIn.mint(address(swapRouter02ExecutorWithPermit), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
-        vm.expectRevert(SwapRouter02ExecutorWithPermit.MsgSenderNotReactor.selector);
+        vm.expectRevert(SwapRouter02Executor.MsgSenderNotReactor.selector);
         swapRouter02ExecutorWithPermit.reactorCallback(resolvedOrders, callbackData);
     }
 
