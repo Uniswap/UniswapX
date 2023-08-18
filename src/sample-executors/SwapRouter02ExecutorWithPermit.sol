@@ -19,6 +19,8 @@ contract SwapRouter02ExecutorWithPermit is SwapRouter02Executor {
     {}
 
     /// @notice assume that we already have all output tokens
+    /// @notice the reactor performs no verification that the user's signed permit is executed correctly
+    ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
     /// @dev assume 2612 permit is collected offchain
     function executeWithPermit(SignedOrder calldata order, bytes calldata callbackData, bytes calldata permitData)
         external
