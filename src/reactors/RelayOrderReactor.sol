@@ -9,7 +9,6 @@ import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
-import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
@@ -138,7 +137,6 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
         // receive native asset to support native output
     }
 
-    /// @inheritdoc BaseReactor
     function resolve(SignedOrder calldata signedOrder)
         internal
         pure
@@ -158,7 +156,6 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
         });
     }
 
-    /// @inheritdoc BaseReactor
     function transferInputTokens(ResolvedRelayOrder memory order, address to) internal {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
