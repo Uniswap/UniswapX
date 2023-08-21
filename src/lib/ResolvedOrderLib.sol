@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
-import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
 library ResolvedOrderLib {
     /// @notice thrown when the order targets a different reactor
