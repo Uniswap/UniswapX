@@ -65,7 +65,6 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     /// - deadline must be greater than or equal than decayEndTime
     /// - decayEndTime must be greater than or equal to decayStartTime
     /// - if there's input decay, outputs must not decay
-    /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(ExclusiveDutchOrder memory order) internal pure {
         if (order.info.deadline < order.decayEndTime) {

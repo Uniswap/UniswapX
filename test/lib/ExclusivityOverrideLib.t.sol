@@ -25,7 +25,7 @@ contract ExclusivityOverrideLibTest is Test {
     function testExclusivity(address exclusive) public {
         vm.assume(exclusive != address(0));
         vm.prank(exclusive);
-        assertEq(exclusivity.checkExclusivity(exclusive, block.timestamp + 1), true);
+        assertEq(exclusivity.hasFillingRights(exclusive, block.timestamp + 1), true);
     }
 
     function testExclusivityFail(address caller, address exclusive, uint256 nowTime, uint256 exclusiveTimestamp)
@@ -36,20 +36,20 @@ contract ExclusivityOverrideLibTest is Test {
         vm.assume(exclusive != address(0));
         vm.warp(nowTime);
         vm.prank(caller);
-        assertEq(exclusivity.checkExclusivity(exclusive, exclusiveTimestamp), false);
+        assertEq(exclusivity.hasFillingRights(exclusive, exclusiveTimestamp), false);
     }
 
     function testNoExclusivity(address caller, uint256 nowTime, uint256 exclusiveTimestamp) public {
         vm.warp(nowTime);
         vm.prank(caller);
-        assertEq(exclusivity.checkExclusivity(address(0), exclusiveTimestamp), true);
+        assertEq(exclusivity.hasFillingRights(address(0), exclusiveTimestamp), true);
     }
 
     function testExclusivityPeriodOver(address caller, uint256 nowTime, uint256 exclusiveTimestamp) public {
         vm.assume(nowTime > exclusiveTimestamp);
         vm.warp(nowTime);
         vm.prank(caller);
-        assertEq(exclusivity.checkExclusivity(address(1), exclusiveTimestamp), true);
+        assertEq(exclusivity.hasFillingRights(address(1), exclusiveTimestamp), true);
     }
 
     function testHandleOverridePass(address exclusive, uint256 overrideAmt, uint128 amount) public {

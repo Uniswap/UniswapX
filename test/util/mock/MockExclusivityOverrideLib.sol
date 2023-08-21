@@ -15,7 +15,7 @@ contract MockExclusivityOverrideLib {
         return order;
     }
 
-    function checkExclusivity(address exclusive, uint256 exclusivityEndTime) external view returns (bool pass) {
-        return ExclusivityOverrideLib.checkExclusivity(exclusive, exclusivityEndTime);
+    function hasFillingRights(address exclusive, uint256 exclusivityEndTime) external view returns (bool pass) {
+        return ExclusivityOverrideLib.hasFillingRights(exclusive, exclusivityEndTime);
     }
 }
