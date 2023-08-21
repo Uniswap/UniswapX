@@ -7,7 +7,7 @@ import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {ExclusiveDutchOrderLib, ExclusiveDutchOrder, DutchOutput, DutchInput} from "../lib/ExclusiveDutchOrderLib.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for exclusive dutch orders
 contract ExclusiveDutchOrderReactor is BaseReactor {

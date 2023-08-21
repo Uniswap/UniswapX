@@ -7,7 +7,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ResolvedOrderLib} from "../lib/ResolvedOrderLib.sol";
-import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
+import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";

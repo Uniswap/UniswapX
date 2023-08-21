@@ -6,7 +6,7 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {DutchOrderLib, DutchOrder, DutchOutput, DutchInput} from "../lib/DutchOrderLib.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch orders
 contract DutchOrderReactor is BaseReactor {

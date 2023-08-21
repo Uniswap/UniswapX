@@ -8,7 +8,7 @@ import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ResolvedOrder, OutputToken, SignedOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
