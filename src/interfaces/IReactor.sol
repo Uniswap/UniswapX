@@ -12,6 +12,7 @@ interface IReactor {
 
     /// @notice Execute a single order using the given callback data
     /// @param order The order definition and valid signature to execute
+    /// @param callbackData The callbackData to pass to the callback
     function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable;
 
     /// @notice Execute the given orders at once

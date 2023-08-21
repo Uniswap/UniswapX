@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 
+/// @notice Library for handling validation of resolved orders
 library ResolvedOrderLib {
     /// @notice thrown when the order targets a different reactor
     error InvalidReactor();

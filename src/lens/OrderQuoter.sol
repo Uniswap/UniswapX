@@ -38,7 +38,8 @@ contract OrderQuoter is IReactorCallback {
     }
 
     /// @notice Return the order info of a given order (abi-encoded bytes).
-    /// @param order abi-encoded order, including `reactor` as the first encoded struct member
+    /// @param reason The revert reason
+    /// @return order abi-encoded order, including `reactor` as the first encoded struct member
     function parseRevertReason(bytes memory reason) private pure returns (ResolvedOrder memory order) {
         if (reason.length < 192) {
             assembly {
