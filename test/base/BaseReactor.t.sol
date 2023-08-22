@@ -79,7 +79,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     {
         signedOrders = new SignedOrder[](requests.length);
         orderHashes = new bytes32[](requests.length);
-        for (uint256 i = 0; i < requests.length; i++) {
+        for (uint256 i = 0; i < requests.length; ++i) {
             (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(requests[i]);
             signedOrders[i] = signed;
             orderHashes[i] = hash;

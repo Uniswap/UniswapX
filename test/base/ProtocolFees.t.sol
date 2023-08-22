@@ -103,7 +103,7 @@ contract ProtocolFeesTest is Test {
         vm.assume(feeBps <= 5);
         vm.assume(outputAmounts.length > 0);
         OutputToken[] memory outputs = new OutputToken[](outputAmounts.length);
-        for (uint256 i = 0; i < outputAmounts.length; i++) {
+        for (uint256 i = 0; i < outputAmounts.length; ++i) {
             outputs[i] = OutputToken(address(tokenOut), outputAmounts[i], RECIPIENT);
         }
         ResolvedOrder memory order = ResolvedOrder({
@@ -118,7 +118,7 @@ contract ProtocolFeesTest is Test {
         ResolvedOrder memory afterFees = fees.takeFees(order);
         assertGe(afterFees.outputs.length, outputs.length);
 
-        for (uint256 i = 0; i < outputAmounts.length; i++) {
+        for (uint256 i = 0; i < outputAmounts.length; ++i) {
             address tokenAddress = order.outputs[i].token;
             uint256 baseAmount = order.outputs[i].amount;
 

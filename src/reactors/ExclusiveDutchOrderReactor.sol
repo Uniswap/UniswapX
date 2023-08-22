@@ -77,7 +77,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
 
         if (order.input.startAmount != order.input.endAmount) {
             unchecked {
-                for (uint256 i = 0; i < order.outputs.length; i++) {
+                for (uint256 i = 0; i < order.outputs.length; ++i) {
                     if (order.outputs[i].startAmount != order.outputs[i].endAmount) {
                         revert InputAndOutputDecay();
                     }

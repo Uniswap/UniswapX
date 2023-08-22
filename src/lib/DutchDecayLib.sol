@@ -78,7 +78,7 @@ library DutchDecayLib {
         uint256 outputLength = outputs.length;
         result = new OutputToken[](outputLength);
         unchecked {
-            for (uint256 i = 0; i < outputLength; i++) {
+            for (uint256 i = 0; i < outputLength; ++i) {
                 result[i] = decay(outputs[i], decayStartTime, decayEndTime);
             }
         }

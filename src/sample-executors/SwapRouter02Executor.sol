@@ -72,11 +72,11 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         ) = abi.decode(callbackData, (address[], address[], bytes[]));
 
         unchecked {
-            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; i++) {
+            for (uint256 i = 0; i < tokensToApproveForSwapRouter02.length; ++i) {
                 ERC20(tokensToApproveForSwapRouter02[i]).safeApprove(address(swapRouter02), type(uint256).max);
             }
 
-            for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
+            for (uint256 i = 0; i < tokensToApproveForReactor.length; ++i) {
                 ERC20(tokensToApproveForReactor[i]).safeApprove(address(reactor), type(uint256).max);
             }
         }
@@ -94,7 +94,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param tokensToApprove Max approve these tokens to swapRouter02
     /// @param multicallData Pass into swapRouter02.multicall()
     function multicall(ERC20[] calldata tokensToApprove, bytes[] calldata multicallData) external onlyOwner {
-        for (uint256 i = 0; i < tokensToApprove.length; i++) {
+        for (uint256 i = 0; i < tokensToApprove.length; ++i) {
             tokensToApprove[i].safeApprove(address(swapRouter02), type(uint256).max);
         }
         swapRouter02.multicall(type(uint256).max, multicallData);

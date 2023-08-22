@@ -84,7 +84,7 @@ library DutchOrderLib {
         unchecked {
             bytes memory packedHashes = new bytes(32 * outputs.length);
 
-            for (uint256 i = 0; i < outputs.length; i++) {
+            for (uint256 i = 0; i < outputs.length; ++i) {
                 bytes32 outputHash = hash(outputs[i]);
                 assembly {
                     mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), outputHash)

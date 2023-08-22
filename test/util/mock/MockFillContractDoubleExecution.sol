@@ -29,7 +29,7 @@ contract MockFillContractDoubleExecution is IReactorCallback {
 
     /// @notice assume that we already have all output tokens
     function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory otherSignedOrder) external {
-        for (uint256 i = 0; i < resolvedOrders.length; i++) {
+        for (uint256 i = 0; i < resolvedOrders.length; ++i) {
             for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
                 OutputToken memory output = resolvedOrders[i].outputs[j];
                 if (output.token.isNative()) {

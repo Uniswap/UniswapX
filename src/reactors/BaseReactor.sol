@@ -61,7 +61,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
+            for (uint256 i = 0; i < ordersLength; ++i) {
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
@@ -81,7 +81,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
+            for (uint256 i = 0; i < ordersLength; ++i) {
                 resolvedOrders[i] = resolve(orders[i]);
             }
         }
@@ -96,7 +96,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     function _prepare(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
+            for (uint256 i = 0; i < ordersLength; ++i) {
                 ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 order.validate(msg.sender);
@@ -112,7 +112,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         // attempt to transfer all currencies to all recipients
         unchecked {
             // transfer output tokens to their respective recipients
-            for (uint256 i = 0; i < ordersLength; i++) {
+            for (uint256 i = 0; i < ordersLength; ++i) {
                 ResolvedOrder memory resolvedOrder = orders[i];
                 uint256 outputsLength = resolvedOrder.outputs.length;
                 for (uint256 j = 0; j < outputsLength; j++) {

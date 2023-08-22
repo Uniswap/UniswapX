@@ -413,7 +413,7 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
         DutchOutput[] memory outputs = new DutchOutput[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
+        for (uint256 i = 0; i < request.outputs.length; ++i) {
             OutputToken memory output = request.outputs[i];
             outputs[i] = DutchOutput({
                 token: output.token,
@@ -611,7 +611,7 @@ contract DutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseRea
 
     function generateSignedOrders(DutchOrder[] memory orders) private view returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
-        for (uint256 i = 0; i < orders.length; i++) {
+        for (uint256 i = 0; i < orders.length; ++i) {
             bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }

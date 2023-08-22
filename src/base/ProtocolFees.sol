@@ -52,7 +52,7 @@ abstract contract ProtocolFees is Owned {
         );
 
         unchecked {
-            for (uint256 i = 0; i < outputsLength; i++) {
+            for (uint256 i = 0; i < outputsLength; ++i) {
                 newOutputs[i] = order.outputs[i];
             }
         }
@@ -93,7 +93,7 @@ abstract contract ProtocolFees is Owned {
             newOutputs[outputsLength + i] = feeOutput;
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 

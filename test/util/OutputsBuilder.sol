@@ -18,7 +18,7 @@ library OutputsBuilder {
         returns (OutputToken[] memory)
     {
         OutputToken[] memory result = new OutputToken[](amounts.length);
-        for (uint256 i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < amounts.length; ++i) {
             result[i] = OutputToken(token, amounts[i], recipient);
         }
         return result;
@@ -42,7 +42,7 @@ library OutputsBuilder {
         returns (DutchOutput[] memory)
     {
         DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
-        for (uint256 i = 0; i < startAmounts.length; i++) {
+        for (uint256 i = 0; i < startAmounts.length; ++i) {
             result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient);
         }
         return result;

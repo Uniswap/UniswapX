@@ -45,7 +45,7 @@ library ExclusivityOverrideLib {
             output.amount = output.amount.mulDivDown(BPS + exclusivityOverrideBps, BPS);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

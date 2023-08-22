@@ -45,7 +45,7 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
         DutchOutput[] memory outputs = new DutchOutput[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
+        for (uint256 i = 0; i < request.outputs.length; ++i) {
             OutputToken memory output = request.outputs[i];
             outputs[i] = DutchOutput({
                 token: output.token,
@@ -339,13 +339,13 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         tokenIn.mint(address(swapper), amountIn);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         uint256 amountOutSum = 0;
-        for (uint256 i = 0; i < amountOuts.length; i++) {
+        for (uint256 i = 0; i < amountOuts.length; ++i) {
             amountOutSum += amountOuts[i] * (10000 + overrideAmt) / 10000;
         }
         tokenOut.mint(address(fillContract), uint256(amountOutSum));
 
         uint256[] memory amounts = new uint256[](amountOuts.length);
-        for (uint256 i = 0; i < amountOuts.length; i++) {
+        for (uint256 i = 0; i < amountOuts.length; ++i) {
             amounts[i] = amountOuts[i];
         }
 
@@ -377,7 +377,7 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         returns (SignedOrder[] memory result)
     {
         result = new SignedOrder[](orders.length);
-        for (uint256 i = 0; i < orders.length; i++) {
+        for (uint256 i = 0; i < orders.length; ++i) {
             bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }

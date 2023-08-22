@@ -134,7 +134,7 @@ contract ExclusivityOverrideLibTest is Test {
         vm.assume(exclusive != address(0));
         vm.assume(overrideAmt < 10000 && overrideAmt > 0);
         uint256[] memory amounts = new uint256[](fuzzAmounts.length);
-        for (uint256 i = 0; i < fuzzAmounts.length; i++) {
+        for (uint256 i = 0; i < fuzzAmounts.length; ++i) {
             amounts[i] = fuzzAmounts[i];
         }
 
@@ -143,7 +143,7 @@ contract ExclusivityOverrideLibTest is Test {
         vm.prank(caller);
         ResolvedOrder memory handled = exclusivity.handleOverride(order, exclusive, block.timestamp + 1, overrideAmt);
         // assert overrideAmt applied
-        for (uint256 i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < amounts.length; ++i) {
             assertEq(handled.outputs[i].amount, amounts[i] * (10000 + overrideAmt) / 10000);
             assertEq(handled.outputs[i].recipient, recipient);
         }
