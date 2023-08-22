@@ -123,7 +123,7 @@ contract ProtocolFeesTest is Test {
             uint256 baseAmount = order.outputs[i].amount;
 
             uint256 extraOutputs = afterFees.outputs.length - outputAmounts.length;
-            for (uint256 j = 0; j < extraOutputs; j++) {
+            for (uint256 j = 0; j < extraOutputs; ++j) {
                 OutputToken memory output = afterFees.outputs[outputAmounts.length + j];
                 if (output.token == tokenAddress) {
                     assertGe(output.amount, baseAmount * feeBps / 10000);

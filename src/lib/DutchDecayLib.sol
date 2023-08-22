@@ -28,7 +28,7 @@ library DutchDecayLib {
         view
         returns (uint256 decayedAmount)
     {
-        if (decayEndTime < decayStartTime) {
+        if (decayEndTime <= decayStartTime) {
             revert EndTimeBeforeStartTime();
         } else if (decayEndTime <= block.timestamp) {
             decayedAmount = endAmount;

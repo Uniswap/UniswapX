@@ -160,13 +160,28 @@ contract DutchOrderReactorValidationTest is Test, DeployPermit2 {
         reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
     }
 
-    function testValidateDutchEndTimeAfterStart() public view {
+    function testValidateDutchEndTimeEqualStart() public {
+        vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
         dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
         DutchOrder memory dlo = DutchOrder(
             OrderInfoBuilder.init(address(reactor)).withDeadline(1659130540),
-            1659120540,
             1659130540,
+            1659130540,
+            DutchInput(MockERC20(address(0)), 0, 0),
+            dutchOutputs
+        );
+        bytes memory sig = hex"1234";
+        reactor.resolveOrder(SignedOrder(abi.encode(dlo), sig));
+    }
+
+    function testValidateDutchEndTimeAfterStart() public view {
+        DutchOutput[] memory dutchOutputs = new DutchOutput[](1);
+        dutchOutputs[0] = DutchOutput(address(0), 1000, 900, address(0));
+        DutchOrder memory dlo = DutchOrder(
+            OrderInfoBuilder.init(address(reactor)).withDeadline(1659130541),
+            1659120540,
+            1659130541,
             DutchInput(MockERC20(address(0)), 0, 0),
             dutchOutputs
         );

@@ -25,7 +25,7 @@ contract MockFeeController is IProtocolFeeController, Owned(msg.sender) {
         ERC20 tokenIn = order.input.token;
         uint256 feeCount;
 
-        for (uint256 j = 0; j < order.outputs.length; j++) {
+        for (uint256 j = 0; j < order.outputs.length; ++j) {
             address outputToken = order.outputs[j].token;
             uint256 fee = fees[tokenIn][outputToken];
             if (fee != 0) {

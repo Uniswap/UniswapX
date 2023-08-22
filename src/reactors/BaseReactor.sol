@@ -115,7 +115,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
             for (uint256 i = 0; i < ordersLength; ++i) {
                 ResolvedOrder memory resolvedOrder = orders[i];
                 uint256 outputsLength = resolvedOrder.outputs.length;
-                for (uint256 j = 0; j < outputsLength; j++) {
+                for (uint256 j = 0; j < outputsLength; ++j) {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     output.token.transferFill(output.recipient, output.amount);
                 }
