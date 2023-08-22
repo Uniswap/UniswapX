@@ -32,13 +32,14 @@ library Permit2Lib {
         return ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: order.input.amount});
     }
 
-        /// @notice returns a ResolvedOrder into a permit object
+    /// @notice returns a ResolvedOrder into a permit object
     function toPermit(ResolvedRelayOrder memory order)
         internal
         pure
         returns (ISignatureTransfer.PermitBatchTransferFrom memory)
     {
-        ISignatureTransfer.TokenPermissions[] memory permissions = new ISignatureTransfer.TokenPermissions[](order.inputs.length);
+        ISignatureTransfer.TokenPermissions[] memory permissions =
+            new ISignatureTransfer.TokenPermissions[](order.inputs.length);
         for (uint256 i = 0; i < order.inputs.length; i++) {
             permissions[i] = ISignatureTransfer.TokenPermissions({
                 token: address(order.inputs[i].token),
@@ -58,12 +59,10 @@ library Permit2Lib {
         pure
         returns (ISignatureTransfer.SignatureTransferDetails[] memory)
     {
-        ISignatureTransfer.SignatureTransferDetails[] memory details = new ISignatureTransfer.SignatureTransferDetails[](order.inputs.length);
+        ISignatureTransfer.SignatureTransferDetails[] memory details =
+            new ISignatureTransfer.SignatureTransferDetails[](order.inputs.length);
         for (uint256 i = 0; i < order.inputs.length; i++) {
-            details[i] = ISignatureTransfer.SignatureTransferDetails({
-                to: to,
-                requestedAmount: order.inputs[i].amount
-            });
+            details[i] = ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: order.inputs[i].amount});
         }
         return details;
     }

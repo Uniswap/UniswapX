@@ -32,7 +32,9 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
     address public immutable universalRouter;
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner, address _universalRouter) ProtocolFees(_protocolFeeOwner) {
+    constructor(IPermit2 _permit2, address _protocolFeeOwner, address _universalRouter)
+        ProtocolFees(_protocolFeeOwner)
+    {
         permit2 = _permit2;
         universalRouter = _universalRouter;
     }
@@ -68,17 +70,16 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
 
-            for(uint256 j = 0; j < actionsLength; j++) {
+            for (uint256 j = 0; j < actionsLength; j++) {
                 (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
                 if (actionType == ActionType.UniversalRouter) {
                     /// @dev to use universal router integration, this contract must be recipient of all output tokens
-                    (bool success, bytes memory revertData) = universalRouter.call(actionData);
-                    require(success, string(revertData));
+                    (bool success,) = universalRouter.call(actionData);
+                    require(success, "call failed");
                 }
             }
         }
     }
-    
 
     /// @notice validates, injects fees, and transfers input tokens in preparation for order fill
     /// @param orders The orders to prepare

@@ -4,11 +4,9 @@ pragma solidity ^0.8.0;
 import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
-enum ActionType {
-    UniversalRouter
-}
+enum ActionType {UniversalRouter}
 
-/// @dev External struct used to specify simple limit orders
+/// @dev External struct used to specify simple relay orders
 struct RelayOrder {
     // generic order information
     OrderInfo info;
@@ -20,7 +18,7 @@ struct RelayOrder {
     OutputToken[] outputs;
 }
 
-/// @notice helpers for handling limit order objects
+/// @notice helpers for handling relay order objects
 library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
 
@@ -31,7 +29,7 @@ library RelayOrderLib {
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        "LimitOrder(",
+        "RelayOrder(",
         "OrderInfo info,",
         "bytes[] actions,",
         "InputToken[] inputs,",
@@ -44,7 +42,7 @@ library RelayOrderLib {
 
     string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("LimitOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+        string(abi.encodePacked("RelayOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     /// @notice returns the hash of an input token struct
     function hash(InputToken memory input) private pure returns (bytes32) {

@@ -8,12 +8,14 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
+import {RelayOrder, RelayOrderLib} from "../../src/lib/RelayOrderLib.sol";
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
     using DutchOrderLib for DutchOrder;
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
+    using RelayOrderLib for RelayOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -22,6 +24,10 @@ contract PermitSignature is Test {
 
     string constant TYPEHASH_STUB =
         "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,";
+
+    string public constant _PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB =
+        "PermitBatchWitnessTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline,";
+
     bytes32 constant LIMIT_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, LimitOrderLib.PERMIT2_ORDER_TYPE));
 
@@ -30,6 +36,9 @@ contract PermitSignature is Test {
 
     bytes32 constant EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, ExclusiveDutchOrderLib.PERMIT2_ORDER_TYPE));
+
+    bytes32 constant RELAY_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(_PERMIT_BATCH_WITNESS_TRANSFER_TYPEHASH_STUB, RelayOrderLib.PERMIT2_ORDER_TYPE));
 
     function getPermitSignature(
         uint256 privateKey,
@@ -52,6 +61,40 @@ contract PermitSignature is Test {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
+    function getPermitSignature(
+        uint256 privateKey,
+        address permit2,
+        ISignatureTransfer.PermitBatchTransferFrom memory permit,
+        address spender,
+        bytes32 typeHash,
+        bytes32 witness
+    ) internal view returns (bytes memory sig) {
+        uint256 numPermitted = permit.permitted.length;
+        bytes32[] memory tokenPermissionHashes = new bytes32[](numPermitted);
+
+        for (uint256 i = 0; i < numPermitted; ++i) {
+            tokenPermissionHashes[i] = _hashTokenPermissions(permit.permitted[i]);
+        }
+
+        bytes32 msgHash = ECDSA.toTypedDataHash(
+            _domainSeparatorV4(permit2),
+            keccak256(
+                abi.encode(
+                    // TODO: fix for batch permit
+                    typeHash,
+                    keccak256(abi.encodePacked(tokenPermissionHashes)),
+                    spender,
+                    permit.nonce,
+                    permit.deadline,
+                    witness
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
+        sig = bytes.concat(r, s, bytes1(v));
+    }
+
     function signOrder(
         uint256 privateKey,
         address permit2,
@@ -63,6 +106,29 @@ contract PermitSignature is Test {
     ) internal view returns (bytes memory sig) {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
+            nonce: info.nonce,
+            deadline: info.deadline
+        });
+        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
+    }
+
+    function signOrder(
+        uint256 privateKey,
+        address permit2,
+        OrderInfo memory info,
+        InputToken[] memory inputs,
+        bytes32 typeHash,
+        bytes32 orderHash
+    ) internal view returns (bytes memory sig) {
+        ISignatureTransfer.TokenPermissions[] memory permissions =
+            new ISignatureTransfer.TokenPermissions[](inputs.length);
+        for (uint256 i = 0; i < inputs.length; i++) {
+            permissions[i] =
+                ISignatureTransfer.TokenPermissions({token: address(inputs[i].token), amount: inputs[i].amount});
+        }
+
+        ISignatureTransfer.PermitBatchTransferFrom memory permit = ISignatureTransfer.PermitBatchTransferFrom({
+            permitted: permissions,
             nonce: info.nonce,
             deadline: info.deadline
         });
@@ -115,6 +181,14 @@ contract PermitSignature is Test {
             EXCLUSIVE_DUTCH_LIMIT_ORDER_TYPE_HASH,
             order.hash()
         );
+    }
+
+    function signOrder(uint256 privateKey, address permit2, RelayOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        return signOrder(privateKey, permit2, order.info, order.inputs, RELAY_ORDER_TYPE_HASH, order.hash());
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
