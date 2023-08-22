@@ -10,13 +10,13 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {RelayOrderLib, RelayOrder} from "../lib/RelayOrderLib.sol";
+import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
 import {SignedOrder, ResolvedRelayOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders
-contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
+contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -30,34 +30,22 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
+    address public immutable universalRouter;
+
+    constructor(IPermit2 _permit2, address _protocolFeeOwner, address _universalRouter) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
+        universalRouter = _universalRouter;
     }
 
-    /// @inheritdoc IReactor
     function execute(SignedOrder calldata order) external payable nonReentrant {
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
         resolvedOrders[0] = resolve(order);
 
         _prepare(resolvedOrders);
+        _execute(resolvedOrders);
         _fill(resolvedOrders);
     }
 
-    /// @inheritdoc IReactor
-    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
-        external
-        payable
-        nonReentrant
-    {
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
-        resolvedOrders[0] = resolve(order);
-
-        _prepare(resolvedOrders);
-        // TODO: external call logic here
-        _fill(resolvedOrders);
-    }
-
-    /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
@@ -69,28 +57,28 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
         }
 
         _prepare(resolvedOrders);
+        _execute(resolvedOrders);
         _fill(resolvedOrders);
     }
 
-    /// @inheritdoc IReactor
-    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
-        external
-        payable
-        nonReentrant
-    {
+    function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
+        // actions are encodResolved as (enum actionType, bytes actionData)[]
+        for (uint256 i = 0; i < ordersLength; i++) {
+            ResolvedRelayOrder memory order = orders[i];
+            uint256 actionsLength = order.actions.length;
 
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                resolvedOrders[i] = resolve(orders[i]);
+            for(uint256 j = 0; j < actionsLength; j++) {
+                (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
+                if (actionType == ActionType.UniversalRouter) {
+                    /// @dev to use universal router integration, this contract must be recipient of all output tokens
+                    (bool success, bytes memory revertData) = universalRouter.call(actionData);
+                    require(success, string(revertData));
+                }
             }
         }
-
-        _prepare(resolvedOrders);
-        // TODO: external call logic here
-        _fill(resolvedOrders);
     }
+    
 
     /// @notice validates, injects fees, and transfers input tokens in preparation for order fill
     /// @param orders The orders to prepare
@@ -101,7 +89,9 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
                 ResolvedRelayOrder memory order = orders[i];
                 // _injectFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, msg.sender);
+
+                // TODO: could transfer directly to universal router here
+                transferInputTokens(order, address(this));
             }
         }
     }
@@ -118,7 +108,14 @@ contract RelayOrderReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyG
                 uint256 outputsLength = resolvedOrder.outputs.length;
                 for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
-                    output.token.transferFill(output.recipient, output.amount);
+                    output.token.transferFillFromBalance(output.recipient, output.amount);
+                }
+
+                // any inputs left in contract are owed to the filler
+                uint256 inputsLength = resolvedOrder.inputs.length;
+                for (uint256 j = 0; j < inputsLength; j++) {
+                    InputToken memory input = resolvedOrder.inputs[j];
+                    input.token.safeTransfer(msg.sender, input.token.balanceOf(address(this)));
                 }
 
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);

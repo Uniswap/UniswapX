@@ -44,6 +44,20 @@ library CurrencyLibrary {
         }
     }
 
+    /// @notice Transfer currency from this contract to recipient
+    /// @dev assuming we already have the required balance
+    /// @param currency The currency to transfer
+    /// @param recipient The recipient of the currency
+    /// @param amount The amount of currency to transfer
+    function transferFillFromBalance(address currency, address recipient, uint256 amount) internal {
+        if (isNative(currency)) {
+            // we will have received native assets directly so can directly transfer
+            transferNative(recipient, amount);
+        } else {
+            ERC20(currency).transfer(recipient, amount);
+        }
+    }
+
     /// @notice Transfer native currency to recipient
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
