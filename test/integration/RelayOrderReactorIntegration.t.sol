@@ -99,9 +99,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
             outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper))
         });
 
-        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order));
+
         vm.prank(filler);
-        reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)));
+        snapStart("RelayOrderReactorIntegrationTest-testExecute");
+        reactor.execute(signedOrder);
         snapEnd();
 
         assertGe(DAI.balanceOf(swapper), amountOutMin, "Swapper did not enough DAI");
