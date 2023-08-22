@@ -79,6 +79,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
     // swapper creates one order containing a universal router swap for 1 WETH -> DAI
     // order contains two inputs: WETH for the swap and USDC as gas payment for fillers
+    // at the forked block, 1549544497940455106360 is the minAmountOut
     function testExecute() public {
         InputToken[] memory inputTokens = new InputToken[](2);
         inputTokens[0] = InputToken({token: WETH, amount: ONE, maxAmount: ONE});
@@ -95,7 +96,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             actions: actions,
             inputs: inputTokens,
-            // amountOutMin: 1549544497940455106360
             outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper))
         });
 
