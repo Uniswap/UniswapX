@@ -26,15 +26,6 @@ contract ResolvedOrderLibTest is Test {
         resolvedOrderLib.validate(mockResolvedOrder, address(0));
     }
 
-    function testDeadlinePassed() public {
-        uint256 timestamp = block.timestamp;
-        vm.warp(timestamp + 100);
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withDeadline(block.timestamp - 1);
-
-        vm.expectRevert(ResolvedOrderLib.DeadlinePassed.selector);
-        resolvedOrderLib.validate(mockResolvedOrder, address(0));
-    }
-
     function testValid() public {
         mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib));
         resolvedOrderLib.validate(mockResolvedOrder, address(0));

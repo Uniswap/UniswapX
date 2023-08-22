@@ -26,6 +26,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
     uint256 constant ONE = 10 ** 18;
     address constant PROTOCOL_FEE_OWNER = address(1);
 
+    error SignatureExpired(uint256 deadline);
+
     OrderQuoter quoter;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
@@ -128,15 +130,14 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         uint256 timestamp = block.timestamp;
         vm.warp(timestamp + 100);
         tokenIn.forceApprove(swapper, address(permit2), ONE);
+        uint256 deadline = block.timestamp - 1;
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withSwapper(address(swapper)).withDeadline(
-                block.timestamp - 1
-                ),
+            info: OrderInfoBuilder.init(address(limitOrderReactor)).withSwapper(address(swapper)).withDeadline(deadline),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
-        vm.expectRevert(ResolvedOrderLib.DeadlinePassed.selector);
+        vm.expectRevert(abi.encodeWithSelector(SignatureExpired.selector, deadline));
         quoter.quote(abi.encode(order), sig);
     }
 
