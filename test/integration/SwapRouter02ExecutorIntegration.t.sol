@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -15,7 +16,7 @@ import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRou
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 // This set of tests will use a mainnet fork to test integration.
-contract SwapRouter02IntegrationTest is Test, PermitSignature {
+contract SwapRouter02IntegrationTest is Test, GasSnapshot, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using SafeTransferLib for ERC20;
 
@@ -90,10 +91,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
             address(WETH), address(DAI), 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0
         );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
+        
+        snapStart("SwapRouter02IntegrationTest-testSwapWethToDaiViaV3");
         swapRouter02Executor.execute(
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1)),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData1)
         );
+        snapEnd();
+
         assertEq(WETH.balanceOf(swapper), ONE);
         assertEq(DAI.balanceOf(swapper), 3000 * ONE);
         assertEq(DAI.balanceOf(address(swapRouter02Executor)), 288797467469336654155);
@@ -101,10 +106,14 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         ExactInputSingleParams memory params2 =
             ExactInputSingleParams(address(WETH), address(DAI), 500, address(swapRouter02Executor), ONE, 1600 * ONE, 0);
         multicallData2[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params2);
+
+        snapStart("SwapRouter02IntegrationTest-testSwapWethToDaiViaV3-AlreadyApproved");
         swapRouter02Executor.execute(
             SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(PERMIT2), order2)),
             abi.encode(new address[](0), new address[](0), multicallData2)
         );
+        snapEnd();
+
         assertEq(WETH.balanceOf(swapper), 0);
         assertEq(DAI.balanceOf(swapper), 4600 * ONE);
         assertEq(DAI.balanceOf(address(swapRouter02Executor)), 332868886072663242927);
