@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo, InputTokenWithRecipient, OutputToken} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 enum ActionType {UniversalRouter}
@@ -13,7 +13,7 @@ struct RelayOrder {
     // ecnoded actions to execute onchain
     bytes[] actions;
     // The tokens that the swapper will provide when settling the order
-    InputToken[] inputs;
+    InputTokenWithRecipient[] inputs;
     // The tokens that must be received to satisfy the order
     OutputToken[] outputs;
 }
@@ -22,7 +22,8 @@ struct RelayOrder {
 library RelayOrderLib {
     using OrderInfoLib for OrderInfo;
 
-    bytes private constant INPUT_TOKEN_TYPE = "InputToken(address token,uint256 amount,uint256 maxAmount)";
+    bytes private constant INPUT_TOKEN_TYPE =
+        "InputTokenWithRecipient(address token,uint256 amount,uint256 maxAmount,address recipient)";
     bytes private constant OUTPUT_TOKEN_TYPE = "OutputToken(address token,uint256 amount,address recipient)";
 
     bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
@@ -32,7 +33,7 @@ library RelayOrderLib {
         "RelayOrder(",
         "OrderInfo info,",
         "bytes[] actions,",
-        "InputToken[] inputs,",
+        "InputTokenWithRecipient[] inputs,",
         "OutputToken[] outputs)",
         OrderInfoLib.ORDER_INFO_TYPE,
         INPUT_TOKEN_TYPE,
@@ -45,7 +46,7 @@ library RelayOrderLib {
         string(abi.encodePacked("RelayOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     /// @notice returns the hash of an input token struct
-    function hash(InputToken memory input) private pure returns (bytes32) {
+    function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
         return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount));
     }
 
@@ -55,7 +56,7 @@ library RelayOrderLib {
     }
 
     /// @notice returns the hash of an input token struct
-    function hash(InputToken[] memory inputs) private pure returns (bytes32) {
+    function hash(InputTokenWithRecipient[] memory inputs) private pure returns (bytes32) {
         unchecked {
             bytes memory packedHashes = new bytes(32 * inputs.length);
 

@@ -12,7 +12,13 @@ import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
-import {SignedOrder, ResolvedRelayOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {
+    SignedOrder,
+    ResolvedRelayOrder,
+    OrderInfo,
+    InputTokenWithRecipient,
+    OutputToken
+} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders
@@ -91,8 +97,8 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
                 // _injectFees(order);
                 order.validate(msg.sender);
 
-                // TODO: could transfer directly to universal router here
-                transferInputTokens(order, address(this));
+                // Since relay order inputs specify recipients, we don't pass into transferInputTokens
+                transferInputTokens(order);
             }
         }
     }
@@ -110,13 +116,6 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
                 for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
                     output.token.transferFillFromBalance(output.recipient, output.amount);
-                }
-
-                // any inputs left in contract are owed to the filler
-                uint256 inputsLength = resolvedOrder.inputs.length;
-                for (uint256 j = 0; j < inputsLength; j++) {
-                    InputToken memory input = resolvedOrder.inputs[j];
-                    input.token.safeTransfer(msg.sender, input.token.balanceOf(address(this)));
                 }
 
                 emit Fill(orders[i].hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
@@ -154,10 +153,10 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
         });
     }
 
-    function transferInputTokens(ResolvedRelayOrder memory order, address to) internal {
+    function transferInputTokens(ResolvedRelayOrder memory order) internal {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
-            order.transferDetails(to),
+            order.transferDetails(),
             order.info.swapper,
             order.hash,
             RelayOrderLib.PERMIT2_ORDER_TYPE,

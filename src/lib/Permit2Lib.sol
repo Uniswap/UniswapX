@@ -54,15 +54,17 @@ library Permit2Lib {
     }
 
     /// @notice returns a ResolvedOrder into a permit object
-    function transferDetails(ResolvedRelayOrder memory order, address to)
+    function transferDetails(ResolvedRelayOrder memory order)
         internal
-        pure
+        view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory)
     {
         ISignatureTransfer.SignatureTransferDetails[] memory details =
             new ISignatureTransfer.SignatureTransferDetails[](order.inputs.length);
         for (uint256 i = 0; i < order.inputs.length; i++) {
-            details[i] = ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: order.inputs[i].amount});
+            // if recipient is 0x0, use msg.sender
+            address recipient = order.inputs[i].recipient == address(0) ? msg.sender : order.inputs[i].recipient;
+            details[i] = ISignatureTransfer.SignatureTransferDetails({to: recipient, requestedAmount: order.inputs[i].amount});
         }
         return details;
     }

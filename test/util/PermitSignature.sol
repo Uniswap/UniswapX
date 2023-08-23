@@ -9,7 +9,7 @@ import {LimitOrder, LimitOrderLib} from "../../src/lib/LimitOrderLib.sol";
 import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
 import {RelayOrder, RelayOrderLib} from "../../src/lib/RelayOrderLib.sol";
-import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, InputToken, InputTokenWithRecipient} from "../../src/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -116,7 +116,7 @@ contract PermitSignature is Test {
         uint256 privateKey,
         address permit2,
         OrderInfo memory info,
-        InputToken[] memory inputs,
+        InputTokenWithRecipient[] memory inputs,
         bytes32 typeHash,
         bytes32 orderHash
     ) internal view returns (bytes memory sig) {
