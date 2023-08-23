@@ -44,17 +44,19 @@ library CurrencyLibrary {
         }
     }
 
-    /// @notice Transfer currency from this contract to recipient
-    /// @dev assuming we already have the required balance
+    /// @notice Transfer currency from this contract's balance to recipient
     /// @param currency The currency to transfer
     /// @param recipient The recipient of the currency
-    /// @param amount The amount of currency to transfer
-    function transferFillFromBalance(address currency, address recipient, uint256 amount) internal {
+    /// @param minAmount The minAmount of currency that must be transferred
+    function transferFillFromBalance(address currency, address recipient, uint256 minAmount) internal {
         if (isNative(currency)) {
+            require(address(this).balance >= minAmount, "Insufficient native balance");
             // we will have received native assets directly so can directly transfer
-            transferNative(recipient, amount);
+            transferNative(recipient, address(this).balance);
         } else {
-            ERC20(currency).transfer(recipient, amount);
+            uint256 balance = ERC20(currency).balanceOf(address(this));
+            require(balance >= minAmount, "Insufficient token balance");
+            ERC20(currency).transfer(recipient, balance);
         }
     }
 
