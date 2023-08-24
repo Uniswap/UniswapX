@@ -68,6 +68,91 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
+    function testExecuteInputDecay() public {
+        tokenIn.mint(address(swapper), 2 ether);
+        tokenOut.mint(address(fillContract), 1 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        uint256 inputStartAmount = 1 ether;
+        uint256 inputEndAmount = 2 ether;
+        uint256 outputAmount = 1 ether;
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
+            input: DutchInput(tokenIn, inputStartAmount, inputEndAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), swapper, order.info.nonce);
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 1 ether);
+        assertEq(tokenOut.balanceOf(swapper), 1 ether);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 1 ether);
+    }
+
+    function testExecuteInputDecayMiddle() public {
+        tokenIn.mint(address(swapper), 2 ether);
+        tokenOut.mint(address(fillContract), 1 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        uint256 inputStartAmount = 1 ether;
+        uint256 inputEndAmount = 2 ether;
+        uint256 outputAmount = 1 ether;
+        vm.warp(100);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(200),
+            decayStartTime: 50,
+            decayEndTime: 150,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
+            input: DutchInput(tokenIn, inputStartAmount, inputEndAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectEmit(false, false, false, true);
+        emit Fill(order.hash(), address(this), swapper, order.info.nonce);
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 0.5 ether);
+        assertEq(tokenOut.balanceOf(swapper), 1 ether);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 1.5 ether);
+    }
+
+    function testExecuteInputDecayInsufficientInput() public {
+        tokenIn.mint(address(swapper), 1 ether);
+        tokenOut.mint(address(fillContract), 1 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        uint256 inputStartAmount = 1 ether;
+        uint256 inputEndAmount = 2 ether;
+        uint256 outputAmount = 1 ether;
+        vm.warp(100);
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(200),
+            decayStartTime: 50,
+            decayEndTime: 150,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
+            input: DutchInput(tokenIn, inputStartAmount, inputEndAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), sig);
+
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        fillContract.execute(signedOrder);
+    }
+
     // Execute 3 dutch orders. Have the 3rd one signed by a different swapper.
     // Order 1: Input = 1, outputs = [2, 1]
     // Order 2: Input = 2, outputs = [3]

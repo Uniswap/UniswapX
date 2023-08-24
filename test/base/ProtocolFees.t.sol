@@ -12,6 +12,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
+import {MockFeeControllerInputFees} from "../util/mock/MockFeeControllerInputFees.sol";
 import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplicates.sol";
 import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -43,6 +44,7 @@ contract ProtocolFeesTest is Test {
     MockERC20 tokenOut2;
     MockProtocolFees fees;
     MockFeeController feeController;
+    MockFeeControllerInputFees inputFeeController;
 
     function setUp() public {
         fees = new MockProtocolFees(PROTOCOL_FEE_OWNER);
@@ -50,6 +52,7 @@ contract ProtocolFeesTest is Test {
         tokenOut = new MockERC20("Output", "OUT", 18);
         tokenOut2 = new MockERC20("Output2", "OUT", 18);
         feeController = new MockFeeController(RECIPIENT);
+        inputFeeController = new MockFeeControllerInputFees(RECIPIENT);
         vm.prank(PROTOCOL_FEE_OWNER);
         fees.setProtocolFeeController(address(feeController));
     }
@@ -84,6 +87,41 @@ contract ProtocolFeesTest is Test {
     }
 
     function testTakeFees() public {
+        ResolvedOrder memory order = createOrder(1 ether, false);
+        uint256 feeBps = 3;
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
+
+        assertEq(order.outputs.length, 1);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 2);
+        assertEq(afterFees.outputs[0].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[0].amount, order.outputs[0].amount);
+        assertEq(afterFees.outputs[0].recipient, order.outputs[0].recipient);
+        assertEq(afterFees.outputs[1].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[1].amount, order.outputs[0].amount * feeBps / 10000);
+        assertEq(afterFees.outputs[1].recipient, RECIPIENT);
+    }
+
+    function testTakeInputFees() public {
+        vm.prank(PROTOCOL_FEE_OWNER);
+        fees.setProtocolFeeController(address(inputFeeController));
+
+        ResolvedOrder memory order = createOrder(1 ether, false);
+        uint256 feeBps = 3;
+        inputFeeController.setFee(tokenIn, feeBps);
+
+        assertEq(order.outputs.length, 1);
+        ResolvedOrder memory afterFees = fees.takeFees(order);
+        assertEq(afterFees.outputs.length, 2);
+        assertEq(afterFees.outputs[0].token, order.outputs[0].token);
+        assertEq(afterFees.outputs[0].amount, order.outputs[0].amount);
+        assertEq(afterFees.outputs[0].recipient, order.outputs[0].recipient);
+        assertEq(afterFees.outputs[1].token, address(order.input.token));
+        assertEq(afterFees.outputs[1].amount, order.input.amount * feeBps / 10000);
+        assertEq(afterFees.outputs[1].recipient, RECIPIENT);
+    }
+
+    function testTakeInputTokenFees() public {
         ResolvedOrder memory order = createOrder(1 ether, false);
         uint256 feeBps = 3;
         feeController.setFee(tokenIn, address(tokenOut), feeBps);
@@ -162,6 +200,22 @@ contract ProtocolFeesTest is Test {
                 address(tokenOut),
                 order.outputs[0].amount * 2 * 10 / 10000,
                 RECIPIENT
+            )
+        );
+        fees.takeFees(order);
+    }
+
+    function testTakeInputFeesTooMuch() public {
+        vm.prank(PROTOCOL_FEE_OWNER);
+        fees.setProtocolFeeController(address(inputFeeController));
+
+        ResolvedOrder memory order = createOrder(1 ether, false);
+        uint256 feeBps = 10;
+        inputFeeController.setFee(tokenIn, feeBps);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFees.FeeTooLarge.selector, address(tokenIn), order.input.amount * 10 / 10000, RECIPIENT
             )
         );
         fees.takeFees(order);
