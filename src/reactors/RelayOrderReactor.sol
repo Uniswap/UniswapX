@@ -78,10 +78,22 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
             for (uint256 j = 0; j < actionsLength; j++) {
                 (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
-                if (actionType == ActionType.UniversalRouter) {
+                if (actionType == ActionType.Approve) {
+                    (address token) = abi.decode(actionData, (address));
+                    // make approval to permit2 if needed
+                    require(token != address(0), "invalid token address");
+                    if (ERC20(token).allowance(address(this), address(permit2)) == 0) {
+                        ERC20(token).approve(address(permit2), type(uint256).max);
+                    }
+                    permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
+                }
+                else if (actionType == ActionType.UniversalRouter) {
                     /// @dev to use universal router integration, this contract must be recipient of all output tokens
                     (bool success,) = universalRouter.call(actionData);
                     require(success, "call failed");
+                }
+                else {
+                    revert("invalid action type");
                 }
             }
         }

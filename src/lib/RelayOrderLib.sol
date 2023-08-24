@@ -4,7 +4,10 @@ pragma solidity ^0.8.0;
 import {OrderInfo, InputTokenWithRecipient, OutputToken} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
-enum ActionType {UniversalRouter}
+enum ActionType {
+    Approve,
+    UniversalRouter
+}
 
 /// @dev External struct used to specify simple relay orders
 struct RelayOrder {
