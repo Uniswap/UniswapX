@@ -33,15 +33,6 @@ struct InputToken {
     uint256 maxAmount;
 }
 
-/// @dev tokens that need to be sent from the swapper in order to satisfy an order
-struct InputTokenWithRecipient {
-    ERC20 token;
-    uint256 amount;
-    // Needed for dutch decaying inputs
-    uint256 maxAmount;
-    address recipient;
-}
-
 /// @dev tokens that need to be received by the recipient in order to satisfy an order
 struct OutputToken {
     address token;
@@ -49,10 +40,10 @@ struct OutputToken {
     address recipient;
 }
 
-struct ResolvedRelayOrder {
+struct ResolvedAdvancedOrder {
     OrderInfo info;
     bytes[] actions;
-    InputTokenWithRecipient[] inputs;
+    InputToken[] inputs;
     OutputToken[] outputs;
     bytes sig;
     bytes32 hash;

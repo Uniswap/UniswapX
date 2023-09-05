@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo, InputTokenWithRecipient, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 enum ActionType {
@@ -10,33 +10,33 @@ enum ActionType {
 }
 
 /// @dev External struct used to specify simple relay orders
-struct RelayOrder {
+struct AdvancedOrder {
     // generic order information
     OrderInfo info;
     // ecnoded actions to execute onchain
     bytes[] actions;
     // The tokens that the swapper will provide when settling the order
-    InputTokenWithRecipient[] inputs;
+    InputToken[] inputs;
     // The tokens that must be received to satisfy the order
     OutputToken[] outputs;
 }
 
 /// @notice helpers for handling relay order objects
-library RelayOrderLib {
+library AdvancedOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes private constant INPUT_TOKEN_TYPE =
-        "InputTokenWithRecipient(address token,uint256 amount,uint256 maxAmount,address recipient)";
+        "InputToken(address token,uint256 amount,uint256 maxAmount)";
     bytes private constant OUTPUT_TOKEN_TYPE = "OutputToken(address token,uint256 amount,address recipient)";
 
     bytes32 private constant INPUT_TOKEN_TYPE_HASH = keccak256(INPUT_TOKEN_TYPE);
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        "RelayOrder(",
+        "AdvancedOrder(",
         "OrderInfo info,",
         "bytes[] actions,",
-        "InputTokenWithRecipient[] inputs,",
+        "InputToken[] inputs,",
         "OutputToken[] outputs)",
         OrderInfoLib.ORDER_INFO_TYPE,
         INPUT_TOKEN_TYPE,
@@ -46,10 +46,10 @@ library RelayOrderLib {
 
     string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
     string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("RelayOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+        string(abi.encodePacked("AdvancedOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     /// @notice returns the hash of an input token struct
-    function hash(InputTokenWithRecipient memory input) private pure returns (bytes32) {
+    function hash(InputToken memory input) private pure returns (bytes32) {
         return keccak256(abi.encode(INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.maxAmount));
     }
 
@@ -59,7 +59,7 @@ library RelayOrderLib {
     }
 
     /// @notice returns the hash of an input token struct
-    function hash(InputTokenWithRecipient[] memory inputs) private pure returns (bytes32) {
+    function hash(InputToken[] memory inputs) private pure returns (bytes32) {
         unchecked {
             bytes memory packedHashes = new bytes(32 * inputs.length);
 
@@ -93,7 +93,7 @@ library RelayOrderLib {
     /// @notice hash the given order
     /// @param order the order to hash
     /// @return the eip-712 order hash
-    function hash(RelayOrder memory order) internal pure returns (bytes32) {
+    function hash(AdvancedOrder memory order) internal pure returns (bytes32) {
         return keccak256(abi.encode(ORDER_TYPE_HASH, order.info.hash(), hash(order.inputs), hash(order.outputs)));
     }
 }

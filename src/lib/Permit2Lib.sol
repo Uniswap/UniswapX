@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {ResolvedOrder, ResolvedRelayOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, ResolvedAdvancedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice handling some permit2-specific encoding
 library Permit2Lib {
@@ -33,7 +33,7 @@ library Permit2Lib {
     }
 
     /// @notice returns a ResolvedOrder into a permit object
-    function toPermit(ResolvedRelayOrder memory order)
+    function toPermit(ResolvedAdvancedOrder memory order)
         internal
         pure
         returns (ISignatureTransfer.PermitBatchTransferFrom memory)
@@ -54,7 +54,7 @@ library Permit2Lib {
     }
 
     /// @notice returns a ResolvedOrder into a permit object
-    function transferDetails(ResolvedRelayOrder memory order)
+    function transferDetails(ResolvedAdvancedOrder memory order)
         internal
         view
         returns (ISignatureTransfer.SignatureTransferDetails[] memory)

@@ -10,11 +10,11 @@ import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
-import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
+import {AdvancedOrderLib, AdvancedOrder, ActionType} from "../lib/AdvancedOrderLib.sol";
+import {ResolvedAdvancedOrderLib} from "../lib/ResolvedAdvancedOrderLib.sol";
 import {
     SignedOrder,
-    ResolvedRelayOrder,
+    ResolvedAdvancedOrder,
     OrderInfo,
     InputTokenWithRecipient,
     OutputToken
@@ -22,12 +22,12 @@ import {
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders
-contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
+contract AdvancedOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
-    using Permit2Lib for ResolvedRelayOrder;
-    using ResolvedRelayOrderLib for ResolvedRelayOrder;
-    using RelayOrderLib for RelayOrder;
+    using Permit2Lib for ResolvedAdvancedOrder;
+    using ResolvedAdvancedOrderLib for ResolvedAdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder;
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
     // the direct filler did not include enough ETH in their call to execute/executeBatch
@@ -46,7 +46,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
     }
 
     function execute(SignedOrder calldata order) external payable nonReentrant {
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](1);
+        ResolvedAdvancedOrder[] memory resolvedOrders = new ResolvedAdvancedOrder[](1);
         resolvedOrders[0] = resolve(order);
 
         _prepare(resolvedOrders);
@@ -56,7 +56,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
-        ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
+        ResolvedAdvancedOrder[] memory resolvedOrders = new ResolvedAdvancedOrder[](ordersLength);
 
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
@@ -69,11 +69,11 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
         _fill(resolvedOrders);
     }
 
-    function _execute(ResolvedRelayOrder[] memory orders) internal {
+    function _execute(ResolvedAdvancedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         // actions are encodResolved as (enum actionType, bytes actionData)[]
         for (uint256 i = 0; i < ordersLength; i++) {
-            ResolvedRelayOrder memory order = orders[i];
+            ResolvedAdvancedOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
 
             for (uint256 j = 0; j < actionsLength; j++) {
@@ -101,11 +101,11 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
     /// @notice validates, injects fees, and transfers input tokens in preparation for order fill
     /// @param orders The orders to prepare
-    function _prepare(ResolvedRelayOrder[] memory orders) internal {
+    function _prepare(ResolvedAdvancedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory order = orders[i];
+                ResolvedAdvancedOrder memory order = orders[i];
                 // _injectFees(order);
                 order.validate(msg.sender);
 
@@ -117,13 +117,13 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
     /// @notice fills a list of orders, ensuring all outputs are satisfied
     /// @param orders The orders to fill
-    function _fill(ResolvedRelayOrder[] memory orders) internal {
+    function _fill(ResolvedAdvancedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         // attempt to transfer all currencies to all recipients
         unchecked {
             // transfer output tokens to their respective recipients
             for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedRelayOrder memory resolvedOrder = orders[i];
+                ResolvedAdvancedOrder memory resolvedOrder = orders[i];
                 uint256 outputsLength = resolvedOrder.outputs.length;
                 for (uint256 j = 0; j < outputsLength; j++) {
                     OutputToken memory output = resolvedOrder.outputs[j];
@@ -149,12 +149,12 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
     function resolve(SignedOrder calldata signedOrder)
         internal
         pure
-        returns (ResolvedRelayOrder memory resolvedOrder)
+        returns (ResolvedAdvancedOrder memory resolvedOrder)
     {
-        RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
+        AdvancedOrder memory order = abi.decode(signedOrder.order, (AdvancedOrder));
         _validateOrder(order);
 
-        resolvedOrder = ResolvedRelayOrder({
+        resolvedOrder = ResolvedAdvancedOrder({
             info: order.info,
             // optionally put actions into wrapped structs
             actions: order.actions,
@@ -165,20 +165,20 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
         });
     }
 
-    function transferInputTokens(ResolvedRelayOrder memory order) internal {
+    function transferInputTokens(ResolvedAdvancedOrder memory order) internal {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(),
             order.info.swapper,
             order.hash,
-            RelayOrderLib.PERMIT2_ORDER_TYPE,
+            AdvancedOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }
 
     /// @notice validate the relay order fields
     /// @dev Throws if the order is invalid
-    function _validateOrder(RelayOrder memory order) internal pure {
+    function _validateOrder(AdvancedOrder memory order) internal pure {
         // assert that actions are valid and allowed, that calldata is well formed, etc.
     }
 }
