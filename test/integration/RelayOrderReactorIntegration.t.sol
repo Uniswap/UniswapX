@@ -96,7 +96,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         inputTokens[1] =
             InputTokenWithRecipient({token: USDC, amount: 10 * 10 ** 6, maxAmount: 10 * 10 ** 6, recipient: address(0)});
 
-        uint256 amountOutMin = 95276229;
+        uint256 amountOutMin = 95 * 10 ** 6;
 
         bytes[] memory actions = new bytes[](1);
         bytes memory DAI_USDC_UR_CALLDATA =
@@ -129,7 +129,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     function testPermitAndExecute() public {
         // this swapper has not yet approved the P2 contract
         // so we will relay a USDC 2612 permit to the P2 contract first
-
         // making a USDC -> DAI swap
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = InputTokenWithRecipient({
