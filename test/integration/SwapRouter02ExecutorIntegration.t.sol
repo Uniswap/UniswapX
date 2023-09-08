@@ -91,7 +91,7 @@ contract SwapRouter02IntegrationTest is Test, GasSnapshot, PermitSignature {
             address(WETH), address(DAI), 500, address(swapRouter02Executor), 2 * ONE, 3000 * ONE, 0
         );
         multicallData1[0] = abi.encodeWithSelector(ISwapRouter02.exactInputSingle.selector, params1);
-        
+
         snapStart("SwapRouter02IntegrationTest-testSwapWethToDaiViaV3");
         swapRouter02Executor.execute(
             SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey, address(PERMIT2), order1)),

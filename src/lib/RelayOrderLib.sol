@@ -5,7 +5,8 @@ import {OrderInfo, InputTokenWithRecipient, OutputToken} from "../base/ReactorSt
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
 enum ActionType {
-    Approve,
+    ApprovePermit2,
+    Permit2612,
     UniversalRouter
 }
 

@@ -22,7 +22,7 @@ import {
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders
-contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
+contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
     using Permit2Lib for ResolvedRelayOrder;
@@ -54,6 +54,8 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
         _fill(resolvedOrders);
     }
 
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable {}
+
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
         ResolvedRelayOrder[] memory resolvedOrders = new ResolvedRelayOrder[](ordersLength);
@@ -69,6 +71,12 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
         _fill(resolvedOrders);
     }
 
+    function executeBatchWithCallback(SignedOrder[] calldata orders, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {}
+
     function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         // actions are encodResolved as (enum actionType, bytes actionData)[]
@@ -78,7 +86,11 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
 
             for (uint256 j = 0; j < actionsLength; j++) {
                 (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
-                if (actionType == ActionType.Approve) {
+                if (actionType == ActionType.UniversalRouter) {
+                    /// @dev to use universal router integration, this contract must be recipient of all output tokens
+                    (bool success,) = universalRouter.call(actionData);
+                    require(success, "call failed");
+                } else if (actionType == ActionType.ApprovePermit2) {
                     (address token) = abi.decode(actionData, (address));
                     // make approval to permit2 if needed
                     require(token != address(0), "invalid token address");
@@ -86,13 +98,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard {
                         ERC20(token).approve(address(permit2), type(uint256).max);
                     }
                     permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
-                }
-                else if (actionType == ActionType.UniversalRouter) {
-                    /// @dev to use universal router integration, this contract must be recipient of all output tokens
-                    (bool success,) = universalRouter.call(actionData);
-                    require(success, "call failed");
-                }
-                else {
+                } else {
                     revert("invalid action type");
                 }
             }

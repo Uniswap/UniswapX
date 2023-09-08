@@ -19,6 +19,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../../src/lib/RelayOrderLib.sol";
 import {RelayOrderReactor} from "../../src/reactors/RelayOrderReactor.sol";
+import {PermitExecutor} from "../../src/sample-executors/PermitExecutor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
@@ -42,6 +43,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     address swapper2;
     address filler;
     RelayOrderReactor reactor;
+    PermitExecutor permitExecutor;
 
     error InvalidNonce();
     error InvalidSigner();
@@ -55,8 +57,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
         reactor = new RelayOrderReactor{salt: bytes32(0x00)}(PERMIT2, address(0), UNIVERSAL_ROUTER);
         assertEq(
-            address(reactor), 0x61060eABC7E2C97856a58D3A1516B2cBf7C1F5E8, "Reactor address does not match expected"
+            address(reactor), 0x378718523232A14BE8A24e291b5A5075BE04D121, "Reactor address does not match expected"
         );
+        permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
         // Swapper max approves permit post
         vm.startPrank(swapper);
@@ -77,8 +80,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         // Transfer 1000 DAI to swapper
         vm.startPrank(WHALE);
         DAI.transfer(swapper, 1000 * ONE);
-        // Transfer 100 USDC to swapper
-        USDC.transfer(swapper, 100 * 10 ** 6);
+        DAI.transfer(swapper2, 1000 * ONE);
+        USDC.transfer(swapper, 1000 * 10 ** 6);
+        USDC.transfer(swapper2, 1000 * 10 ** 6);
         vm.stopPrank();
     }
 
@@ -96,7 +100,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         bytes[] memory actions = new bytes[](1);
         bytes memory DAI_USDC_UR_CALLDATA =
-            hex"24856bc3000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000010000000000000000000000000061060eabc7e2c97856a58d3a1516b2cbf7c1f5e80000000000000000000000000000000000000000000000056bc75e2d631000000000000000000000000000000000000000000000000000000000000005adccc500000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b6b175474e89094c44da98b954eedeac495271d0f000064a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000";
+            hex"24856bc30000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000100000000000000000000000000378718523232a14be8a24e291b5a5075be04d1210000000000000000000000000000000000000000000000056bc75e2d631000000000000000000000000000000000000000000000000000000000000005adccc500000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b6b175474e89094c44da98b954eedeac495271d0f000064a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000";
         actions[0] = abi.encode(ActionType.UniversalRouter, DAI_USDC_UR_CALLDATA);
 
         RelayOrder memory order = RelayOrder({
@@ -120,5 +124,74 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         assertEq(USDC.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         assertGe(USDC.balanceOf(swapper), amountOutMin, "Swapper did not receive enough output");
         assertEq(USDC.balanceOf((filler)), 10 * 10 ** 6, "filler did not receive enough USDC");
+    }
+
+    function testPermitAndExecute() public {
+        // this swapper has not yet approved the P2 contract
+        // so we will relay a USDC 2612 permit to the P2 contract first
+
+        // making a USDC -> DAI swap
+        InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
+        inputTokens[0] =
+            InputTokenWithRecipient({token: USDC, amount: 100 * 10 ** 6, maxAmount: 100 * 10 ** 6, recipient: UNIVERSAL_ROUTER});
+        inputTokens[1] =
+            InputTokenWithRecipient({token: USDC, amount: 10 * 10 ** 6, maxAmount: 10 * 10 ** 6, recipient: address(0)});
+        
+        uint256 amountOutMin = 95 * ONE;
+
+        // sign permit for USDC
+        uint256 amount = type(uint256).max - 1; // infinite approval to permit2
+        uint256 deadline = type(uint256).max - 1; // never expires
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                USDC.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        swapper2,
+                        address(PERMIT2),
+                        amount,
+                        USDC.nonces(swapper2),
+                        deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapper2PrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, swapper2); 
+
+        bytes memory permitData =
+            abi.encode(address(USDC), abi.encode(swapper2, address(PERMIT2), amount, deadline, v, r, s));
+
+        bytes[] memory actions = new bytes[](1);
+        bytes memory USDC_DAI_UR_CALLDATA =
+            hex"24856bc30000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000100000000000000000000000000378718523232a14be8a24e291b5a5075be04d1210000000000000000000000000000000000000000000000000000000005f5e100000000000000000000000000000000000000000000000005297ede6cd16022cc00000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002ba0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000646b175474e89094c44da98b954eedeac495271d0f000000000000000000000000000000000000000000";
+        actions[0] = abi.encode(ActionType.UniversalRouter, USDC_DAI_UR_CALLDATA);
+
+        RelayOrder memory order = RelayOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
+            actions: actions,
+            inputs: inputTokens,
+            outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper2))
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
+        
+        uint256 routerUSDCBalanceBefore = USDC.balanceOf(UNIVERSAL_ROUTER);
+        
+        vm.prank(filler);
+        snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
+        permitExecutor.executeWithPermit(signedOrder, permitData);
+        snapEnd();
+
+        assertEq(USDC.balanceOf(UNIVERSAL_ROUTER), routerUSDCBalanceBefore, "No leftover input in router");
+        assertEq(DAI.balanceOf(address(reactor)), 0, "No leftover output in reactor");
+        assertGe(DAI.balanceOf(swapper2), amountOutMin, "Swapper did not receive enough output");
+        // in this case, gas payment will go to executor
+        assertEq(USDC.balanceOf(address(permitExecutor)), 10 * 10 ** 6, "filler did not receive enough USDC");
     }
 }
