@@ -132,11 +132,15 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         // making a USDC -> DAI swap
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
-        inputTokens[0] =
-            InputTokenWithRecipient({token: USDC, amount: 100 * 10 ** 6, maxAmount: 100 * 10 ** 6, recipient: UNIVERSAL_ROUTER});
+        inputTokens[0] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 100 * 10 ** 6,
+            maxAmount: 100 * 10 ** 6,
+            recipient: UNIVERSAL_ROUTER
+        });
         inputTokens[1] =
             InputTokenWithRecipient({token: USDC, amount: 10 * 10 ** 6, maxAmount: 10 * 10 ** 6, recipient: address(0)});
-        
+
         uint256 amountOutMin = 95 * ONE;
 
         // sign permit for USDC
@@ -161,7 +165,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapper2PrivateKey, digest);
         address signer = ecrecover(digest, v, r, s);
-        assertEq(signer, swapper2); 
+        assertEq(signer, swapper2);
 
         bytes memory permitData =
             abi.encode(address(USDC), abi.encode(swapper2, address(PERMIT2), amount, deadline, v, r, s));
@@ -180,9 +184,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order));
-        
+
         uint256 routerUSDCBalanceBefore = USDC.balanceOf(UNIVERSAL_ROUTER);
-        
+
         vm.prank(filler);
         snapStart("RelayOrderReactorIntegrationTest-testPermitAndExecute");
         permitExecutor.executeWithPermit(signedOrder, permitData);

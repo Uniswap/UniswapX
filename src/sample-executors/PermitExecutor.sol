@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
+
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
@@ -25,9 +26,7 @@ contract PermitExecutor is Owned {
         _;
     }
 
-    constructor(address _whitelistedCaller, IReactor _reactor, address _owner)
-        Owned(_owner)
-    {
+    constructor(address _whitelistedCaller, IReactor _reactor, address _owner) Owned(_owner) {
         whitelistedCaller = _whitelistedCaller;
         reactor = _reactor;
     }
@@ -35,20 +34,17 @@ contract PermitExecutor is Owned {
     /// @notice the reactor performs no verification that the user's signed permit is executed correctly
     ///         e.g. if the necessary approvals are already set, a filler can call this function or the standard execute function to fill the order
     /// @dev assume 2612 permit is collected offchain
-    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData)
-        external
-        onlyWhitelistedCaller
-    {
+    function executeWithPermit(SignedOrder calldata order, bytes calldata permitData) external onlyWhitelistedCaller {
         _permit(permitData);
         reactor.execute(order);
     }
 
     /// @notice assume that we already have all output tokens
     /// @dev assume 2612 permits are collected offchain
-    function executeBatchWithPermit(
-        SignedOrder[] calldata orders,
-        bytes[] calldata permitData
-    ) external onlyWhitelistedCaller {
+    function executeBatchWithPermit(SignedOrder[] calldata orders, bytes[] calldata permitData)
+        external
+        onlyWhitelistedCaller
+    {
         _permitBatch(permitData);
         reactor.executeBatch(orders);
     }
@@ -87,4 +83,3 @@ contract PermitExecutor is Owned {
 
     receive() external payable {}
 }
-
