@@ -92,6 +92,9 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
 
         tokenInPermitData =
             abi.encode(address(tokenIn), abi.encode(swapper, address(permit2), amount, deadline, v, r, s));
+
+        // assert that swapper has not approved P2 yet
+        assertEq(tokenIn.allowance(swapper, address(permit2)), 0);
     }
 
     // TODO: test permit reuse, permit not enough to cover
