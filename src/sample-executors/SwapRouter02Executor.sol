@@ -10,9 +10,10 @@ import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ResolvedOrder, OutputToken, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
+import {BaseExecutor} from "./BaseExecutor.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
-contract SwapRouter02Executor is IReactorCallback, Owned {
+contract SwapRouter02Executor is BaseExecutor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
@@ -23,7 +24,6 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     ISwapRouter02 public immutable swapRouter02;
     address public immutable whitelistedCaller;
-    IReactor public immutable reactor;
     WETH public immutable weth;
 
     modifier onlyWhitelistedCaller() {
@@ -41,30 +41,21 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     }
 
     constructor(address _whitelistedCaller, IReactor _reactor, address _owner, ISwapRouter02 _swapRouter02)
-        Owned(_owner)
+        BaseExecutor(_reactor, _owner)
     {
         whitelistedCaller = _whitelistedCaller;
-        reactor = _reactor;
         swapRouter02 = _swapRouter02;
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
-    /// @notice assume that we already have all output tokens
-    function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
-        reactor.executeWithCallback(order, callbackData);
-    }
-
-    /// @notice assume that we already have all output tokens
-    function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
-        reactor.executeBatchWithCallback(orders, callbackData);
-    }
+    function restrictCall() internal override onlyWhitelistedCaller() {}
 
     /// @notice fill UniswapX orders using SwapRouter02
     /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes[] memory multicallData: Pass into swapRouter02.multicall()
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external override onlyReactor {
         (
             address[] memory tokensToApproveForSwapRouter02,
             address[] memory tokensToApproveForReactor,
@@ -114,7 +105,4 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
     }
-
-    /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
-    receive() external payable {}
 }

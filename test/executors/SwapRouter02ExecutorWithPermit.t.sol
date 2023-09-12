@@ -5,7 +5,6 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
-import {SwapRouter02ExecutorWithPermit} from "../../src/sample-executors/SwapRouter02ExecutorWithPermit.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -30,7 +29,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
     WETH weth;
     address filler;
     address swapper;
-    SwapRouter02ExecutorWithPermit swapRouter02ExecutorWithPermit;
+    SwapRouter02Executor swapRouter02ExecutorWithPermit;
     MockSwapRouter mockSwapRouter;
     DutchOrderReactor reactor;
     IPermit2 permit2;
@@ -64,7 +63,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         permit2 = IPermit2(deployPermit2());
         reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         swapRouter02ExecutorWithPermit =
-        new SwapRouter02ExecutorWithPermit(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
+        new SwapRouter02Executor(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
 
         // sign permit for tokenIn
         uint256 amount = type(uint256).max - 1; // infinite approval to permit2

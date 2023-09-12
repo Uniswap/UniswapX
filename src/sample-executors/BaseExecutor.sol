@@ -19,8 +19,6 @@ library Commands {
 }
 
 abstract contract BaseExecutor is IReactorCallback, Owned {
-    using SafeTransferLib for ERC20;
-
     /// @notice Thrown when attempting to execute commands and an incorrect number of inputs are provided
     error LengthMismatch();
     error InvalidCommandType(uint256 commandType);
@@ -33,9 +31,9 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
 
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
-    function restrictCall() internal view virtual {}
+    function restrictCall() internal virtual {}
 
-    function multicall(bytes calldata commands, bytes[] calldata inputs) external {
+    function dispatch(bytes calldata commands, bytes[] calldata inputs) external {
         restrictCall();
         uint256 numCommands = commands.length;
         if (inputs.length != numCommands) revert LengthMismatch();
