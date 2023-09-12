@@ -63,7 +63,7 @@ contract SwapRouter02ExecutorWithPermitTest is Test, PermitSignature, GasSnapsho
         permit2 = IPermit2(deployPermit2());
         reactor = new DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
         swapRouter02ExecutorWithPermit =
-        new SwapRouter02Executor(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
+            new SwapRouter02Executor(address(this), reactor, address(this), ISwapRouter02(address(mockSwapRouter)));
 
         // sign permit for tokenIn
         uint256 amount = type(uint256).max - 1; // infinite approval to permit2
