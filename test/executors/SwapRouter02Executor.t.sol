@@ -25,15 +25,18 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
     uint256 fillerPrivateKey;
     uint256 swapperPrivateKey;
+    uint256 bobPrivateKey;
     MockERC20 tokenIn;
     MockERC20 tokenOut;
     WETH weth;
     address filler;
     address swapper;
+    address bob;
     SwapRouter02Executor swapRouter02Executor;
     MockSwapRouter mockSwapRouter;
     DutchOrderReactor reactor;
     IPermit2 permit2;
+    bytes tokenInPermitData;
 
     uint256 constant ONE = 10 ** 18;
     // Represents a 0.3% fee, but setting this doesn't matter
@@ -56,6 +59,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         filler = vm.addr(fillerPrivateKey);
         swapperPrivateKey = 0x12341235;
         swapper = vm.addr(swapperPrivateKey);
+        // bob is used for testing permit
+        bobPrivateKey = 0xbbbb;
+        bob = vm.addr(bobPrivateKey);
 
         // Instantiate relevant contracts
         mockSwapRouter = new MockSwapRouter(address(weth));
@@ -66,6 +72,36 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         // Do appropriate max approvals
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        // sign permit for tokenIn
+        uint256 amount = type(uint256).max - 1; // infinite approval to permit2
+        uint256 deadline = type(uint256).max - 1; // never expires
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                tokenIn.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                        bob,
+                        address(permit2),
+                        amount,
+                        tokenIn.nonces(bob),
+                        deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(bobPrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, bob);
+
+        tokenInPermitData =
+            abi.encode(address(tokenIn), abi.encode(bob, address(permit2), amount, deadline, v, r, s));
+
+        // assert that swapper has not approved P2 yet
+        assertEq(tokenIn.allowance(bob, address(permit2)), 0);
     }
 
     function testReactorCallback() public {
@@ -146,6 +182,51 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         snapStart("SwapRouter02ExecutorExecute");
         swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(tokenOut.balanceOf(swapper), ONE / 2);
+        assertEq(tokenOut.balanceOf(address(swapRouter02Executor)), ONE / 2);
+    }
+
+    function testPermitAndExecute() public {
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(tokenIn, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), ONE, 0, address(swapper))
+        });
+
+        tokenIn.mint(swapper, ONE);
+        tokenOut.mint(address(mockSwapRouter), ONE);
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(tokenIn);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(tokenOut);
+
+        bytes[] memory multicallData = new bytes[](1);
+        ExactInputParams memory exactInputParams = ExactInputParams({
+            path: abi.encodePacked(tokenIn, FEE, tokenOut),
+            recipient: address(swapRouter02Executor),
+            amountIn: ONE,
+            amountOutMinimum: 0
+        });
+        multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
+
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = tokenInPermitData;
+        inputs[1] = abi.encode(
+            abi.encode(order),
+            signOrder(swapperPrivateKey, address(permit2), order),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+
+        snapStart("SwapRouter02ExecutorPermitAndExecute");
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.PERMIT)), bytes1(uint8(Commands.EXECUTE))), inputs);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
