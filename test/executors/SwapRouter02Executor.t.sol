@@ -97,7 +97,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, bob);
 
-        tokenInPermitData = abi.encode(PermitData(address(tokenIn), abi.encode(bob, address(permit2), amount, deadline, v, r, s)));
+        tokenInPermitData =
+            abi.encode(PermitData(address(tokenIn), abi.encode(bob, address(permit2), amount, deadline, v, r, s)));
         // assert that swapper has not approved P2 yet
         assertEq(tokenIn.allowance(bob, address(permit2)), 0);
     }
@@ -224,7 +225,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         );
 
         snapStart("SwapRouter02ExecutorPermitAndExecute");
-        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.PERMIT)), bytes1(uint8(Commands.EXECUTE))), inputs);
+        swapRouter02Executor.dispatch(
+            abi.encodePacked(bytes1(uint8(Commands.PERMIT)), bytes1(uint8(Commands.EXECUTE))), inputs
+        );
         snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
@@ -455,7 +458,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         inputs[1] = abi.encode(
             signedOrders, abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
-        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.PERMIT)), bytes1(uint8(Commands.EXECUTE_BATCH))), inputs);
+        swapRouter02Executor.dispatch(
+            abi.encodePacked(bytes1(uint8(Commands.PERMIT)), bytes1(uint8(Commands.EXECUTE_BATCH))), inputs
+        );
 
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);

@@ -29,7 +29,7 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
     error LengthMismatch();
     error InvalidCommandType(uint256 commandType);
 
-    IReactor public immutable reactor; 
+    IReactor public immutable reactor;
 
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
         reactor = _reactor;
