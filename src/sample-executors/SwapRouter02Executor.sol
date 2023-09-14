@@ -19,7 +19,7 @@ contract SwapRouter02Executor is BaseExecutor {
 
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
-    /// @notice thrown if reactorCallback is called by an adress other than the reactor
+    /// @notice thrown if reactorCallback is called by an address other than the reactor
     error MsgSenderNotReactor();
 
     ISwapRouter02 public immutable swapRouter02;

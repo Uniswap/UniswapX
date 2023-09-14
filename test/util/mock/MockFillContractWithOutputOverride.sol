@@ -13,9 +13,6 @@ contract MockFillContractWithOutputOverride is IReactorCallback {
     uint256 outputAmount;
 
     IReactor immutable reactor;
-    /// @notice thrown if native transfer fails to the reactor
-
-    error NativeTransferFailed();
 
     constructor(address _reactor) {
         reactor = IReactor(_reactor);

@@ -11,9 +11,6 @@ import {IReactorCallback} from "../../../src/interfaces/IReactorCallback.sol";
 contract MockFillContract is IReactorCallback {
     using CurrencyLibrary for address;
 
-    /// @notice thrown if native transfer fails to the reactor
-    error NativeTransferFailed();
-
     IReactor immutable reactor;
 
     constructor(address _reactor) {
