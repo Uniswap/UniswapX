@@ -17,7 +17,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputParams} from "../../src/external/ISwapRouter02.sol";
-import {Commands} from "../../src/sample-executors/BaseExecutor.sol";
+import {Commands, PermitData} from "../../src/sample-executors/BaseExecutor.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -97,9 +97,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         address signer = ecrecover(digest, v, r, s);
         assertEq(signer, bob);
 
-        tokenInPermitData =
-            abi.encode(address(tokenIn), abi.encode(bob, address(permit2), amount, deadline, v, r, s));
-
+        tokenInPermitData = abi.encode(PermitData(address(tokenIn), abi.encode(bob, address(permit2), amount, deadline, v, r, s)));
         // assert that swapper has not approved P2 yet
         assertEq(tokenIn.allowance(bob, address(permit2)), 0);
     }

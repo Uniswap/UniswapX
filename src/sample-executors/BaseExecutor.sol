@@ -18,12 +18,17 @@ library Commands {
     uint256 constant PERMIT_BATCH = 0x03;
 }
 
+struct PermitData {
+    address token;
+    bytes data;
+}
+
 abstract contract BaseExecutor is IReactorCallback, Owned {
     /// @notice Thrown when attempting to execute commands and an incorrect number of inputs are provided
     error LengthMismatch();
     error InvalidCommandType(uint256 commandType);
 
-    IReactor public immutable reactor;
+    IReactor public immutable reactor; 
 
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
         reactor = _reactor;
@@ -60,11 +65,11 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
 
                 _executeBatch(orders, callbackData);
             } else if (command == Commands.PERMIT) {
-                _permit(input);
+                PermitData memory permit = abi.decode(input, (PermitData));
+                _permit(permit);
             } else if (command == Commands.PERMIT_BATCH) {
-                bytes[] memory permitData;
-                (permitData) = abi.decode(input, (bytes[]));
-                _permitBatch(permitData);
+                PermitData[] memory permits = abi.decode(input, (PermitData[]));
+                _permitBatch(permits);
             } else {
                 revert InvalidCommandType(command);
             }
@@ -85,16 +90,15 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
     /// @notice execute a signed 2612-style permit
     /// the transaction will revert if the permit cannot be executed
     /// must be called before the call to the reactor
-    function _permit(bytes memory permitData) internal {
-        (address token, bytes memory data) = abi.decode(permitData, (address, bytes));
+    function _permit(PermitData memory permit) internal {
         (address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
-            abi.decode(data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        ERC20(token).permit(owner, spender, value, deadline, v, r, s);
+            abi.decode(permit.data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
+        ERC20(permit.token).permit(owner, spender, value, deadline, v, r, s);
     }
 
-    function _permitBatch(bytes[] memory permitData) internal {
-        for (uint256 i = 0; i < permitData.length; i++) {
-            _permit(permitData[i]);
+    function _permitBatch(PermitData[] memory permits) internal {
+        for (uint256 i = 0; i < permits.length; i++) {
+            _permit(permits[i]);
         }
     }
 
