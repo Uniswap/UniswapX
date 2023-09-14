@@ -31,10 +31,10 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
 
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
-    function restrictCall() internal virtual {}
+    function _restrictCall() internal virtual {}
 
-    function dispatch(bytes calldata commands, bytes[] calldata inputs) external {
-        restrictCall();
+    function dispatch(bytes calldata commands, bytes[] calldata inputs) external payable {
+        _restrictCall();
         uint256 numCommands = commands.length;
         if (inputs.length != numCommands) revert LengthMismatch();
 
@@ -53,7 +53,9 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
                 (bytes[] memory orderInputs, bytes memory callbackData) = abi.decode(input, (bytes[], bytes));
                 SignedOrder[] memory orders = new SignedOrder[](orderInputs.length);
                 for (uint256 i = 0; i < orderInputs.length; i++) {
-                    (orders[i].order, orders[i].sig) = abi.decode(orderInputs[i], (bytes, bytes));
+                    SignedOrder memory order;
+                    (order.order, order.sig) = abi.decode(orderInputs[i], (bytes, bytes));
+                    orders[i] = order;
                 }
 
                 _executeBatch(orders, callbackData);

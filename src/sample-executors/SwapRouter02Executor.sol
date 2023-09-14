@@ -48,7 +48,7 @@ contract SwapRouter02Executor is BaseExecutor {
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
-    function restrictCall() internal override onlyWhitelistedCaller {}
+    function _restrictCall() internal override onlyWhitelistedCaller {}
 
     /// @notice fill UniswapX orders using SwapRouter02
     /// @param callbackData It has the below encoded:

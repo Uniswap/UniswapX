@@ -17,6 +17,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputParams} from "../../src/external/ISwapRouter02.sol";
+import {Commands} from "../../src/sample-executors/BaseExecutor.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
 contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
@@ -136,11 +137,15 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        snapStart("SwapRouter02ExecutorExecute");
-        swapRouter02Executor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            abi.encode(order),
+            signOrder(swapperPrivateKey, address(permit2), order),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+
+        snapStart("SwapRouter02ExecutorExecute");
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
@@ -176,10 +181,14 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        swapRouter02Executor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            abi.encode(order),
+            signOrder(swapperPrivateKey, address(permit2), order),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
 
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
@@ -194,11 +203,15 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02 = new address[](0);
         tokensToApproveForReactor = new address[](0);
 
-        snapStart("SwapRouter02ExecutorExecuteAlreadyApproved");
-        swapRouter02Executor.execute(
-            SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(permit2), order2)),
+        inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            abi.encode(order2),
+            signOrder(swapperPrivateKey, address(permit2), order2),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+
+        snapStart("SwapRouter02ExecutorExecuteAlreadyApproved");
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
         snapEnd();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
@@ -237,11 +250,15 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        vm.expectRevert("TRANSFER_FROM_FAILED");
-        swapRouter02Executor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            abi.encode(order),
+            signOrder(swapperPrivateKey, address(permit2), order),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+
+        vm.expectRevert("TRANSFER_FROM_FAILED");
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
     }
 
     // Two orders, first one has input = 1 and outputs = [1]. Second one has input = 3
@@ -256,7 +273,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokenOut.mint(address(mockSwapRouter), outputAmount * 10);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
-        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        bytes[] memory signedOrders = new bytes[](2);
         DutchOrder memory order1 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             decayStartTime: block.timestamp,
@@ -265,7 +282,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         bytes memory sig1 = signOrder(swapperPrivateKey, address(permit2), order1);
-        signedOrders[0] = SignedOrder(abi.encode(order1), sig1);
+        signedOrders[0] = abi.encode(abi.encode(order1), sig1);
 
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
@@ -277,7 +294,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount * 2, outputAmount * 2, swapper)
         });
         bytes memory sig2 = signOrder(swapperPrivateKey, address(permit2), order2);
-        signedOrders[1] = SignedOrder(abi.encode(order2), sig2);
+        signedOrders[1] = abi.encode(abi.encode(order2), sig2);
 
         address[] memory tokensToApproveForSwapRouter02 = new address[](1);
         tokensToApproveForSwapRouter02[0] = address(tokenIn);
@@ -294,9 +311,13 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        swapRouter02Executor.executeBatch(
-            signedOrders, abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            signedOrders,
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE_BATCH))), inputs);
+
         assertEq(tokenOut.balanceOf(swapper), 3 ether);
         assertEq(tokenIn.balanceOf(swapper), 6 ether);
         assertEq(tokenOut.balanceOf(address(mockSwapRouter)), 6 ether);
@@ -329,12 +350,16 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        vm.prank(address(0xbeef));
-        vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
-        swapRouter02Executor.execute(
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encode(
+            abi.encode(order),
+            signOrder(swapperPrivateKey, address(permit2), order),
             abi.encode(tokensToApproveForSwapRouter02, multicallData)
         );
+
+        vm.prank(address(0xbeef));
+        vm.expectRevert(SwapRouter02Executor.CallerNotWhitelisted.selector);
+        swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE))), inputs);
     }
 
     // Very similar to `testReactorCallback`, but do not vm.prank the reactor when calling `reactorCallback`, so reverts
