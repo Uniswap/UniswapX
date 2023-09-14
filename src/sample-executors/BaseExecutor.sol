@@ -16,6 +16,7 @@ library Commands {
     uint256 constant EXECUTE_BATCH = 0x01;
     uint256 constant PERMIT = 0x02;
     uint256 constant PERMIT_BATCH = 0x03;
+    // 0x04 - 0x0f are reserved for future use
 }
 
 struct PermitData {
@@ -97,8 +98,11 @@ abstract contract BaseExecutor is IReactorCallback, Owned {
     }
 
     function _permitBatch(PermitData[] memory permits) internal {
-        for (uint256 i = 0; i < permits.length; i++) {
+        for (uint256 i = 0; i < permits.length;) {
             _permit(permits[i]);
+            unchecked {
+                i++;
+            }
         }
     }
 
