@@ -313,8 +313,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
 
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(
-            signedOrders,
-            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+            signedOrders, abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
         swapRouter02Executor.dispatch(abi.encodePacked(bytes1(uint8(Commands.EXECUTE_BATCH))), inputs);
 
