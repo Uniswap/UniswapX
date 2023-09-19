@@ -38,13 +38,14 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
 
     /// @notice execute a signed 2612-style permit
     /// the transaction will revert if the permit cannot be executed
-    /// must be called before the call to the reactor
     function permit(PermitData memory permitData) public {
         (address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
             abi.decode(permitData.data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
         ERC20(permitData.token).permit(owner, spender, value, deadline, v, r, s);
     }
 
+    /// @notice execute a batch of signed 2612-style permits
+    /// the transaction will revert if any of the permits cannot be executed
     function permitBatch(PermitData[] memory permitData) external {
         for (uint256 i = 0; i < permitData.length;) {
             permit(permitData[i]);
