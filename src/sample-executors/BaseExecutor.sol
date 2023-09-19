@@ -28,46 +28,6 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
 
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
-    // function dispatch(bytes calldata commands, bytes[] calldata inputs) external payable {
-    //     uint256 numCommands = commands.length;
-    //     if (inputs.length != numCommands) revert LengthMismatch();
-
-    //     // loop through all given commands, execute them and pass along outputs as defined
-    //     for (uint256 commandIndex = 0; commandIndex < numCommands;) {
-    //         uint256 command = uint8(commands[commandIndex] & Commands.COMMAND_TYPE_MASK);
-    //         bytes calldata input = inputs[commandIndex];
-
-    //         if (command == Commands.EXECUTE) {
-    //             SignedOrder memory order;
-    //             bytes memory callbackData;
-
-    //             (order.order, order.sig, callbackData) = abi.decode(input, (bytes, bytes, bytes));
-    //             _execute(order, callbackData);
-    //         } else if (command == Commands.EXECUTE_BATCH) {
-    //             (bytes[] memory orderInputs, bytes memory callbackData) = abi.decode(input, (bytes[], bytes));
-    //             SignedOrder[] memory orders = new SignedOrder[](orderInputs.length);
-    //             for (uint256 i = 0; i < orderInputs.length; i++) {
-    //                 SignedOrder memory order;
-    //                 (order.order, order.sig) = abi.decode(orderInputs[i], (bytes, bytes));
-    //                 orders[i] = order;
-    //             }
-
-    //             _executeBatch(orders, callbackData);
-    //         } else if (command == Commands.PERMIT) {
-    //             PermitData memory permit = abi.decode(input, (PermitData));
-    //             _permit(permit);
-    //         } else if (command == Commands.PERMIT_BATCH) {
-    //             PermitData[] memory permits = abi.decode(input, (PermitData[]));
-    //             _permitBatch(permits);
-    //         } else {
-    //             revert InvalidCommandType(command);
-    //         }
-    //         unchecked {
-    //             commandIndex++;
-    //         }
-    //     }
-    // }
-
     function execute(SignedOrder memory order, bytes memory callbackData) external payable {
         reactor.executeWithCallback{value: msg.value}(order, callbackData);
     }
