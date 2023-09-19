@@ -13,6 +13,3 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
-[submodule "lib/universal-router"]
-	path = lib/universal-router
-	url = https://github.com/uniswap/universal-router
