@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import "forge-std/console.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Test} from "forge-std/Test.sol";
@@ -37,6 +36,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     address constant UNIVERSAL_ROUTER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
     IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
+    address constant RELAY_ORDER_REACTOR = 0x378718523232A14BE8A24e291b5A5075BE04D121;
+
     uint256 swapperPrivateKey;
     uint256 swapper2PrivateKey;
     address swapper;
@@ -55,6 +56,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         swapper2 = vm.addr(swapper2PrivateKey);
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
+
+        // deployCodeTo(
+        //     "RelayOrderReactor.sol",
+        //     abi.encode(PERMIT2, address(0), UNIVERSAL_ROUTER),
+        //     RELAY_ORDER_REACTOR
+        // ); 
         reactor = new RelayOrderReactor{salt: bytes32(0x00)}(PERMIT2, address(0), UNIVERSAL_ROUTER);
         assertEq(
             address(reactor), 0x378718523232A14BE8A24e291b5A5075BE04D121, "Reactor address does not match expected"
