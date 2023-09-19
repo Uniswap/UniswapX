@@ -16,10 +16,6 @@ struct PermitData {
 }
 
 abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
-    /// @notice Thrown when attempting to execute commands and an incorrect number of inputs are provided
-    error LengthMismatch();
-    error InvalidCommandType(uint256 commandType);
-
     IReactor public immutable reactor;
 
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
