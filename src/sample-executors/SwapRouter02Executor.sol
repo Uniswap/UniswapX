@@ -52,6 +52,19 @@ contract SwapRouter02Executor is BaseExecutor {
         return super.multicall(data);
     }
 
+    function execute(SignedOrder memory order, bytes memory callbackData) public onlyWhitelistedCaller payable override {
+        return super.execute(order, callbackData);
+    }
+
+    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData)
+        public
+        onlyWhitelistedCaller
+        payable
+        override
+    {
+        return super.executeBatch(orders, callbackData);
+    }
+
     /// @notice fill UniswapX orders using SwapRouter02
     /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02

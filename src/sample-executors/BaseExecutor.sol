@@ -24,11 +24,11 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
 
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
-    function execute(SignedOrder memory order, bytes memory callbackData) external payable {
+    function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual {
         reactor.executeWithCallback{value: msg.value}(order, callbackData);
     }
 
-    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) external payable {
+    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual {
         reactor.executeBatchWithCallback{value: msg.value}(orders, callbackData);
     }
 
