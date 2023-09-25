@@ -52,15 +52,20 @@ contract SwapRouter02Executor is BaseExecutor {
         return super.multicall(data);
     }
 
-    function execute(SignedOrder memory order, bytes memory callbackData) public onlyWhitelistedCaller payable override {
+    function execute(SignedOrder memory order, bytes memory callbackData)
+        public
+        payable
+        override
+        onlyWhitelistedCaller
+    {
         return super.execute(order, callbackData);
     }
 
     function executeBatch(SignedOrder[] memory orders, bytes memory callbackData)
         public
-        onlyWhitelistedCaller
         payable
         override
+        onlyWhitelistedCaller
     {
         return super.executeBatch(orders, callbackData);
     }
