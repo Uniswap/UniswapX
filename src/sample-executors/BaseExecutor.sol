@@ -22,6 +22,7 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
         reactor = _reactor;
     }
 
+    /// @inheritdoc IReactorCallback
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
     function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual {

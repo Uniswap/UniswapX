@@ -8,6 +8,7 @@ interface IReactorCallback {
     /// @notice Called by the reactor during the execution of an order
     /// @param resolvedOrders Has inputs and outputs
     /// @param callbackData The callbackData specified for an order execution
+    /// @dev Must only be called by the reactor
     /// @dev Must have approved each token and amount in outputs to the msg.sender
     function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory callbackData) external;
 }
