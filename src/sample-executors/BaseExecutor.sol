@@ -18,6 +18,10 @@ struct PermitData {
 abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     IReactor public immutable reactor;
 
+    address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    bytes4 internal constant ERC2612_PERMIT_SIGNATURE = 0xd505accf;
+    bytes4 internal constant DAI_PERMIT_SIGNATURE = 0x8fcbaf0c;
+
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
         reactor = _reactor;
     }
@@ -33,12 +37,18 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
         reactor.executeBatchWithCallback(orders, callbackData);
     }
 
-    /// @notice execute a signed 2612-style permit
+    /// @notice execute a signed ERC2612 permit
+    /// @dev since DAI has a non standard permit, it's special cased
     /// the transaction will revert if the permit cannot be executed
     function permit(PermitData memory permitData) public {
-        (address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) =
-            abi.decode(permitData.data, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-        ERC20(permitData.token).permit(owner, spender, value, deadline, v, r, s);
+        if(permitData.token == DAI) {
+            (bool success,) = permitData.token.call(abi.encodeWithSelector(DAI_PERMIT_SIGNATURE, permitData.data));
+            require(success, "DAI permit failed");
+        }
+        else {
+            (bool success,) = permitData.token.call(abi.encodeWithSelector(ERC2612_PERMIT_SIGNATURE, permitData.data);
+            require(success, "ERC2612 permit failed");
+        }
     }
 
     /// @notice execute a batch of signed 2612-style permits
