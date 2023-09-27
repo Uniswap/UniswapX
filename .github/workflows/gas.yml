@@ -19,5 +19,11 @@ jobs:
         with:
           version: nightly
 
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
       - name: Check gas snapshots
         run: forge snapshot --check
