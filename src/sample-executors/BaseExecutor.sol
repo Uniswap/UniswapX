@@ -53,9 +53,10 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
 
     /// @notice execute a batch of signed 2612-style permits
     /// the transaction will revert if any of the permits cannot be executed
-    function permitBatch(PermitData[] memory permitData) external {
-        for (uint256 i = 0; i < permitData.length;) {
-            permit(permitData[i]);
+    function permitBatch(PermitData[] memory data) external {
+        uint256 length = data.length;
+        for (uint256 i = 0; i < length;) {
+            permit(data[i]);
             unchecked {
                 i++;
             }
