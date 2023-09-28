@@ -48,16 +48,7 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     /// @dev since DAI has a non standard permit, it's special cased
     /// the transaction will revert if the permit cannot be executed
     function permit(PermitData memory data) public {
-        Permit2Lib.permit2(
-            data.token,
-            data.owner,
-            data.spender,
-            data.amount,
-            data.deadline,
-            data.v,
-            data.r,
-            data.s
-        );
+        Permit2Lib.permit2(data.token, data.owner, data.spender, data.amount, data.deadline, data.v, data.r, data.s);
     }
 
     /// @notice execute a batch of signed 2612-style permits

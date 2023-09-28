@@ -216,7 +216,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSignature("permit((address,address,address,uint256,uint256,uint8,bytes32,bytes32))", tokenInPermitData);
+        data[0] = abi.encodeWithSignature(
+            "permit((address,address,address,uint256,uint256,uint8,bytes32,bytes32))", tokenInPermitData
+        );
         data[1] = abi.encodeWithSignature(
             "execute((bytes,bytes),bytes)",
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
@@ -452,7 +454,9 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
         bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSignature("permit((address,address,address,uint256,uint256,uint8,bytes32,bytes32))", tokenInPermitData);
+        data[0] = abi.encodeWithSignature(
+            "permit((address,address,address,uint256,uint256,uint8,bytes32,bytes32))", tokenInPermitData
+        );
         data[1] = abi.encodeWithSignature(
             "executeBatch((bytes,bytes)[],bytes)",
             signedOrders,
