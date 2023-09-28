@@ -9,10 +9,17 @@ import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {Multicall} from "./Multicall.sol";
+import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 
 struct PermitData {
-    address token;
-    bytes data;
+    ERC20 token;
+    address owner;
+    address spender;
+    uint256 amount;
+    uint256 deadline;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
 }
 
 abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
@@ -40,15 +47,17 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     /// @notice execute a signed ERC2612 permit
     /// @dev since DAI has a non standard permit, it's special cased
     /// the transaction will revert if the permit cannot be executed
-    function permit(PermitData memory permitData) public {
-        if(permitData.token == DAI) {
-            (bool success,) = permitData.token.call(abi.encodeWithSelector(DAI_PERMIT_SIGNATURE, permitData.data));
-            require(success, "DAI permit failed");
-        }
-        else {
-            (bool success,) = permitData.token.call(abi.encodeWithSelector(ERC2612_PERMIT_SIGNATURE, permitData.data);
-            require(success, "ERC2612 permit failed");
-        }
+    function permit(PermitData memory data) public {
+        Permit2Lib.permit2(
+            data.token,
+            data.owner,
+            data.spender,
+            data.amount,
+            data.deadline,
+            data.v,
+            data.r,
+            data.s
+        );
     }
 
     /// @notice execute a batch of signed 2612-style permits
