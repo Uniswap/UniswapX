@@ -25,10 +25,6 @@ struct PermitData {
 abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     IReactor public immutable reactor;
 
-    address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    bytes4 internal constant ERC2612_PERMIT_SIGNATURE = 0xd505accf;
-    bytes4 internal constant DAI_PERMIT_SIGNATURE = 0x8fcbaf0c;
-
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
         reactor = _reactor;
     }
