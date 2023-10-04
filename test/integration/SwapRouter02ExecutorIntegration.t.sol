@@ -386,6 +386,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(address(swapRouter02Executor).balance, 213039886077866602);
     }
 
+    // Same test as above but with swapper2 who has not max approved Permit2
     function testSwapDaiToETHViaV2WithPermit() public {
         DutchOrder memory order = DutchOrder({
             info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
