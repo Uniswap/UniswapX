@@ -32,16 +32,17 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     /// @inheritdoc IReactorCallback
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
 
+    /// @notice execute a signed order
     function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual {
         reactor.executeWithCallback(order, callbackData);
     }
 
+    /// @notice execute a batch of signed orders
     function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual {
         reactor.executeBatchWithCallback(orders, callbackData);
     }
 
     /// @notice execute a signed ERC2612 permit
-    /// @dev since DAI has a non standard permit, it's special cased
     /// the transaction will revert if the permit cannot be executed
     function permit(PermitData memory data) public {
         Permit2Lib.permit2(data.token, data.owner, data.spender, data.amount, data.deadline, data.v, data.r, data.s);

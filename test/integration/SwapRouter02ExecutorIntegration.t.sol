@@ -13,6 +13,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {PermitData} from "../../src/sample-executors/BaseExecutor.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -35,6 +36,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address filler;
     SwapRouter02Executor swapRouter02Executor;
     DutchOrderReactor dloReactor;
+    PermitData daiPermitData;
 
     function setUp() public {
         swapperPrivateKey = 0xbabe;
@@ -51,8 +53,38 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         WETH.approve(address(PERMIT2), type(uint256).max);
 
         // Transfer 3 WETH to swapper
-        vm.prank(WHALE);
-        WETH.transfer(swapper, 3 * ONE);
+        deal(address(WETH), swapper, 3 * ONE);
+        // Transfer 1000 DAI to swapper2
+        deal(address(DAI), swapper2, 1000 * ONE);
+        assertEq(DAI.balanceOf(swapper2), 1000 * ONE);
+
+        // sign permit for tokenIn
+        uint256 amount = type(uint256).max - 1; // infinite approval to permit2
+        uint256 deadline = type(uint256).max - 1; // never expires
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DAI.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)"),
+                        swapper2,
+                        address(PERMIT2),
+                        DAI.nonces(swapper2),
+                        deadline,
+                        true
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapper2PrivateKey, digest);
+        address signer = ecrecover(digest, v, r, s);
+        assertEq(signer, swapper2);
+
+        daiPermitData = PermitData(DAI, swapper2, address(PERMIT2), amount, deadline, v, r, s);
+        // assert that swapper has not approved P2 yet
+        assertEq(DAI.allowance(swapper2, address(PERMIT2)), 0);
     }
 
     // Swapper creates below 2 orders, and both are filled via SwapRouter02Executor via Uniswap V3.
@@ -351,6 +383,48 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(DAI.balanceOf(swapper), 0);
         assertEq(DAI.balanceOf(address(swapRouter02Executor)), 0);
         assertEq(swapper.balance, 1000000000000000000);
+        assertEq(address(swapRouter02Executor).balance, 213039886077866602);
+    }
+
+    function testSwapDaiToETHViaV2WithPermit() public {
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(DAI, 2000 * ONE, 2000 * ONE),
+            outputs: OutputsBuilder.singleDutch(NATIVE, ONE, ONE, address(swapper2))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(DAI);
+
+        address[] memory tokensToApproveForReactor = new address[](0);
+        bytes[] memory multicallData = new bytes[](2);
+        address[] memory path = new address[](2);
+        path[0] = address(DAI);
+        path[1] = address(WETH);
+        multicallData[0] =
+            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
+        multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
+
+        // Deal 2000 DAI to swapper2
+        deal(address(DAI), swapper2, 2000 * ONE);
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSignature(
+            "permit((address,address,address,uint256,uint256,uint8,bytes32,bytes32))", daiPermitData
+        );
+        data[1] = abi.encodeWithSignature(
+            "execute((bytes,bytes),bytes)",
+            SignedOrder(abi.encode(order), signOrder(swapper2PrivateKey, address(PERMIT2), order)),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+
+        swapRouter02Executor.multicall(data);
+
+        assertEq(DAI.balanceOf(swapper2), 0);
+        assertEq(DAI.balanceOf(address(swapRouter02Executor)), 0);
+        assertEq(swapper2.balance, 1000000000000000000);
         assertEq(address(swapRouter02Executor).balance, 213039886077866602);
     }
 
