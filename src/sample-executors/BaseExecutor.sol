@@ -27,13 +27,17 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     }
 
     /// @inheritdoc IReactorCallback
+    /// @dev any overriding function MUST use the onlyReactor modifier 
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata) external virtual onlyReactor {}
 
     /// @notice execute a signed order
+    /// @dev consider restricting who can call this function
     function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual;
 
     /// @notice execute a batch of signed orders
+    /// @dev consider restricting who can call this function
     function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual;
 
+    /// @notice required to receive native outputs
     receive() external payable {}
 }
