@@ -13,7 +13,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {PermitData} from "../../src/sample-executors/BaseExecutor.sol";
+import {PermitData} from "../../src/sample-executors/BaseExecutorWithPermit.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {

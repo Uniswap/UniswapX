@@ -10,10 +10,10 @@ import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ResolvedOrder, OutputToken, SignedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
-import {BaseExecutor} from "./BaseExecutor.sol";
+import {BaseExecutorWithPermit} from "./BaseExecutorWithPermit.sol";
 
 /// @notice A fill contract that uses SwapRouter02 to execute trades
-contract SwapRouter02Executor is BaseExecutor {
+contract SwapRouter02Executor is BaseExecutorWithPermit {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
@@ -32,7 +32,7 @@ contract SwapRouter02Executor is BaseExecutor {
     }
 
     constructor(address _whitelistedCaller, IReactor _reactor, address _owner, ISwapRouter02 _swapRouter02)
-        BaseExecutor(_reactor, _owner)
+        BaseExecutorWithPermit(_reactor, _owner)
     {
         whitelistedCaller = _whitelistedCaller;
         swapRouter02 = _swapRouter02;

@@ -22,7 +22,7 @@ struct PermitData {
     bytes32 s;
 }
 
-abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
+abstract contract BaseExecutorWithPermit is IReactorCallback, Multicall, Owned {
     IReactor public immutable reactor;
 
     /// @notice thrown if reactorCallback is called by an address other than the reactor
