@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Owned} from "solmate/src/auth/Owned.sol";
-import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-
-import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
-import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {Multicall} from "./Multicall.sol";
+import {BaseExecutor} from "./BaseExecutor.sol";
 import {Permit2Lib} from "permit2/src/libraries/Permit2Lib.sol";
 
 struct PermitData {
@@ -22,32 +17,8 @@ struct PermitData {
     bytes32 s;
 }
 
-abstract contract BaseExecutorWithPermit is IReactorCallback, Multicall, Owned {
-    IReactor public immutable reactor;
-
-    /// @notice thrown if reactorCallback is called by an address other than the reactor
-    error MsgSenderNotReactor();
-    error NotImplemented();
-
-    constructor(IReactor _reactor, address _owner) Owned(_owner) {
-        reactor = _reactor;
-    }
-
-    modifier onlyReactor() {
-        if (msg.sender != address(reactor)) {
-            revert MsgSenderNotReactor();
-        }
-        _;
-    }
-
-    /// @inheritdoc IReactorCallback
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata) external virtual onlyReactor {}
-
-    /// @notice execute a signed order
-    function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual;
-
-    /// @notice execute a batch of signed orders
-    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual;
+abstract contract BaseExecutorWithPermit is BaseExecutor {
+    constructor(IReactor _reactor, address _owner) BaseExecutor(_reactor, _owner) {}
 
     /// @notice execute a signed ERC2612 permit
     /// the transaction will revert if the permit cannot be executed
@@ -66,6 +37,4 @@ abstract contract BaseExecutorWithPermit is IReactorCallback, Multicall, Owned {
             }
         }
     }
-
-    receive() external payable {}
 }

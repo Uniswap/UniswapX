@@ -5,6 +5,7 @@ import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
+import {BaseExecutor} from "../../src/sample-executors/BaseExecutor.sol";
 import {BaseExecutorWithPermit} from "../../src/sample-executors/BaseExecutorWithPermit.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
@@ -538,7 +539,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         );
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
-        vm.expectRevert(BaseExecutorWithPermit.MsgSenderNotReactor.selector);
+        vm.expectRevert(BaseExecutor.MsgSenderNotReactor.selector);
         swapRouter02Executor.reactorCallback(resolvedOrders, callbackData);
     }
 
