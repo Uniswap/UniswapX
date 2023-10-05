@@ -19,8 +19,6 @@ contract SwapRouter02Executor is BaseExecutor {
 
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
-    /// @notice thrown if reactorCallback is called by an address other than the reactor
-    error MsgSenderNotReactor();
 
     ISwapRouter02 public immutable swapRouter02;
     address public immutable whitelistedCaller;
@@ -29,13 +27,6 @@ contract SwapRouter02Executor is BaseExecutor {
     modifier onlyWhitelistedCaller() {
         if (msg.sender != whitelistedCaller) {
             revert CallerNotWhitelisted();
-        }
-        _;
-    }
-
-    modifier onlyReactor() {
-        if (msg.sender != address(reactor)) {
-            revert MsgSenderNotReactor();
         }
         _;
     }
@@ -58,7 +49,7 @@ contract SwapRouter02Executor is BaseExecutor {
         override
         onlyWhitelistedCaller
     {
-        return super.execute(order, callbackData);
+        reactor.executeWithCallback(order, callbackData);
     }
 
     function executeBatch(SignedOrder[] memory orders, bytes memory callbackData)
@@ -67,9 +58,10 @@ contract SwapRouter02Executor is BaseExecutor {
         override
         onlyWhitelistedCaller
     {
-        return super.executeBatch(orders, callbackData);
+        reactor.executeBatchWithCallback(orders, callbackData);
     }
 
+    /// @inheritdoc IReactorCallback
     /// @notice fill UniswapX orders using SwapRouter02
     /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForSwapRouter02: Max approve these tokens to swapRouter02

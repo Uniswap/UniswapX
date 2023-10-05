@@ -25,22 +25,29 @@ struct PermitData {
 abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     IReactor public immutable reactor;
 
+    /// @notice thrown if reactorCallback is called by an address other than the reactor
+    error MsgSenderNotReactor();
+    error NotImplemented();
+
     constructor(IReactor _reactor, address _owner) Owned(_owner) {
         reactor = _reactor;
     }
 
+    modifier onlyReactor() {
+        if (msg.sender != address(reactor)) {
+            revert MsgSenderNotReactor();
+        }
+        _;
+    }
+
     /// @inheritdoc IReactorCallback
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external virtual;
+    function reactorCallback(ResolvedOrder[] calldata, bytes calldata) external virtual onlyReactor {}
 
     /// @notice execute a signed order
-    function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual {
-        reactor.executeWithCallback(order, callbackData);
-    }
+    function execute(SignedOrder memory order, bytes memory callbackData) public payable virtual;
 
     /// @notice execute a batch of signed orders
-    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual {
-        reactor.executeBatchWithCallback(orders, callbackData);
-    }
+    function executeBatch(SignedOrder[] memory orders, bytes memory callbackData) public payable virtual;
 
     /// @notice execute a signed ERC2612 permit
     /// the transaction will revert if the permit cannot be executed
