@@ -39,10 +39,6 @@ contract SwapRouter02Executor is BaseExecutorWithPermit {
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
-    function multicall(bytes[] calldata data) public payable override onlyWhitelistedCaller returns (bytes[] memory) {
-        return super.multicall(data);
-    }
-
     function execute(SignedOrder memory order, bytes memory callbackData)
         public
         payable

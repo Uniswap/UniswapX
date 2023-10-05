@@ -27,7 +27,7 @@ abstract contract BaseExecutor is IReactorCallback, Multicall, Owned {
     }
 
     /// @inheritdoc IReactorCallback
-    /// @dev any overriding function MUST use the onlyReactor modifier 
+    /// @dev any overriding function MUST use the onlyReactor modifier
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata) external virtual onlyReactor {}
 
     /// @notice execute a signed order
