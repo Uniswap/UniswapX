@@ -162,7 +162,6 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
 
         resolvedOrder = ResolvedRelayOrder({
             info: order.info,
-            // optionally put actions into wrapped structs
             actions: order.actions,
             inputs: order.inputs,
             outputs: order.outputs,
