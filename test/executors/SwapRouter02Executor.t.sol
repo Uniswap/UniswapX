@@ -558,6 +558,14 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         swapRouter02Executor.unwrapWETH(address(this));
     }
 
+    function testMulticallNotOwner() public {
+        vm.expectRevert("UNAUTHORIZED");
+        bytes[] memory data = new bytes[](1);
+        data[0] = abi.encodeWithSignature("unwrapWETH(address)", address(this));
+        vm.prank(address(0xbeef));
+        swapRouter02Executor.multicall(data);
+    }
+
     function testWithdrawETH() public {
         vm.deal(address(swapRouter02Executor), 1 ether);
         uint256 balanceBefore = address(this).balance;
