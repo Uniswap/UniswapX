@@ -5,7 +5,7 @@ out = 'out'
 libs = ['lib']
 no_match_path = "*/integration/*"
 ffi = true
-fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
+fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}, { access = "read-write", path = "out/" }]
 optimizer_runs = 1000000
 
 [profile.integration]

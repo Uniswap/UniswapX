@@ -36,7 +36,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     address constant UNIVERSAL_ROUTER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
     IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
-    address constant RELAY_ORDER_REACTOR = 0x378718523232A14BE8A24e291b5A5075BE04D121;
+    address payable constant RELAY_ORDER_REACTOR = payable(0x378718523232A14BE8A24e291b5A5075BE04D121);
 
     uint256 swapperPrivateKey;
     uint256 swapper2PrivateKey;
@@ -57,15 +57,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        // deployCodeTo(
-        //     "RelayOrderReactor.sol",
-        //     abi.encode(PERMIT2, address(0), UNIVERSAL_ROUTER),
-        //     RELAY_ORDER_REACTOR
-        // ); 
-        reactor = new RelayOrderReactor{salt: bytes32(0x00)}(PERMIT2, address(0), UNIVERSAL_ROUTER);
-        assertEq(
-            address(reactor), 0x378718523232A14BE8A24e291b5A5075BE04D121, "Reactor address does not match expected"
-        );
+        deployCodeTo(
+            "RelayOrderReactor.sol",
+            abi.encode(PERMIT2, address(0), UNIVERSAL_ROUTER),
+            RELAY_ORDER_REACTOR
+        ); 
+        reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
         // Swapper max approves permit post
@@ -112,6 +109,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 60,
             actions: actions,
             inputs: inputTokens,
             outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
@@ -183,6 +182,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 60,
             actions: actions,
             inputs: inputTokens,
             outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper2))

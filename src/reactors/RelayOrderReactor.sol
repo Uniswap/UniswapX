@@ -12,6 +12,7 @@ import {ProtocolFees} from "../base/ProtocolFees.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {RelayOrderLib, RelayOrder, ActionType} from "../lib/RelayOrderLib.sol";
 import {ResolvedRelayOrderLib} from "../lib/ResolvedRelayOrderLib.sol";
+import {RelayDecayLib} from "../lib/RelayDecayLib.sol";
 import {
     SignedOrder,
     ResolvedRelayOrder,
@@ -28,6 +29,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
     using Permit2Lib for ResolvedRelayOrder;
     using ResolvedRelayOrderLib for ResolvedRelayOrder;
     using RelayOrderLib for RelayOrder;
+    using RelayDecayLib for InputTokenWithRecipient[];
 
     // Occurs when an output = ETH and the reactor does contain enough ETH but
     // the direct filler did not include enough ETH in their call to execute/executeBatch
@@ -154,7 +156,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
 
     function resolve(SignedOrder calldata signedOrder)
         internal
-        pure
+        view
         returns (ResolvedRelayOrder memory resolvedOrder)
     {
         RelayOrder memory order = abi.decode(signedOrder.order, (RelayOrder));
@@ -163,7 +165,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         resolvedOrder = ResolvedRelayOrder({
             info: order.info,
             actions: order.actions,
-            inputs: order.inputs,
+            inputs: order.inputs.decay(order.decayStartTime, order.decayEndTime),
             outputs: order.outputs,
             sig: signedOrder.sig,
             hash: order.hash()

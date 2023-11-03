@@ -14,6 +14,10 @@ enum ActionType {
 struct RelayOrder {
     // generic order information
     OrderInfo info;
+    // The time at which the inputs start decaying
+    uint256 decayStartTime;
+    // The time at which price becomes static
+    uint256 decayEndTime;
     // ecnoded actions to execute onchain
     bytes[] actions;
     // The tokens that the swapper will provide when settling the order
@@ -36,6 +40,8 @@ library RelayOrderLib {
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "RelayOrder(",
         "OrderInfo info,",
+        "uint256 decayStartTime,",
+        "uint256 decayEndTime,",
         "bytes[] actions,",
         "InputTokenWithRecipient[] inputs,",
         "OutputToken[] outputs)",
