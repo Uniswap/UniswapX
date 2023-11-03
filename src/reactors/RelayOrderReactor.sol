@@ -39,6 +39,7 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
     error CallFailed();
     error InvalidToken();
     error UnsupportedAction();
+    error ReactorCallbackNotSupported();
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -61,7 +62,13 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         _fill(resolvedOrders);
     }
 
-    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external payable {}
+    function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData)
+        external
+        payable
+        nonReentrant
+    {
+        revert ReactorCallbackNotSupported();
+    }
 
     function executeBatch(SignedOrder[] calldata orders) external payable nonReentrant {
         uint256 ordersLength = orders.length;
@@ -82,7 +89,9 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         external
         payable
         nonReentrant
-    {}
+    {
+        revert ReactorCallbackNotSupported();
+    }
 
     function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
