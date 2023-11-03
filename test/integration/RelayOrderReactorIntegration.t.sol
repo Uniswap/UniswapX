@@ -94,8 +94,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
-        inputTokens[1] =
-            InputTokenWithRecipient({token: USDC, amount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[1] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 95 * USDC_ONE;
 
@@ -140,8 +144,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
             maxAmount: 100 * USDC_ONE,
             recipient: UNIVERSAL_ROUTER
         });
-        inputTokens[1] =
-            InputTokenWithRecipient({token: USDC, amount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
+        inputTokens[1] = InputTokenWithRecipient({
+            token: USDC,
+            amount: 10 * USDC_ONE,
+            maxAmount: 10 * USDC_ONE,
+            recipient: address(0)
+        });
 
         uint256 amountOutMin = 95 * ONE;
 

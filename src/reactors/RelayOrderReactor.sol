@@ -95,17 +95,17 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
                 if (actionType == ActionType.UniversalRouter) {
                     /// @dev to use universal router integration, this contract must be recipient of all output tokens
                     (bool success,) = universalRouter.call(actionData);
-                    if(!success) revert CallFailed();
-                } 
+                    if (!success) revert CallFailed();
+                }
                 // Give Permit2 max approval on the reactor
                 else if (actionType == ActionType.ApprovePermit2) {
                     (address token) = abi.decode(actionData, (address));
-                    if(token == address(0)) revert InvalidToken();
+                    if (token == address(0)) revert InvalidToken();
                     if (ERC20(token).allowance(address(this), address(permit2)) == 0) {
                         ERC20(token).approve(address(permit2), type(uint256).max);
                     }
                     permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
-                } 
+                }
                 // Catch unsupported action types
                 else {
                     revert UnsupportedAction();
