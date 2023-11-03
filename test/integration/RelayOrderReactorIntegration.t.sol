@@ -27,6 +27,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
     using RelayOrderLib for RelayOrder;
 
     uint256 constant ONE = 10 ** 18;
+    uint256 constant USDC_ONE = 10 ** 6;
 
     ERC20 constant WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 constant UNI = ERC20(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
@@ -57,11 +58,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         filler = makeAddr("filler");
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 17972788);
 
-        deployCodeTo(
-            "RelayOrderReactor.sol",
-            abi.encode(PERMIT2, address(0), UNIVERSAL_ROUTER),
-            RELAY_ORDER_REACTOR
-        ); 
+        deployCodeTo("RelayOrderReactor.sol", abi.encode(PERMIT2, address(0), UNIVERSAL_ROUTER), RELAY_ORDER_REACTOR);
         reactor = RelayOrderReactor(RELAY_ORDER_REACTOR);
         permitExecutor = new PermitExecutor(address(filler), reactor, address(filler));
 
@@ -85,8 +82,8 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         vm.startPrank(WHALE);
         DAI.transfer(swapper, 1000 * ONE);
         DAI.transfer(swapper2, 1000 * ONE);
-        USDC.transfer(swapper, 1000 * 10 ** 6);
-        USDC.transfer(swapper2, 1000 * 10 ** 6);
+        USDC.transfer(swapper, 1000 * USDC_ONE);
+        USDC.transfer(swapper2, 1000 * USDC_ONE);
         vm.stopPrank();
     }
 
@@ -98,9 +95,9 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         inputTokens[0] =
             InputTokenWithRecipient({token: DAI, amount: 100 * ONE, maxAmount: 100 * ONE, recipient: UNIVERSAL_ROUTER});
         inputTokens[1] =
-            InputTokenWithRecipient({token: USDC, amount: 10 * 10 ** 6, maxAmount: 10 * 10 ** 6, recipient: address(0)});
+            InputTokenWithRecipient({token: USDC, amount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
 
-        uint256 amountOutMin = 95 * 10 ** 6;
+        uint256 amountOutMin = 95 * USDC_ONE;
 
         bytes[] memory actions = new bytes[](1);
         bytes memory DAI_USDC_UR_CALLDATA =
@@ -110,7 +107,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
             decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 60,
+            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: OutputsBuilder.single(address(USDC), amountOutMin, address(swapper))
@@ -129,7 +126,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         assertEq(DAI.balanceOf(UNIVERSAL_ROUTER), routerDaiBalanceBefore, "No leftover input in router");
         assertEq(USDC.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         assertGe(USDC.balanceOf(swapper), amountOutMin, "Swapper did not receive enough output");
-        assertEq(USDC.balanceOf((filler)), 10 * 10 ** 6, "filler did not receive enough USDC");
+        assertEq(USDC.balanceOf((filler)), 10 * USDC_ONE, "filler did not receive enough USDC");
     }
 
     function testPermitAndExecute() public {
@@ -139,12 +136,12 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         InputTokenWithRecipient[] memory inputTokens = new InputTokenWithRecipient[](2);
         inputTokens[0] = InputTokenWithRecipient({
             token: USDC,
-            amount: 100 * 10 ** 6,
-            maxAmount: 100 * 10 ** 6,
+            amount: 100 * USDC_ONE,
+            maxAmount: 100 * USDC_ONE,
             recipient: UNIVERSAL_ROUTER
         });
         inputTokens[1] =
-            InputTokenWithRecipient({token: USDC, amount: 10 * 10 ** 6, maxAmount: 10 * 10 ** 6, recipient: address(0)});
+            InputTokenWithRecipient({token: USDC, amount: 10 * USDC_ONE, maxAmount: 10 * USDC_ONE, recipient: address(0)});
 
         uint256 amountOutMin = 95 * ONE;
 
@@ -183,7 +180,7 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         RelayOrder memory order = RelayOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper2).withDeadline(block.timestamp + 100),
             decayStartTime: block.timestamp,
-            decayEndTime: block.timestamp + 60,
+            decayEndTime: block.timestamp + 100,
             actions: actions,
             inputs: inputTokens,
             outputs: OutputsBuilder.single(address(DAI), amountOutMin, address(swapper2))
@@ -203,6 +200,6 @@ contract RelayOrderReactorIntegrationTest is GasSnapshot, Test, PermitSignature 
         assertEq(DAI.balanceOf(address(reactor)), 0, "No leftover output in reactor");
         assertGe(DAI.balanceOf(swapper2), amountOutMin, "Swapper did not receive enough output");
         // in this case, gas payment will go to executor
-        assertEq(USDC.balanceOf(address(permitExecutor)), 10 * 10 ** 6, "filler did not receive enough USDC");
+        assertEq(USDC.balanceOf(address(permitExecutor)), 10 * USDC_ONE, "filler did not receive enough USDC");
     }
 }
