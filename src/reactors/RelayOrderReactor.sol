@@ -22,7 +22,8 @@ import {
 } from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
-/// @notice Reactor for simple limit orders
+/// @notice Reactor for relaying calls to UniversalRouter onchain
+/// @dev This reactor only supports V2/V3 swaps, do NOT attempt to use other Universal Router commands
 contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IReactor {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
@@ -34,6 +35,10 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
     // Occurs when an output = ETH and the reactor does contain enough ETH but
     // the direct filler did not include enough ETH in their call to execute/executeBatch
     error InsufficientEth();
+    // A nested call failed
+    error CallFailed();
+    error InvalidToken();
+    error UnsupportedAction();
 
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
@@ -81,27 +86,32 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
 
     function _execute(ResolvedRelayOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
-        // actions are encodResolved as (enum actionType, bytes actionData)[]
+        // actions are encoded as (ActionType actionType, bytes actionData)[]
         for (uint256 i = 0; i < ordersLength; i++) {
             ResolvedRelayOrder memory order = orders[i];
             uint256 actionsLength = order.actions.length;
-
-            for (uint256 j = 0; j < actionsLength; j++) {
+            for (uint256 j = 0; j < actionsLength;) {
                 (ActionType actionType, bytes memory actionData) = abi.decode(order.actions[j], (ActionType, bytes));
                 if (actionType == ActionType.UniversalRouter) {
                     /// @dev to use universal router integration, this contract must be recipient of all output tokens
                     (bool success,) = universalRouter.call(actionData);
-                    require(success, "call failed");
-                } else if (actionType == ActionType.ApprovePermit2) {
+                    if(!success) revert CallFailed();
+                } 
+                // Give Permit2 max approval on the reactor
+                else if (actionType == ActionType.ApprovePermit2) {
                     (address token) = abi.decode(actionData, (address));
-                    // make approval to permit2 if needed
-                    require(token != address(0), "invalid token address");
+                    if(token == address(0)) revert InvalidToken();
                     if (ERC20(token).allowance(address(this), address(permit2)) == 0) {
                         ERC20(token).approve(address(permit2), type(uint256).max);
                     }
                     permit2.approve(token, universalRouter, type(uint160).max, type(uint48).max);
-                } else {
-                    revert("invalid action type");
+                } 
+                // Catch unsupported action types
+                else {
+                    revert UnsupportedAction();
+                }
+                unchecked {
+                    j++;
                 }
             }
         }
@@ -114,10 +124,13 @@ contract RelayOrderReactor is ReactorEvents, ProtocolFees, ReentrancyGuard, IRea
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedRelayOrder memory order = orders[i];
+
+                // TODO fees impl
                 // _injectFees(order);
+
                 order.validate(msg.sender);
 
-                // Since relay order inputs specify recipients, we don't pass into transferInputTokens
+                // Since relay order inputs specify recipients we don't pass in recipient here
                 transferInputTokens(order);
             }
         }
