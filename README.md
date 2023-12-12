@@ -72,7 +72,7 @@ Note that UniswapX handles fee-on-transfer tokens by transferring the amount spe
 
 # Audit
 
-This codebase was audited by [ABDK](./audit/ABDK.pdf).
+This codebase was audited by [ABDK](./audit/v1.1/ABDK.pdf) and [OpenZeppelin](./audit/v1.1/OpenZeppelin.pdf).
 
 ## Bug Bounty
 

@@ -11,9 +11,6 @@ import {IReactorCallback} from "../../../src/interfaces/IReactorCallback.sol";
 contract MockFillContractDoubleExecution is IReactorCallback {
     using CurrencyLibrary for address;
 
-    /// @notice thrown if native transfer fails to the reactor
-    error NativeTransferFailed();
-
     IReactor immutable reactor1;
     IReactor immutable reactor2;
 
