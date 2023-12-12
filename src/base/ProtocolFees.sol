@@ -47,9 +47,7 @@ abstract contract ProtocolFees is Owned {
 
         // apply fee outputs
         // fill new outputs with old outputs
-        OutputToken[] memory newOutputs = new OutputToken[](
-            outputsLength + feeOutputsLength
-        );
+        OutputToken[] memory newOutputs = new OutputToken[](outputsLength + feeOutputsLength);
 
         unchecked {
             for (uint256 i = 0; i < outputsLength; i++) {
