@@ -1,0 +1,108 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.0;
+
+import {Test} from "forge-std/Test.sol";
+import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {
+    V2DutchOrder,
+    V2DutchOrderLib,
+    V2DutchOrderInner,
+    V2DutchOrderReactor,
+    CosignedV2DutchOrder,
+    ResolvedOrder,
+    DutchOutput,
+    DutchInput,
+    BaseReactor
+} from "../../src/reactors/V2DutchOrderReactor.sol";
+import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
+import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {OutputsBuilder} from "../util/OutputsBuilder.sol";
+import {MockFillContract} from "../util/mock/MockFillContract.sol";
+import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
+import {PermitSignature} from "../util/PermitSignature.sol";
+import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
+import {BaseReactorTest} from "../base/BaseReactor.t.sol";
+
+contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
+    using OrderInfoBuilder for OrderInfo;
+    using V2DutchOrderLib for V2DutchOrder;
+
+    uint256 constant cosignerPrivateKey = 0x99999999;
+
+    function name() public pure override returns (string memory) {
+        return "V2DutchOrder";
+    }
+
+    function createReactor() public override returns (BaseReactor) {
+        return new V2DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+    }
+
+    /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
+    /// TODO: Support creating a single dutch order with multiple outputs
+    function createAndSignOrder(ResolvedOrder memory request)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        DutchOutput[] memory outputs = new DutchOutput[](request.outputs.length);
+        for (uint256 i = 0; i < request.outputs.length; i++) {
+            OutputToken memory output = request.outputs[i];
+            outputs[i] = DutchOutput({
+                token: output.token,
+                startAmount: output.amount,
+                endAmount: output.amount,
+                recipient: output.recipient
+            });
+        }
+
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: request.info,
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(request.input.token, request.input.amount, request.input.amount),
+            outputs: outputs
+        });
+
+        uint256[] memory outputOverrides = new uint256[](request.outputs.length);
+        for (uint256 i = 0; i < request.outputs.length; i++) {
+            outputOverrides[i] = 0;
+        }
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: request.info.deadline,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 300,
+            inputOverride: 0,
+            outputOverrides: outputOverrides
+        });
+        orderHash = order.hash();
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({
+            order: order,
+            signature: cosignOrder(order)
+        });
+        return (SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
+    }
+
+    function cosignOrder(V2DutchOrder memory order) private pure returns (bytes memory sig) {
+        bytes32 msgHash = keccak256(abi.encode(order));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
+        sig = bytes.concat(r, s, bytes1(v));
+    }
+
+    function generateSignedOrders(V2DutchOrder[] memory orders)
+        private
+        view
+        returns (SignedOrder[] memory result)
+    {
+        result = new SignedOrder[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
+            result[i] = SignedOrder(abi.encode(orders[i]), sig);
+        }
+    }
+}
