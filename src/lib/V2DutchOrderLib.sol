@@ -53,9 +53,8 @@ library V2DutchOrderLib {
         "DutchOutput[] outputs)"
     );
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
-        V2_DUTCH_ORDER_TYPE, DutchOrderLib.DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
-    );
+    bytes internal constant ORDER_TYPE =
+        abi.encodePacked(V2_DUTCH_ORDER_TYPE, DutchOrderLib.DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec

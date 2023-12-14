@@ -81,10 +81,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             outputOverrides: outputOverrides
         });
         orderHash = order.hash();
-        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({
-            order: order,
-            signature: cosignOrder(order)
-        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
         return (SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
@@ -94,11 +91,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    function generateSignedOrders(V2DutchOrder[] memory orders)
-        private
-        view
-        returns (SignedOrder[] memory result)
-    {
+    function generateSignedOrders(V2DutchOrder[] memory orders) private view returns (SignedOrder[] memory result) {
         result = new SignedOrder[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
