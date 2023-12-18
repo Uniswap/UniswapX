@@ -25,8 +25,6 @@ struct V2DutchOrder {
     uint256 decayEndTime;
     // The address who has exclusive rights to the order until decayStartTime
     address exclusiveFiller;
-    // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order before decayStartTime
-    uint256 exclusivityOverrideBps;
     // The tokens that the swapper will provide when settling the order
     uint256 inputOverride;
     // The tokens that must be received to satisfy the order

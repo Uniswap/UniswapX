@@ -76,7 +76,6 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             decayStartTime: block.timestamp,
             decayEndTime: request.info.deadline,
             exclusiveFiller: address(0),
-            exclusivityOverrideBps: 300,
             inputOverride: 0,
             outputOverrides: outputOverrides
         });
