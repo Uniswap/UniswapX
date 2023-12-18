@@ -108,7 +108,7 @@ contract V2DutchOrderReactor is BaseReactor {
             revert DeadlineBeforeEndTime();
         }
 
-        if (order.decayEndTime < order.decayStartTime) {
+        if (order.decayEndTime <= order.decayStartTime) {
             revert OrderEndTimeBeforeStartTime();
         }
 
