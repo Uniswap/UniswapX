@@ -10,7 +10,7 @@ library DutchDecayLib {
     using FixedPointMathLib for uint256;
 
     /// @notice thrown if the decay direction is incorrect
-    /// - for DutchInput, startAmount must be less than or equal toendAmount
+    /// - for DutchInput, startAmount must be less than or equal to endAmount
     /// - for DutchOutput, startAmount must be greater than or equal to endAmount
     error IncorrectAmounts();
 
@@ -28,7 +28,7 @@ library DutchDecayLib {
         view
         returns (uint256 decayedAmount)
     {
-        if (decayEndTime < decayStartTime) {
+        if (decayEndTime <= decayStartTime) {
             revert EndTimeBeforeStartTime();
         } else if (decayEndTime <= block.timestamp) {
             decayedAmount = endAmount;

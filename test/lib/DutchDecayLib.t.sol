@@ -6,7 +6,7 @@ import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 
 contract DutchDecayLibTest is Test {
     function testDutchDecayNoDecay(uint256 amount, uint256 decayStartTime, uint256 decayEndTime) public {
-        vm.assume(decayEndTime >= decayStartTime);
+        vm.assume(decayEndTime > decayStartTime);
         assertEq(DutchDecayLib.decay(amount, amount, decayStartTime, decayEndTime), amount);
     }
 
@@ -78,7 +78,7 @@ contract DutchDecayLibTest is Test {
         public
     {
         vm.assume(endAmount > startAmount);
-        vm.assume(decayEndTime >= decayStartTime);
+        vm.assume(decayEndTime > decayStartTime);
         uint256 decayed = DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
         assertGe(decayed, startAmount);
         assertLe(decayed, endAmount);
@@ -91,7 +91,7 @@ contract DutchDecayLibTest is Test {
         uint256 decayEndTime
     ) public {
         vm.assume(endAmount < startAmount);
-        vm.assume(decayEndTime >= decayStartTime);
+        vm.assume(decayEndTime > decayStartTime);
         uint256 decayed = DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
         assertLe(decayed, startAmount);
         assertGe(decayed, endAmount);

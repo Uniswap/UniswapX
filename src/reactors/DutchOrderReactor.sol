@@ -6,7 +6,7 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {DutchOrderLib, DutchOrder, DutchOutput, DutchInput} from "../lib/DutchOrderLib.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OrderInfo, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for dutch orders
 contract DutchOrderReactor is BaseReactor {
@@ -57,9 +57,7 @@ contract DutchOrderReactor is BaseReactor {
 
     /// @notice validate the dutch order fields
     /// - deadline must be greater than or equal than decayEndTime
-    /// - decayEndTime must be greater than or equal to decayStartTime
     /// - if there's input decay, outputs must not decay
-    /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(DutchOrder memory order) internal pure {
         if (order.info.deadline < order.decayEndTime) {

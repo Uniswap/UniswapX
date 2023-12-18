@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {LimitOrderLib, LimitOrder} from "../lib/LimitOrderLib.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for simple limit orders

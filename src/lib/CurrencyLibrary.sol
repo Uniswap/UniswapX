@@ -7,7 +7,6 @@ import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
 address constant NATIVE = 0x0000000000000000000000000000000000000000;
-uint256 constant TRANSFER_NATIVE_GAS_LIMIT = 6900;
 
 /// @title CurrencyLibrary
 /// @dev This library allows for transferring native ETH and ERC20s via direct filler OR fill contract.
@@ -48,7 +47,7 @@ library CurrencyLibrary {
     /// @param recipient The recipient of the currency
     /// @param amount The amount of currency to transfer
     function transferNative(address recipient, uint256 amount) internal {
-        (bool success,) = recipient.call{value: amount, gas: TRANSFER_NATIVE_GAS_LIMIT}("");
+        (bool success,) = recipient.call{value: amount}("");
         if (!success) revert NativeTransferFailed();
     }
 

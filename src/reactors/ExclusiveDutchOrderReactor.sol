@@ -7,7 +7,7 @@ import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {ExclusiveDutchOrderLib, ExclusiveDutchOrder, DutchOutput, DutchInput} from "../lib/ExclusiveDutchOrderLib.sol";
-import {SignedOrder, ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for exclusive dutch orders
 contract ExclusiveDutchOrderReactor is BaseReactor {
@@ -65,7 +65,6 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     /// - deadline must be greater than or equal than decayEndTime
     /// - decayEndTime must be greater than or equal to decayStartTime
     /// - if there's input decay, outputs must not decay
-    /// - for input decay, startAmount must < endAmount
     /// @dev Throws if the order is invalid
     function _validateOrder(ExclusiveDutchOrder memory order) internal pure {
         if (order.info.deadline < order.decayEndTime) {

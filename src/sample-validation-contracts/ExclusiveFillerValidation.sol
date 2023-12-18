@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
-import {ResolvedOrder, OrderInfo} from "../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 
+/// @notice validation for orders that are exclusive to a single filler
 contract ExclusiveFillerValidation is IValidationCallback {
     /// @notice thrown if the filler does not have fill rights
     error NotExclusiveFiller(address filler);

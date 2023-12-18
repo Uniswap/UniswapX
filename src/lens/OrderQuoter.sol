@@ -3,8 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {BaseReactor} from "../reactors/BaseReactor.sol";
-import {OrderInfo, ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Quoter contract for orders
 /// @dev note this is meant to be used as an off-chain lens contract to pre-validate generic orders
@@ -12,7 +11,11 @@ contract OrderQuoter is IReactorCallback {
     /// @notice thrown if reactorCallback receives more than one order
     error OrdersLengthIncorrect();
 
-    uint256 constant ORDER_INFO_OFFSET = 64;
+    /// @notice offset bytes into the order object to the head of the order info struct
+    uint256 private constant ORDER_INFO_OFFSET = 64;
+
+    /// @notice minimum length of a resolved order object in bytes
+    uint256 private constant RESOLVED_ORDER_MIN_LENGTH = 192;
 
     /// @notice Quote the given order, returning the ResolvedOrder object which defines
     /// the current input and output token amounts required to satisfy it
@@ -38,9 +41,10 @@ contract OrderQuoter is IReactorCallback {
     }
 
     /// @notice Return the order info of a given order (abi-encoded bytes).
-    /// @param order abi-encoded order, including `reactor` as the first encoded struct member
-    function parseRevertReason(bytes memory reason) private pure returns (ResolvedOrder memory order) {
-        if (reason.length < 192) {
+    /// @param reason The revert reason
+    /// @return abi-encoded order, including `reactor` as the first encoded struct member
+    function parseRevertReason(bytes memory reason) private pure returns (ResolvedOrder memory) {
+        if (reason.length < RESOLVED_ORDER_MIN_LENGTH) {
             assembly {
                 revert(add(32, reason), mload(reason))
             }
