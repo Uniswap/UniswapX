@@ -8,7 +8,7 @@ import {OrderInfoLib} from "./OrderInfoLib.sol";
 struct V2DutchOrderInner {
     // generic order information
     OrderInfo info;
-    // The address which must cosign the ful order
+    // The address which must cosign the full order
     address cosigner;
     // The tokens that the swapper will provide when settling the order
     DutchInput input;
@@ -25,7 +25,7 @@ struct V2DutchOrder {
     uint256 decayEndTime;
     // The address who has exclusive rights to the order until decayStartTime
     address exclusiveFiller;
-    // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order
+    // The amount in bps that a non-exclusive filler needs to improve the outputs by to be able to fill the order before decayStartTime
     uint256 exclusivityOverrideBps;
     // The tokens that the swapper will provide when settling the order
     uint256 inputOverride;

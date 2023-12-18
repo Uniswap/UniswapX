@@ -47,7 +47,7 @@ contract V2DutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's input override is greater than the specified
     error InvalidInputOverride();
 
-    /// @notice thrown when an order's output override is greater than the specified
+    /// @notice thrown when an order's output override is less than the specified
     error InvalidOutputOverride();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
