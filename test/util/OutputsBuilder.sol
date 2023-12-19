@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 
@@ -24,6 +25,14 @@ library OutputsBuilder {
         return result;
     }
 
+    function singleDutch(MockERC20 token, uint256 startAmount, uint256 endAmount, address recipient)
+        internal
+        pure
+        returns (DutchOutput[] memory)
+    {
+        return OutputsBuilder.singleDutch(address(token), startAmount, endAmount, recipient);
+    }
+
     function singleDutch(address token, uint256 startAmount, uint256 endAmount, address recipient)
         internal
         pure
@@ -32,6 +41,15 @@ library OutputsBuilder {
         DutchOutput[] memory result = new DutchOutput[](1);
         result[0] = DutchOutput(token, startAmount, endAmount, recipient);
         return result;
+    }
+
+    function multipleDutch(
+        MockERC20 token,
+        uint256[] memory startAmounts,
+        uint256[] memory endAmounts,
+        address recipient
+    ) internal pure returns (DutchOutput[] memory) {
+        return OutputsBuilder.multipleDutch(address(token), startAmounts, endAmounts, recipient);
     }
 
     // Returns array of dutch outputs. <startAmounts> and <endAmounts> have same length.
