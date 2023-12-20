@@ -90,6 +90,7 @@ contract V2DutchOrderReactor is BaseReactor {
             order.inner.input.startAmount = order.inputOverride;
         }
 
+        if (order.outputOverrides.length != order.inner.outputs.length) revert InvalidOutputOverride();
         for (uint256 i = 0; i < order.inner.outputs.length; i++) {
             DutchOutput memory output = order.inner.outputs[i];
             uint256 outputOverride = order.outputOverrides[i];

@@ -157,6 +157,30 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
+    function testOutputOverrideWrongLength() public {
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, 1 ether, 1 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 0.8 ether, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            // override is more input tokens than expected
+            inputOverride: 1 ether,
+            outputOverrides: ArrayBuilder.fill(2, 1.1 ether)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V2DutchOrderReactor.InvalidOutputOverride.selector);
+        fillContract.execute(signedOrder);
+    }
+
     function cosignOrder(V2DutchOrder memory order) private pure returns (bytes memory sig) {
         bytes32 msgHash = keccak256(abi.encode(order));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
