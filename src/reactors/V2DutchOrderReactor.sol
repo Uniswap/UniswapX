@@ -85,12 +85,18 @@ contract V2DutchOrderReactor is BaseReactor {
     }
 
     function _updateWithOverrides(V2DutchOrder memory order) internal pure {
-        if (order.inputOverride != 0) order.inner.input.startAmount = order.inputOverride;
+        if (order.inputOverride != 0) {
+            if (order.inputOverride > order.inner.input.startAmount) revert InvalidInputOverride();
+            order.inner.input.startAmount = order.inputOverride;
+        }
 
         for (uint256 i = 0; i < order.inner.outputs.length; i++) {
             DutchOutput memory output = order.inner.outputs[i];
             uint256 outputOverride = order.outputOverrides[i];
-            if (outputOverride != 0) output.startAmount = outputOverride;
+            if (outputOverride != 0) {
+                if (outputOverride < output.startAmount) revert InvalidOutputOverride();
+                output.startAmount = outputOverride;
+            }
         }
     }
 
@@ -116,21 +122,12 @@ contract V2DutchOrderReactor is BaseReactor {
             revert InvalidCosignature();
         }
 
-        if (order.inputOverride != 0 && order.inputOverride > order.inner.input.startAmount) {
-            revert InvalidInputOverride();
-        }
-
         if (order.inner.input.startAmount != order.inner.input.endAmount) {
             unchecked {
                 for (uint256 i = 0; i < order.inner.outputs.length; i++) {
                     DutchOutput memory output = order.inner.outputs[i];
                     if (output.startAmount != output.endAmount) {
                         revert InputAndOutputDecay();
-                    }
-
-                    uint256 outputOverride = order.outputOverrides[i];
-                    if (outputOverride < output.startAmount) {
-                        revert InvalidOutputOverride();
                     }
                 }
             }

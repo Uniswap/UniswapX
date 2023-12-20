@@ -18,6 +18,7 @@ import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/Re
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
+import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -82,6 +83,78 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         orderHash = order.hash();
         CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
         return (SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
+    }
+
+    function testInvalidCosignature() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: wrongCosigner,
+            input: DutchInput(tokenIn, 1 ether, 1 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 1 ether, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            inputOverride: 1 ether,
+            outputOverrides: ArrayBuilder.fill(1, 1 ether)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V2DutchOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testInputOverrideWorse() public {
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, 0.8 ether, 1 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 1 ether, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            // override is more input tokens than expected
+            inputOverride: 0.9 ether,
+            outputOverrides: ArrayBuilder.fill(1, 1.1 ether)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V2DutchOrderReactor.InvalidInputOverride.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testOutputOverrideWorse() public {
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, 1 ether, 1 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 0.8 ether, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            // override is more input tokens than expected
+            inputOverride: 1 ether,
+            outputOverrides: ArrayBuilder.fill(1, 0.9 ether)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V2DutchOrderReactor.InvalidOutputOverride.selector);
+        fillContract.execute(signedOrder);
     }
 
     function cosignOrder(V2DutchOrder memory order) private pure returns (bytes memory sig) {
