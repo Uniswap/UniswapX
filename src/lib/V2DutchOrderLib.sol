@@ -5,20 +5,7 @@ import {OrderInfo} from "../base/ReactorStructs.sol";
 import {DutchOutput, DutchInput, DutchOrderLib} from "./DutchOrderLib.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 
-struct V2DutchOrderInner {
-    // generic order information
-    OrderInfo info;
-    // The address which must cosign the full order
-    address cosigner;
-    // The tokens that the swapper will provide when settling the order
-    DutchInput input;
-    // The tokens that must be received to satisfy the order
-    DutchOutput[] outputs;
-}
-
-struct V2DutchOrder {
-    // Inner order
-    V2DutchOrderInner inner;
+struct CosignerData {
     // The time at which the DutchOutputs start decaying
     uint256 decayStartTime;
     // The time at which price becomes static
@@ -31,9 +18,19 @@ struct V2DutchOrder {
     uint256[] outputOverrides;
 }
 
-struct CosignedV2DutchOrder {
-    V2DutchOrder order;
-    bytes signature;
+struct V2DutchOrder {
+    // generic order information
+    OrderInfo info;
+    // The address which must cosign the full order
+    address cosigner;
+    // The tokens that the swapper will provide when settling the order
+    DutchInput input;
+    // The tokens that must be received to satisfy the order
+    DutchOutput[] outputs;
+    // signed over by the cosigner
+    CosignerData cosignerData;
+    // signature from the cosigner over (orderHash || cosignerData)
+    bytes cosignature;
 }
 
 /// @notice helpers for handling v2 dutch order objects
@@ -70,16 +67,15 @@ library V2DutchOrderLib {
     /// @param order the order to hash
     /// @return the eip-712 order hash
     function hash(V2DutchOrder memory order) internal pure returns (bytes32) {
-        V2DutchOrderInner memory inner = order.inner;
         return keccak256(
             abi.encode(
                 ORDER_TYPE_HASH,
-                inner.info.hash(),
-                inner.cosigner,
-                inner.input.token,
-                inner.input.startAmount,
-                inner.input.endAmount,
-                inner.outputs.hash()
+                order.info.hash(),
+                order.cosigner,
+                order.input.token,
+                order.input.startAmount,
+                order.input.endAmount,
+                order.outputs.hash()
             )
         );
     }

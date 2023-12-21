@@ -5,14 +5,7 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
-import {
-    V2DutchOrderLib,
-    V2DutchOrder,
-    V2DutchOrderInner,
-    CosignedV2DutchOrder,
-    DutchOutput,
-    DutchInput
-} from "../lib/V2DutchOrderLib.sol";
+import {V2DutchOrderLib, V2DutchOrder, CosignerData, DutchOutput, DutchInput} from "../lib/V2DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for v2 dutch orders
@@ -32,9 +25,6 @@ contract V2DutchOrderReactor is BaseReactor {
 
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
-
-    /// @notice thrown when an order's end time is before its start time
-    error OrderEndTimeBeforeStartTime();
 
     /// @notice thrown when an order's inputs and outputs both decay
     error InputAndOutputDecay();
@@ -58,18 +48,17 @@ contract V2DutchOrderReactor is BaseReactor {
         override
         returns (ResolvedOrder memory resolvedOrder)
     {
-        CosignedV2DutchOrder memory cosignedOrder = abi.decode(signedOrder.order, (CosignedV2DutchOrder));
-        V2DutchOrder memory order = cosignedOrder.order;
+        V2DutchOrder memory order = abi.decode(signedOrder.order, (V2DutchOrder));
         // hash the order _before_ overriding amounts, as this is the hash the user would have signed
         bytes32 orderHash = order.hash();
 
-        _validateOrder(cosignedOrder);
+        _validateOrder(orderHash, order);
         _updateWithOverrides(order);
 
         resolvedOrder = ResolvedOrder({
-            info: order.inner.info,
-            input: order.inner.input.decay(order.decayStartTime, order.decayEndTime),
-            outputs: order.inner.outputs.decay(order.decayStartTime, order.decayEndTime),
+            info: order.info,
+            input: order.input.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
+            outputs: order.outputs.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
             sig: signedOrder.sig,
             hash: orderHash
         });
@@ -88,17 +77,23 @@ contract V2DutchOrderReactor is BaseReactor {
     }
 
     function _updateWithOverrides(V2DutchOrder memory order) internal pure {
-        if (order.inputOverride != 0) {
-            if (order.inputOverride > order.inner.input.startAmount) revert InvalidInputOverride();
-            order.inner.input.startAmount = order.inputOverride;
+        if (order.cosignerData.inputOverride != 0) {
+            if (order.cosignerData.inputOverride > order.input.startAmount) {
+                revert InvalidInputOverride();
+            }
+            order.input.startAmount = order.cosignerData.inputOverride;
         }
 
-        if (order.outputOverrides.length != order.inner.outputs.length) revert InvalidOutputOverride();
-        for (uint256 i = 0; i < order.inner.outputs.length; i++) {
-            DutchOutput memory output = order.inner.outputs[i];
-            uint256 outputOverride = order.outputOverrides[i];
+        if (order.cosignerData.outputOverrides.length != order.outputs.length) {
+            revert InvalidOutputOverride();
+        }
+        for (uint256 i = 0; i < order.outputs.length; i++) {
+            DutchOutput memory output = order.outputs[i];
+            uint256 outputOverride = order.cosignerData.outputOverrides[i];
             if (outputOverride != 0) {
-                if (outputOverride < output.startAmount) revert InvalidOutputOverride();
+                if (outputOverride < output.startAmount) {
+                    revert InvalidOutputOverride();
+                }
                 output.startAmount = outputOverride;
             }
         }
@@ -109,27 +104,27 @@ contract V2DutchOrderReactor is BaseReactor {
     /// - decayEndTime must be greater than or equal to decayStartTime
     /// - if there's input decay, outputs must not decay
     /// @dev Throws if the order is invalid
-    function _validateOrder(CosignedV2DutchOrder memory cosigned) internal pure {
-        V2DutchOrder memory order = cosigned.order;
-        if (order.inner.info.deadline < order.decayEndTime) {
+    function _validateOrder(bytes32 orderHash, V2DutchOrder memory order) internal pure {
+        if (order.info.deadline < order.cosignerData.decayEndTime) {
             revert DeadlineBeforeEndTime();
         }
 
-        if (order.decayEndTime <= order.decayStartTime) {
-            revert OrderEndTimeBeforeStartTime();
+        if (order.cosignerData.decayEndTime <= order.cosignerData.decayStartTime) {
+            revert DutchDecayLib.EndTimeBeforeStartTime();
         }
 
-        (bytes32 r, bytes32 s) = abi.decode(cosigned.signature, (bytes32, bytes32));
-        uint8 v = uint8(cosigned.signature[64]);
-        address signer = ecrecover(keccak256(abi.encode(order)), v, r, s);
-        if (order.inner.cosigner != signer && signer != address(0)) {
+        (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
+        uint8 v = uint8(order.cosignature[64]);
+        // cosigner signs over (orderHash || cosignerData)
+        address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
+        if (order.cosigner != signer && signer != address(0)) {
             revert InvalidCosignature();
         }
 
-        if (order.inner.input.startAmount != order.inner.input.endAmount) {
+        if (order.input.startAmount != order.input.endAmount) {
             unchecked {
-                for (uint256 i = 0; i < order.inner.outputs.length; i++) {
-                    DutchOutput memory output = order.inner.outputs[i];
+                for (uint256 i = 0; i < order.outputs.length; i++) {
+                    DutchOutput memory output = order.outputs[i];
                     if (output.startAmount != output.endAmount) {
                         revert InputAndOutputDecay();
                     }

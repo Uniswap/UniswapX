@@ -130,9 +130,9 @@ contract PermitSignature is Test {
         return signOrder(
             privateKey,
             permit2,
-            order.inner.info,
-            address(order.inner.input.token),
-            order.inner.input.endAmount,
+            order.info,
+            address(order.input.token),
+            order.input.endAmount,
             V2_DUTCH_ORDER_TYPE_HASH,
             order.hash()
         );
