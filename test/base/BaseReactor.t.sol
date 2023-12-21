@@ -88,7 +88,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Test of a simple execute
-    function testBaseExecute() public {
+    function test_base_execute() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
@@ -128,7 +128,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic execute test with protocol fee, checks balance before and after
-    function testBaseExecuteWithFee() public {
+    function test_base_executeWithFee() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
@@ -175,7 +175,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic execute test for native currency, checks balance before and after
-    function testBaseExecuteNativeOutput() public {
+    function test_base_executeNativeOutput() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
@@ -213,7 +213,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Execute test with a succeeding validation contract
-    function testBaseExecuteValidationContract() public {
+    function test_base_executeValidationContract() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
@@ -258,7 +258,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
     /// @dev Basic batch execute test
     // Two orders: (inputs = 1, outputs = 2), (inputs = 2, outputs = 4)
-    function testBaseExecuteBatch() public {
+    function test_base_executeBatch() public {
         uint256 inputAmount = ONE;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -306,7 +306,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic batch execute test with native output
-    function testBaseExecuteBatchNativeOutput() public {
+    function test_base_executeBatchNativeOutput() public {
         uint256 inputAmount = ONE;
         uint256 outputAmount = 2 * inputAmount;
 
@@ -356,7 +356,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     /// @dev Execute batch with multiple outputs
     /// Order 1: (inputs = 1, outputs = [2, 1]),
     /// Order 2: (inputs = 2, outputs = [3])
-    function testBaseExecuteBatchMultipleOutputs() public {
+    function test_base_executeBatchMultipleOutputs() public {
         uint256[] memory inputAmounts = ArrayBuilder.fill(1, ONE).push(2 * ONE);
         uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
         uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE);
@@ -408,7 +408,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     /// @dev Execute batch with multiple outputs
     /// Order 1: (inputs = 1, outputs = [2, 1]),
     /// Order 2: (inputs = 2, outputs = [3])
-    function testBaseExecuteBatchMultipleOutputsDifferentTokens() public {
+    function test_base_executeBatchMultipleOutputsDifferentTokens() public {
         uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
         uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE).push(ONE);
 
@@ -464,7 +464,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Base test preventing signatures from being reused
-    function testBaseExecuteSignatureReplay() public {
+    function test_base_executeSignatureReplay() public {
         // Seed both swapper and fillContract with enough tokens
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
@@ -512,7 +512,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Base test preventing nonce reuse
-    function testBaseNonceReuse() public {
+    function test_base_nonceReuse() public {
         uint256 inputAmount = ONE;
         uint256 outputAmount = ONE * 2;
         tokenIn.mint(address(swapper), inputAmount * 100);
@@ -556,7 +556,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
     /// @dev Test executing two orders on two reactors at once
     /// @dev executing the second order inside the callback of the first's execution
-    function testBaseExecuteTwoReactorsAtOnce() public {
+    function test_base_executeTwoReactorsAtOnce() public {
         BaseReactor otherReactor = createReactor();
         MockFillContractDoubleExecution doubleExecutionFillContract =
             new MockFillContractDoubleExecution(address(reactor), address(otherReactor));
@@ -599,7 +599,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic execute test with protocol fee, checks balance before and after
-    function testBaseExecuteWithFee(uint128 inputAmount, uint128 outputAmount, uint256 deadline, uint8 feeBps) public {
+    function test_base_executeWithFee(uint128 inputAmount, uint128 outputAmount, uint256 deadline, uint8 feeBps)
+        public
+    {
         vm.assume(deadline > block.timestamp);
         vm.assume(feeBps <= 5);
 
@@ -642,7 +644,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic execute test, checks balance before and after
-    function testBaseExecute(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
+    function test_base_execute(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline > block.timestamp);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
@@ -679,7 +681,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Execute with a succeeding validation contract
-    function testBaseExecuteValidationContract(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
+    function test_base_executeValidationContract(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline > block.timestamp);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
@@ -718,7 +720,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Execute with a failing validation contract
-    function testBaseExecuteValidationContractFail(uint128 inputAmount, uint128 outputAmount, uint256 deadline)
+    function test_base_executeValidationContractFail(uint128 inputAmount, uint128 outputAmount, uint256 deadline)
         public
     {
         vm.assume(deadline > block.timestamp);
@@ -745,7 +747,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Execute with an invalid reactor
-    function testBaseExecuteInvalidReactor(
+    function test_base_executeInvalidReactor(
         address orderReactor,
         uint128 inputAmount,
         uint128 outputAmount,
@@ -775,7 +777,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Execute with a deadline already passed
-    function testBaseExecuteDeadlinePassed(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
+    function test_base_executeDeadlinePassed(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline < block.timestamp);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
@@ -800,7 +802,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
     }
 
     /// @dev Basic execute test for native currency, checks balance before and after
-    function testBaseExecuteNativeOutput(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
+    function test_base_executeNativeOutput(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline > block.timestamp);
         // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);

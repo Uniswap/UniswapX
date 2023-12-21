@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {DutchOrder} from "../../src/reactors/DutchOrderReactor.sol";
 import {
     ExclusiveDutchOrderReactor,
     ExclusiveDutchOrder,
@@ -22,9 +23,9 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {BaseReactorTest} from "../base/BaseReactor.t.sol";
+import {BaseDutchOrderReactorTest} from "./BaseDutchOrderReactor.t.sol";
 
-contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2, BaseReactorTest {
+contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrderReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
 
@@ -63,6 +64,27 @@ contract ExclusiveDutchOrderReactorExecuteTest is PermitSignature, DeployPermit2
             exclusivityOverrideBps: 300,
             input: DutchInput(request.input.token, request.input.amount, request.input.amount),
             outputs: outputs
+        });
+        orderHash = order.hash();
+        return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
+    }
+
+    /// @dev Create a signed order and return the order and orderHash
+    /// @param request Order to sign
+    function createAndSignDutchOrder(DutchOrder memory request)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        ExclusiveDutchOrder memory order = ExclusiveDutchOrder({
+            info: request.info,
+            decayStartTime: request.decayStartTime,
+            decayEndTime: request.decayEndTime,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            input: request.input,
+            outputs: request.outputs
         });
         orderHash = order.hash();
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
