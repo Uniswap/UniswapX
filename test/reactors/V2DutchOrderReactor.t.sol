@@ -181,6 +181,66 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
+    function testOverrideInput() public {
+        uint256 outputAmount = 1 ether;
+        uint256 overriddenInputAmount = 0.7 ether;
+        tokenIn.mint(swapper, overriddenInputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, 0.8 ether, 1 ether),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            inputOverride: overriddenInputAmount,
+            outputOverrides: ArrayBuilder.fill(1, 1 ether)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), overriddenInputAmount);
+    }
+
+    function testOverrideOutput() public {
+        uint256 overriddenOutputAmount = 1.1 ether;
+        uint256 inputAmount = 1 ether;
+        tokenIn.mint(swapper, inputAmount);
+        tokenOut.mint(address(fillContract), overriddenOutputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        V2DutchOrderInner memory inner = V2DutchOrderInner({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 0.9 ether, swapper)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            inner: inner,
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            inputOverride: inputAmount,
+            outputOverrides: ArrayBuilder.fill(1, overriddenOutputAmount)
+        });
+        CosignedV2DutchOrder memory cosigned = CosignedV2DutchOrder({order: order, signature: cosignOrder(order)});
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(cosigned), signOrder(swapperPrivateKey, address(permit2), order));
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenOut.balanceOf(swapper), overriddenOutputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
     function cosignOrder(V2DutchOrder memory order) private pure returns (bytes memory sig) {
         bytes32 msgHash = keccak256(abi.encode(order));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);

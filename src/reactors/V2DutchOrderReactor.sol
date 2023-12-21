@@ -59,8 +59,11 @@ contract V2DutchOrderReactor is BaseReactor {
         returns (ResolvedOrder memory resolvedOrder)
     {
         CosignedV2DutchOrder memory cosignedOrder = abi.decode(signedOrder.order, (CosignedV2DutchOrder));
-        _validateOrder(cosignedOrder);
         V2DutchOrder memory order = cosignedOrder.order;
+        // hash the order _before_ overriding amounts, as this is the hash the user would have signed
+        bytes32 orderHash = order.hash();
+
+        _validateOrder(cosignedOrder);
         _updateWithOverrides(order);
 
         resolvedOrder = ResolvedOrder({
@@ -68,7 +71,7 @@ contract V2DutchOrderReactor is BaseReactor {
             input: order.inner.input.decay(order.decayStartTime, order.decayEndTime),
             outputs: order.inner.outputs.decay(order.decayStartTime, order.decayEndTime),
             sig: signedOrder.sig,
-            hash: order.hash()
+            hash: orderHash
         });
     }
 
