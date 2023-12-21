@@ -20,9 +20,6 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
 
-    /// @notice thrown when an order's end time is before its start time
-    error OrderEndTimeBeforeStartTime();
-
     /// @notice thrown when an order's inputs and outputs both decay
     error InputAndOutputDecay();
 
@@ -72,7 +69,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
         }
 
         if (order.decayEndTime < order.decayStartTime) {
-            revert OrderEndTimeBeforeStartTime();
+            revert DutchDecayLib.EndTimeBeforeStartTime();
         }
 
         if (order.input.startAmount != order.input.endAmount) {
