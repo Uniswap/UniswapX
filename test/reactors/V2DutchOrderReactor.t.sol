@@ -41,7 +41,6 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
     }
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
-    /// TODO: Support creating a single dutch order with multiple outputs
     function createAndSignOrder(ResolvedOrder memory request)
         public
         view

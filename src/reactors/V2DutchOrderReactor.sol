@@ -122,12 +122,10 @@ contract V2DutchOrderReactor is BaseReactor {
         }
 
         if (order.input.startAmount != order.input.endAmount) {
-            unchecked {
-                for (uint256 i = 0; i < order.outputs.length; i++) {
-                    DutchOutput memory output = order.outputs[i];
-                    if (output.startAmount != output.endAmount) {
-                        revert InputAndOutputDecay();
-                    }
+            for (uint256 i = 0; i < order.outputs.length; i++) {
+                DutchOutput memory output = order.outputs[i];
+                if (output.startAmount != output.endAmount) {
+                    revert InputAndOutputDecay();
                 }
             }
         }
