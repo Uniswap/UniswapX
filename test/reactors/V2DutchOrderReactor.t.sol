@@ -226,7 +226,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
             inputOverride: overriddenInputAmount,
-            outputOverrides: ArrayBuilder.fill(1, 1 ether)
+            outputOverrides: ArrayBuilder.fill(1, 0)
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -256,7 +256,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
-            inputOverride: inputAmount,
+            inputOverride: 0,
             outputOverrides: ArrayBuilder.fill(1, overriddenOutputAmount)
         });
 
