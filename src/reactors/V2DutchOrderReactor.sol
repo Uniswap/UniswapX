@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {BaseReactor} from "./BaseReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
+import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {V2DutchOrderLib, V2DutchOrder, CosignerData, DutchOutput, DutchInput} from "../lib/V2DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
@@ -62,6 +63,7 @@ contract V2DutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: orderHash
         });
+        ExclusivityLib.handleStrictExclusivity(order.cosignerData.exclusiveFiller, order.cosignerData.decayStartTime);
     }
 
     /// @inheritdoc BaseReactor

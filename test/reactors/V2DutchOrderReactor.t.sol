@@ -14,6 +14,7 @@ import {
     BaseReactor
 } from "../../src/reactors/V2DutchOrderReactor.sol";
 import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {ExclusivityLib} from "../../src/lib/ExclusivityLib.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
@@ -275,6 +276,34 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), overriddenOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testExclusivity() public {
+        uint256 inputAmount = 1 ether;
+        tokenIn.mint(swapper, inputAmount);
+        tokenOut.mint(address(fillContract), inputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        CosignerData memory cosignerData = CosignerData({
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(1),
+            inputOverride: 0,
+            outputOverrides: ArrayBuilder.fill(1, 0)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 0.9 ether, swapper),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
+        fillContract.execute(signedOrder);
     }
 
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {
