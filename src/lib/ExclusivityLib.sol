@@ -8,7 +8,7 @@ import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
 /// @dev This library handles order exclusivity
 ///  giving the configured filler exclusive rights to fill the order before exclusivityEndTime
 ///  or enforcing an override price improvement by non-exclusive fillers
-library ExclusivityOverrideLib {
+library ExclusivityLib {
     using FixedPointMathLib for uint256;
 
     /// @notice thrown when an order has strict exclusivity and the filler does not have it
@@ -22,7 +22,7 @@ library ExclusivityOverrideLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEndTime The exclusivity end time
     /// @param exclusivityOverrideBps The exclusivity override BPS
-    function handleOverride(
+    function handleExclusiveOverride(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEndTime,
@@ -47,6 +47,17 @@ library ExclusivityOverrideLib {
             unchecked {
                 i++;
             }
+        }
+    }
+
+    /// @notice Applies strict exclusivity to the resolved order,
+    ///   throwing if the filler does not have filling rights
+    /// @param exclusive The exclusive address
+    /// @param exclusivityEndTime The exclusivity end time
+    function handleStrictExclusivity(address exclusive, uint256 exclusivityEndTime) internal view {
+        // ensure the filler has fill right, else revert
+        if (!hasFillingRights(exclusive, exclusivityEndTime)) {
+            revert NoExclusiveOverride();
         }
     }
 

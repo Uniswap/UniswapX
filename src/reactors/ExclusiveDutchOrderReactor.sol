@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {BaseReactor} from "./BaseReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {ExclusivityOverrideLib} from "../lib/ExclusivityOverrideLib.sol";
+import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
 import {ExclusiveDutchOrderLib, ExclusiveDutchOrder, DutchOutput, DutchInput} from "../lib/ExclusiveDutchOrderLib.sol";
@@ -15,7 +15,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
-    using ExclusivityOverrideLib for ResolvedOrder;
+    using ExclusivityLib for ResolvedOrder;
 
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
@@ -43,7 +43,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: order.hash()
         });
-        resolvedOrder.handleOverride(order.exclusiveFiller, order.decayStartTime, order.exclusivityOverrideBps);
+        resolvedOrder.handleExclusiveOverride(order.exclusiveFiller, order.decayStartTime, order.exclusivityOverrideBps);
     }
 
     /// @inheritdoc BaseReactor
