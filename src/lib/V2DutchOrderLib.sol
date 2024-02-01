@@ -90,7 +90,7 @@ library CosignerExtraDataLib {
     function hasExclusiveFiller(bytes memory extraData) internal pure returns (bool flag) {
         if (extraData.length == 0) return false;
         assembly {
-            flag := and(mload(extraData), EXCL_FILLER_FLAG_MASK)
+            flag := and(mload(add(extraData, 32)), EXCL_FILLER_FLAG_MASK)
         }
     }
 
@@ -98,7 +98,7 @@ library CosignerExtraDataLib {
     function hasInputOverride(bytes memory extraData) internal pure returns (bool flag) {
         if (extraData.length == 0) return false;
         assembly {
-            flag := and(mload(extraData), INPUT_OVERRIDE_FLAG_MASK)
+            flag := and(mload(add(extraData, 32)), INPUT_OVERRIDE_FLAG_MASK)
         }
     }
 
@@ -106,7 +106,7 @@ library CosignerExtraDataLib {
     function hasOutputOverrides(bytes memory extraData) internal pure returns (bool flag) {
         if (extraData.length == 0) return false;
         assembly {
-            flag := and(mload(extraData), OUTPUT_OVERRIDE_FLAG_MASK)
+            flag := and(mload(add(extraData, 32)), OUTPUT_OVERRIDE_FLAG_MASK)
         }
     }
 
@@ -116,16 +116,17 @@ library CosignerExtraDataLib {
         returns (address filler, uint256 inputOverride, uint256[] memory outputOverrides)
     {
         if (extraData.length == 0) return (filler, inputOverride, outputOverrides);
+        // The first 32 bytes are length
         // The first byte (index 0) only contains flags of whether each field is included in the bytes
-        // So we can start from index 1 to start decoding each field
-        uint256 bytesOffset = 1;
+        // So we can start from index 1 (after 32) to start decoding each field
+        uint256 bytesOffset = 33;
 
         if (hasExclusiveFiller(extraData)) {
             // an address is 20 bytes long
             require(extraData.length >= bytesOffset + 20);
             assembly {
                 // it loads a full 32 bytes, shift right 96 bits so only the address remains
-                filler := shr(mload(add(extraData, bytesOffset)), 96)
+                filler := shr(96, mload(add(extraData, bytesOffset)))
             }
             bytesOffset += 20;
         }
@@ -148,7 +149,7 @@ library CosignerExtraDataLib {
             bytesOffset += 32;
 
             // each element of the array is 32 bytes
-            require(extraData.length == bytesOffset + length * 32);
+            require(extraData.length == bytesOffset + (length - 1) * 32);
             outputOverrides = new uint256[](length);
 
             uint256 outputOverride;

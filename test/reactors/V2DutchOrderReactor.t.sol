@@ -6,6 +6,7 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     V2DutchOrder,
     V2DutchOrderLib,
+    CosignerExtraDataLib,
     CosignerData,
     V2DutchOrderReactor,
     ResolvedOrder,
@@ -30,6 +31,7 @@ import {DutchOrder, BaseDutchOrderReactorTest} from "./BaseDutchOrderReactor.t.s
 contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using V2DutchOrderLib for V2DutchOrder;
+    using CosignerExtraDataLib for bytes;
 
     uint256 constant cosignerPrivateKey = 0x99999999;
 
@@ -252,6 +254,20 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
+    function testEncoding() public {
+        bytes memory encodedBytes = encodeExtraCosignerData(address(1111111111111111), 22222222222222, ArrayBuilder.fill(3, 5));
+        assertTrue(encodedBytes.hasExclusiveFiller());
+        assertTrue(encodedBytes.hasInputOverride());
+        assertTrue(encodedBytes.hasOutputOverrides());
+        (address filler, uint256 input, uint256[] memory output) = encodedBytes.decodeExtraParameters();
+        assertEq(filler, address(1111111111111111));
+        assertEq(input, 22222222222222);
+        assertEq(output.length, 3);
+        assertEq(output[0], 5);
+        assertEq(output[1], 5);
+        assertEq(output[2], 5);
+    }
+
     function testExclusivity() public {
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
@@ -299,7 +315,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
     {
         bool hasExclusiveFiller = (exclusiveFiller != address(0));
         bool hasInputOverride = (inputOverride != 0);
-        bool hasOutputOverrides = (outputOverrides.length == 0);
+        bool hasOutputOverrides = (outputOverrides.length != 0);
 
         bytes1 firstByte = 0x00;
         if (hasExclusiveFiller) firstByte |= 0x80;
@@ -309,8 +325,11 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         if (firstByte == 0x00) return "";
 
         extraData = abi.encodePacked(firstByte);
-        if (hasExclusiveFiller) bytes.concat(extraData, abi.encodePacked(exclusiveFiller));
-        if (hasInputOverride) bytes.concat(extraData, abi.encodePacked(inputOverride));
-        if (hasOutputOverrides) bytes.concat(extraData, abi.encode(outputOverrides));
+        if (hasExclusiveFiller) extraData = bytes.concat(extraData, abi.encodePacked(exclusiveFiller));
+        if (hasInputOverride) extraData = bytes.concat(extraData, abi.encodePacked(inputOverride));
+        if (hasOutputOverrides) {
+            extraData = bytes.concat(extraData, abi.encodePacked(outputOverrides.length));
+            extraData = bytes.concat(extraData, abi.encodePacked(outputOverrides));
+        }
     }
 }

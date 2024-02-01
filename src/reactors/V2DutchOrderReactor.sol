@@ -100,17 +100,19 @@ contract V2DutchOrderReactor is BaseReactor {
             order.input.startAmount = inputOverride;
         }
 
-        if (outputOverrides.length != order.outputs.length) {
-            revert InvalidOutputOverride();
-        }
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            DutchOutput memory output = order.outputs[i];
-            uint256 outputOverride = outputOverrides[i];
-            if (outputOverride != 0) {
-                if (outputOverride < output.startAmount) {
-                    revert InvalidOutputOverride();
+        if (outputOverrides.length != 0) {
+            if (outputOverrides.length != order.outputs.length) {
+                revert InvalidOutputOverride();
+            }
+            for (uint256 i = 0; i < order.outputs.length; i++) {
+                DutchOutput memory output = order.outputs[i];
+                uint256 outputOverride = outputOverrides[i];
+                if (outputOverride != 0) {
+                    if (outputOverride < output.startAmount) {
+                        revert InvalidOutputOverride();
+                    }
+                    output.startAmount = outputOverride;
                 }
-                output.startAmount = outputOverride;
             }
         }
     }
