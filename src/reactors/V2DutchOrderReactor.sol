@@ -6,7 +6,14 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
-import {V2DutchOrderLib, V2DutchOrder, CosignerData, DutchOutput, DutchInput} from "../lib/V2DutchOrderLib.sol";
+import {
+    CosignerExtraDataLib,
+    V2DutchOrderLib,
+    V2DutchOrder,
+    CosignerData,
+    DutchOutput,
+    DutchInput
+} from "../lib/V2DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for v2 dutch orders
@@ -23,6 +30,7 @@ contract V2DutchOrderReactor is BaseReactor {
     using V2DutchOrderLib for V2DutchOrder;
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
+    using CosignerExtraDataLib for bytes;
 
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
@@ -53,8 +61,11 @@ contract V2DutchOrderReactor is BaseReactor {
         // hash the order _before_ overriding amounts, as this is the hash the user would have signed
         bytes32 orderHash = order.hash();
 
+        (address exclusiveFiller, uint256 inputOverride, uint256[] memory outputOverrides) =
+            order.cosignerData.extraData.decodeExtraParameters();
+
         _validateOrder(orderHash, order);
-        _updateWithOverrides(order);
+        _updateWithOverrides(order, inputOverride, outputOverrides);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
@@ -63,7 +74,7 @@ contract V2DutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: orderHash
         });
-        ExclusivityLib.handleStrictExclusivity(order.cosignerData.exclusiveFiller, order.cosignerData.decayStartTime);
+        ExclusivityLib.handleStrictExclusivity(exclusiveFiller, order.cosignerData.decayStartTime);
     }
 
     /// @inheritdoc BaseReactor
@@ -78,20 +89,23 @@ contract V2DutchOrderReactor is BaseReactor {
         );
     }
 
-    function _updateWithOverrides(V2DutchOrder memory order) internal pure {
-        if (order.cosignerData.inputOverride != 0) {
-            if (order.cosignerData.inputOverride > order.input.startAmount) {
+    function _updateWithOverrides(V2DutchOrder memory order, uint256 inputOverride, uint256[] memory outputOverrides)
+        internal
+        pure
+    {
+        if (inputOverride != 0) {
+            if (inputOverride > order.input.startAmount) {
                 revert InvalidInputOverride();
             }
-            order.input.startAmount = order.cosignerData.inputOverride;
+            order.input.startAmount = inputOverride;
         }
 
-        if (order.cosignerData.outputOverrides.length != order.outputs.length) {
+        if (outputOverrides.length != order.outputs.length) {
             revert InvalidOutputOverride();
         }
         for (uint256 i = 0; i < order.outputs.length; i++) {
             DutchOutput memory output = order.outputs[i];
-            uint256 outputOverride = order.cosignerData.outputOverrides[i];
+            uint256 outputOverride = outputOverrides[i];
             if (outputOverride != 0) {
                 if (outputOverride < output.startAmount) {
                     revert InvalidOutputOverride();

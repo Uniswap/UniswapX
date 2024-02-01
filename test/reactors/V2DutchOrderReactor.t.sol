@@ -33,6 +33,8 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
 
     uint256 constant cosignerPrivateKey = 0x99999999;
 
+    uint256[] internal NO_OUTPUT_OVERRIDES = new uint256[](0);
+
     function name() public pure override returns (string memory) {
         return "V2DutchOrder";
     }
@@ -59,17 +61,10 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             });
         }
 
-        uint256[] memory outputOverrides = new uint256[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
-            outputOverrides[i] = 0;
-        }
-
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: request.info.deadline,
-            exclusiveFiller: address(0),
-            inputOverride: 0,
-            outputOverrides: outputOverrides
+            extraData: encodeExtraCosignerData(address(0), 0, NO_OUTPUT_OVERRIDES)
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -93,16 +88,10 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         override
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
-        uint256[] memory outputOverrides = new uint256[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
-            outputOverrides[i] = 0;
-        }
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: request.decayStartTime,
             decayEndTime: request.decayEndTime,
-            exclusiveFiller: address(0),
-            inputOverride: 0,
-            outputOverrides: outputOverrides
+            extraData: encodeExtraCosignerData(address(0), 0, NO_OUTPUT_OVERRIDES)
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -124,9 +113,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            inputOverride: 1 ether,
-            outputOverrides: ArrayBuilder.fill(1, 1 ether)
+            extraData: encodeExtraCosignerData(address(0), 1 ether, ArrayBuilder.fill(1, 1 ether))
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -148,10 +135,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            // override is more input tokens than expected
-            inputOverride: 0.9 ether,
-            outputOverrides: ArrayBuilder.fill(1, 1.1 ether)
+            extraData: encodeExtraCosignerData(address(0), 0.9 ether, ArrayBuilder.fill(1, 1.1 ether))
         });
         V2DutchOrder memory order = V2DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
@@ -172,10 +156,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            // override is more input tokens than expected
-            inputOverride: 1 ether,
-            outputOverrides: ArrayBuilder.fill(1, 0.9 ether)
+            extraData: encodeExtraCosignerData(address(0), 1 ether, ArrayBuilder.fill(1, 0.9 ether))
         });
         V2DutchOrder memory order = V2DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
@@ -196,10 +177,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            // override is more input tokens than expected
-            inputOverride: 1 ether,
-            outputOverrides: ArrayBuilder.fill(2, 1.1 ether)
+            extraData: encodeExtraCosignerData(address(0), 1 ether, ArrayBuilder.fill(2, 1.1 ether))
         });
         V2DutchOrder memory order = V2DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
@@ -225,9 +203,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            inputOverride: overriddenInputAmount,
-            outputOverrides: ArrayBuilder.fill(1, 0)
+            extraData: encodeExtraCosignerData(address(0), overriddenInputAmount, NO_OUTPUT_OVERRIDES)
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -256,9 +232,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(0),
-            inputOverride: 0,
-            outputOverrides: ArrayBuilder.fill(1, overriddenOutputAmount)
+            extraData: encodeExtraCosignerData(address(0), 0, ArrayBuilder.fill(1, overriddenOutputAmount))
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -286,9 +260,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
-            exclusiveFiller: address(1),
-            inputOverride: 0,
-            outputOverrides: ArrayBuilder.fill(1, 0)
+            extraData: encodeExtraCosignerData(address(1), 0, NO_OUTPUT_OVERRIDES)
         });
 
         V2DutchOrder memory order = V2DutchOrder({
@@ -318,5 +290,27 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             bytes memory sig = signOrder(swapperPrivateKey, address(permit2), orders[i]);
             result[i] = SignedOrder(abi.encode(orders[i]), sig);
         }
+    }
+
+    function encodeExtraCosignerData(address exclusiveFiller, uint256 inputOverride, uint256[] memory outputOverrides)
+        private
+        pure
+        returns (bytes memory extraData)
+    {
+        bool hasExclusiveFiller = (exclusiveFiller != address(0));
+        bool hasInputOverride = (inputOverride != 0);
+        bool hasOutputOverrides = (outputOverrides.length == 0);
+
+        bytes1 firstByte = 0x00;
+        if (hasExclusiveFiller) firstByte |= 0x80;
+        if (hasInputOverride) firstByte |= 0x40;
+        if (hasOutputOverrides) firstByte |= 0x20;
+
+        if (firstByte == 0x00) return "";
+
+        extraData = abi.encodePacked(firstByte);
+        if (hasExclusiveFiller) bytes.concat(extraData, abi.encodePacked(exclusiveFiller));
+        if (hasInputOverride) bytes.concat(extraData, abi.encodePacked(inputOverride));
+        if (hasOutputOverrides) bytes.concat(extraData, abi.encode(outputOverrides));
     }
 }
