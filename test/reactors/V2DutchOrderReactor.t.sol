@@ -255,7 +255,8 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
     }
 
     function testEncoding() public {
-        bytes memory encodedBytes = encodeExtraCosignerData(address(1111111111111111), 22222222222222, ArrayBuilder.fill(3, 5));
+        bytes memory encodedBytes =
+            encodeExtraCosignerData(address(1111111111111111), 22222222222222, ArrayBuilder.fill(3, 5));
         assertTrue(encodedBytes.hasExclusiveFiller());
         assertTrue(encodedBytes.hasInputOverride());
         assertTrue(encodedBytes.hasOutputOverrides());

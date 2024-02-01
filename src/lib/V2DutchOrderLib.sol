@@ -122,8 +122,8 @@ library CosignerExtraDataLib {
         uint256 bytesOffset = 33;
 
         if (hasExclusiveFiller(extraData)) {
-            // an address is 20 bytes long
-            require(extraData.length >= bytesOffset + 20);
+            // + 20 bytes for address, - 32 bytes for the length offset
+            require(extraData.length >= bytesOffset - 12);
             assembly {
                 // it loads a full 32 bytes, shift right 96 bits so only the address remains
                 filler := shr(96, mload(add(extraData, bytesOffset)))
@@ -132,8 +132,8 @@ library CosignerExtraDataLib {
         }
 
         if (hasInputOverride(extraData)) {
-            // a uint256 is 32 bytes long, so we just load the next 32 bytes
-            require(extraData.length >= bytesOffset + 32);
+            // + 32 bytes for uint256, - 32 bytes for the length offset
+            require(extraData.length >= bytesOffset);
             assembly {
                 inputOverride := mload(add(extraData, bytesOffset))
             }
@@ -148,7 +148,7 @@ library CosignerExtraDataLib {
             }
             bytesOffset += 32;
 
-            // each element of the array is 32 bytes
+            // each element of the array is 32 bytes, - 32 bytes for the length offset
             require(extraData.length == bytesOffset + (length - 1) * 32);
             outputOverrides = new uint256[](length);
 
