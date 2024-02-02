@@ -85,6 +85,7 @@ library CosignerExtraDataLib {
     bytes32 constant EXCL_FILLER_FLAG_MASK = 0x8000000000000000000000000000000000000000000000000000000000000000;
     bytes32 constant INPUT_OVERRIDE_FLAG_MASK = 0x4000000000000000000000000000000000000000000000000000000000000000;
     bytes32 constant OUTPUT_OVERRIDE_FLAG_MASK = 0x2000000000000000000000000000000000000000000000000000000000000000;
+    bytes32 constant OUTPUTS_LENGTH_FLAG_MASK = 0x1F00000000000000000000000000000000000000000000000000000000000000;
 
     // "True" first bit of byte 1 signals that there is an exclusive filler
     function hasExclusiveFiller(bytes memory extraData) internal pure returns (bool flag) {
@@ -141,12 +142,10 @@ library CosignerExtraDataLib {
         }
 
         if (hasOutputOverrides(extraData)) {
-            require(extraData.length >= bytesOffset + 32);
             uint256 length;
             assembly {
-                length := mload(add(extraData, bytesOffset))
+                length := shr(248, and(mload(add(extraData, 32)), OUTPUTS_LENGTH_FLAG_MASK))
             }
-            bytesOffset += 32;
 
             // each element of the array is 32 bytes, - 32 bytes for the length offset
             require(extraData.length == bytesOffset + (length - 1) * 32);

@@ -322,15 +322,16 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         if (hasExclusiveFiller) firstByte |= 0x80;
         if (hasInputOverride) firstByte |= 0x40;
         if (hasOutputOverrides) firstByte |= 0x20;
+        if (hasOutputOverrides) {
+            require(outputOverrides.length < 32);
+            firstByte |= bytes1(uint8(outputOverrides.length));
+        }
 
         if (firstByte == 0x00) return "";
 
         extraData = abi.encodePacked(firstByte);
         if (hasExclusiveFiller) extraData = bytes.concat(extraData, abi.encodePacked(exclusiveFiller));
         if (hasInputOverride) extraData = bytes.concat(extraData, abi.encodePacked(inputOverride));
-        if (hasOutputOverrides) {
-            extraData = bytes.concat(extraData, abi.encodePacked(outputOverrides.length));
-            extraData = bytes.concat(extraData, abi.encodePacked(outputOverrides));
-        }
+        if (hasOutputOverrides) extraData = bytes.concat(extraData, abi.encodePacked(outputOverrides));
     }
 }
