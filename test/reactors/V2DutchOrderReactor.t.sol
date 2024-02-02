@@ -254,21 +254,6 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testEncoding() public {
-        bytes memory encodedBytes =
-            encodeExtraCosignerData(address(1111111111111111), 22222222222222, ArrayBuilder.fill(3, 5));
-        assertTrue(encodedBytes.hasExclusiveFiller());
-        assertTrue(encodedBytes.hasInputOverride());
-        assertTrue(encodedBytes.hasOutputOverrides());
-        (address filler, uint256 input, uint256[] memory output) = encodedBytes.decodeExtraParameters();
-        assertEq(filler, address(1111111111111111));
-        assertEq(input, 22222222222222);
-        assertEq(output.length, 3);
-        assertEq(output[0], 5);
-        assertEq(output[1], 5);
-        assertEq(output[2], 5);
-    }
-
     function testExclusivity() public {
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
