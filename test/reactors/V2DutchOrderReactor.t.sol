@@ -6,7 +6,6 @@ import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {
     V2DutchOrder,
     V2DutchOrderLib,
-    CosignerExtraDataLib,
     CosignerData,
     V2DutchOrderReactor,
     ResolvedOrder,
@@ -14,6 +13,7 @@ import {
     DutchInput,
     BaseReactor
 } from "../../src/reactors/V2DutchOrderReactor.sol";
+import {CosignerExtraDataLib} from "../../src/lib/CosignerDataLib.sol";
 import {OrderInfo, InputToken, SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {ExclusivityLib} from "../../src/lib/ExclusivityLib.sol";
 import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";

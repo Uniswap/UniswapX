@@ -6,14 +6,8 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {DutchDecayLib} from "../lib/DutchDecayLib.sol";
-import {
-    CosignerExtraDataLib,
-    V2DutchOrderLib,
-    V2DutchOrder,
-    CosignerData,
-    DutchOutput,
-    DutchInput
-} from "../lib/V2DutchOrderLib.sol";
+import {CosignerExtraDataLib} from "../lib/CosignerDataLib.sol";
+import {V2DutchOrderLib, V2DutchOrder, CosignerData, DutchOutput, DutchInput} from "../lib/V2DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for v2 dutch orders
