@@ -280,6 +280,33 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         fillContract.execute(signedOrder);
     }
 
+    function testDecodeExtraParametersFuzz(
+        address filler,
+        uint256 inputOverride,
+        uint256 outputOverride,
+        uint256 outputOverrideLength
+    ) public {
+        vm.assume(outputOverrideLength < 32);
+
+        bytes memory extraData =
+            encodeExtraCosignerData(filler, inputOverride, ArrayBuilder.fill(outputOverrideLength, outputOverride));
+
+        assertEq(filler != address(0), extraData.hasExclusiveFiller());
+        assertEq(inputOverride != 0, extraData.hasInputOverride());
+        assertEq(outputOverrideLength != 0, extraData.hasOutputOverrides());
+
+        (address decodedFiller, uint256 decodedInputOverride, uint256[] memory decodedOutputOverrides) =
+            extraData.decodeExtraParameters();
+
+        assertEq(decodedFiller, filler);
+        assertEq(decodedInputOverride, inputOverride);
+        assertEq(decodedOutputOverrides.length, outputOverrideLength);
+
+        for (uint256 i = 0; i < outputOverrideLength; i++) {
+            assertEq(decodedOutputOverrides[i], outputOverride);
+        }
+    }
+
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {
         bytes32 msgHash = keccak256(abi.encodePacked(orderHash, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
