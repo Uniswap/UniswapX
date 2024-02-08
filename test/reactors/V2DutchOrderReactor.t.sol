@@ -241,7 +241,11 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        _snapStart("InputOverride");
         fillContract.execute(signedOrder);
+        snapEnd();
+
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), overriddenInputAmount);
@@ -272,13 +276,17 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        _snapStart("OutputOverride");
         fillContract.execute(signedOrder);
+        snapEnd();
+
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), overriddenOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testExclusivity() public {
+    function testExclusivityInvalidCaller() public {
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
         tokenOut.mint(address(fillContract), inputAmount);
@@ -304,6 +312,42 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
         fillContract.execute(signedOrder);
+    }
+
+    function testExclusivityValidCaller() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        tokenIn.mint(swapper, inputAmount);
+        tokenOut.mint(address(fillContract), inputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        CosignerData memory cosignerData = CosignerData({
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(fillContract),
+            inputOverride: 0,
+            outputOverrides: ArrayBuilder.fill(1, 0)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, 0.9 ether, swapper),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.prank(address(1));
+
+        _snapStart("ExclusiveFiller");
+        fillContract.execute(signedOrder);
+        snapEnd();
+
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {
