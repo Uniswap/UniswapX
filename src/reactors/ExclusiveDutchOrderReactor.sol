@@ -68,10 +68,6 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
             revert DeadlineBeforeEndTime();
         }
 
-        if (order.decayEndTime < order.decayStartTime) {
-            revert DutchDecayLib.EndTimeBeforeStartTime();
-        }
-
         if (order.input.startAmount != order.input.endAmount) {
             unchecked {
                 for (uint256 i = 0; i < order.outputs.length; i++) {
