@@ -68,6 +68,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: request.info.deadline,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             inputOverride: 0,
             outputOverrides: outputOverrides
         });
@@ -101,6 +102,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: request.decayStartTime,
             decayEndTime: request.decayEndTime,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             inputOverride: 0,
             outputOverrides: outputOverrides
         });
@@ -125,6 +127,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             inputOverride: 1 ether,
             outputOverrides: ArrayBuilder.fill(1, 1 ether)
         });
@@ -149,6 +152,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             // override is more input tokens than expected
             inputOverride: 0.9 ether,
             outputOverrides: ArrayBuilder.fill(1, 1.1 ether)
@@ -173,6 +177,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             // override is more input tokens than expected
             inputOverride: 1 ether,
             outputOverrides: ArrayBuilder.fill(1, 0.9 ether)
@@ -197,6 +202,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             // override is more input tokens than expected
             inputOverride: 1 ether,
             outputOverrides: ArrayBuilder.fill(2, 1.1 ether)
@@ -226,6 +232,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             inputOverride: overriddenInputAmount,
             outputOverrides: ArrayBuilder.fill(1, 0)
         });
@@ -261,6 +268,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
             inputOverride: 0,
             outputOverrides: ArrayBuilder.fill(1, overriddenOutputAmount)
         });
@@ -286,7 +294,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testExclusivityInvalidCaller() public {
+    function testStrictExclusivityInvalidCaller() public {
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
         tokenOut.mint(address(fillContract), inputAmount);
@@ -295,6 +303,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(1),
+            exclusivityOverrideBps: 0,
             inputOverride: 0,
             outputOverrides: ArrayBuilder.fill(1, 0)
         });
@@ -314,7 +323,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         fillContract.execute(signedOrder);
     }
 
-    function testExclusivityValidCaller() public {
+    function testStrictExclusivityValidCaller() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
@@ -324,6 +333,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(fillContract),
+            exclusivityOverrideBps: 0,
             inputOverride: 0,
             outputOverrides: ArrayBuilder.fill(1, 0)
         });
@@ -347,6 +357,73 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testExclusiveOverrideInvalidCallerCosignedAmountOutput() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 exclusivityOverrideBps = 10;
+        tokenIn.mint(swapper, inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 2);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        CosignerData memory cosignerData = CosignerData({
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(1),
+            exclusivityOverrideBps: exclusivityOverrideBps,
+            inputOverride: 0,
+            outputOverrides: ArrayBuilder.fill(1, outputAmount)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 0.9 ether, swapper),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount * (10000 + exclusivityOverrideBps) / 10000);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testExclusiveOverrideInvalidCallerNoCosignedAmountOutput() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 exclusivityOverrideBps = 10;
+        tokenIn.mint(swapper, inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount * 2);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+        CosignerData memory cosignerData = CosignerData({
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(1),
+            exclusivityOverrideBps: exclusivityOverrideBps,
+            inputOverride: 0,
+            outputOverrides: ArrayBuilder.fill(1, 0)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: vm.addr(cosignerPrivateKey),
+            input: DutchInput(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, 0.9 ether, swapper),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        fillContract.execute(signedOrder);
+        assertEq(tokenIn.balanceOf(swapper), 0);
+        // still overrides the base swapper signed amount
+        assertEq(tokenOut.balanceOf(swapper), outputAmount * (10000 + exclusivityOverrideBps) / 10000);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
