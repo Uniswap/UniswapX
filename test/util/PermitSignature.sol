@@ -131,8 +131,8 @@ contract PermitSignature is Test {
             privateKey,
             permit2,
             order.info,
-            address(order.input.token),
-            order.input.endAmount,
+            address(order.baseInput.token),
+            order.baseInput.endAmount,
             V2_DUTCH_ORDER_TYPE_HASH,
             order.hash()
         );

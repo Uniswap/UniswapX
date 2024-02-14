@@ -13,9 +13,9 @@ struct CosignerData {
     // The address who has exclusive rights to the order until decayStartTime
     address exclusiveFiller;
     // The tokens that the swapper will provide when settling the order
-    uint256 inputOverride;
+    uint256 inputAmount;
     // The tokens that must be received to satisfy the order
-    uint256[] outputOverrides;
+    uint256[] outputAmounts;
 }
 
 struct V2DutchOrder {
@@ -24,9 +24,9 @@ struct V2DutchOrder {
     // The address which must cosign the full order
     address cosigner;
     // The tokens that the swapper will provide when settling the order
-    DutchInput input;
+    DutchInput baseInput;
     // The tokens that must be received to satisfy the order
-    DutchOutput[] outputs;
+    DutchOutput[] baseOutputs;
     // signed over by the cosigner
     CosignerData cosignerData;
     // signature from the cosigner over (orderHash || cosignerData)
@@ -42,10 +42,10 @@ library V2DutchOrderLib {
         "V2DutchOrder(",
         "OrderInfo info,",
         "address cosigner,",
-        "address inputToken,",
-        "uint256 inputStartAmount,",
-        "uint256 inputEndAmount,",
-        "DutchOutput[] outputs)"
+        "address baseInputToken,",
+        "uint256 baseInputStartAmount,",
+        "uint256 baseInputEndAmount,",
+        "DutchOutput[] baseOutputs)"
     );
 
     bytes internal constant ORDER_TYPE =
@@ -72,10 +72,10 @@ library V2DutchOrderLib {
                 ORDER_TYPE_HASH,
                 order.info.hash(),
                 order.cosigner,
-                order.input.token,
-                order.input.startAmount,
-                order.input.endAmount,
-                order.outputs.hash()
+                order.baseInput.token,
+                order.baseInput.startAmount,
+                order.baseInput.endAmount,
+                order.baseOutputs.hash()
             )
         );
     }
