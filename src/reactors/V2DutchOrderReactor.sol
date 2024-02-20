@@ -35,10 +35,10 @@ contract V2DutchOrderReactor is BaseReactor {
     error InvalidCosignature();
 
     /// @notice thrown when an order's input override is greater than the specified
-    error InvalidInputOverride();
+    error InvalidCosignerInput();
 
     /// @notice thrown when an order's output override is less than the specified
-    error InvalidOutputOverride();
+    error InvalidCosignerOutput();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
@@ -55,12 +55,12 @@ contract V2DutchOrderReactor is BaseReactor {
         bytes32 orderHash = order.hash();
 
         _validateOrder(orderHash, order);
-        _updateWithOverrides(order);
+        _updateWithCosignerAmounts(order);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
-            input: order.input.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
-            outputs: order.outputs.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
+            input: order.baseInput.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
+            outputs: order.baseOutputs.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
             sig: signedOrder.sig,
             hash: orderHash
         });
@@ -83,23 +83,23 @@ contract V2DutchOrderReactor is BaseReactor {
         );
     }
 
-    function _updateWithOverrides(V2DutchOrder memory order) internal pure {
-        if (order.cosignerData.inputOverride != 0) {
-            if (order.cosignerData.inputOverride > order.input.startAmount) {
-                revert InvalidInputOverride();
+    function _updateWithCosignerAmounts(V2DutchOrder memory order) internal pure {
+        if (order.cosignerData.inputAmount != 0) {
+            if (order.cosignerData.inputAmount > order.baseInput.startAmount) {
+                revert InvalidCosignerInput();
             }
-            order.input.startAmount = order.cosignerData.inputOverride;
+            order.baseInput.startAmount = order.cosignerData.inputAmount;
         }
 
-        if (order.cosignerData.outputOverrides.length != order.outputs.length) {
-            revert InvalidOutputOverride();
+        if (order.cosignerData.outputAmounts.length != order.baseOutputs.length) {
+            revert InvalidCosignerOutput();
         }
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            DutchOutput memory output = order.outputs[i];
-            uint256 outputOverride = order.cosignerData.outputOverrides[i];
+        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+            DutchOutput memory output = order.baseOutputs[i];
+            uint256 outputOverride = order.cosignerData.outputAmounts[i];
             if (outputOverride != 0) {
                 if (outputOverride < output.startAmount) {
-                    revert InvalidOutputOverride();
+                    revert InvalidCosignerOutput();
                 }
                 output.startAmount = outputOverride;
             }
@@ -128,9 +128,9 @@ contract V2DutchOrderReactor is BaseReactor {
             revert InvalidCosignature();
         }
 
-        if (order.input.startAmount != order.input.endAmount) {
-            for (uint256 i = 0; i < order.outputs.length; i++) {
-                DutchOutput memory output = order.outputs[i];
+        if (order.baseInput.startAmount != order.baseInput.endAmount) {
+            for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+                DutchOutput memory output = order.baseOutputs[i];
                 if (output.startAmount != output.endAmount) {
                     revert InputAndOutputDecay();
                 }
