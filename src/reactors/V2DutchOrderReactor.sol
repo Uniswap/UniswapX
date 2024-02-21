@@ -23,6 +23,7 @@ contract V2DutchOrderReactor is BaseReactor {
     using V2DutchOrderLib for V2DutchOrder;
     using DutchDecayLib for DutchOutput[];
     using DutchDecayLib for DutchInput;
+    using ExclusivityLib for ResolvedOrder;
 
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
@@ -63,7 +64,11 @@ contract V2DutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: orderHash
         });
-        ExclusivityLib.handleStrictExclusivity(order.cosignerData.exclusiveFiller, order.cosignerData.decayStartTime);
+        resolvedOrder.handleExclusiveOverride(
+            order.cosignerData.exclusiveFiller,
+            order.cosignerData.decayStartTime,
+            order.cosignerData.exclusivityOverrideBps
+        );
     }
 
     /// @inheritdoc BaseReactor
