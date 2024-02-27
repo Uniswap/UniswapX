@@ -13,11 +13,11 @@ import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 /// @dev V2 orders must be cosigned by the specified cosigner to override timings and starting values
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
-/// - If inputOverride is 0, then use inner inputs
-/// - If inputOverride is nonzero, then ensure it is less than specified input and replace startAmount
-/// - For each DutchOutput:
-///   - If override is 0, then use inner output
-///   - If override is nonzero, then ensure it is greater than specified output and replace startAmount
+/// - If inputAmount is 0, then use baseInput
+/// - If inputAmount is nonzero, then ensure it is less than specified baseOutput and replace startAmount
+/// - For each outputAmount:
+///   - If amount is 0, then use baseOutput
+///   - If amount is nonzero, then ensure it is greater than specified baseOutput and replace startAmount
 contract V2DutchOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using V2DutchOrderLib for V2DutchOrder;
@@ -34,10 +34,10 @@ contract V2DutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
 
-    /// @notice thrown when an order's input override is greater than the specified
+    /// @notice thrown when an order's cosigner input is greater than the specified
     error InvalidCosignerInput();
 
-    /// @notice thrown when an order's output override is less than the specified
+    /// @notice thrown when an order's cosigner output is less than the specified
     error InvalidCosignerOutput();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
@@ -96,12 +96,12 @@ contract V2DutchOrderReactor is BaseReactor {
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {
             DutchOutput memory output = order.baseOutputs[i];
-            uint256 outputOverride = order.cosignerData.outputAmounts[i];
-            if (outputOverride != 0) {
-                if (outputOverride < output.startAmount) {
+            uint256 outputAmount = order.cosignerData.outputAmounts[i];
+            if (outputAmount != 0) {
+                if (outputAmount < output.startAmount) {
                     revert InvalidCosignerOutput();
                 }
-                output.startAmount = outputOverride;
+                output.startAmount = outputAmount;
             }
         }
     }
