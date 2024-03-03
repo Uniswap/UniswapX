@@ -20,7 +20,11 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
     using SafeTransferLib for ERC20;
 
     ERC20 constant WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address pool = 0x60594a405d53811d3BC4766596EFD80fd545A270;
+    address poolWethDaiV3 = 0x60594a405d53811d3BC4766596EFD80fd545A270;
+    address poolWethUsdtV3 = 0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36;
+    address poolWethDaiV2 = 0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11;
+    address poolWethUsdtV2 = 0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852;
+
     uint256 private constant _ONE_FOR_ZERO_MASK = 1 << 255;
     uint256 private constant _WETH_MASK =
         0x4000000000000000000000000000000000000000000000000000000000000000;
@@ -96,7 +100,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         tokensToApproveForReactor[0] = address(DAI);
         bytes[] memory multicallData = new bytes[](1);
         uint256[] memory pools = new uint256[](1);
-        pools[0] = uint256(uint160(pool)) | _ONE_FOR_ZERO_MASK;
+        pools[0] = uint256(uint160(poolWethDaiV3)) | _ONE_FOR_ZERO_MASK;
         multicallData[0] = abi.encode(true, 2 * ONE, 3000 * ONE, pools);
 
         oneInchSwapExecutor.execute(
@@ -145,7 +149,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         tokensToApproveForReactor[0] = address(USDT);
         bytes[] memory multicallData = new bytes[](1);
         uint256[] memory pools = new uint256[](1);
-        pools[0] = uint256(uint160(0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36));
+        pools[0] = uint256(uint160(poolWethUsdtV3));
         multicallData[0] = abi.encode(true, 2 * ONE, output, pools);
 
         oneInchSwapExecutor.execute(
@@ -190,7 +194,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         bytes[] memory multicallData = new bytes[](1);
         uint256[] memory pools = new uint256[](1);
         pools[0] =
-            uint256(uint160(0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11)) |
+            uint256(uint160(poolWethDaiV2)) |
             ((997 * 1e6) << 160) |
             _REVERSE_MASK;
         multicallData[0] = abi.encode(false, 2 * ONE, 3000 * ONE, pools);
@@ -242,7 +246,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         bytes[] memory multicallData = new bytes[](1);
         uint256[] memory pools = new uint256[](1);
         pools[0] =
-            uint256(uint160(0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852)) |
+            uint256(uint160(poolWethUsdtV2)) |
             ((997 * 1e6) << 160);
         multicallData[0] = abi.encode(false, 2 * ONE, output, pools);
 
@@ -305,7 +309,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
 
         uint256[] memory pools = new uint256[](1);
         pools[0] =
-            uint256(uint160(0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11)) |
+            uint256(uint160(poolWethDaiV2)) |
             ((997 * 1e6) << 160) |
             _REVERSE_MASK;
         multicallData[0] = abi.encode(false, 2 * ONE, 3000 * ONE, pools);
@@ -390,7 +394,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         bytes[] memory multicallData = new bytes[](1);
 
         uint256[] memory pools = new uint256[](1);
-        pools[0] = uint256(uint160(pool)) | _ONE_FOR_ZERO_MASK;
+        pools[0] = uint256(uint160(poolWethDaiV3)) | _ONE_FOR_ZERO_MASK;
         multicallData[0] = abi.encode(true, 2 * ONE, 3000 * ONE, pools);
 
         oneInchSwapExecutor.execute(
@@ -453,7 +457,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         bytes[] memory multicallData = new bytes[](1);
         uint256[] memory pools = new uint256[](1);
         pools[0] =
-            uint256(uint160(0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11)) |
+            uint256(uint160(poolWethDaiV2)) |
             ((997 * 1e6) << 160) |
             _REVERSE_MASK;
         multicallData[0] = abi.encode(false, 2 * ONE, 9000 * ONE, pools);
@@ -498,7 +502,7 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
         bytes[] memory multicallData = new bytes[](1);
 
         uint256[] memory pools = new uint256[](1);
-        pools[0] = uint256(uint160(pool)) | _ONE_FOR_ZERO_MASK;
+        pools[0] = uint256(uint160(poolWethDaiV3)) | _ONE_FOR_ZERO_MASK;
         multicallData[0] = abi.encode(true, 2 * ONE, 8000 * ONE, pools);
         vm.expectRevert();
         oneInchSwapExecutor.execute(
@@ -511,6 +515,148 @@ contract OneInchSwapExecutorTest is Test, PermitSignature {
                 tokensToApproveForReactor,
                 multicallData
             )
+        );
+    }
+
+    function testBatchWethToDaiViaUniswapV3Swap() public {
+        DutchOrder memory order1 = DutchOrder({
+            info: OrderInfoBuilder
+                .init(address(dloReactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(WETH, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(
+                address(DAI),
+                3000 * ONE,
+                3000 * ONE,
+                address(swapper)
+            )
+        });
+        DutchOrder memory order2 = DutchOrder({
+            info: OrderInfoBuilder
+                .init(address(dloReactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(WETH, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(
+                address(DAI),
+                3000 * ONE,
+                3000 * ONE,
+                address(swapper)
+            )
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(
+            abi.encode(order1),
+            signOrder(swapperPrivateKey, address(PERMIT2), order1)
+        );
+        signedOrders[1] = SignedOrder(
+            abi.encode(order2),
+            signOrder(swapperPrivateKey, address(PERMIT2), order2)
+        );
+
+        address[] memory tokensToApproveForInchSwap = new address[](1);
+        tokensToApproveForInchSwap[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
+        bytes[] memory multicallData = new bytes[](2);
+        uint256[] memory pools = new uint256[](1);
+        pools[0] = uint256(uint160(poolWethDaiV3)) | _ONE_FOR_ZERO_MASK;
+        multicallData[0] = abi.encode(true, ONE, 3000 * ONE, pools);
+        multicallData[1] = abi.encode(true, ONE, 3000 * ONE, pools);
+
+        oneInchSwapExecutor.executeBatch(
+            signedOrders,
+            abi.encode(
+                tokensToApproveForInchSwap,
+                tokensToApproveForReactor,
+                multicallData
+            )
+        );
+        assertEq(WETH.balanceOf(swapper), ONE);
+        assertEq(DAI.balanceOf(swapper), 2 * 3000 * ONE);
+        assertEq(
+            DAI.balanceOf(address(oneInchSwapExecutor)),
+            434832882175252658649
+        );
+    }
+
+    function testBatchWethToDaiViaUnoswap() public {
+        DutchOrder memory order1 = DutchOrder({
+            info: OrderInfoBuilder
+                .init(address(dloReactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(WETH, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(
+                address(DAI),
+                3000 * ONE,
+                3000 * ONE,
+                address(swapper)
+            )
+        });
+        DutchOrder memory order2 = DutchOrder({
+            info: OrderInfoBuilder
+                .init(address(dloReactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(WETH, ONE, ONE),
+            outputs: OutputsBuilder.singleDutch(
+                address(DAI),
+                3000 * ONE,
+                3000 * ONE,
+                address(swapper)
+            )
+        });
+        SignedOrder[] memory signedOrders = new SignedOrder[](2);
+        signedOrders[0] = SignedOrder(
+            abi.encode(order1),
+            signOrder(swapperPrivateKey, address(PERMIT2), order1)
+        );
+        signedOrders[1] = SignedOrder(
+            abi.encode(order2),
+            signOrder(swapperPrivateKey, address(PERMIT2), order2)
+        );
+
+        address[] memory tokensToApproveForInchSwap = new address[](2);
+        tokensToApproveForInchSwap[0] = address(WETH);
+        tokensToApproveForInchSwap[1] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
+        bytes[] memory multicallData = new bytes[](2);
+        uint256[] memory pools = new uint256[](1);
+        pools[0] =
+            uint256(uint160(poolWethDaiV2)) |
+            ((997 * 1e6) << 160) |
+            _REVERSE_MASK;
+        multicallData[0] = abi.encode(false, ONE, 3000 * ONE, pools);
+        multicallData[1] = abi.encode(false, ONE, 3000 * ONE, pools);
+
+        oneInchSwapExecutor.executeBatch(
+            signedOrders,
+            abi.encode(
+                tokensToApproveForInchSwap,
+                tokensToApproveForReactor,
+                multicallData
+            )
+        );
+        assertEq(WETH.balanceOf(swapper), ONE);
+        assertEq(DAI.balanceOf(swapper), 2 * 3000 * ONE);
+        assertEq(
+            DAI.balanceOf(address(oneInchSwapExecutor)),
+            421544071471587661367
         );
     }
 }
