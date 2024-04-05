@@ -1,5 +1,5 @@
 [profile.default]
-solc = "0.8.19"
+solc = "0.8.24"
 src = 'src'
 out = 'out'
 libs = ['lib']
