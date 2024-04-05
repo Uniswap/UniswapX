@@ -184,7 +184,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1234
-                ),
+            ),
             decayStartTime: block.timestamp - 100,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, ONE, ONE),
@@ -270,7 +270,7 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         DutchOrder memory order2 = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount * 3, inputAmount * 3),

@@ -116,10 +116,6 @@ contract V2DutchOrderReactor is BaseReactor {
             revert DeadlineBeforeEndTime();
         }
 
-        if (order.cosignerData.decayEndTime <= order.cosignerData.decayStartTime) {
-            revert DutchDecayLib.EndTimeBeforeStartTime();
-        }
-
         (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
         uint8 v = uint8(order.cosignature[64]);
         // cosigner signs over (orderHash || cosignerData)
