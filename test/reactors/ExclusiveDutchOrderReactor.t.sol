@@ -211,7 +211,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         orders[1] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -279,7 +279,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         orders[1] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -316,7 +316,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         orders[1] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -354,7 +354,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         orders[1] = ExclusiveDutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),

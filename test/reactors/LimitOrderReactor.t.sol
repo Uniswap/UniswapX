@@ -56,7 +56,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 additionalValidationContract
-                ),
+            ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
@@ -86,7 +86,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 additionalValidationContract
-                ),
+            ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE * 2, address(swapper))
         });
@@ -106,7 +106,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 additionalValidationContract
-                ),
+            ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), amounts, address(swapper))
         });
@@ -134,7 +134,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
         LimitOrder memory order = LimitOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(swapper)).withValidationContract(
                 additionalValidationContract
-                ),
+            ),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
