@@ -24,7 +24,7 @@ contract DutchOrderReactor is BaseReactor {
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
-    function resolve(SignedOrder calldata signedOrder)
+    function _resolve(SignedOrder calldata signedOrder)
         internal
         view
         virtual
@@ -44,7 +44,7 @@ contract DutchOrderReactor is BaseReactor {
     }
 
     /// @inheritdoc BaseReactor
-    function transferInputTokens(ResolvedOrder memory order, address to) internal override {
+    function _transferInputTokens(ResolvedOrder memory order, address to) internal override {
         permit2.permitWitnessTransferFrom(
             order.toPermit(),
             order.transferDetails(to),

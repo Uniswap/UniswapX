@@ -213,7 +213,7 @@ abstract contract BaseDutchOrderReactorTest is PermitSignature, DeployPermit2, B
                 input: DutchInput(tokenIn, 0, 0),
                 outputs: OutputsBuilder.multipleDutch(
                     tokenOut, Solarray.uint256s(1000, 10000, 2000), Solarray.uint256s(900, 9000, 1000), address(0)
-                    )
+                )
             })
         );
         ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
@@ -363,7 +363,7 @@ abstract contract BaseDutchOrderReactorTest is PermitSignature, DeployPermit2, B
                 input: DutchInput(tokenIn, 100, 110),
                 outputs: OutputsBuilder.multipleDutch(
                     tokenOut, Solarray.uint256s(1000, 1000), Solarray.uint256s(1000, 900), address(0)
-                    )
+                )
             })
         );
         vm.expectRevert(DutchOrderReactor.InputAndOutputDecay.selector);

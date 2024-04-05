@@ -34,7 +34,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order) external payable override nonReentrant {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        resolvedOrders[0] = resolve(order);
+        resolvedOrders[0] = _resolve(order);
 
         _prepare(resolvedOrders);
         _fill(resolvedOrders);
@@ -48,7 +48,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
         nonReentrant
     {
         ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
-        resolvedOrders[0] = resolve(order);
+        resolvedOrders[0] = _resolve(order);
 
         _prepare(resolvedOrders);
         IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
@@ -62,7 +62,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                resolvedOrders[i] = resolve(orders[i]);
+                resolvedOrders[i] = _resolve(orders[i]);
             }
         }
 
@@ -82,7 +82,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
 
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                resolvedOrders[i] = resolve(orders[i]);
+                resolvedOrders[i] = _resolve(orders[i]);
             }
         }
 
@@ -100,7 +100,7 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
                 ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 order.validate(msg.sender);
-                transferInputTokens(order, msg.sender);
+                _transferInputTokens(order, msg.sender);
             }
         }
     }
@@ -140,10 +140,10 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     /// @param order The encoded order to resolve
     /// @return resolvedOrder generic resolved order of inputs and outputs
     /// @dev should revert on any order-type-specific validation errors
-    function resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
+    function _resolve(SignedOrder calldata order) internal view virtual returns (ResolvedOrder memory resolvedOrder);
 
     /// @notice Transfers tokens to the fillContract
     /// @param order The encoded order to transfer tokens for
     /// @param to The address to transfer tokens to
-    function transferInputTokens(ResolvedOrder memory order, address to) internal virtual;
+    function _transferInputTokens(ResolvedOrder memory order, address to) internal virtual;
 }

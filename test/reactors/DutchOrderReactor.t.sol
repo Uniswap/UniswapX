@@ -104,7 +104,7 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
         orders[1] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, 2 ether, 2 ether),
@@ -166,7 +166,7 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
         orders[1] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
@@ -199,7 +199,7 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
         orders[1] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount * 2, inputAmount * 2),
@@ -233,7 +233,7 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
         orders[1] = DutchOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),

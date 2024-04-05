@@ -55,7 +55,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(fillContract), block.timestamp + 50)
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -84,7 +84,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(0x1234), block.timestamp + 50)
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -112,7 +112,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(0x1234), block.timestamp - 50)
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
@@ -137,7 +137,7 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
                 .withValidationContract(exclusiveFillerValidation).withValidationData(
                 abi.encode(address(0x1234), block.timestamp)
-                ),
+            ),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             input: DutchInput(tokenIn, inputAmount, inputAmount),
