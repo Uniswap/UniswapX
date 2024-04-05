@@ -121,7 +121,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
-    function testInvalidCosignature() public {
+    function testWrongCosigner() public {
         address wrongCosigner = makeAddr("wrongCosigner");
         CosignerData memory cosignerData = CosignerData({
             decayStartTime: block.timestamp,
@@ -141,6 +141,32 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             cosignature: bytes("")
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V2DutchOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testInvalidCosignature() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+        CosignerData memory cosignerData = CosignerData({
+            decayStartTime: block.timestamp,
+            decayEndTime: block.timestamp + 100,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            inputAmount: 1 ether,
+            outputAmounts: ArrayBuilder.fill(1, 1 ether)
+        });
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: wrongCosigner,
+            baseInput: DutchInput(tokenIn, 1 ether, 1 ether),
+            baseOutputs: OutputsBuilder.singleDutch(address(tokenOut), 1 ether, 1 ether, swapper),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         vm.expectRevert(V2DutchOrderReactor.InvalidCosignature.selector);
