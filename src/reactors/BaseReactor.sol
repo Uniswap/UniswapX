@@ -20,10 +20,6 @@ abstract contract BaseReactor is IReactor, ReactorEvents, ProtocolFees, Reentran
     using ResolvedOrderLib for ResolvedOrder;
     using CurrencyLibrary for address;
 
-    // Occurs when an output = ETH and the reactor does contain enough ETH but
-    // the direct filler did not include enough ETH in their call to execute/executeBatch
-    error InsufficientEth();
-
     /// @notice permit2 address used for token transfers and signature verification
     IPermit2 public immutable permit2;
 

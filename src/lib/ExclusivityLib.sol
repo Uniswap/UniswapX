@@ -50,17 +50,6 @@ library ExclusivityLib {
         }
     }
 
-    /// @notice Applies strict exclusivity to the resolved order,
-    ///   throwing if the filler does not have filling rights
-    /// @param exclusive The exclusive address
-    /// @param exclusivityEndTime The exclusivity end time
-    function handleStrictExclusivity(address exclusive, uint256 exclusivityEndTime) internal view {
-        // ensure the filler has fill right, else revert
-        if (!hasFillingRights(exclusive, exclusivityEndTime)) {
-            revert NoExclusiveOverride();
-        }
-    }
-
     /// @notice checks if the caller currently has filling rights on the order
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true

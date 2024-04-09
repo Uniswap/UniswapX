@@ -158,31 +158,4 @@ contract ExclusivityLibTest is Test {
             assertEq(handled.outputs[i].recipient, recipient);
         }
     }
-
-    function testStrictExclusivityPass(address exclusive) public {
-        vm.assume(exclusive != address(0));
-        vm.prank(exclusive);
-        exclusivity.handleStrictExclusivity(exclusive, block.timestamp + 1);
-    }
-
-    function testStrictExclusivityNoExclusivity(address caller) public {
-        vm.prank(caller);
-        // when passing address(0) as the exclusive address, anyone can call
-        exclusivity.handleStrictExclusivity(address(0), block.timestamp + 1);
-    }
-
-    function testStrictExclusivityPassTime(address exclusive, address caller) public {
-        vm.assume(exclusive != address(0));
-        vm.assume(exclusive != caller);
-        vm.prank(caller);
-        exclusivity.handleStrictExclusivity(exclusive, block.timestamp - 1);
-    }
-
-    function testStrictExclusivityFail(address exclusive, address caller) public {
-        vm.assume(exclusive != address(0));
-        vm.assume(exclusive != caller);
-        vm.prank(caller);
-        vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
-        exclusivity.handleStrictExclusivity(exclusive, block.timestamp + 1);
-    }
 }

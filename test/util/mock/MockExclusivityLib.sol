@@ -18,8 +18,4 @@ contract MockExclusivityLib {
     function hasFillingRights(address exclusive, uint256 exclusivityEndTime) external view returns (bool pass) {
         return ExclusivityLib.hasFillingRights(exclusive, exclusivityEndTime);
     }
-
-    function handleStrictExclusivity(address exclusive, uint256 exclusivityEndTime) external view {
-        return ExclusivityLib.handleStrictExclusivity(exclusive, exclusivityEndTime);
-    }
 }
