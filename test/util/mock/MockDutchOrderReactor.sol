@@ -8,10 +8,10 @@ contract MockDutchOrderReactor is DutchOrderReactor {
     constructor(IPermit2 _permit2, address _protocolFeeOwner) DutchOrderReactor(_permit2, _protocolFeeOwner) {}
 
     function resolveOrder(SignedOrder calldata order) external view returns (ResolvedOrder memory resolvedOrder) {
-        return resolve(order);
+        return _resolve(order);
     }
 
-    function resolve(SignedOrder calldata order) internal view override returns (ResolvedOrder memory resolvedOrder) {
-        return DutchOrderReactor.resolve(order);
+    function _resolve(SignedOrder calldata order) internal view override returns (ResolvedOrder memory resolvedOrder) {
+        return DutchOrderReactor._resolve(order);
     }
 }
