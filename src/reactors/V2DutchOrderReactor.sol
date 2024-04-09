@@ -14,7 +14,7 @@ import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
 /// - If inputAmount is 0, then use baseInput
-/// - If inputAmount is nonzero, then ensure it is less than specified baseOutput and replace startAmount
+/// - If inputAmount is nonzero, then ensure it is less than specified baseInput and replace startAmount
 /// - For each outputAmount:
 ///   - If amount is 0, then use baseOutput
 ///   - If amount is nonzero, then ensure it is greater than specified baseOutput and replace startAmount
@@ -107,8 +107,8 @@ contract V2DutchOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
-    /// - deadline must be greater than or equal than decayEndTime
-    /// - decayEndTime must be greater than or equal to decayStartTime
+    /// - deadline must be greater than or equal to decayEndTime
+    /// - decayEndTime must be greater than decayStartTime
     /// - if there's input decay, outputs must not decay
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, V2DutchOrder memory order) internal pure {
