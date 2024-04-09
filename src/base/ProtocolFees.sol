@@ -49,32 +49,25 @@ abstract contract ProtocolFees is Owned {
         // fill new outputs with old outputs
         OutputToken[] memory newOutputs = new OutputToken[](outputsLength + feeOutputsLength);
 
-        unchecked {
-            for (uint256 i = 0; i < outputsLength; i++) {
-                newOutputs[i] = order.outputs[i];
-            }
+        for (uint256 i = 0; i < outputsLength; i++) {
+            newOutputs[i] = order.outputs[i];
         }
 
-        for (uint256 i = 0; i < feeOutputsLength;) {
+        for (uint256 i = 0; i < feeOutputsLength; i++) {
             OutputToken memory feeOutput = feeOutputs[i];
             // assert no duplicates
-            unchecked {
-                for (uint256 j = 0; j < i; j++) {
-                    if (feeOutput.token == feeOutputs[j].token) {
-                        revert DuplicateFeeOutput(feeOutput.token);
-                    }
+            for (uint256 j = 0; j < i; j++) {
+                if (feeOutput.token == feeOutputs[j].token) {
+                    revert DuplicateFeeOutput(feeOutput.token);
                 }
             }
 
             // assert not greater than MAX_FEE_BPS
             uint256 tokenValue;
-            for (uint256 j = 0; j < outputsLength;) {
+            for (uint256 j = 0; j < outputsLength; j++) {
                 OutputToken memory output = order.outputs[j];
                 if (output.token == feeOutput.token) {
                     tokenValue += output.amount;
-                }
-                unchecked {
-                    j++;
                 }
             }
 
@@ -88,10 +81,8 @@ abstract contract ProtocolFees is Owned {
             if (feeOutput.amount > tokenValue.mulDivDown(MAX_FEE_BPS, BPS)) {
                 revert FeeTooLarge(feeOutput.token, feeOutput.amount, feeOutput.recipient);
             }
-            newOutputs[outputsLength + i] = feeOutput;
-
             unchecked {
-                i++;
+                newOutputs[outputsLength + i] = feeOutput;
             }
         }
 
