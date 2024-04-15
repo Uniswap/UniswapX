@@ -60,7 +60,7 @@ abstract contract BaseDutchOrderReactorTest is PermitSignature, DeployPermit2, B
         return (SignedOrder(abi.encode(request), signOrder(swapperPrivateKey, address(permit2), request)), orderHash);
     }
 
-    function generateOrder(TestDutchOrderSpec memory spec) private returns (SignedOrder memory order) {
+    function generateOrder(TestDutchOrderSpec memory spec) internal returns (SignedOrder memory order) {
         vm.warp(spec.currentTime);
         tokenIn.mint(address(swapper), uint256(spec.input.endAmount));
         tokenIn.forceApprove(swapper, address(permit2), spec.input.endAmount);
