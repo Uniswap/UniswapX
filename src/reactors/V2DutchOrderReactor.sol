@@ -124,7 +124,7 @@ contract V2DutchOrderReactor is BaseReactor {
         uint8 v = uint8(order.cosignature[64]);
         // cosigner signs over (orderHash || cosignerData)
         address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-        if (order.cosigner != signer && signer != address(0)) {
+        if (order.cosigner != signer || signer == address(0)) {
             revert InvalidCosignature();
         }
 
