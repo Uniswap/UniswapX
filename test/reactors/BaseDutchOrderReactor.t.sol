@@ -60,7 +60,7 @@ abstract contract BaseDutchOrderReactorTest is PermitSignature, DeployPermit2, B
         return (SignedOrder(abi.encode(request), signOrder(swapperPrivateKey, address(permit2), request)), orderHash);
     }
 
-    function generateOrder(TestDutchOrderSpec memory spec) private returns (SignedOrder memory order) {
+    function generateOrder(TestDutchOrderSpec memory spec) internal returns (SignedOrder memory order) {
         vm.warp(spec.currentTime);
         tokenIn.mint(address(swapper), uint256(spec.input.endAmount));
         tokenIn.forceApprove(swapper, address(permit2), spec.input.endAmount);
@@ -346,27 +346,6 @@ abstract contract BaseDutchOrderReactorTest is PermitSignature, DeployPermit2, B
             })
         );
         vm.expectRevert(DutchOrderReactor.DeadlineBeforeEndTime.selector);
-        quoter.quote(order.order, order.sig);
-    }
-
-    // The input decays, which means the outputs must not decay. In this test, the
-    // 2nd output decays, so revert with error InputAndOutputDecay().
-    function test_dutch_validateInputAndOutputDecay() public {
-        uint256 currentTime = 100;
-
-        SignedOrder memory order = generateOrder(
-            TestDutchOrderSpec({
-                currentTime: currentTime,
-                startTime: currentTime,
-                endTime: currentTime + 100,
-                deadline: currentTime + 100,
-                input: DutchInput(tokenIn, 100, 110),
-                outputs: OutputsBuilder.multipleDutch(
-                    tokenOut, Solarray.uint256s(1000, 1000), Solarray.uint256s(1000, 900), address(0)
-                )
-            })
-        );
-        vm.expectRevert(DutchOrderReactor.InputAndOutputDecay.selector);
         quoter.quote(order.order, order.sig);
     }
 

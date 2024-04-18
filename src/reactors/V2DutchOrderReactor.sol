@@ -28,9 +28,6 @@ contract V2DutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's deadline is before its end time
     error DeadlineBeforeEndTime();
 
-    /// @notice thrown when an order's inputs and outputs both decay
-    error InputAndOutputDecay();
-
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
 
@@ -122,15 +119,6 @@ contract V2DutchOrderReactor is BaseReactor {
         address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
         if (order.cosigner != signer || signer == address(0)) {
             revert InvalidCosignature();
-        }
-
-        if (order.baseInput.startAmount != order.baseInput.endAmount) {
-            for (uint256 i = 0; i < order.baseOutputs.length; i++) {
-                DutchOutput memory output = order.baseOutputs[i];
-                if (output.startAmount != output.endAmount) {
-                    revert InputAndOutputDecay();
-                }
-            }
         }
     }
 }

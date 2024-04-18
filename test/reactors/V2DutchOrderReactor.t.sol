@@ -25,7 +25,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {DutchOrder, BaseDutchOrderReactorTest} from "./BaseDutchOrderReactor.t.sol";
+import {DutchOrder, BaseDutchOrderReactorTest, TestDutchOrderSpec} from "./BaseDutchOrderReactor.t.sol";
 
 contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReactorTest {
     using OrderInfoBuilder for OrderInfo;
@@ -451,6 +451,38 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         // still overrides the base swapper signed amount
         assertEq(tokenOut.balanceOf(swapper), outputAmount * (10000 + exclusivityOverrideBps) / 10000);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+    }
+
+    function testExecuteInputAndOutputDecay() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 startTime = block.timestamp;
+        uint256 deadline = startTime + 1000;
+        // Seed both swapper and fillContract with enough tokens (important for dutch order)
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentTime: startTime,
+                startTime: startTime,
+                endTime: deadline,
+                deadline: deadline,
+                input: DutchInput(tokenIn, inputAmount, inputAmount * 110 / 100),
+                outputs: OutputsBuilder.singleDutch(tokenOut, outputAmount, outputAmount * 90 / 100, address(swapper))
+            })
+        );
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
+        vm.expectEmit(false, true, true, false, address(reactor));
+        emit Fill(keccak256("not checked"), address(fillContract), swapper, 0);
+        vm.warp(startTime + 500);
+        fillContract.execute(order);
+        uint256 swapperInputBalanceEnd = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceEnd = tokenOut.balanceOf(address(swapper));
+        assertEq(swapperInputBalanceStart - swapperInputBalanceEnd, inputAmount * 105 / 100);
+        assertEq(swapperOutputBalanceEnd - swapperOutputBalanceStart, outputAmount * 95 / 100);
     }
 
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {

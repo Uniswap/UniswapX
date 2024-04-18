@@ -25,7 +25,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {BaseDutchOrderReactorTest} from "./BaseDutchOrderReactor.t.sol";
+import {BaseDutchOrderReactorTest, TestDutchOrderSpec} from "./BaseDutchOrderReactor.t.sol";
 
 // This suite of tests test execution with a mock fill contract.
 contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrderReactorTest {
@@ -243,6 +243,24 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
         fill.setOutputAmount(outputAmount / 2);
         vm.expectRevert(CurrencyLibrary.NativeTransferFailed.selector);
         fill.executeBatch(generateSignedOrders(orders));
+    }
+
+    // 2nd output decays, so revert with error InputAndOutputDecay().
+    function testValidateInputAndOutputDecay() public {
+        uint256 currentTime = 100;
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentTime: currentTime,
+                startTime: currentTime,
+                endTime: currentTime + 100,
+                deadline: currentTime + 100,
+                input: DutchInput(tokenIn, 100, 110),
+                outputs: OutputsBuilder.singleDutch(tokenOut, 1000, 900, address(0))
+            })
+        );
+        vm.expectRevert(DutchOrderReactor.InputAndOutputDecay.selector);
+        quoter.quote(order.order, order.sig);
     }
 
     function generateSignedOrders(DutchOrder[] memory orders) private view returns (SignedOrder[] memory result) {
