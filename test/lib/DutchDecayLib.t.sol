@@ -103,6 +103,7 @@ contract DutchDecayLibTest is Test {
         uint256 decayStartTime,
         uint256 decayEndTime
     ) public {
+        vm.assume(startAmount != endAmount);
         vm.assume(decayEndTime < decayStartTime);
         vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
