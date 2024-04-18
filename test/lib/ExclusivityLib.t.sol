@@ -4,16 +4,12 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MockExclusivityLib} from "../util/mock/MockExclusivityLib.sol";
 import {ExclusivityLib} from "../../src/lib/ExclusivityLib.sol";
 import {OrderInfo, ResolvedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 contract ExclusivityLibTest is Test {
-    using FixedPointMathLib for uint256;
-    using FixedPointMathLib for uint128;
-
     MockExclusivityLib exclusivity;
     address token1;
     address token2;
