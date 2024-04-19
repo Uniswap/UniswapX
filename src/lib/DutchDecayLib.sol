@@ -43,7 +43,7 @@ library DutchDecayLib {
                 if (endAmount < startAmount) {
                     decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
                 } else {
-                    decayedAmount = startAmount + (endAmount - startAmount).mulDivDown(elapsed, duration);
+                    decayedAmount = startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
                 }
             }
         }
