@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockExclusivityLib} from "../util/mock/MockExclusivityLib.sol";
@@ -10,6 +11,8 @@ import {OrderInfo, ResolvedOrder, OutputToken} from "../../src/base/ReactorStruc
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 
 contract ExclusivityLibTest is Test {
+    using FixedPointMathLib for uint256;
+
     MockExclusivityLib exclusivity;
     address token1;
     address token2;
@@ -117,6 +120,18 @@ contract ExclusivityLibTest is Test {
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
+    function testHandleExclusiveOverrideRoundUp() public {
+        ResolvedOrder memory order;
+        order.outputs = OutputsBuilder.single(token1, 1 ether + 1, recipient);
+        uint256 overrideAmt = 3000;
+        vm.prank(address(2));
+        ResolvedOrder memory handled =
+            exclusivity.handleExclusiveOverride(order, address(1), block.timestamp + 1, overrideAmt);
+        // assert overrideAmt applied
+        assertEq(handled.outputs[0].amount, 1.3 ether + 2);
+        assertEq(handled.outputs[0].recipient, recipient);
+    }
+
     function testHandleExclusiveOverrideApplied(address caller, address exclusive, uint256 overrideAmt, uint128 amount)
         public
     {
@@ -129,7 +144,7 @@ contract ExclusivityLibTest is Test {
         ResolvedOrder memory handled =
             exclusivity.handleExclusiveOverride(order, exclusive, block.timestamp + 1, overrideAmt);
         // assert overrideAmt applied
-        assertEq(handled.outputs[0].amount, amount * (10000 + overrideAmt) / 10000);
+        assertEq(handled.outputs[0].amount, uint256(amount).mulDivUp(10000 + overrideAmt, 10000));
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
@@ -154,7 +169,7 @@ contract ExclusivityLibTest is Test {
             exclusivity.handleExclusiveOverride(order, exclusive, block.timestamp + 1, overrideAmt);
         // assert overrideAmt applied
         for (uint256 i = 0; i < amounts.length; i++) {
-            assertEq(handled.outputs[i].amount, amounts[i] * (10000 + overrideAmt) / 10000);
+            assertEq(handled.outputs[i].amount, uint256(amounts[i]).mulDivUp(10000 + overrideAmt, 10000));
             assertEq(handled.outputs[i].recipient, recipient);
         }
     }
