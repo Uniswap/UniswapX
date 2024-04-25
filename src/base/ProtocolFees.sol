@@ -21,6 +21,8 @@ abstract contract ProtocolFees is Owned {
     error FeeTooLarge(address token, uint256 amount, address recipient);
     /// @notice thrown if a fee output token does not have a corresponding non-fee output
     error InvalidFeeToken(address feeToken);
+    /// @notice thrown if fees are taken on both inputs and outputs
+    error InputAndOutputFees();
 
     event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
 
@@ -53,6 +55,8 @@ abstract contract ProtocolFees is Owned {
             newOutputs[i] = order.outputs[i];
         }
 
+        bool outputFeeTaken = false;
+        bool inputFeeTaken = false;
         for (uint256 i = 0; i < feeOutputsLength; i++) {
             OutputToken memory feeOutput = feeOutputs[i];
             // assert no duplicates
@@ -67,13 +71,17 @@ abstract contract ProtocolFees is Owned {
             for (uint256 j = 0; j < outputsLength; j++) {
                 OutputToken memory output = order.outputs[j];
                 if (output.token == feeOutput.token) {
+                    if (inputFeeTaken) revert InputAndOutputFees();
                     tokenValue += output.amount;
+                    outputFeeTaken = true;
                 }
             }
 
             // allow fee on input token as well
             if (address(order.input.token) == feeOutput.token) {
+                if (outputFeeTaken) revert InputAndOutputFees();
                 tokenValue += order.input.amount;
+                inputFeeTaken = true;
             }
 
             if (tokenValue == 0) revert InvalidFeeToken(feeOutput.token);

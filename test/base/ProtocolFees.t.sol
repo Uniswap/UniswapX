@@ -13,6 +13,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockProtocolFees} from "../util/mock/MockProtocolFees.sol";
 import {MockFeeController} from "../util/mock/MockFeeController.sol";
 import {MockFeeControllerInputFees} from "../util/mock/MockFeeControllerInputFees.sol";
+import {MockFeeControllerInputAndOutputFees} from "../util/mock/MockFeeControllerInputAndOutputFees.sol";
 import {MockFeeControllerDuplicates} from "../util/mock/MockFeeControllerDuplicates.sol";
 import {MockFeeControllerZeroFee} from "../util/mock/MockFeeControllerZeroFee.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
@@ -45,6 +46,7 @@ contract ProtocolFeesTest is Test {
     MockProtocolFees fees;
     MockFeeController feeController;
     MockFeeControllerInputFees inputFeeController;
+    MockFeeControllerInputAndOutputFees inputOutputFeeController;
 
     function setUp() public {
         fees = new MockProtocolFees(PROTOCOL_FEE_OWNER);
@@ -53,6 +55,7 @@ contract ProtocolFeesTest is Test {
         tokenOut2 = new MockERC20("Output2", "OUT", 18);
         feeController = new MockFeeController(RECIPIENT);
         inputFeeController = new MockFeeControllerInputFees(RECIPIENT);
+        inputOutputFeeController = new MockFeeControllerInputAndOutputFees(RECIPIENT);
         vm.prank(PROTOCOL_FEE_OWNER);
         fees.setProtocolFeeController(address(feeController));
     }
@@ -218,6 +221,19 @@ contract ProtocolFeesTest is Test {
                 ProtocolFees.FeeTooLarge.selector, address(tokenIn), order.input.amount * 10 / 10000, RECIPIENT
             )
         );
+        fees.takeFees(order);
+    }
+
+    function testTakeInputAndOutputFees() public {
+        vm.prank(PROTOCOL_FEE_OWNER);
+        fees.setProtocolFeeController(address(inputOutputFeeController));
+
+        ResolvedOrder memory order = createOrder(1 ether, false);
+        uint256 feeBps = 5;
+        inputOutputFeeController.setFee(tokenIn, feeBps);
+        inputOutputFeeController.setFee(tokenOut, feeBps);
+
+        vm.expectRevert(ProtocolFees.InputAndOutputFees.selector);
         fees.takeFees(order);
     }
 
