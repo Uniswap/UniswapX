@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchOrder} from "../../src/reactors/DutchOrderReactor.sol";
 import {
@@ -28,6 +29,7 @@ import {BaseDutchOrderReactorTest} from "./BaseDutchOrderReactor.t.sol";
 contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrderReactorTest {
     using OrderInfoBuilder for OrderInfo;
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
+    using FixedPointMathLib for uint256;
 
     function name() public pure override returns (string memory) {
         return "ExclusiveDutchOrder";
@@ -429,7 +431,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
 
         vm.prank(caller);
         fillContract.execute(signedOrder);
-        assertEq(tokenOut.balanceOf(swapper), amountOut * (10000 + overrideAmt) / 10000);
+        assertEq(tokenOut.balanceOf(swapper), uint256(amountOut).mulDivUp(10000 + overrideAmt, 10000));
         assertEq(tokenIn.balanceOf(address(fillContract)), amountIn);
     }
 
@@ -447,7 +449,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
         uint256 amountOutSum = 0;
         for (uint256 i = 0; i < amountOuts.length; i++) {
-            amountOutSum += amountOuts[i] * (10000 + overrideAmt) / 10000;
+            amountOutSum += uint256(amountOuts[i]).mulDivUp(10000 + overrideAmt, 10000);
         }
         tokenOut.mint(address(fillContract), uint256(amountOutSum));
 
