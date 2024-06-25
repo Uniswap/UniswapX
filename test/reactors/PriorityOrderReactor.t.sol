@@ -134,8 +134,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     }
 
     function testRevertsBeforeStartBlock() public {
-        PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
 
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
