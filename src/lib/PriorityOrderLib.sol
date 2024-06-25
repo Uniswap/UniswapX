@@ -8,7 +8,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 struct PriorityInput {
     ERC20 token;
     uint256 amount;
-    // the extra amount of input to be paid per wei of priority fee
+    // the less amount of input to be received per wei of priority fee
     uint256 bpsPerPriorityFeeWei;
 }
 
