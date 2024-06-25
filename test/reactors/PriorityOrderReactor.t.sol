@@ -29,6 +29,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
     string constant PRIORITY_ORDER_TYPE_NAME = "PriorityOrder";
 
+    error OrderNotFillable();
+    error InputOutputScaling();
+
     function setUp() public {
         tokenIn.mint(address(swapper), ONE);
         tokenOut.mint(address(fillContract), ONE);
@@ -108,5 +111,43 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
+    }
+
+    function testRevertsWithInputOutputScaling() public {
+        uint256 bpsPerPriorityFeeWei = 1;
+
+        PriorityOutput[] memory outputs =
+            OutputsBuilder.singlePriority(address(tokenOut), 0, bpsPerPriorityFeeWei, address(swapper));
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            startBlock: block.number,
+            input: PriorityInput({token: tokenIn, amount: 0, bpsPerPriorityFeeWei: bpsPerPriorityFeeWei}),
+            outputs: outputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(InputOutputScaling.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testRevertsBeforeStartBlock() public {
+        PriorityOutput[] memory outputs =
+            OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            startBlock: block.number + 1,
+            input: PriorityInput({token: tokenIn, amount: 0, bpsPerPriorityFeeWei: 0}),
+            outputs: outputs
+        });
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(OrderNotFillable.selector);
+        fillContract.execute(signedOrder);
     }
 }

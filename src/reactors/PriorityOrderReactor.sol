@@ -17,6 +17,7 @@ contract PriorityOrderReactor is BaseReactor {
 
     error InvalidDeadline();
     error OrderNotFillable();
+    error InputOutputScaling();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
@@ -69,7 +70,7 @@ contract PriorityOrderReactor is BaseReactor {
         if (order.input.bpsPerPriorityFeeWei > 0) {
             for (uint256 i = 0; i < order.outputs.length; i++) {
                 if (order.outputs[i].bpsPerPriorityFeeWei > 0) {
-                    revert OrderNotFillable();
+                    revert InputOutputScaling();
                 }
             }
         }
