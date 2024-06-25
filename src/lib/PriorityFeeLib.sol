@@ -16,12 +16,8 @@ library PriorityFeeLib {
     /// @param input the input to scale
     /// @param priorityFee the current priority fee
     /// @return a scaled input
-    function scale(PriorityInput memory input, uint256 priorityFee)
-        internal
-        pure
-        returns (InputToken memory)
-    {
-        if(priorityFee * input.bpsPerPriorityFeeWei >= BPS) {
+    function scale(PriorityInput memory input, uint256 priorityFee) internal pure returns (InputToken memory) {
+        if (priorityFee * input.bpsPerPriorityFeeWei >= BPS) {
             return InputToken({token: input.token, amount: 0, maxAmount: 0});
         }
         uint256 scaledAmount = input.amount.mulDivDown((BPS - (priorityFee * input.bpsPerPriorityFeeWei)), BPS);
@@ -33,11 +29,7 @@ library PriorityFeeLib {
     /// @param output the output to scale
     /// @param priorityFee the current priority fee
     /// @return a scaled output
-    function scale(PriorityOutput memory output, uint256 priorityFee)
-        internal
-        pure
-        returns (OutputToken memory)
-    {
+    function scale(PriorityOutput memory output, uint256 priorityFee) internal pure returns (OutputToken memory) {
         return OutputToken({
             token: output.token,
             amount: output.amount.mulDivUp((BPS + (priorityFee * output.bpsPerPriorityFeeWei)), BPS),

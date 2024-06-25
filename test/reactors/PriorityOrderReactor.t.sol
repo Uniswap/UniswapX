@@ -59,11 +59,11 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
                 recipient: request.outputs[i].recipient
             });
         }
-        
+
         PriorityOrder memory order = PriorityOrder({
-            info: request.info, 
+            info: request.info,
             startBlock: block.number,
-            input: PriorityInput({token: request.input.token, amount: request.input.amount, bpsPerPriorityFeeWei: 0}), 
+            input: PriorityInput({token: request.input.token, amount: request.input.amount, bpsPerPriorityFeeWei: 0}),
             outputs: outputs
         });
         orderHash = order.hash();
@@ -85,7 +85,8 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputBpsPerPriorityFeeWei, address(swapper));
+        PriorityOutput[] memory outputs =
+            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputBpsPerPriorityFeeWei, address(swapper));
         uint256 scaledOutputAmount = outputs[0].scale(priorityFee).amount;
 
         PriorityOrder memory order = PriorityOrder({
@@ -95,7 +96,8 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             outputs: outputs
         });
 
-        SignedOrder memory signedOrder = SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         bytes32 orderHash = order.hash();
 
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));

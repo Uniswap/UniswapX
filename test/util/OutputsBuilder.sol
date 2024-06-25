@@ -67,18 +67,21 @@ library OutputsBuilder {
         return result;
     }
 
-    function singlePriority(address token, uint256 amount, uint256 bpsPerPriorityFeeWei, address recipient) internal pure returns (PriorityOutput[] memory) {
+    function singlePriority(address token, uint256 amount, uint256 bpsPerPriorityFeeWei, address recipient)
+        internal
+        pure
+        returns (PriorityOutput[] memory)
+    {
         PriorityOutput[] memory result = new PriorityOutput[](1);
         result[0] = PriorityOutput(token, amount, bpsPerPriorityFeeWei, recipient);
         return result;
     }
 
-    function multiplePriority(
-        address token,
-        uint256[] memory amounts,
-        uint256 bpsPerPriorityFeeWei,
-        address recipient
-    ) internal pure returns (PriorityOutput[] memory) {
+    function multiplePriority(address token, uint256[] memory amounts, uint256 bpsPerPriorityFeeWei, address recipient)
+        internal
+        pure
+        returns (PriorityOutput[] memory)
+    {
         PriorityOutput[] memory result = new PriorityOutput[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             result[i] = PriorityOutput(token, amounts[i], bpsPerPriorityFeeWei, recipient);

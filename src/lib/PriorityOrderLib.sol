@@ -36,7 +36,8 @@ struct PriorityOrder {
 library PriorityOrderLib {
     using OrderInfoLib for OrderInfo;
 
-    bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE = "PriorityOutput(address token,uint256 amount,uint256 bpsPerPriorityFeeWei,address recipient)";
+    bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE =
+        "PriorityOutput(address token,uint256 amount,uint256 bpsPerPriorityFeeWei,address recipient)";
 
     bytes32 private constant PRIORITY_OUTPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_OUTPUT_TOKEN_TYPE);
 
@@ -59,7 +60,15 @@ library PriorityOrderLib {
 
     /// @notice returns the hash of an output token struct
     function hash(PriorityOutput memory output) private pure returns (bytes32) {
-        return keccak256(abi.encode(PRIORITY_OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.bpsPerPriorityFeeWei, output.recipient));
+        return keccak256(
+            abi.encode(
+                PRIORITY_OUTPUT_TOKEN_TYPE_HASH,
+                output.token,
+                output.amount,
+                output.bpsPerPriorityFeeWei,
+                output.recipient
+            )
+        );
     }
 
     /// @notice returns the hash of an output token struct

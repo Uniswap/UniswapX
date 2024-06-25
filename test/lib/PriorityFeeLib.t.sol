@@ -15,11 +15,8 @@ contract PriorityFeeLibTest is Test {
     function testScaleInputNoPriorityFee() public {
         assertEq(tx.gasprice, 0);
 
-        PriorityInput memory input = PriorityInput({
-            token: ERC20(address(0)),
-            amount: 1 ether,
-            bpsPerPriorityFeeWei: 100
-        });
+        PriorityInput memory input =
+            PriorityInput({token: ERC20(address(0)), amount: 1 ether, bpsPerPriorityFeeWei: 100});
 
         uint256 scaledAmount = (input.amount * (BPS - tx.gasprice * input.bpsPerPriorityFeeWei)) / BPS;
 
@@ -31,12 +28,8 @@ contract PriorityFeeLibTest is Test {
     function testScaleOutputNoPriorityFee() public {
         assertEq(tx.gasprice, 0);
 
-        PriorityOutput memory output = PriorityOutput({
-            token: address(0),
-            amount: 1 ether,
-            bpsPerPriorityFeeWei: 100,
-            recipient: address(0)
-        });
+        PriorityOutput memory output =
+            PriorityOutput({token: address(0), amount: 1 ether, bpsPerPriorityFeeWei: 100, recipient: address(0)});
 
         OutputToken memory scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
         uint256 scaledAmount = (output.amount * (BPS + tx.gasprice * output.bpsPerPriorityFeeWei)) / BPS;
@@ -48,19 +41,15 @@ contract PriorityFeeLibTest is Test {
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
 
-        PriorityInput memory input = PriorityInput({
-            token: ERC20(address(0)),
-            amount: 1 ether,
-            bpsPerPriorityFeeWei: 1
-        });
+        PriorityInput memory input = PriorityInput({token: ERC20(address(0)), amount: 1 ether, bpsPerPriorityFeeWei: 1});
 
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
 
         uint256 scaledAmount;
-        if(tx.gasprice * input.bpsPerPriorityFeeWei < BPS) {
+        if (tx.gasprice * input.bpsPerPriorityFeeWei < BPS) {
             scaledAmount = (input.amount * (BPS - tx.gasprice * input.bpsPerPriorityFeeWei)) / BPS;
         }
-        
+
         assertEq(scaledInput.amount, scaledAmount);
         assertEq(scaledInput.maxAmount, scaledAmount);
     }
@@ -72,7 +61,7 @@ contract PriorityFeeLibTest is Test {
         // we call their product scalingFactor here, and for thes test setup, we ensure that BPS + scalingFactor < type(uint256).max
         bool scalingFactorOverflow;
         unchecked {
-            if(priorityFee != 0 && bpsPerPriorityFeeWei != 0) {
+            if (priorityFee != 0 && bpsPerPriorityFeeWei != 0) {
                 uint256 temp = priorityFee * bpsPerPriorityFeeWei;
                 scalingFactorOverflow = temp / bpsPerPriorityFeeWei != priorityFee;
                 scalingFactorOverflow = scalingFactorOverflow || BPS + temp < BPS;
@@ -101,7 +90,7 @@ contract PriorityFeeLibTest is Test {
             willOverflow = (output.amount * scalingFactor) / scalingFactor != output.amount;
         }
 
-        if(willOverflow) {
+        if (willOverflow) {
             vm.expectRevert();
             scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
         } else {

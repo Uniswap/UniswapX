@@ -29,7 +29,7 @@ contract PriorityOrderReactor is BaseReactor {
     {
         PriorityOrder memory priorityOrder = abi.decode(signedOrder.order, (PriorityOrder));
         _validateOrder(priorityOrder);
-        
+
         uint256 priorityFee = tx.gasprice - block.basefee;
         resolvedOrder = ResolvedOrder({
             info: priorityOrder.info,
@@ -66,9 +66,9 @@ contract PriorityOrderReactor is BaseReactor {
             revert OrderNotFillable();
         }
 
-        if(order.input.bpsPerPriorityFeeWei > 0) {
-            for(uint256 i = 0; i < order.outputs.length; i++) {
-                if(order.outputs[i].bpsPerPriorityFeeWei > 0) {
+        if (order.input.bpsPerPriorityFeeWei > 0) {
+            for (uint256 i = 0; i < order.outputs.length; i++) {
+                if (order.outputs[i].bpsPerPriorityFeeWei > 0) {
                     revert OrderNotFillable();
                 }
             }
