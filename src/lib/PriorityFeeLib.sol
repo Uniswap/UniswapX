@@ -9,22 +9,23 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 library PriorityFeeLib {
     using FixedPointMathLib for uint256;
 
-    uint256 constant BPS = 10_000;
+    /// @notice we denominate priority fees in terms of micro-points, or 1 millionith of a basis point
+    uint256 constant MPS = 1e10;
 
-    /// @notice returns a scaled input using the current priority fee and bpsPerPriorityFeeWei
+    /// @notice returns a scaled input using the current priority fee and mpsPerPriorityFeeWei
     /// @notice the amount is scaled down to favor the swapper
     /// @param input the input to scale
     /// @param priorityFee the current priority fee
     /// @return a scaled input
     function scale(PriorityInput memory input, uint256 priorityFee) internal pure returns (InputToken memory) {
-        if (priorityFee * input.bpsPerPriorityFeeWei >= BPS) {
+        if (priorityFee * input.mpsPerPriorityFeeWei >= MPS) {
             return InputToken({token: input.token, amount: 0, maxAmount: 0});
         }
-        uint256 scaledAmount = input.amount.mulDivDown((BPS - (priorityFee * input.bpsPerPriorityFeeWei)), BPS);
+        uint256 scaledAmount = input.amount.mulDivDown((MPS - (priorityFee * input.mpsPerPriorityFeeWei)), MPS);
         return InputToken({token: input.token, amount: scaledAmount, maxAmount: scaledAmount});
     }
 
-    /// @notice returns a scaled output using the current priority fee and bpsPerPriorityFeeWei
+    /// @notice returns a scaled output using the current priority fee and mpsPerPriorityFeeWei
     /// @notice the amount is scaled up to favor the swapper
     /// @param output the output to scale
     /// @param priorityFee the current priority fee
@@ -32,12 +33,12 @@ library PriorityFeeLib {
     function scale(PriorityOutput memory output, uint256 priorityFee) internal pure returns (OutputToken memory) {
         return OutputToken({
             token: output.token,
-            amount: output.amount.mulDivUp((BPS + (priorityFee * output.bpsPerPriorityFeeWei)), BPS),
+            amount: output.amount.mulDivUp((MPS + (priorityFee * output.mpsPerPriorityFeeWei)), MPS),
             recipient: output.recipient
         });
     }
 
-    /// @notice returns scaled outputs using the current priority fee and bpsPerPriorityFeeWei
+    /// @notice returns scaled outputs using the current priority fee and mpsPerPriorityFeeWei
     function scale(PriorityOutput[] memory outputs, uint256 priorityFee)
         internal
         pure

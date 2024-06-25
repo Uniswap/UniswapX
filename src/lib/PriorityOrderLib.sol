@@ -9,14 +9,14 @@ struct PriorityInput {
     ERC20 token;
     uint256 amount;
     // the less amount of input to be received per wei of priority fee
-    uint256 bpsPerPriorityFeeWei;
+    uint256 mpsPerPriorityFeeWei;
 }
 
 struct PriorityOutput {
     address token;
     uint256 amount;
     // the extra amount of output to be paid per wei of priority fee
-    uint256 bpsPerPriorityFeeWei;
+    uint256 mpsPerPriorityFeeWei;
     address recipient;
 }
 
@@ -37,7 +37,7 @@ library PriorityOrderLib {
     using OrderInfoLib for OrderInfo;
 
     bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE =
-        "PriorityOutput(address token,uint256 amount,uint256 bpsPerPriorityFeeWei,address recipient)";
+        "PriorityOutput(address token,uint256 amount,uint256 mpsPerPriorityFeeWei,address recipient)";
 
     bytes32 private constant PRIORITY_OUTPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_OUTPUT_TOKEN_TYPE);
 
@@ -47,7 +47,7 @@ library PriorityOrderLib {
         "uint256 startBlock,",
         "address inputToken,",
         "uint256 inputAmount,",
-        "uint256 inputBpsPerPriorityFeeWei,",
+        "uint256 inputMpsPerPriorityFeeWei,",
         "PriorityOutput[] outputs)",
         OrderInfoLib.ORDER_INFO_TYPE,
         PRIORITY_OUTPUT_TOKEN_TYPE
@@ -65,7 +65,7 @@ library PriorityOrderLib {
                 PRIORITY_OUTPUT_TOKEN_TYPE_HASH,
                 output.token,
                 output.amount,
-                output.bpsPerPriorityFeeWei,
+                output.mpsPerPriorityFeeWei,
                 output.recipient
             )
         );
@@ -98,7 +98,7 @@ library PriorityOrderLib {
                 order.startBlock,
                 order.input.token,
                 order.input.amount,
-                order.input.bpsPerPriorityFeeWei,
+                order.input.mpsPerPriorityFeeWei,
                 hash(order.outputs)
             )
         );
