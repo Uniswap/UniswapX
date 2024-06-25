@@ -8,11 +8,15 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 struct PriorityInput {
     ERC20 token;
     uint256 amount;
+    // the extra amount of input to be paid per wei of priority fee
+    uint256 bpsPerPriorityFeeWei;
 }
 
 struct PriorityOutput {
     address token;
     uint256 amount;
+    // the extra amount of output to be paid per wei of priority fee
+    uint256 bpsPerPriorityFeeWei;
     address recipient;
 }
 
@@ -22,8 +26,6 @@ struct PriorityOrder {
     OrderInfo info;
     // the block at which the order becomes active
     uint256 startBlock;
-    // the extra amount of input or output tokens to be paid per wei of priority fee
-    uint256 bpsPerPriorityFeeWei;
     // The tokens that the swapper will provide when settling the order
     PriorityInput input;
     // The tokens that must be received to satisfy the order
@@ -34,7 +36,7 @@ struct PriorityOrder {
 library PriorityOrderLib {
     using OrderInfoLib for OrderInfo;
 
-    bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE = "PriorityOutput(address token,uint256 amount,address recipient)";
+    bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE = "PriorityOutput(address token,uint256 amount,uint256 bpsPerPriorityFeeWei,address recipient)";
 
     bytes32 private constant PRIORITY_OUTPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_OUTPUT_TOKEN_TYPE);
 
@@ -42,9 +44,9 @@ library PriorityOrderLib {
         "PriorityOrder(",
         "OrderInfo info,",
         "uint256 startBlock,",
-        "uint256 bpsPerPriorityFeeWei,",
         "address inputToken,",
         "uint256 inputAmount,",
+        "uint256 inputBpsPerPriorityFeeWei,",
         "PriorityOutput[] outputs)",
         OrderInfoLib.ORDER_INFO_TYPE,
         PRIORITY_OUTPUT_TOKEN_TYPE
@@ -57,7 +59,7 @@ library PriorityOrderLib {
 
     /// @notice returns the hash of an output token struct
     function hash(PriorityOutput memory output) private pure returns (bytes32) {
-        return keccak256(abi.encode(PRIORITY_OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.recipient));
+        return keccak256(abi.encode(PRIORITY_OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.bpsPerPriorityFeeWei, output.recipient));
     }
 
     /// @notice returns the hash of an output token struct
@@ -85,9 +87,9 @@ library PriorityOrderLib {
                 ORDER_TYPE_HASH,
                 order.info.hash(),
                 order.startBlock,
-                order.bpsPerPriorityFeeWei,
                 order.input.token,
                 order.input.amount,
+                order.input.bpsPerPriorityFeeWei,
                 hash(order.outputs)
             )
         );

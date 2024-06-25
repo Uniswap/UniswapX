@@ -15,6 +15,9 @@ contract PriorityOrderReactor is BaseReactor {
     using PriorityFeeLib for PriorityInput;
     using PriorityFeeLib for PriorityOutput[];
 
+    error InvalidDeadline();
+    error OrderNotFillable();
+
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
@@ -25,11 +28,13 @@ contract PriorityOrderReactor is BaseReactor {
         returns (ResolvedOrder memory resolvedOrder)
     {
         PriorityOrder memory priorityOrder = abi.decode(signedOrder.order, (PriorityOrder));
+        _validateOrder(priorityOrder);
+        
         uint256 priorityFee = tx.gasprice - block.basefee;
         resolvedOrder = ResolvedOrder({
             info: priorityOrder.info,
-            input: priorityOrder.input.scale(priorityOrder.bpsPerPriorityFeeWei, priorityFee),
-            outputs: priorityOrder.outputs.scale(priorityOrder.bpsPerPriorityFeeWei, priorityFee),
+            input: priorityOrder.input.scale(priorityFee),
+            outputs: priorityOrder.outputs.scale(priorityFee),
             sig: signedOrder.sig,
             hash: priorityOrder.hash()
         });
@@ -45,5 +50,28 @@ contract PriorityOrderReactor is BaseReactor {
             PriorityOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
+    }
+
+    /// @notice validate the priority order fields
+    /// - deadline must be in the future
+    /// - startBlock must be in the past
+    /// - if input scales with priority fee, outputs must not scale
+    /// @dev Throws if the order is invalid
+    function _validateOrder(PriorityOrder memory order) internal view {
+        if (order.info.deadline < block.timestamp) {
+            revert InvalidDeadline();
+        }
+
+        if (order.startBlock > block.number) {
+            revert OrderNotFillable();
+        }
+
+        if(order.input.bpsPerPriorityFeeWei > 0) {
+            for(uint256 i = 0; i < order.outputs.length; i++) {
+                if(order.outputs[i].bpsPerPriorityFeeWei > 0) {
+                    revert OrderNotFillable();
+                }
+            }
+        }
     }
 }
