@@ -68,9 +68,9 @@ contract PriorityOrderReactor is BaseReactor {
             revert OrderNotFillable();
         }
 
-        if (order.input.mpsPerPriorityFeeWei > 0) {
+        if (order.input.pipsPerPriorityFeeWei > 0) {
             for (uint256 i = 0; i < order.outputs.length; i++) {
-                if (order.outputs[i].mpsPerPriorityFeeWei > 0) {
+                if (order.outputs[i].pipsPerPriorityFeeWei > 0) {
                     revert InputOutputScaling();
                 }
             }

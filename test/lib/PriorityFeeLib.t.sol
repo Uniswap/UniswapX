@@ -10,15 +10,15 @@ import {PriorityFeeLib} from "../../src/lib/PriorityFeeLib.sol";
 
 // base fee is 0 by default
 contract PriorityFeeLibTest is Test {
-    uint256 constant MPS = 1e10;
+    uint256 constant PPS = 1e10;
 
     function testScaleInputNoPriorityFee() public {
         assertEq(tx.gasprice, 0);
 
         PriorityInput memory input =
-            PriorityInput({token: ERC20(address(0)), amount: 1 ether, mpsPerPriorityFeeWei: 100});
+            PriorityInput({token: ERC20(address(0)), amount: 1 ether, pipsPerPriorityFeeWei: 100});
 
-        uint256 scaledAmount = (input.amount * (MPS - tx.gasprice * input.mpsPerPriorityFeeWei)) / MPS;
+        uint256 scaledAmount = (input.amount * (PPS - tx.gasprice * input.pipsPerPriorityFeeWei)) / PPS;
 
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
         assertEq(scaledInput.amount, scaledAmount);
@@ -29,10 +29,10 @@ contract PriorityFeeLibTest is Test {
         assertEq(tx.gasprice, 0);
 
         PriorityOutput memory output =
-            PriorityOutput({token: address(0), amount: 1 ether, mpsPerPriorityFeeWei: 100, recipient: address(0)});
+            PriorityOutput({token: address(0), amount: 1 ether, pipsPerPriorityFeeWei: 100, recipient: address(0)});
 
         OutputToken memory scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
-        uint256 scaledAmount = (output.amount * (MPS + tx.gasprice * output.mpsPerPriorityFeeWei)) / MPS;
+        uint256 scaledAmount = (output.amount * (PPS + tx.gasprice * output.pipsPerPriorityFeeWei)) / PPS;
 
         assertEq(scaledOutput.amount, scaledAmount);
     }
@@ -41,31 +41,31 @@ contract PriorityFeeLibTest is Test {
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
 
-        PriorityInput memory input = PriorityInput({token: ERC20(address(0)), amount: 1 ether, mpsPerPriorityFeeWei: 1});
+        PriorityInput memory input = PriorityInput({token: ERC20(address(0)), amount: 1 ether, pipsPerPriorityFeeWei: 1});
 
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
 
         uint256 scaledAmount;
-        if (tx.gasprice * input.mpsPerPriorityFeeWei < MPS) {
-            scaledAmount = (input.amount * (MPS - tx.gasprice * input.mpsPerPriorityFeeWei)) / MPS;
+        if (tx.gasprice * input.pipsPerPriorityFeeWei < PPS) {
+            scaledAmount = (input.amount * (PPS - tx.gasprice * input.pipsPerPriorityFeeWei)) / PPS;
         }
 
         assertEq(scaledInput.amount, scaledAmount);
         assertEq(scaledInput.maxAmount, scaledAmount);
     }
 
-    function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
-        // the amount of MPS to scale the output by
-        uint256 scalingFactor = MPS;
-        // overflows can happen when the priority fee is too high, or when the mpsPerPriorityFeeWei is too high
-        // we call their product scalingFactor here, and for thes test setup, we ensure that MPS + scalingFactor < type(uint256).max
+    function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 pipsPerPriorityFeeWei) public {
+        // the amount of PPS to scale the output by
+        uint256 scalingFactor = PPS;
+        // overflows can happen when the priority fee is too high, or when the pipsPerPriorityFeeWei is too high
+        // we call their product scalingFactor here, and for thes test setup, we ensure that PPS + scalingFactor < type(uint256).max
         bool scalingFactorOverflow;
         unchecked {
-            if (priorityFee != 0 && mpsPerPriorityFeeWei != 0) {
-                uint256 temp = priorityFee * mpsPerPriorityFeeWei;
-                scalingFactorOverflow = temp / mpsPerPriorityFeeWei != priorityFee;
-                scalingFactorOverflow = scalingFactorOverflow || MPS + temp < MPS;
-                scalingFactor = MPS + temp;
+            if (priorityFee != 0 && pipsPerPriorityFeeWei != 0) {
+                uint256 temp = priorityFee * pipsPerPriorityFeeWei;
+                scalingFactorOverflow = temp / pipsPerPriorityFeeWei != priorityFee;
+                scalingFactorOverflow = scalingFactorOverflow || PPS + temp < PPS;
+                scalingFactor = PPS + temp;
             }
         }
         vm.assume(!scalingFactorOverflow);
@@ -76,7 +76,7 @@ contract PriorityFeeLibTest is Test {
         PriorityOutput memory output = PriorityOutput({
             token: address(0),
             amount: 1 ether,
-            mpsPerPriorityFeeWei: mpsPerPriorityFeeWei,
+            pipsPerPriorityFeeWei: pipsPerPriorityFeeWei,
             recipient: address(0)
         });
 
@@ -95,7 +95,7 @@ contract PriorityFeeLibTest is Test {
             scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
         } else {
             scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
-            uint256 scaledAmount = (output.amount * (MPS + tx.gasprice * output.mpsPerPriorityFeeWei)) / MPS;
+            uint256 scaledAmount = (output.amount * (PPS + tx.gasprice * output.pipsPerPriorityFeeWei)) / PPS;
             assertEq(scaledOutput.amount, scaledAmount);
         }
     }

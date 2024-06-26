@@ -46,7 +46,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     }
 
     /// @dev Create and return a basic PriorityOrder along with its signature, hash, and orderInfo
-    /// uses default parameter values for startBlock and mpsPerPriorityFeeWei
+    /// uses default parameter values for startBlock and pipsPerPriorityFeeWei
     function createAndSignOrder(ResolvedOrder memory request)
         public
         view
@@ -58,7 +58,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             outputs[i] = PriorityOutput({
                 token: request.outputs[i].token,
                 amount: request.outputs[i].amount,
-                mpsPerPriorityFeeWei: 0,
+                pipsPerPriorityFeeWei: 0,
                 recipient: request.outputs[i].recipient
             });
         }
@@ -66,7 +66,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         PriorityOrder memory order = PriorityOrder({
             info: request.info,
             startBlock: block.number,
-            input: PriorityInput({token: request.input.token, amount: request.input.amount, mpsPerPriorityFeeWei: 0}),
+            input: PriorityInput({token: request.input.token, amount: request.input.amount, pipsPerPriorityFeeWei: 0}),
             outputs: outputs
         });
         orderHash = order.hash();
@@ -80,8 +80,8 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
-        uint256 inputMpsPerPriorityFeeWei = 0;
-        uint256 outputMpsPerPriorityFeeWei = 1; // exact input
+        uint256 inputPipsPerPriorityFeeWei = 0;
+        uint256 outputPipsPerPriorityFeeWei = 1; // exact input
         uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
@@ -89,13 +89,13 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputPipsPerPriorityFeeWei, address(swapper));
         uint256 scaledOutputAmount = outputs[0].scale(priorityFee).amount;
 
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
             startBlock: block.number,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({token: tokenIn, amount: inputAmount, pipsPerPriorityFeeWei: inputPipsPerPriorityFeeWei}),
             outputs: outputs
         });
 
@@ -114,15 +114,15 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     }
 
     function testRevertsWithInputOutputScaling() public {
-        uint256 mpsPerPriorityFeeWei = 1;
+        uint256 pipsPerPriorityFeeWei = 1;
 
         PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), 0, mpsPerPriorityFeeWei, address(swapper));
+            OutputsBuilder.singlePriority(address(tokenOut), 0, pipsPerPriorityFeeWei, address(swapper));
 
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
             startBlock: block.number,
-            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: mpsPerPriorityFeeWei}),
+            input: PriorityInput({token: tokenIn, amount: 0, pipsPerPriorityFeeWei: pipsPerPriorityFeeWei}),
             outputs: outputs
         });
 
@@ -139,7 +139,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
             startBlock: block.number + 1,
-            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            input: PriorityInput({token: tokenIn, amount: 0, pipsPerPriorityFeeWei: 0}),
             outputs: outputs
         });
 
