@@ -8,7 +8,8 @@ import {PriorityFeeLib} from "../lib/PriorityFeeLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
-/// @notice Reactor for simple limit orders
+/// @notice Reactor for priority orders
+/// @dev only supported on chains which use priority fee transaction ordering
 contract PriorityOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using PriorityOrderLib for PriorityOrder;
