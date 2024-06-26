@@ -10,7 +10,7 @@ import {PriorityFeeLib} from "../../src/lib/PriorityFeeLib.sol";
 
 // base fee is 0 by default
 contract PriorityFeeLibTest is Test {
-    uint256 constant MPS = 1e6;
+    uint256 constant MPS = 1e7;
 
     function testScaleInputNoPriorityFee() public {
         assertEq(tx.gasprice, 0);

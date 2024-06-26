@@ -9,8 +9,8 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 library PriorityFeeLib {
     using FixedPointMathLib for uint256;
 
-    /// @notice we denominate priority fees in terms of pips, or one hundredth of a basis point
-    uint256 constant MPS = 1e6;
+    /// @notice we denominate priority fees in terms of milli-bips, or one thousandth of a basis point
+    uint256 constant MPS = 1e7;
 
     /// @notice returns a scaled input using the current priority fee and mpsPerPriorityFeeWei
     /// @notice this value is bounded by 0 since the maximal extractable value is <= the full input amount
