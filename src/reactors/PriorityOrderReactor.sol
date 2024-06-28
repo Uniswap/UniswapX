@@ -23,6 +23,8 @@ contract PriorityOrderReactor is BaseReactor {
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
+    /// @notice a tx's priority fee must be equal to the difference between the tx gas price and the block's base fee
+    ///         this may not be the case on all chains
     function _resolve(SignedOrder calldata signedOrder)
         internal
         view
