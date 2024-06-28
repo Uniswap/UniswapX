@@ -123,14 +123,15 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 inputMpsPerPriorityFeeWei = 1; // exact output
-        uint256 outputMpsPerPriorityFeeWei = 0; 
+        uint256 outputMpsPerPriorityFeeWei = 0;
         uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        PriorityInput memory input = PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei});
+        PriorityInput memory input =
+            PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei});
         PriorityOutput[] memory outputs =
             OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
         uint256 scaledInputAmount = input.scale(priorityFee).amount;
