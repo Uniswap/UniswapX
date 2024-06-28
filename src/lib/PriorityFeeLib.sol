@@ -15,15 +15,16 @@ library PriorityFeeLib {
     /// @notice returns a scaled input using the current priority fee and mpsPerPriorityFeeWei
     /// @notice this value is bounded by 0 since the maximal extractable value is <= the full input amount
     /// @notice the amount is scaled down to favor the swapper
+    /// @notice maxAmount is set to be the original amount and is used to rebuild the permit2 token permissions struct
     /// @param input the input to scale
     /// @param priorityFee the current priority fee
     /// @return a scaled input
     function scale(PriorityInput memory input, uint256 priorityFee) internal pure returns (InputToken memory) {
         if (priorityFee * input.mpsPerPriorityFeeWei >= MPS) {
-            return InputToken({token: input.token, amount: 0, maxAmount: 0});
+            return InputToken({token: input.token, amount: 0, maxAmount: input.amount});
         }
         uint256 scaledAmount = input.amount.mulDivDown((MPS - (priorityFee * input.mpsPerPriorityFeeWei)), MPS);
-        return InputToken({token: input.token, amount: scaledAmount, maxAmount: scaledAmount});
+        return InputToken({token: input.token, amount: scaledAmount, maxAmount: input.amount});
     }
 
     /// @notice returns a scaled output using the current priority fee and mpsPerPriorityFeeWei

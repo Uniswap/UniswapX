@@ -22,7 +22,7 @@ contract PriorityFeeLibTest is Test {
 
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
         assertEq(scaledInput.amount, scaledAmount);
-        assertEq(scaledInput.maxAmount, scaledAmount);
+        assertEq(scaledInput.maxAmount, input.amount);
     }
 
     function testScaleOutputNoPriorityFee() public {
@@ -51,7 +51,7 @@ contract PriorityFeeLibTest is Test {
         }
 
         assertEq(scaledInput.amount, scaledAmount);
-        assertEq(scaledInput.maxAmount, scaledAmount);
+        assertEq(scaledInput.maxAmount, input.amount);
     }
 
     function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
