@@ -14,7 +14,8 @@ contract PriorityFeeLibTest is Test {
     using FixedPointMathLib for uint256;
 
     uint256 constant MPS = 1e7;
-    uint256 constant amount = 1111111111111111111; /// 1.111111111111111111 ether (for testing precision)
+    uint256 constant amount = 1111111111111111111;
+    /// 1.111111111111111111 ether (for testing precision)
 
     function testScaleInputNoPriorityFee() public {
         assertEq(tx.gasprice, 0);
@@ -145,8 +146,7 @@ contract PriorityFeeLibTest is Test {
     function testScaleInputWithZeroMpsPerPriorityFeeWei_fuzz(uint256 priorityFee) public {
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
-        PriorityInput memory input =
-            PriorityInput({token: ERC20(address(0)), amount: amount, mpsPerPriorityFeeWei: 0});
+        PriorityInput memory input = PriorityInput({token: ERC20(address(0)), amount: amount, mpsPerPriorityFeeWei: 0});
 
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
         assertEq(scaledInput.amount, input.amount);

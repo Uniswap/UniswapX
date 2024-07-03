@@ -24,7 +24,11 @@ library PriorityFeeLib {
         if (scalingFactor >= MPS) {
             return InputToken({token: input.token, amount: 0, maxAmount: input.amount});
         }
-        return InputToken({token: input.token, amount: input.amount.mulDivDown((MPS - scalingFactor), MPS), maxAmount: input.amount});
+        return InputToken({
+            token: input.token,
+            amount: input.amount.mulDivDown((MPS - scalingFactor), MPS),
+            maxAmount: input.amount
+        });
     }
 
     /// @notice returns a scaled output using the current priority fee and mpsPerPriorityFeeWei
