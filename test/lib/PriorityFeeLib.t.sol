@@ -9,13 +9,16 @@ import {InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {PriorityInput, PriorityOutput} from "../../src/lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../../src/lib/PriorityFeeLib.sol";
 
-// base fee is 0 by default
 contract PriorityFeeLibTest is Test {
     using FixedPointMathLib for uint256;
 
     uint256 constant MPS = 1e7;
     /// 1.111111111111111111 ether (for testing precision)
     uint256 constant amount = 1111111111111111111;
+
+    function setUp() view public {
+        assertEq(block.basefee, 0);
+    }
 
     function testScaleInputNoPriorityFee() public view {
         assertEq(tx.gasprice, 0);
