@@ -16,7 +16,7 @@ contract PriorityFeeLibTest is Test {
     /// 1.111111111111111111 ether (for testing precision)
     uint256 constant amount = 1111111111111111111;
 
-    function setUp() view public {
+    function setUp() public view {
         assertEq(block.basefee, 0);
     }
 
