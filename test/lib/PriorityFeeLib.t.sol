@@ -14,32 +14,28 @@ contract PriorityFeeLibTest is Test {
     using FixedPointMathLib for uint256;
 
     uint256 constant MPS = 1e7;
-    uint256 constant amount = 1111111111111111111;
     /// 1.111111111111111111 ether (for testing precision)
+    uint256 constant amount = 1111111111111111111;
 
-    function testScaleInputNoPriorityFee() public {
+    function testScaleInputNoPriorityFee() public view {
         assertEq(tx.gasprice, 0);
 
         PriorityInput memory input =
             PriorityInput({token: ERC20(address(0)), amount: amount, mpsPerPriorityFeeWei: 100});
 
-        uint256 scaledAmount = input.amount.mulDivDown(MPS - tx.gasprice * input.mpsPerPriorityFeeWei, MPS);
-
         InputToken memory scaledInput = PriorityFeeLib.scale(input, tx.gasprice);
-        assertEq(scaledInput.amount, scaledAmount);
+        assertEq(scaledInput.amount, input.amount);
         assertEq(scaledInput.maxAmount, input.amount);
     }
 
-    function testScaleOutputNoPriorityFee() public {
+    function testScaleOutputNoPriorityFee() public view {
         assertEq(tx.gasprice, 0);
 
         PriorityOutput memory output =
             PriorityOutput({token: address(0), amount: amount, mpsPerPriorityFeeWei: 100, recipient: address(0)});
 
         OutputToken memory scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
-        uint256 scaledAmount = output.amount.mulDivUp((MPS + tx.gasprice * output.mpsPerPriorityFeeWei), MPS);
-
-        assertEq(scaledOutput.amount, scaledAmount);
+        assertEq(scaledOutput.amount, output.amount);
     }
 
     function testScaleInputLowPriorityFee() public {
@@ -93,6 +89,21 @@ contract PriorityFeeLibTest is Test {
         OutputToken memory scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
         uint256 scaledAmount = output.amount.mulDivUp((MPS + tx.gasprice * output.mpsPerPriorityFeeWei), MPS);
         assertEq(scaledOutput.amount, scaledAmount);
+    }
+
+    /// @notice if the amount to scale is large enough to cause a phantom overflow in mulDivUp, we expect a revert
+    function testScaleRevertsOnLargeOutput() public {
+        uint256 priorityFee = 0;
+        vm.txGasPrice(priorityFee);
+        assertEq(tx.gasprice, priorityFee);
+
+        uint256 largeAmount = type(uint256).max / MPS + 1;
+
+        PriorityOutput memory output =
+            PriorityOutput({token: address(0), amount: largeAmount, mpsPerPriorityFeeWei: 0, recipient: address(0)});
+
+        vm.expectRevert();
+        PriorityFeeLib.scale(output, tx.gasprice);
     }
 
     function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
