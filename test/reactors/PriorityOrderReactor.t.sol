@@ -410,6 +410,55 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    function testWrongCosigner() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: wrongCosigner,
+            auctionStartBlock: block.number,
+            openAuctionStartBlock: block.number,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testInvalidCosignature() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: wrongCosigner,
+            auctionStartBlock: block.number,
+            openAuctionStartBlock: block.number,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
     function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
         private
         pure
