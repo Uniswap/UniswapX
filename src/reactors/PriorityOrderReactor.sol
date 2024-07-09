@@ -16,21 +16,23 @@ contract PriorityOrderReactor is BaseReactor {
     using PriorityFeeLib for PriorityInput;
     using PriorityFeeLib for PriorityOutput[];
 
+    /// @notice thrown when an order's deadline is in the past
     error InvalidDeadline();
+    /// @notice thrown when an order's auctionStartBlock is in the future
     error OrderNotFillable();
+    /// @notice thrown when an order's input and outputs both scale with priority fee
     error InputOutputScaling();
-
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
-
     /// @notice thrown when an order's cosigner target block is invalid
     error InvalidCosignerTargetBlock();
+    /// @notice thrown when an order's min priority fee is greater than the priority fee of the transaction
+    error InsufficientPriorityFee();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
-    /// @notice a tx's priority fee must be equal to the difference between the tx gas price and the block's base fee
-    ///         this may not be the case on all chains
+    /// @notice tx.gasprice must be greater than or equal to block.basefee
     function _resolve(SignedOrder calldata signedOrder)
         internal
         view
@@ -44,6 +46,11 @@ contract PriorityOrderReactor is BaseReactor {
         _validateOrder(orderHash, order);
 
         uint256 priorityFee = tx.gasprice - block.basefee;
+        if (priorityFee < order.minPriorityFeeWei) {
+            revert InsufficientPriorityFee();
+        }
+        priorityFee -= order.minPriorityFeeWei;
+
         resolvedOrder = ResolvedOrder({
             info: order.info,
             input: order.input.scale(priorityFee),

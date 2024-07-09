@@ -36,10 +36,6 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     string constant PRIORITY_ORDER_TYPE_NAME = "PriorityOrder";
     uint256 constant cosignerPrivateKey = 0x99999999;
 
-    error OrderNotFillable();
-    error InputOutputScaling();
-    error InvalidCosignerTargetBlock();
-
     function setUp() public {
         tokenIn.mint(address(swapper), ONE);
         tokenOut.mint(address(fillContract), ONE);
@@ -78,6 +74,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: request.input.token, amount: request.input.amount, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -115,6 +112,59 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        bytes32 orderHash = order.hash();
+
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+    }
+
+    /// @notice Test a basic order when output priority fee and basePriorityFee are non zero
+    function testExecuteWithOutputPriorityFeeAndBasePriorityFee() public {
+        uint256 minPriorityFeeWei = 1 gwei;
+        uint256 priorityFee = minPriorityFeeWei + 100 wei;
+        vm.txGasPrice(priorityFee);
+
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 inputMpsPerPriorityFeeWei = 0;
+        uint256 outputMpsPerPriorityFeeWei = 1; // exact input
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        PriorityOutput[] memory outputs =
+            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+        // Because of the basePriorityFee, we should only scale the output by the difference between the priorityFee and the minPriorityFeeWei
+        uint256 scaledOutputAmount = outputs[0].scale(priorityFee - minPriorityFeeWei).amount;
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: minPriorityFeeWei,
             input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -166,6 +216,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: input,
             outputs: outputs,
             cosignerData: cosignerData,
@@ -200,6 +251,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -230,6 +282,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -260,6 +313,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -288,6 +342,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -307,6 +362,36 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    /// @notice an order cannot be filled if the transaction's priority fee is less than the order's minPriorityFee
+    function testRevertsMinPriorityFee() public {
+        uint256 minPriorityFeeWei = 1 gwei;
+        uint256 priorityFee = minPriorityFeeWei - 1;
+        vm.txGasPrice(priorityFee);
+
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 1, address(swapper));
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: minPriorityFeeWei,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.InsufficientPriorityFee.selector);
+        fillContract.execute(signedOrder);
+    }
+
     /// @notice an order cannot be filled if both input and outputs scale with priority fee
     function testRevertsWithInputOutputScaling() public {
         uint256 mpsPerPriorityFeeWei = 1;
@@ -321,6 +406,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: mpsPerPriorityFeeWei}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -331,7 +417,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(InputOutputScaling.selector);
+        vm.expectRevert(PriorityOrderReactor.InputOutputScaling.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -346,6 +432,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number + 1,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -356,7 +443,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(OrderNotFillable.selector);
+        vm.expectRevert(PriorityOrderReactor.OrderNotFillable.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -371,6 +458,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number + 10,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -381,7 +469,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(OrderNotFillable.selector);
+        vm.expectRevert(PriorityOrderReactor.OrderNotFillable.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -396,6 +484,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -406,7 +495,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(InvalidCosignerTargetBlock.selector);
+        vm.expectRevert(PriorityOrderReactor.InvalidCosignerTargetBlock.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -421,6 +510,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: wrongCosigner,
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
@@ -445,6 +535,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: wrongCosigner,
             auctionStartBlock: block.number,
             openAuctionStartBlock: block.number,
+            minPriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
             cosignerData: cosignerData,
