@@ -24,8 +24,6 @@ contract PriorityOrderReactor is BaseReactor {
     error InputOutputScaling();
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
-    /// @notice thrown when an order's cosigner target block is invalid
-    error InvalidCosignerTargetBlock();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
