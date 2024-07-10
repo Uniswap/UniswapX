@@ -374,8 +374,8 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         // execute order
         fillContract.execute(signedOrder);
     }
-    /// @notice an order cannot be filled if both input and outputs scale with priority fee
 
+    /// @notice an order cannot be filled if both input and outputs scale with priority fee
     function testRevertsWithInputOutputScaling() public {
         uint256 mpsPerPriorityFeeWei = 1;
 
@@ -413,6 +413,31 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number + 1,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.OrderNotFillable.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @notice an order cannot be filled if the current block is before the overriden auctionStartBlock
+    function testRevertsBeforeCosignedAuctionTargetBlock() public {
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number + 1});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number + 2,
             baselinePriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
