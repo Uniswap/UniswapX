@@ -31,12 +31,10 @@ struct PriorityOrder {
     OrderInfo info;
     // The address which must cosign the full order
     address cosigner;
-    // the block at which the order becomes active
+    // the block at which the order can be executed
     uint256 auctionStartBlock;
-    // the block at which the order can be executed without a cosigner
-    uint256 openAuctionStartBlock;
-    // the minimum priority fee required for filling the order
-    uint256 minPriorityFeeWei;
+    // the baseline priority fee for the order, above which additional taxes are applied
+    uint256 baselinePriorityFeeWei;
     // The tokens that the swapper will provide when settling the order
     PriorityInput input;
     // The tokens that must be received to satisfy the order
@@ -66,8 +64,7 @@ library PriorityOrderLib {
         "OrderInfo info,",
         "address cosigner,",
         "uint256 auctionStartBlock,",
-        "uint256 openAuctionStartBlock,",
-        "uint256 minPriorityFeeWei,",
+        "uint256 baselinePriorityFeeWei,",
         "PriorityInput input,",
         "PriorityOutput[] outputs)",
         OrderInfoLib.ORDER_INFO_TYPE,
@@ -125,8 +122,7 @@ library PriorityOrderLib {
                 order.info.hash(),
                 order.cosigner,
                 order.auctionStartBlock,
-                order.openAuctionStartBlock,
-                order.minPriorityFeeWei,
+                order.baselinePriorityFeeWei,
                 hash(order.input),
                 hash(order.outputs)
             )

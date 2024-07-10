@@ -26,8 +26,6 @@ contract PriorityOrderReactor is BaseReactor {
     error InvalidCosignature();
     /// @notice thrown when an order's cosigner target block is invalid
     error InvalidCosignerTargetBlock();
-    /// @notice thrown when an order's min priority fee is greater than the priority fee of the transaction
-    error InsufficientPriorityFee();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
@@ -46,10 +44,11 @@ contract PriorityOrderReactor is BaseReactor {
         _validateOrder(orderHash, order);
 
         uint256 priorityFee = tx.gasprice - block.basefee;
-        if (priorityFee < order.minPriorityFeeWei) {
-            revert InsufficientPriorityFee();
+        if (priorityFee > order.baselinePriorityFeeWei) {
+            priorityFee -= order.baselinePriorityFeeWei;
+        } else {
+            priorityFee = 0;
         }
-        priorityFee -= order.minPriorityFeeWei;
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
@@ -74,14 +73,9 @@ contract PriorityOrderReactor is BaseReactor {
 
     /// @notice update the order with the cosigner's data
     function _updateWithCosignerData(PriorityOrder memory order) internal view {
-        /// if there is a cosigned targetBlock, and we are not yet in the openAuction
         if (order.cosignerData.auctionTargetBlock != 0) {
-            /// the cosigned target block must be before the openAuctionStartBlock
-            if (order.cosignerData.auctionTargetBlock > order.openAuctionStartBlock) {
-                revert InvalidCosignerTargetBlock();
-            }
-            /// if we are not yet in the openAuction, set the auctionStartBlock to the cosigned target block
-            if (block.number < order.openAuctionStartBlock) {
+            /// the cosigner can only move the user's auctionStartBlock forward
+            if (order.cosignerData.auctionTargetBlock < order.auctionStartBlock) {
                 order.auctionStartBlock = order.cosignerData.auctionTargetBlock;
             }
         }
@@ -89,7 +83,7 @@ contract PriorityOrderReactor is BaseReactor {
 
     /// @notice validate the priority order fields
     /// - deadline must be in the future
-    /// - auctionStartBlock must be in the past
+    /// - auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// - order's cosigner must have signed over (orderHash || cosignerData)
     /// @dev Throws if the order is invalid
