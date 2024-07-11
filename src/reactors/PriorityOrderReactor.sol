@@ -38,12 +38,14 @@ contract PriorityOrderReactor is BaseReactor {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
         bytes32 orderHash = order.hash();
 
-        _updateWithCosignerData(order);
-        _validateOrder(orderHash, order);
+        _updateWithCosignerData(orderHash, order);
+        _validateOrder(order);
 
         uint256 priorityFee = tx.gasprice - block.basefee;
         if (priorityFee > order.baselinePriorityFeeWei) {
-            priorityFee -= order.baselinePriorityFeeWei;
+            unchecked {
+                priorityFee -= order.baselinePriorityFeeWei;
+            }
         } else {
             priorityFee = 0;
         }
@@ -69,12 +71,25 @@ contract PriorityOrderReactor is BaseReactor {
         );
     }
 
-    /// @notice update the order with the cosigner's data
-    function _updateWithCosignerData(PriorityOrder memory order) internal view {
-        if (order.cosignerData.auctionTargetBlock != 0) {
+    /// @notice update the priority order with the cosigner's data
+    /// @param orderHash the hash of the order
+    /// @param order the order to update
+    function _updateWithCosignerData(bytes32 orderHash, PriorityOrder memory order) internal view {
+        if (order.cosignerData.auctionTargetBlock == 0) return;
+
+        /// we validate cosigner data only before the auctionStartBlock
+        if (block.number < order.auctionStartBlock) {
             /// the cosigner can only move the user's auctionStartBlock forward
             if (order.cosignerData.auctionTargetBlock < order.auctionStartBlock) {
                 order.auctionStartBlock = order.cosignerData.auctionTargetBlock;
+            }
+            // validate cosigner signature
+            (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
+            uint8 v = uint8(order.cosignature[64]);
+            // cosigner signs over (orderHash || cosignerData)
+            address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
+            if (order.cosigner != signer || signer == address(0)) {
+                revert InvalidCosignature();
             }
         }
     }
@@ -85,11 +100,13 @@ contract PriorityOrderReactor is BaseReactor {
     /// - if input scales with priority fee, outputs must not scale
     /// - order's cosigner must have signed over (orderHash || cosignerData)
     /// @dev Throws if the order is invalid
-    function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
+    function _validateOrder(PriorityOrder memory order) internal view {
         if (order.info.deadline < block.timestamp) {
             revert InvalidDeadline();
         }
 
+        /// revert if the resolved auctionStartBlock is in the future
+        /// must be the minimum(auctionStartBlock, cosignerData.auctionTargetBlock)
         if (order.auctionStartBlock > block.number) {
             revert OrderNotFillable();
         }
@@ -100,14 +117,6 @@ contract PriorityOrderReactor is BaseReactor {
                     revert InputOutputScaling();
                 }
             }
-        }
-
-        (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
-        uint8 v = uint8(order.cosignature[64]);
-        // cosigner signs over (orderHash || cosignerData)
-        address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-        if (order.cosigner != signer || signer == address(0)) {
-            revert InvalidCosignature();
         }
     }
 }

@@ -375,6 +375,37 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    /// @notice a cosigned order can still be filled after the user's auctionStartBlock with an invalid cosignature or none at all
+    function testExecuteAfterAuctionStartBlockWithInvalidCosignature() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: wrongCosigner,
+            auctionStartBlock: block.number + 1,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        bytes32 orderHash = order.hash();
+
+        vm.roll(block.number + 1);
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
+        fillContract.execute(signedOrder);
+    }
+
     /// @notice an order cannot be filled if both input and outputs scale with priority fee
     function testRevertsWithInputOutputScaling() public {
         uint256 mpsPerPriorityFeeWei = 1;
@@ -453,6 +484,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    /// @notice must revert if resolved signer is not the cosigner specified in the order iff the auctionStartBlock is overriden
     function testWrongCosigner() public {
         address wrongCosigner = makeAddr("wrongCosigner");
 
@@ -462,7 +494,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
             cosigner: wrongCosigner,
-            auctionStartBlock: block.number,
+            auctionStartBlock: block.number + 1,
             baselinePriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
@@ -477,6 +509,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    /// @notice must revert if the cosignature is invalid iff the auctionStartBlock is overriden
     function testInvalidCosignature() public {
         address wrongCosigner = makeAddr("wrongCosigner");
 
@@ -486,7 +519,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
             cosigner: wrongCosigner,
-            auctionStartBlock: block.number,
+            auctionStartBlock: block.number + 1,
             baselinePriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
             outputs: outputs,
