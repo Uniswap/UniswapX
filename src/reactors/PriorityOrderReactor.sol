@@ -30,7 +30,6 @@ contract PriorityOrderReactor is BaseReactor {
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
     /// @inheritdoc BaseReactor
-    /// @notice tx.gasprice must be greater than or equal to block.basefee
     function _resolve(SignedOrder calldata signedOrder)
         internal
         view
@@ -45,16 +44,7 @@ contract PriorityOrderReactor is BaseReactor {
         }
         _validateOrder(order);
 
-        if (tx.gasprice < block.basefee) revert InvalidGasPrice();
-        uint256 priorityFee;
-        unchecked {
-            priorityFee = tx.gasprice - block.basefee;
-            if (priorityFee > order.baselinePriorityFeeWei) {
-                priorityFee -= order.baselinePriorityFeeWei;
-            } else {
-                priorityFee = 0;
-            }
-        }
+        uint256 priorityFee = _getPriorityFee(order.baselinePriorityFeeWei);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
@@ -120,6 +110,22 @@ contract PriorityOrderReactor is BaseReactor {
                 if (order.outputs[i].mpsPerPriorityFeeWei > 0) {
                     revert InputOutputScaling();
                 }
+            }
+        }
+    }
+
+    /// @notice resolve the priority fee for the current transaction
+    /// @notice tx.gasprice must be greater than or equal to block.basefee
+    /// @param baselinePriorityFeeWei the baseline priority fee to be subtracted from calculated priority fee
+    /// @return priorityFee the resolved priority fee
+    function _getPriorityFee(uint256 baselinePriorityFeeWei) internal view returns (uint256 priorityFee) {
+        if (tx.gasprice < block.basefee) revert InvalidGasPrice();
+        unchecked {
+            priorityFee = tx.gasprice - block.basefee;
+            if (priorityFee > baselinePriorityFeeWei) {
+                priorityFee -= baselinePriorityFeeWei;
+            } else {
+                priorityFee = 0;
             }
         }
     }
