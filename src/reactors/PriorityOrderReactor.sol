@@ -24,6 +24,8 @@ contract PriorityOrderReactor is BaseReactor {
     error InputOutputScaling();
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
+    /// @notice thrown when tx gasprice is less than block.basefee
+    error InvalidGasPrice();
 
     constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
 
@@ -41,13 +43,15 @@ contract PriorityOrderReactor is BaseReactor {
         _updateWithCosignerData(orderHash, order);
         _validateOrder(order);
 
-        uint256 priorityFee = tx.gasprice - block.basefee;
-        if (priorityFee > order.baselinePriorityFeeWei) {
-            unchecked {
+        if (tx.gasprice < block.basefee) revert InvalidGasPrice();
+        uint256 priorityFee;
+        unchecked {
+            priorityFee = tx.gasprice - block.basefee;
+            if (priorityFee > order.baselinePriorityFeeWei) {
                 priorityFee -= order.baselinePriorityFeeWei;
+            } else {
+                priorityFee = 0;
             }
-        } else {
-            priorityFee = 0;
         }
 
         resolvedOrder = ResolvedOrder({
