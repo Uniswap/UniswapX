@@ -16,11 +16,11 @@ contract PriorityFeeLibTest is Test {
     /// 1.111111111111111111 ether (for testing precision)
     uint256 constant amount = 1111111111111111111;
 
-    function setUp() public {
+    function setUp() public view {
         assertEq(block.basefee, 0);
     }
 
-    function testScaleInputNoPriorityFee() public {
+    function testScaleInputNoPriorityFee() public view {
         assertEq(tx.gasprice, 0);
 
         PriorityInput memory input =
@@ -31,7 +31,7 @@ contract PriorityFeeLibTest is Test {
         assertEq(scaledInput.maxAmount, input.amount);
     }
 
-    function testScaleOutputNoPriorityFee() public {
+    function testScaleOutputNoPriorityFee() public view {
         assertEq(tx.gasprice, 0);
 
         PriorityOutput memory output =
