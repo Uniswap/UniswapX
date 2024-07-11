@@ -39,10 +39,7 @@ contract PriorityOrderReactor is BaseReactor {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
         bytes32 orderHash = order.hash();
 
-        if (block.number < order.auctionStartBlock) {
-            _updateWithCosignerData(orderHash, order);
-        }
-        _validateOrder(order);
+        _validateOrder(orderHash, order);
 
         uint256 priorityFee = _getPriorityFee(order.baselinePriorityFeeWei);
 
@@ -67,41 +64,40 @@ contract PriorityOrderReactor is BaseReactor {
         );
     }
 
-    /// @notice update the priority order with the cosigner's data
-    /// @dev only called if the current block is before the auctionStartBlock signed by the user
-    /// @param orderHash the hash of the order
-    /// @param order the order to update
-    function _updateWithCosignerData(bytes32 orderHash, PriorityOrder memory order) internal pure {
-        /// return quickly if cosignerData is not set
-        if (order.cosignerData.auctionTargetBlock == 0) return;
-
-        if (order.cosignerData.auctionTargetBlock < order.auctionStartBlock) {
-            order.auctionStartBlock = order.cosignerData.auctionTargetBlock;
-        }
-        // validate cosigner signature
-        (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
-        uint8 v = uint8(order.cosignature[64]);
-        // cosigner signs over (orderHash || cosignerData)
-        address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-        if (order.cosigner != signer || signer == address(0)) {
-            revert InvalidCosignature();
-        }
-    }
-
     /// @notice validate the priority order fields
     /// - deadline must be in the future
     /// - auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// - order's cosigner must have signed over (orderHash || cosignerData)
     /// @dev Throws if the order is invalid
-    function _validateOrder(PriorityOrder memory order) internal view {
+    function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
         if (order.info.deadline < block.timestamp) {
             revert InvalidDeadline();
         }
 
+        uint256 auctionStartBlock = order.auctionStartBlock;
+
+        // we only validate cosigner data and signature if:
+        // - cosigner is specified
+        // - current block is before the auctionStartBlock signed by the user
+        // - cosigned auctionTargetBlock is before the auctionStartBlock signed by the user
+        if (
+            order.cosigner != address(0) && block.number < auctionStartBlock
+                && order.cosignerData.auctionTargetBlock < auctionStartBlock
+        ) {
+            // validate cosigner signature
+            (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
+            uint8 v = uint8(order.cosignature[64]);
+            // cosigner signs over (orderHash || cosignerData)
+            address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
+            if (order.cosigner != signer || signer == address(0)) {
+                revert InvalidCosignature();
+            }
+            auctionStartBlock = order.cosignerData.auctionTargetBlock;
+        }
+
         /// revert if the resolved auctionStartBlock is in the future
-        /// must be the minimum(auctionStartBlock, cosignerData.auctionTargetBlock)
-        if (order.auctionStartBlock > block.number) {
+        if (auctionStartBlock > block.number) {
             revert OrderNotFillable();
         }
 
