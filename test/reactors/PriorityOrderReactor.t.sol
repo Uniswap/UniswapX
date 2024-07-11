@@ -485,7 +485,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     }
 
     /// @notice must revert if resolved signer is not the cosigner specified in the order iff the auctionStartBlock is overriden
-    function testWrongCosigner() public {
+    function testRevertsWrongCosigner() public {
         address wrongCosigner = makeAddr("wrongCosigner");
 
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
@@ -510,7 +510,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
     }
 
     /// @notice must revert if the cosignature is invalid iff the auctionStartBlock is overriden
-    function testInvalidCosignature() public {
+    function testRevertsInvalidCosignature() public {
         address wrongCosigner = makeAddr("wrongCosigner");
 
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
@@ -532,6 +532,33 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.expectRevert(PriorityOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @notice must revert if the tx gas price is below the block's base fee
+    function testRevertsInvalidTxGasPrice() public {
+        vm.txGasPrice(0);
+        vm.fee(1);
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.InvalidGasPrice.selector);
         fillContract.execute(signedOrder);
     }
 
