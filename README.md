@@ -86,10 +86,10 @@ Note that UniswapX handles fee-on-transfer tokens by transferring the amount spe
 
 ### V1.1
 - [ABDK](./audit/v1.1/ABDK.pdf)
-- [OpenZeppelin](./audit/v1.1/OpenZeppelin.pdf).
+- [OpenZeppelin](./audit/v1.1/OpenZeppelin.pdf)
 
 ### V2
-- [Spearbit](./audit/v2/spearbit.pdf).
+- [Spearbit](./audit/v2/spearbit.pdf)
 
 ## Bug Bounty
 
