@@ -40,7 +40,9 @@ contract PriorityOrderReactor is BaseReactor {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
         bytes32 orderHash = order.hash();
 
-        _updateWithCosignerData(orderHash, order);
+        if (block.number < order.auctionStartBlock) {
+            _updateWithCosignerData(orderHash, order);
+        }
         _validateOrder(order);
 
         if (tx.gasprice < block.basefee) revert InvalidGasPrice();
@@ -76,25 +78,23 @@ contract PriorityOrderReactor is BaseReactor {
     }
 
     /// @notice update the priority order with the cosigner's data
+    /// @dev only called if the current block is before the auctionStartBlock signed by the user
     /// @param orderHash the hash of the order
     /// @param order the order to update
-    function _updateWithCosignerData(bytes32 orderHash, PriorityOrder memory order) internal view {
+    function _updateWithCosignerData(bytes32 orderHash, PriorityOrder memory order) internal pure {
+        /// return quickly if cosignerData is not set
         if (order.cosignerData.auctionTargetBlock == 0) return;
 
-        /// we validate cosigner data only before the auctionStartBlock
-        if (block.number < order.auctionStartBlock) {
-            /// the cosigner can only move the user's auctionStartBlock forward
-            if (order.cosignerData.auctionTargetBlock < order.auctionStartBlock) {
-                order.auctionStartBlock = order.cosignerData.auctionTargetBlock;
-            }
-            // validate cosigner signature
-            (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
-            uint8 v = uint8(order.cosignature[64]);
-            // cosigner signs over (orderHash || cosignerData)
-            address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-            if (order.cosigner != signer || signer == address(0)) {
-                revert InvalidCosignature();
-            }
+        if (order.cosignerData.auctionTargetBlock < order.auctionStartBlock) {
+            order.auctionStartBlock = order.cosignerData.auctionTargetBlock;
+        }
+        // validate cosigner signature
+        (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
+        uint8 v = uint8(order.cosignature[64]);
+        // cosigner signs over (orderHash || cosignerData)
+        address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
+        if (order.cosigner != signer || signer == address(0)) {
+            revert InvalidCosignature();
         }
     }
 
