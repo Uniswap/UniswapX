@@ -11,7 +11,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for priority orders
 /// @dev only supported on chains which use priority fee transaction ordering
-contract PriorityOrderReactor is BaseReactor, CosignerLib {
+contract PriorityOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using PriorityOrderLib for PriorityOrder;
     using PriorityFeeLib for PriorityInput;
@@ -83,7 +83,7 @@ contract PriorityOrderReactor is BaseReactor, CosignerLib {
             order.cosigner != address(0) && block.number < auctionStartBlock
                 && order.cosignerData.auctionTargetBlock < auctionStartBlock
         ) {
-            verify(order.cosigner, order.cosignerDigest(orderHash), order.cosignature);
+            CosignerLib.verify(order.cosigner, order.cosignerDigest(orderHash), order.cosignature);
 
             auctionStartBlock = order.cosignerData.auctionTargetBlock;
         }
