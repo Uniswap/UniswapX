@@ -5,12 +5,13 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {PriorityOrderLib, PriorityOrder, PriorityInput, PriorityOutput} from "../lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../lib/PriorityFeeLib.sol";
+import {CosignerLib} from "../lib/CosignerLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Reactor for priority orders
 /// @dev only supported on chains which use priority fee transaction ordering
-contract PriorityOrderReactor is BaseReactor {
+contract PriorityOrderReactor is BaseReactor, CosignerLib {
     using Permit2Lib for ResolvedOrder;
     using PriorityOrderLib for PriorityOrder;
     using PriorityFeeLib for PriorityInput;
@@ -22,8 +23,6 @@ contract PriorityOrderReactor is BaseReactor {
     error OrderNotFillable();
     /// @notice thrown when an order's input and outputs both scale with priority fee
     error InputOutputScaling();
-    /// @notice thrown when an order's cosignature does not match the expected cosigner
-    error InvalidCosignature();
     /// @notice thrown when tx gasprice is less than block.basefee
     error InvalidGasPrice();
 
@@ -85,14 +84,8 @@ contract PriorityOrderReactor is BaseReactor {
             order.cosigner != address(0) && block.number < auctionStartBlock
                 && order.cosignerData.auctionTargetBlock < auctionStartBlock
         ) {
-            // validate cosigner signature
-            (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
-            uint8 v = uint8(order.cosignature[64]);
-            // cosigner signs over (orderHash || cosignerData)
-            address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-            if (order.cosigner != signer || signer == address(0)) {
-                revert InvalidCosignature();
-            }
+            verify(order.cosigner, order.cosignerDigest(orderHash), order.cosignature);
+
             auctionStartBlock = order.cosignerData.auctionTargetBlock;
         }
 
