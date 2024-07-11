@@ -65,9 +65,8 @@ contract PriorityOrderReactor is BaseReactor, CosignerLib {
 
     /// @notice validate the priority order fields
     /// - deadline must be in the future
-    /// - auctionStartBlock must not be in the future
+    /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
-    /// - order's cosigner must have signed over (orderHash || cosignerData)
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
         if (order.info.deadline < block.timestamp) {
@@ -76,7 +75,7 @@ contract PriorityOrderReactor is BaseReactor, CosignerLib {
 
         uint256 auctionStartBlock = order.auctionStartBlock;
 
-        // we only validate cosigner data and signature if:
+        // we override auctionStartBlock with the cosigned auctionTargetBlock only if:
         // - cosigner is specified
         // - current block is before the auctionStartBlock signed by the user
         // - cosigned auctionTargetBlock is before the auctionStartBlock signed by the user
