@@ -13,7 +13,7 @@ contract MockCosignerLibContract {
 
 contract CosignerLibTest is Test {
     uint256 cosignerPrivateKey = 0x123;
-    
+
     MockCosignerLibContract mockCosignerLibContract = new MockCosignerLibContract();
 
     /// @notice verify that a cosignature is valid for a given cosigner and data

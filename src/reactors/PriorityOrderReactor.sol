@@ -89,7 +89,7 @@ contract PriorityOrderReactor is BaseReactor {
         }
 
         /// revert if the resolved auctionStartBlock is in the future
-        if (auctionStartBlock > block.number) {
+        if (block.number < auctionStartBlock) {
             revert OrderNotFillable();
         }
 
