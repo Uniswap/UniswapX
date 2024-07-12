@@ -13,6 +13,7 @@ import {
     PriorityCosignerData
 } from "../../src/lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../../src/lib/PriorityFeeLib.sol";
+import {CosignerLib} from "../../src/lib/CosignerLib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
@@ -505,7 +506,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(PriorityOrderReactor.InvalidCosignature.selector);
+        vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -531,7 +532,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(PriorityOrderReactor.InvalidCosignature.selector);
+        vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
     }
 

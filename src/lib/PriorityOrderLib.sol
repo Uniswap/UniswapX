@@ -29,7 +29,7 @@ struct PriorityOutput {
 struct PriorityOrder {
     // generic order information
     OrderInfo info;
-    // The address which must cosign the full order
+    // The address which may cosign the order
     address cosigner;
     // the block at which the order can be executed
     uint256 auctionStartBlock;
@@ -127,5 +127,12 @@ library PriorityOrderLib {
                 hash(order.outputs)
             )
         );
+    }
+
+    /// @notice get the digest of the cosigner data
+    /// @param order the priorityOrder
+    /// @param orderHash the hash of the order
+    function cosignerDigest(PriorityOrder memory order, bytes32 orderHash) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData)));
     }
 }
