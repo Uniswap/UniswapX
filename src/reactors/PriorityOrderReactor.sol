@@ -21,6 +21,8 @@ contract PriorityOrderReactor is BaseReactor {
     error InvalidDeadline();
     /// @notice thrown when an order's auctionStartBlock is in the future
     error OrderNotFillable();
+    /// @notice thrown when an order's nonce is invalid
+    error InvalidNonce();
     /// @notice thrown when an order's input and outputs both scale with priority fee
     error InputOutputScaling();
     /// @notice thrown when tx gasprice is less than block.basefee
@@ -64,11 +66,14 @@ contract PriorityOrderReactor is BaseReactor {
     }
 
     /// @notice validate the priority order fields
+    /// - order must not be filled already
     /// - deadline must be in the future
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
+        _checkPermit2Nonce(order.info.swapper, order.info.nonce);
+
         if (order.info.deadline < block.timestamp) {
             revert InvalidDeadline();
         }
@@ -116,5 +121,18 @@ contract PriorityOrderReactor is BaseReactor {
                 priorityFee = 0;
             }
         }
+    }
+
+    /// @notice check if an order has already been filled
+    /// @dev implementation copied from https://github.com/Uniswap/permit2/blob/cc56ad0f3439c502c246fc5cfcc3db92bb8b7219/src/SignatureTransfer.sol#L150
+    /// @param swapper the address of the swapper
+    /// @param nonce the nonce associated with the order
+    function _checkPermit2Nonce(address swapper, uint256 nonce) internal view {
+        uint256 wordPos = uint248(nonce >> 8);
+        uint256 bit = 1 << uint8(nonce); // bitPos
+        uint256 bitmap = permit2.nonceBitmap(swapper, wordPos);
+        uint256 flipped = bitmap ^= bit;
+
+        if (flipped & bit == 0) revert InvalidNonce();
     }
 }
