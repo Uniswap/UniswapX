@@ -49,33 +49,53 @@ struct PriorityOrder {
 library PriorityOrderLib {
     using OrderInfoLib for OrderInfo;
 
-    bytes private constant PRIORITY_INPUT_TOKEN_TYPE =
+    bytes internal constant PRIORITY_INPUT_TOKEN_TYPE =
         "PriorityInput(address token,uint256 amount,uint256 mpsPerPriorityFeeWei)";
 
-    bytes32 private constant PRIORITY_INPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_INPUT_TOKEN_TYPE);
+    bytes32 internal constant PRIORITY_INPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_INPUT_TOKEN_TYPE);
 
-    bytes private constant PRIORITY_OUTPUT_TOKEN_TYPE =
+    bytes internal constant PRIORITY_OUTPUT_TOKEN_TYPE =
         "PriorityOutput(address token,uint256 amount,uint256 mpsPerPriorityFeeWei,address recipient)";
 
-    bytes32 private constant PRIORITY_OUTPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_OUTPUT_TOKEN_TYPE);
+    bytes32 internal constant PRIORITY_OUTPUT_TOKEN_TYPE_HASH = keccak256(PRIORITY_OUTPUT_TOKEN_TYPE);
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
+    string internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
+
+    // EIP712 notes that nested structs should be ordered alphabetically.
+    // With our added PriorityOrder witness, the top level type becomes
+    // "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,PriorityOrder witness)"
+    // Meaning we order the nested structs as follows:
+    // OrderInfo, PriorityInput, PriorityOrder, PriorityOutput
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked(
+            "PriorityOrder witness)",
+            OrderInfoLib.ORDER_INFO_TYPE,
+            PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
+            PriorityOrderLib.TOPLEVEL_PRIORITY_ORDER_TYPE,
+            PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE,
+            TOKEN_PERMISSIONS_TYPE
+        )
+    );
+
+    bytes internal constant TOPLEVEL_PRIORITY_ORDER_TYPE = abi.encodePacked(
         "PriorityOrder(",
         "OrderInfo info,",
         "address cosigner,",
         "uint256 auctionStartBlock,",
         "uint256 baselinePriorityFeeWei,",
         "PriorityInput input,",
-        "PriorityOutput[] outputs)",
+        "PriorityOutput[] outputs)"
+    );
+
+    // EIP712 notes that nested structs should be ordered alphabetically:
+    // OrderInfo, PriorityInput, PriorityOutput
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        PriorityOrderLib.TOPLEVEL_PRIORITY_ORDER_TYPE,
         OrderInfoLib.ORDER_INFO_TYPE,
-        PRIORITY_INPUT_TOKEN_TYPE,
-        PRIORITY_OUTPUT_TOKEN_TYPE
+        PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
+        PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
-
-    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
-    string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("PriorityOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
 
     /// @notice returns the hash of an input token struct
     function hash(PriorityInput memory input) private pure returns (bytes32) {
