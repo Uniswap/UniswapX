@@ -551,7 +551,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         order.info.deadline = block.timestamp + 101;
         (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
+        _snapStart("RevertInvalidNonce");
         fillContract.execute(signedOrder);
+        snapEnd();
     }
 
     /// @dev Test executing two orders on two reactors at once

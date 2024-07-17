@@ -129,14 +129,16 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
+        _snapStart("OutputPriorityFee");
         fillContract.execute(signedOrder);
+        snapEnd();
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
     }
 
-    /// @notice Test a basic order when output priority fee and basePriorityFee are non zero
-    function testExecuteWithOutputPriorityFeeAndMinPriorityFee() public {
+    /// @notice Test a basic order when output priority fee and baselinePriorityFee are non zero
+    function testExecuteWithOutputPriorityFeeAndBaselinePriorityFee() public {
         uint256 baselinePriorityFeeWei = 1 gwei;
         uint256 priorityFee = baselinePriorityFeeWei + 100 wei;
         vm.txGasPrice(priorityFee);
@@ -180,7 +182,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
+        _snapStart("OutputPriorityFeeAndBaselinePriorityFee");
         fillContract.execute(signedOrder);
+        snapEnd();
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -282,7 +286,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
+        _snapStart("InputPriorityFee");
         fillContract.execute(signedOrder);
+        snapEnd();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - scaledInputAmount);
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
@@ -315,7 +321,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
+        _snapStart("OverrideAuctionTargetBlock");
         fillContract.execute(signedOrder);
+        snapEnd();
     }
 
     /// @notice an order can be filled at any time after the auctionStartBlock and before the deadline
