@@ -21,8 +21,8 @@ contract PriorityOrderReactor is BaseReactor {
     error InvalidDeadline();
     /// @notice thrown when an order's auctionStartBlock is in the future
     error OrderNotFillable();
-    /// @notice thrown when an order's nonce is invalid
-    error InvalidNonce();
+    /// @notice thrown when an order's nonce has already been used
+    error OrderAlreadyFilled();
     /// @notice thrown when an order's input and outputs both scale with priority fee
     error InputOutputScaling();
     /// @notice thrown when tx gasprice is less than block.basefee
@@ -133,6 +133,6 @@ contract PriorityOrderReactor is BaseReactor {
         uint256 bitmap = permit2.nonceBitmap(swapper, wordPos);
         uint256 flipped = bitmap ^= bit;
 
-        if (flipped & bit == 0) revert InvalidNonce();
+        if (flipped & bit == 0) revert OrderAlreadyFilled();
     }
 }

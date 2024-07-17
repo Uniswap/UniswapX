@@ -600,7 +600,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        vm.expectRevert(PriorityOrderReactor.InvalidNonce.selector);
+        vm.expectRevert(PriorityOrderReactor.OrderAlreadyFilled.selector);
         fillContract.execute(signedOrder);
 
         // test does not revert if word is dirty but bit is clean
