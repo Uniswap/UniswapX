@@ -38,6 +38,9 @@ contract PriorityOrderReactor is BaseReactor {
         returns (ResolvedOrder memory resolvedOrder)
     {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
+        
+        _checkPermit2Nonce(order.info.swapper, order.info.nonce);
+
         bytes32 orderHash = order.hash();
 
         _validateOrder(orderHash, order);
@@ -66,14 +69,11 @@ contract PriorityOrderReactor is BaseReactor {
     }
 
     /// @notice validate the priority order fields
-    /// - order must not be filled already
     /// - deadline must be in the future
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
-        _checkPermit2Nonce(order.info.swapper, order.info.nonce);
-
         if (order.info.deadline < block.timestamp) {
             revert InvalidDeadline();
         }

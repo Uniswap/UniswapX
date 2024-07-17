@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console2} from "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
 import {OrderInfo, InputToken, OutputToken, ResolvedOrder, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
@@ -568,6 +569,63 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
         vm.expectRevert(PriorityOrderReactor.InvalidGasPrice.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @notice tests for the internal _checkPermit2Nonce function
+    /// permit2 uses unordered nonces, so we check a few cases here
+    function testCheckPermit2Nonce() public {
+        /// test revert if the nonce is used
+        uint256 nonce = 0;
+        uint256 wordPos = uint248(nonce >> 8);
+        uint256 bitPos = uint8(nonce);
+        uint256 bit = 1 << bitPos;
+        // this will use only the bit at bitPos
+        vm.prank(swapper);
+        permit2.invalidateUnorderedNonces(wordPos, bit);
+
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000).withNonce(nonce),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(PriorityOrderReactor.InvalidNonce.selector);
+        fillContract.execute(signedOrder);
+
+        // test does not revert if word is dirty but bit is clean
+        nonce = 1;
+        wordPos = uint248(nonce >> 8);
+        bitPos = uint8(nonce);
+        bit = 1 << bitPos;
+        uint256 bitmap = permit2.nonceBitmap(swapper, wordPos);
+        assertNotEq((bit ^= bitmap) & bit, 0);
+
+        order.info.nonce = nonce;
+        signedOrder = SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        fillContract.execute(signedOrder);
+
+
+        // test does not revert if different word but same bit position within the word
+        nonce = 256;
+        wordPos = uint248(nonce >> 8);
+        bitPos = uint8(nonce); // equal to 0
+        bit = 1 << bitPos;
+        bitmap = permit2.nonceBitmap(swapper, wordPos);
+        assertNotEq((bit ^= bitmap) & bit, 0);
+
+        order.info.nonce = nonce;
+        signedOrder = SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         fillContract.execute(signedOrder);
     }
 
