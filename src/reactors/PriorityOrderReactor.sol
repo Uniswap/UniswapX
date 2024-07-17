@@ -38,7 +38,7 @@ contract PriorityOrderReactor is BaseReactor {
         returns (ResolvedOrder memory resolvedOrder)
     {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
-        
+
         _checkPermit2Nonce(order.info.swapper, order.info.nonce);
 
         bytes32 orderHash = order.hash();

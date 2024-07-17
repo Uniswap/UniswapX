@@ -552,7 +552,9 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         order.info.deadline = block.timestamp + 101;
         (signedOrder, orderHash) = createAndSignOrder(order);
         // since priorityOrders special case the InvalidNonce case
-        bytes4 revertData = keccak256(abi.encodePacked(name())) == keccak256(abi.encodePacked("PriorityOrderReactor")) ? OrderAlreadyFilled.selector : InvalidNonce.selector;
+        bytes4 revertData = keccak256(abi.encodePacked(name())) == keccak256(abi.encodePacked("PriorityOrderReactor"))
+            ? OrderAlreadyFilled.selector
+            : InvalidNonce.selector;
         vm.expectRevert(revertData);
         _snapStart("RevertInvalidNonce");
         fillContract.execute(signedOrder);

@@ -587,7 +587,8 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000).withNonce(nonce),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withNonce(nonce),
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,
@@ -596,7 +597,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
-        
+
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
@@ -614,7 +615,6 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         order.info.nonce = nonce;
         signedOrder = SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         fillContract.execute(signedOrder);
-
 
         // test does not revert if different word but same bit position within the word
         nonce = 256;
