@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
+import {PriorityOutput} from "../../src/lib/PriorityOrderLib.sol";
 
 library OutputsBuilder {
     function single(address token, uint256 amount, address recipient) internal pure returns (OutputToken[] memory) {
@@ -62,6 +63,28 @@ library OutputsBuilder {
         DutchOutput[] memory result = new DutchOutput[](startAmounts.length);
         for (uint256 i = 0; i < startAmounts.length; i++) {
             result[i] = DutchOutput(token, startAmounts[i], endAmounts[i], recipient);
+        }
+        return result;
+    }
+
+    function singlePriority(address token, uint256 amount, uint256 mpsPerPriorityFeeWei, address recipient)
+        internal
+        pure
+        returns (PriorityOutput[] memory)
+    {
+        PriorityOutput[] memory result = new PriorityOutput[](1);
+        result[0] = PriorityOutput(token, amount, mpsPerPriorityFeeWei, recipient);
+        return result;
+    }
+
+    function multiplePriority(address token, uint256[] memory amounts, uint256 mpsPerPriorityFeeWei, address recipient)
+        internal
+        pure
+        returns (PriorityOutput[] memory)
+    {
+        PriorityOutput[] memory result = new PriorityOutput[](amounts.length);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            result[i] = PriorityOutput(token, amounts[i], mpsPerPriorityFeeWei, recipient);
         }
         return result;
     }

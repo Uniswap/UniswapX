@@ -41,6 +41,7 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
 
     error InvalidNonce();
     error InvalidSigner();
+    error OrderAlreadyFilled();
 
     constructor() {
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -550,8 +551,14 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         // change deadline so sig and orderhash is different but nonce is the same
         order.info.deadline = block.timestamp + 101;
         (signedOrder, orderHash) = createAndSignOrder(order);
-        vm.expectRevert(InvalidNonce.selector);
+        // since priorityOrders special case the InvalidNonce case
+        bytes4 revertData = keccak256(abi.encodePacked(name())) == keccak256(abi.encodePacked("PriorityOrderReactor"))
+            ? OrderAlreadyFilled.selector
+            : InvalidNonce.selector;
+        vm.expectRevert(revertData);
+        _snapStart("RevertInvalidNonce");
         fillContract.execute(signedOrder);
+        snapEnd();
     }
 
     /// @dev Test executing two orders on two reactors at once

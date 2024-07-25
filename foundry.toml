@@ -9,8 +9,8 @@ fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 optimizer_runs = 1000000
 
 [profile.integration]
-no_match_path = ""
 match_path = "*/integration/*"
+no_match_path = "override/default/*"
 
 [profile.lite.optimizer_details.yulDetails]
 stackAllocation = true
