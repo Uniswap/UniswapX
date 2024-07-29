@@ -70,9 +70,9 @@ library PriorityOrderLib {
         abi.encodePacked(
             "PriorityOrder witness)",
             OrderInfoLib.ORDER_INFO_TYPE,
-            PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
-            PriorityOrderLib.TOPLEVEL_PRIORITY_ORDER_TYPE,
-            PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE,
+            PRIORITY_INPUT_TOKEN_TYPE,
+            TOPLEVEL_PRIORITY_ORDER_TYPE,
+            PRIORITY_OUTPUT_TOKEN_TYPE,
             TOKEN_PERMISSIONS_TYPE
         )
     );
@@ -90,10 +90,10 @@ library PriorityOrderLib {
     // EIP712 notes that nested structs should be ordered alphabetically:
     // OrderInfo, PriorityInput, PriorityOutput
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        PriorityOrderLib.TOPLEVEL_PRIORITY_ORDER_TYPE,
+        TOPLEVEL_PRIORITY_ORDER_TYPE,
         OrderInfoLib.ORDER_INFO_TYPE,
-        PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
-        PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE
+        PRIORITY_INPUT_TOKEN_TYPE,
+        PRIORITY_OUTPUT_TOKEN_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
