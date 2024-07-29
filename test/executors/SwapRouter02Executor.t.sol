@@ -393,6 +393,14 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         assertEq(balanceAfter - balanceBefore, 1 ether);
     }
 
+    function testWithdrawERC20() public {
+        deal(address(weth), address(swapRouter02Executor), 1 ether);
+        uint256 balanceBefore = weth.balanceOf(address(this));
+        swapRouter02Executor.withdrawERC20(weth, address(this));
+        uint256 balanceAfter = weth.balanceOf(address(this));
+        assertEq(balanceAfter - balanceBefore, 1 ether);
+    }
+
     function testWithdrawETHNotOwner() public {
         vm.expectRevert("UNAUTHORIZED");
         vm.prank(address(0xbeef));
