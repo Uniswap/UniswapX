@@ -152,7 +152,7 @@ library PriorityOrderLib {
     /// @notice get the digest of the cosigner data
     /// @param order the priorityOrder
     /// @param orderHash the hash of the order
-    function cosignerDigest(PriorityOrder memory order, bytes32 orderHash) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData)));
+    function cosignerDigest(PriorityOrder memory order, bytes32 orderHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(order.cosignerData)));
     }
 }

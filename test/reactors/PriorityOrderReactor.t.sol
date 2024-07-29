@@ -630,10 +630,10 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
     function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
         private
-        pure
+        view
         returns (bytes memory sig)
     {
-        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, abi.encode(cosignerData)));
+        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
     }
