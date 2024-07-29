@@ -103,7 +103,7 @@ contract PriorityFeeLibTest is Test {
         uint256 largeAmount = type(uint256).max / MPS + 1;
 
         PriorityOutput memory output =
-            PriorityOutput({token: address(0), amount: largeAmount, mpsPerPriorityFeeWei: 0, recipient: address(0)});
+            PriorityOutput({token: address(0), amount: largeAmount, mpsPerPriorityFeeWei: 1, recipient: address(0)});
 
         vm.expectRevert();
         PriorityFeeLib.scale(output, tx.gasprice);

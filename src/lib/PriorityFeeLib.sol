@@ -26,7 +26,7 @@ library PriorityFeeLib {
         }
         return InputToken({
             token: input.token,
-            amount: input.amount.mulDivDown((MPS - scalingFactor), MPS),
+            amount: scalingFactor == 0 ? input.amount : input.amount.mulDivDown((MPS - scalingFactor), MPS),
             maxAmount: input.amount
         });
     }
@@ -39,7 +39,9 @@ library PriorityFeeLib {
     function scale(PriorityOutput memory output, uint256 priorityFee) internal pure returns (OutputToken memory) {
         return OutputToken({
             token: output.token,
-            amount: output.amount.mulDivUp((MPS + (priorityFee * output.mpsPerPriorityFeeWei)), MPS),
+            amount: output.mpsPerPriorityFeeWei == 0
+                ? output.amount
+                : output.amount.mulDivUp((MPS + (priorityFee * output.mpsPerPriorityFeeWei)), MPS),
             recipient: output.recipient
         });
     }
