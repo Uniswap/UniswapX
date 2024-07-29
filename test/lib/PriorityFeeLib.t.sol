@@ -109,6 +109,21 @@ contract PriorityFeeLibTest is Test {
         PriorityFeeLib.scale(output, tx.gasprice);
     }
 
+    /// @notice an otherwise reverting large amount should be short circuited if the mpsPerPriorityFeeWei is 0
+    function testScaleLargeOutputShortCircuit() public {
+        uint256 priorityFee = 0;
+        vm.txGasPrice(priorityFee);
+        assertEq(tx.gasprice, priorityFee);
+
+        uint256 largeAmount = type(uint256).max / MPS + 1;
+
+        PriorityOutput memory output =
+            PriorityOutput({token: address(0), amount: largeAmount, mpsPerPriorityFeeWei: 0, recipient: address(0)});
+
+        OutputToken memory scaledOutput = PriorityFeeLib.scale(output, tx.gasprice);
+        assertEq(scaledOutput.amount, output.amount);
+    }
+
     function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
         // the amount of MPS to scale the output by
         uint256 scalingFactor = MPS;
