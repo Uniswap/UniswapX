@@ -520,14 +520,12 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
     /// @notice must revert if the cosignature is invalid iff the auctionStartBlock is overriden
     function testRevertsInvalidCosignature() public {
-        address wrongCosigner = makeAddr("wrongCosigner");
-
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
-            cosigner: wrongCosigner,
+            cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number + 1,
             baselinePriorityFeeWei: 0,
             input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
@@ -536,6 +534,33 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosignature: bytes("")
         });
         order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+
+        vm.expectRevert(CosignerLib.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @notice must revert if the cosignature is invalid because of invalid chainid
+    function testRevertsInvalidChainIdCosignature() public {
+        uint256 invalidChainId = 0;
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number + 1,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: 0, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        bytes32 msgHash = keccak256(abi.encodePacked(order.hash(), invalidChainId, abi.encode(cosignerData)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
+        order.cosignature = bytes.concat(r, s, bytes1(v));
 
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
@@ -630,10 +655,10 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
     function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
         private
-        pure
+        view
         returns (bytes memory sig)
     {
-        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, abi.encode(cosignerData)));
+        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
     }
