@@ -131,7 +131,7 @@ contract PriorityOrderReactor is BaseReactor {
         uint256 wordPos = uint248(nonce >> 8);
         uint256 bit = 1 << uint8(nonce); // bitPos
         uint256 bitmap = permit2.nonceBitmap(swapper, wordPos);
-        uint256 flipped = bitmap ^= bit;
+        uint256 flipped = bitmap ^ bit;
 
         if (flipped & bit == 0) revert OrderAlreadyFilled();
     }
