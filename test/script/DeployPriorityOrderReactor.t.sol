@@ -27,6 +27,7 @@ contract DeployPriorityOrderReactorTest is Test, PermitSignature {
     }
 
     function testDeploy() public {
+        vm.setEnv("FOUNDRY_REACTOR_OWNER", "0x0000000000000000000000000000000000000000");
         PriorityOrderReactorDeployment memory deployment = deployer.run();
 
         assertEq(address(deployment.reactor.permit2()), address(deployment.permit2));
