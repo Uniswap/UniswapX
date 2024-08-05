@@ -27,7 +27,7 @@ contract DeployPriorityOrderReactor is Script, DeployPermit2 {
             deployPermit2();
         }
 
-        // will deploy to: 
+        // will deploy to:
         // - BASE: 0x000000001Ec5656dcdB24D90DFa42742738De729 (salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18)
         PriorityOrderReactor reactor = new PriorityOrderReactor{
             salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18
