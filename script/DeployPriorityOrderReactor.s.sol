@@ -16,20 +16,22 @@ struct PriorityOrderReactorDeployment {
 
 contract DeployPriorityOrderReactor is Script, DeployPermit2 {
     address constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address constant UNI_TIMELOCK = 0x1a9C8182C09F50C8318d769245beA52c32BE35BC;
 
     function setUp() public {}
 
     function run() public returns (PriorityOrderReactorDeployment memory deployment) {
+        address owner = vm.envAddress("FOUNDRY_REACTOR_OWNER");
+
         vm.startBroadcast();
         if (PERMIT2.code.length == 0) {
             deployPermit2();
         }
 
-        // will deploy to: 0x00000000e990A30496431710d6B58384a603b45c
+        // will deploy to: 
+        // - BASE: 0x000000001Ec5656dcdB24D90DFa42742738De729 (salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18)
         PriorityOrderReactor reactor = new PriorityOrderReactor{
-            salt: 0xee73c108815b7b841a11030c53600e3a1d8a5dd2d42966e386e5107a3da56e81
-        }(IPermit2(PERMIT2), UNI_TIMELOCK);
+            salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18
+        }(IPermit2(PERMIT2), owner);
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
