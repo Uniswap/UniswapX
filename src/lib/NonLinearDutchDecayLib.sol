@@ -10,11 +10,6 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 library NonLinearDutchDecayLib {
     using FixedPointMathLib for uint256;
 
-    /// @notice thrown if the decay direction is incorrect
-    /// - for DutchInput, startAmount must be less than or equal to endAmount
-    /// - for DutchOutput, startAmount must be greater than or equal to endAmount
-    error IncorrectAmounts();
-
     /// @notice thrown if the curve blocks are not strictly increasing
     error InvalidDecay();
 
@@ -46,10 +41,10 @@ library NonLinearDutchDecayLib {
                     if (curve.relativeBlock[i] <= curve.relativeBlock[i-1]) {
                         revert InvalidDecay();
                     }
-                    lastAmount = SafeMath.addIntToUint(startAmount, curve.relativeAmount[i-1]);
+                    lastAmount = SafeMath.addIntToUint(curve.relativeAmount[i-1], startAmount);
                     startBlock = curve.relativeBlock[i-1];
                 }
-                uint256 nextAmount = SafeMath.addIntToUint(curve.relativeAmount[i], lastAmount);
+                uint256 nextAmount = SafeMath.addIntToUint(curve.relativeAmount[i], startAmount);
                 // linear interpolation between the two points
                 unchecked {
                     uint256 elapsed = blockDelta - startBlock;
@@ -63,7 +58,7 @@ library NonLinearDutchDecayLib {
             }
         }
         // handle current block after last decay block
-        decayedAmount = curve.relativeAmount[curve.relativeAmount.length - 1];
+        decayedAmount = SafeMath.addIntToUint(curve.relativeAmount[curve.relativeAmount.length - 1], startAmount);
     }
 
     /// @notice returns a decayed output using the given dutch spec and times
@@ -107,6 +102,6 @@ library NonLinearDutchDecayLib {
         returns (InputToken memory result)
     {
         uint256 decayedInput = NonLinearDutchDecayLib.decay(input.curve, input.startAmount, decayStartBlock);
-        result = InputToken(input.token, decayedInput, input.endAmount);
+        result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }

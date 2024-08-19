@@ -49,6 +49,8 @@ struct NonLinearDutchInput {
     uint256 startAmount;
     // The amount of tokens at the each future block
     NonLinearDecay curve;
+    // The max amount of the curve
+    uint256 maxAmount;
 }
 
 /// @dev An amount of output tokens that decreases non-linearly over time
@@ -115,6 +117,21 @@ library NonLinearDutchOrderLib {
         );
     }
 
+    /// @notice hash the given input
+    /// @param input the input to hash
+    /// @return the eip-712 input hash
+    function hash(NonLinearDutchInput memory input) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH,
+                input.token,
+                input.startAmount,
+                hash(input.curve),
+                input.maxAmount
+            )
+        );
+    }
+
     /// @notice hash the given output
     /// @param output the output to hash
     /// @return the eip-712 output hash
@@ -124,7 +141,7 @@ library NonLinearDutchOrderLib {
                 NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH,
                 output.token,
                 output.startAmount,
-                output.curve.hash(),
+                hash(output.curve),
                 output.recipient
             )
         );
@@ -157,8 +174,8 @@ library NonLinearDutchOrderLib {
                 ORDER_TYPE_HASH,
                 order.info.hash(),
                 order.cosigner,
-                order.baseInput.hash(),
-                order.baseOutputs.hash()
+                hash(order.baseInput),
+                hash(order.baseOutputs)
             )
         );
     }

@@ -8,14 +8,15 @@ contract MockExclusivityLib {
     function handleExclusiveOverride(
         ResolvedOrder memory order,
         address exclusive,
-        uint256 exclusivityEndTime,
-        uint256 exclusivityOverrideBps
+        uint256 exclusivityEnd,
+        uint256 exclusivityOverrideBps,
+        bool timeBased
     ) external view returns (ResolvedOrder memory) {
-        ExclusivityLib.handleExclusiveOverride(order, exclusive, exclusivityEndTime, exclusivityOverrideBps);
+        ExclusivityLib.handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, timeBased);
         return order;
     }
 
-    function hasFillingRights(address exclusive, uint256 exclusivityEndTime) external view returns (bool pass) {
-        return ExclusivityLib.hasFillingRights(exclusive, exclusivityEndTime);
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, bool timeBased) external view returns (bool pass) {
+        return ExclusivityLib.hasFillingRights(exclusive, exclusivityEnd, timeBased);
     }
 }

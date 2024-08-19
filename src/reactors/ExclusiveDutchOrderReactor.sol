@@ -43,7 +43,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: order.hash()
         });
-        resolvedOrder.handleExclusiveOverride(order.exclusiveFiller, order.decayStartTime, order.exclusivityOverrideBps);
+        resolvedOrder.handleExclusiveOverride(order.exclusiveFiller, order.decayStartTime, order.exclusivityOverrideBps, true);
     }
 
     /// @inheritdoc BaseReactor

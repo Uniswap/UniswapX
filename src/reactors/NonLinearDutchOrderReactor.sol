@@ -25,6 +25,9 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     using NonLinearDutchDecayLib for NonLinearDutchInput;
     using ExclusivityLib for ResolvedOrder;
 
+    /// @notice thrown when the decay curve is missing
+    error MissingDecayCurve();
+
     /// @notice thrown when an order's deadline is before its end block
     error DeadlineBeforeEndBlock();
 
@@ -63,8 +66,9 @@ contract NonLinearDutchOrderReactor is BaseReactor {
         });
         resolvedOrder.handleExclusiveOverride(
             order.cosignerData.exclusiveFiller,
-            order.cosignerData.decayStartTime,
-            order.cosignerData.exclusivityOverrideBps
+            order.cosignerData.decayStartBlock,
+            order.cosignerData.exclusivityOverrideBps,
+            false
         );
     }
 
@@ -104,13 +108,25 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
+    /// - decay curves are defined
     /// - deadline must be greater than or equal to decayEndBlock
-    /// - if there's input decay, outputs must not decay
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        uint256 relativeDecayEndBlock = order.info.relativeBlock.length == 0 
-            ? 0
-            : order.info.relativeBlock[order.info.relativeBlock.length-1];
+        if (order.baseInput.curve.relativeBlock.length == 0) {
+            revert MissingDecayCurve();
+        }
+        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+            if (order.baseOutputs[i].curve.relativeBlock.length == 0) {
+                revert MissingDecayCurve();
+            }
+            uint256 lastDecayPos = order.baseOutputs[i].curve.relativeBlock.length-1;
+            uint256 relativeOutputDecayEndBlock = order.baseOutputs[i].curve.relativeBlock[lastDecayPos];
+            if (order.info.deadline < order.cosignerData.decayStartBlock + relativeOutputDecayEndBlock) {
+                revert DeadlineBeforeEndBlock();
+            }
+        }
+        uint256 lastInputDecayPos = order.baseInput.curve.relativeBlock.length-1;
+        uint256 relativeDecayEndBlock = order.baseInput.curve.relativeBlock[lastInputDecayPos];
         if (order.info.deadline < order.cosignerData.decayStartBlock + relativeDecayEndBlock) {
             revert DeadlineBeforeEndBlock();
         }

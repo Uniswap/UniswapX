@@ -20,16 +20,17 @@ library ExclusivityLib {
     /// @notice Applies exclusivity override to the resolved order if necessary
     /// @param order The order to apply exclusivity override to
     /// @param exclusive The exclusive address
-    /// @param exclusivityEndTime The exclusivity end time
+    /// @param exclusivityEnd The exclusivity end time/block
     /// @param exclusivityOverrideBps The exclusivity override BPS
     function handleExclusiveOverride(
         ResolvedOrder memory order,
         address exclusive,
-        uint256 exclusivityEndTime,
-        uint256 exclusivityOverrideBps
+        uint256 exclusivityEnd,
+        uint256 exclusivityOverrideBps,
+        bool timeBased
     ) internal view {
         // if the filler has fill right, we proceed with the order as-is
-        if (hasFillingRights(exclusive, exclusivityEndTime)) {
+        if (hasFillingRights(exclusive, exclusivityEnd, timeBased)) {
             return;
         }
 
@@ -54,7 +55,10 @@ library ExclusivityLib {
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false
-    function hasFillingRights(address exclusive, uint256 exclusivityEndTime) internal view returns (bool) {
-        return exclusive == address(0) || block.timestamp > exclusivityEndTime || exclusive == msg.sender;
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, bool timeBased) internal view returns (bool) {
+        return exclusive == address(0) ||
+            (timeBased && block.timestamp > exclusivityEnd) ||
+            (!timeBased && block.number > exclusivityEnd) ||
+            exclusive == msg.sender;
     }
 }

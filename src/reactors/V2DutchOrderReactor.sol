@@ -64,7 +64,8 @@ contract V2DutchOrderReactor is BaseReactor {
         resolvedOrder.handleExclusiveOverride(
             order.cosignerData.exclusiveFiller,
             order.cosignerData.decayStartTime,
-            order.cosignerData.exclusivityOverrideBps
+            order.cosignerData.exclusivityOverrideBps,
+            true
         );
     }
 
