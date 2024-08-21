@@ -10,16 +10,6 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 library NonLinearDutchDecayLib {
     using FixedPointMathLib for uint256;
 
-    /// @notice thrown if the curve blocks are not strictly increasing
-    error InvalidDecay();
-
-    struct CurveSegment {
-        uint256 startAmount;
-        uint256 endAmount;
-        uint256 decayStartBlock;
-        uint256 decayEndBlock;
-    }
-
     /// @notice locates the surrounding points on the curve
     function decay(NonLinearDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
         internal
@@ -27,7 +17,7 @@ library NonLinearDutchDecayLib {
         returns (uint256 decayedAmount)
     {
         // handle current block before decay or no decay
-        if (decayStartBlock >= block.number || curve.relativeBlock.length == 0) {
+        if (decayStartBlock >= block.number) {
             return startAmount;
         }
         uint256 blockDelta = block.number - decayStartBlock;
@@ -35,20 +25,16 @@ library NonLinearDutchDecayLib {
         for (uint256 i = 0; i < curve.relativeBlock.length; i++) {
             if (curve.relativeBlock[i] >= blockDelta) {
                 uint256 lastAmount = startAmount;
-                uint256 startBlock = decayStartBlock;
+                uint256 relativeStartBlock = 0;
                 if (i != 0) {
-                    // Ensure valid decay
-                    if (curve.relativeBlock[i] <= curve.relativeBlock[i-1]) {
-                        revert InvalidDecay();
-                    }
-                    lastAmount = SafeMath.addIntToUint(curve.relativeAmount[i-1], startAmount);
-                    startBlock = curve.relativeBlock[i-1];
+                    lastAmount = SafeMath.subIntFromUint(curve.relativeAmount[i-1], startAmount);
+                    relativeStartBlock = curve.relativeBlock[i-1];
                 }
-                uint256 nextAmount = SafeMath.addIntToUint(curve.relativeAmount[i], startAmount);
+                uint256 nextAmount = SafeMath.subIntFromUint(curve.relativeAmount[i], startAmount);
                 // linear interpolation between the two points
                 unchecked {
-                    uint256 elapsed = blockDelta - startBlock;
-                    uint256 duration = curve.relativeBlock[i] - startBlock;
+                    uint256 elapsed = blockDelta - relativeStartBlock;
+                    uint256 duration = curve.relativeBlock[i] - relativeStartBlock;
                     if (nextAmount < lastAmount) {
                         return lastAmount - (lastAmount - nextAmount).mulDivDown(elapsed, duration);
                     } else {
@@ -58,7 +44,7 @@ library NonLinearDutchDecayLib {
             }
         }
         // handle current block after last decay block
-        decayedAmount = SafeMath.addIntToUint(curve.relativeAmount[curve.relativeAmount.length - 1], startAmount);
+        decayedAmount = SafeMath.subIntFromUint(curve.relativeAmount[curve.relativeAmount.length - 1], startAmount);
     }
 
     /// @notice returns a decayed output using the given dutch spec and times
