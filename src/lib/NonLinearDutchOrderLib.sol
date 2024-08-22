@@ -35,9 +35,11 @@ struct NonLinearDutchOrder {
 }
 
 /// @dev The changes in tokens (positive or negative) to subtract from the start amount
-/// @dev The relativeBlock should be strictly increasing
+/// @dev The relativeBlocks should be strictly increasing
 struct NonLinearDecay {
-    uint256[] relativeBlock;
+    // 16 uint16 values packed
+    // Can represent curves with points 2^16 blocks into the future
+    uint256 relativeBlocks;
     int256[] relativeAmount;
 }
 
@@ -86,7 +88,7 @@ library NonLinearDutchOrderLib {
     bytes32 internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH = keccak256(NON_LINEAR_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE = abi.encodePacked(
         "NonLinearDecay(",
-        "uint256[] relativeBlock,",
+        "uint256 relativeBlocks,",
         "int256[] relativeAmount)"
     );
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
@@ -111,7 +113,7 @@ library NonLinearDutchOrderLib {
         return keccak256(
             abi.encode(
                 NON_LINEAR_DECAY_TYPE_HASH,
-                keccak256(abi.encodePacked(curve.relativeBlock)),
+                curve.relativeBlocks,
                 keccak256(abi.encodePacked(curve.relativeAmount))
             )
         );

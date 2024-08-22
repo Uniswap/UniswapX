@@ -28,8 +28,8 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     /// @notice thrown when the decay curve is missing
     error MissingDecayCurve();
 
-    /// @notice thrown when an order's deadline is before its end block
-    error DeadlineBeforeEndBlock();
+    /// @notice thrown when an order's deadline is passed
+    error DeadlineReached();
 
     /// @notice thrown when an order's cosignature does not match the expected cosigner
     error InvalidCosignature();
@@ -54,6 +54,9 @@ contract NonLinearDutchOrderReactor is BaseReactor {
         // hash the order _before_ overriding amounts, as this is the hash the user would have signed
         bytes32 orderHash = order.hash();
 
+        if (order.info.deadline < block.timestamp) {
+            revert DeadlineReached();
+        }
         _validateOrder(orderHash, order);
         _updateWithCosignerAmounts(order);
 
@@ -109,26 +112,16 @@ contract NonLinearDutchOrderReactor is BaseReactor {
 
     /// @notice validate the dutch order fields
     /// - decay curves are defined
-    /// - deadline must be greater than or equal to decayEndBlock
+    /// - deadline must have not passed
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        if (order.baseInput.curve.relativeBlock.length == 0) {
+        if (order.baseInput.curve.relativeAmount.length == 0) {
             revert MissingDecayCurve();
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {
-            if (order.baseOutputs[i].curve.relativeBlock.length == 0) {
+            if (order.baseOutputs[i].curve.relativeAmount.length == 0) {
                 revert MissingDecayCurve();
             }
-            uint256 lastDecayPos = order.baseOutputs[i].curve.relativeBlock.length-1;
-            uint256 relativeOutputDecayEndBlock = order.baseOutputs[i].curve.relativeBlock[lastDecayPos];
-            if (order.info.deadline < order.cosignerData.decayStartBlock + relativeOutputDecayEndBlock) {
-                revert DeadlineBeforeEndBlock();
-            }
-        }
-        uint256 lastInputDecayPos = order.baseInput.curve.relativeBlock.length-1;
-        uint256 relativeDecayEndBlock = order.baseInput.curve.relativeBlock[lastInputDecayPos];
-        if (order.info.deadline < order.cosignerData.decayStartBlock + relativeDecayEndBlock) {
-            revert DeadlineBeforeEndBlock();
         }
 
         (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));

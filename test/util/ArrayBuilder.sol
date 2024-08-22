@@ -38,6 +38,16 @@ library ArrayBuilder {
         }
     }
 
+    /// @dev Fill an uint16[] with a single value
+    /// @param length uint256
+    /// @param amount uint16
+    function fillUint16(uint256 length, uint16 amount) internal pure returns (uint16[] memory amounts) {
+        amounts = new uint16[](length);
+        for (uint256 i = 0; i < length; ++i) {
+            amounts[i] = amount;
+        }
+    }
+
     /// @dev Set the value at index `i` in a to b
     /// @param a uint256[][]
     /// @param i uint256
