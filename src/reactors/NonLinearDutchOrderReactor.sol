@@ -25,8 +25,8 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     using NonLinearDutchDecayLib for NonLinearDutchInput;
     using ExclusivityLib for ResolvedOrder;
 
-    /// @notice thrown when the decay curve is missing
-    error MissingDecayCurve();
+    /// @notice thrown when the decay curve is invalid
+    error InvalidDecayCurve();
 
     /// @notice thrown when an order's deadline is passed
     error DeadlineReached();
@@ -115,12 +115,13 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     /// - deadline must have not passed
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        if (order.baseInput.curve.relativeAmount.length == 0) {
-            revert MissingDecayCurve();
+        if (order.baseInput.curve.relativeAmount.length == 0 || 
+            order.baseInput.curve.relativeAmount.length > 16) {
+            revert InvalidDecayCurve();
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {
             if (order.baseOutputs[i].curve.relativeAmount.length == 0) {
-                revert MissingDecayCurve();
+                revert InvalidDecayCurve();
             }
         }
 

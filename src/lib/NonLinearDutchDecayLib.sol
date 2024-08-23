@@ -23,7 +23,7 @@ library NonLinearDutchDecayLib {
         uint256 blockDelta = block.number - decayStartBlock;
         // iterate through the points and locate the current segment
         for (uint256 i = 0; i < curve.relativeAmount.length; i++) {
-            // relativeBlocks is and array of uint16 packed one uint256
+            // relativeBlocks is an array of uint16 packed one uint256
             uint16 relativeBlock = Util.getUint16FromPacked(curve.relativeBlocks, i);
             if (relativeBlock >= blockDelta) {
                 uint256 lastAmount = startAmount;
