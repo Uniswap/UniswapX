@@ -79,22 +79,16 @@ library NonLinearDutchOrderLib {
         "NonLinearDutchOutput[] baseOutputs)"
     );
     bytes internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE = abi.encodePacked(
-        "NonLinearDutchOutput(",
-        "address token,",
-        "uint256 startAmount,",
-        "NonLinearDecay curve,",
-        "address recipient)"
+        "NonLinearDutchOutput(", "address token,", "uint256 startAmount,", "NonLinearDecay curve,", "address recipient)"
     );
     bytes32 internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH = keccak256(NON_LINEAR_DUTCH_OUTPUT_TYPE);
-    bytes internal constant NON_LINEAR_DECAY_TYPE = abi.encodePacked(
-        "NonLinearDecay(",
-        "uint256 relativeBlocks,",
-        "int256[] relativeAmount)"
-    );
+    bytes internal constant NON_LINEAR_DECAY_TYPE =
+        abi.encodePacked("NonLinearDecay(", "uint256 relativeBlocks,", "int256[] relativeAmount)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
-    bytes internal constant ORDER_TYPE =
-        abi.encodePacked(NON_LINEAR_DECAY_TYPE, NON_LINEAR_DUTCH_ORDER_TYPE, NON_LINEAR_DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        NON_LINEAR_DECAY_TYPE, NON_LINEAR_DUTCH_ORDER_TYPE, NON_LINEAR_DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
+    );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
@@ -112,9 +106,7 @@ library NonLinearDutchOrderLib {
     function hash(NonLinearDecay memory curve) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                NON_LINEAR_DECAY_TYPE_HASH,
-                curve.relativeBlocks,
-                keccak256(abi.encodePacked(curve.relativeAmount))
+                NON_LINEAR_DECAY_TYPE_HASH, curve.relativeBlocks, keccak256(abi.encodePacked(curve.relativeAmount))
             )
         );
     }
@@ -125,11 +117,7 @@ library NonLinearDutchOrderLib {
     function hash(NonLinearDutchInput memory input) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH,
-                input.token,
-                input.startAmount,
-                hash(input.curve),
-                input.maxAmount
+                NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH, input.token, input.startAmount, hash(input.curve), input.maxAmount
             )
         );
     }
@@ -173,11 +161,7 @@ library NonLinearDutchOrderLib {
     function hash(NonLinearDutchOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                ORDER_TYPE_HASH,
-                order.info.hash(),
-                order.cosigner,
-                hash(order.baseInput),
-                hash(order.baseOutputs)
+                ORDER_TYPE_HASH, order.info.hash(), order.cosigner, hash(order.baseInput), hash(order.baseOutputs)
             )
         );
     }

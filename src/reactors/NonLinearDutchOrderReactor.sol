@@ -6,7 +6,13 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {NonLinearDutchDecayLib} from "../lib/NonLinearDutchDecayLib.sol";
-import {NonLinearDutchOrderLib, NonLinearDutchOrder, CosignerData, NonLinearDutchOutput, NonLinearDutchInput} from "../lib/NonLinearDutchOrderLib.sol";
+import {
+    NonLinearDutchOrderLib,
+    NonLinearDutchOrder,
+    CosignerData,
+    NonLinearDutchOutput,
+    NonLinearDutchInput
+} from "../lib/NonLinearDutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for non-linear dutch orders
@@ -115,8 +121,7 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     /// - deadline must have not passed
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        if (order.baseInput.curve.relativeAmount.length == 0 || 
-            order.baseInput.curve.relativeAmount.length > 16) {
+        if (order.baseInput.curve.relativeAmount.length == 0 || order.baseInput.curve.relativeAmount.length > 16) {
             revert InvalidDecayCurve();
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {

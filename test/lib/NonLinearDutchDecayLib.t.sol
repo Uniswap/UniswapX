@@ -13,6 +13,7 @@ contract MockNonLinearDutchDecayLibContract {
         NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock);
     }
 }
+
 contract NonLinearDutchDecayLibTest is Test {
     MockNonLinearDutchDecayLibContract mockNonLinearDutchDecayLibContract = new MockNonLinearDutchDecayLibContract();
 
@@ -130,28 +131,34 @@ contract NonLinearDutchDecayLibTest is Test {
         assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 1 ether);
     }
 
-    function testDutchDecayBounded(uint256 startAmount, uint256 decayAmount, uint256 decayStartBlock, uint16 decayDuration)
-        public
-    {
+    function testDutchDecayBounded(
+        uint256 startAmount,
+        uint256 decayAmount,
+        uint256 decayStartBlock,
+        uint16 decayDuration
+    ) public {
         vm.assume(decayAmount > 0);
-        vm.assume(decayAmount < 2**255-1);
+        vm.assume(decayAmount < 2 ** 255 - 1);
         vm.assume(startAmount <= UINT256_MAX - decayAmount);
         vm.assume(decayDuration > 0);
 
         NonLinearDecay memory curve = NonLinearDecay({
             relativeBlocks: Util.packUint16Array(ArrayBuilder.fillUint16(1, decayDuration)),
-            relativeAmount: ArrayBuilder.fillInt(1, 0-int256(decayAmount))
+            relativeAmount: ArrayBuilder.fillInt(1, 0 - int256(decayAmount))
         });
         uint256 decayed = NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock);
         assertGe(decayed, startAmount);
         assertLe(decayed, startAmount + decayAmount);
     }
 
-    function testDutchDecayNegative(uint256 startAmount, uint256 decayAmount, uint256 decayStartBlock, uint16 decayDuration)
-        public
-    {
+    function testDutchDecayNegative(
+        uint256 startAmount,
+        uint256 decayAmount,
+        uint256 decayStartBlock,
+        uint16 decayDuration
+    ) public {
         vm.assume(decayAmount > 0);
-        vm.assume(decayAmount < 2**255-1);
+        vm.assume(decayAmount < 2 ** 255 - 1);
         // can't have neg prices
         vm.assume(startAmount >= decayAmount);
         vm.assume(startAmount <= UINT256_MAX - decayAmount);
@@ -177,10 +184,8 @@ contract NonLinearDutchDecayLibTest is Test {
         decayAmounts[0] = -1 ether; // 2 ether
         decayAmounts[1] = 0 ether; // 1 ether
         decayAmounts[2] = 1 ether; // 0 ether
-        NonLinearDecay memory curve = NonLinearDecay({
-            relativeBlocks: Util.packUint16Array(blocks),
-            relativeAmount: decayAmounts
-        });
+        NonLinearDecay memory curve =
+            NonLinearDecay({relativeBlocks: Util.packUint16Array(blocks), relativeAmount: decayAmounts});
         vm.roll(50);
         assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 1 ether);
 
@@ -200,7 +205,7 @@ contract NonLinearDutchDecayLibTest is Test {
         assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 1 ether);
 
         vm.roll(350);
-        assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), .5 ether);
+        assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 0.5 ether);
 
         vm.roll(400);
         assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 0 ether);
@@ -222,12 +227,10 @@ contract NonLinearDutchDecayLibTest is Test {
         decayAmounts[0] = -1 ether; // 2 ether
         decayAmounts[1] = 0 ether; // 1 ether
         decayAmounts[2] = 1 ether; // 0 ether
-        NonLinearDecay memory curve = NonLinearDecay({
-            relativeBlocks: Util.packUint16Array(blocks),
-            relativeAmount: decayAmounts
-        });
+        NonLinearDecay memory curve =
+            NonLinearDecay({relativeBlocks: Util.packUint16Array(blocks), relativeAmount: decayAmounts});
         vm.roll(350);
-        assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), .25 ether);
+        assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), 0.25 ether);
     }
 
     function testDutchDecayToNegative() public {
@@ -246,7 +249,7 @@ contract NonLinearDutchDecayLibTest is Test {
     function testDutchOverflowDecay() public {
         uint256 decayStartBlock = 100;
         uint256 startAmount = 1 ether;
-        int256 decayAmount = -(2**255-1);
+        int256 decayAmount = -(2 ** 255 - 1);
         NonLinearDecay memory curve = NonLinearDecay({
             relativeBlocks: Util.packUint16Array(ArrayBuilder.fillUint16(1, 100)),
             relativeAmount: ArrayBuilder.fillInt(1, decayAmount)

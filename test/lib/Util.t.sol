@@ -8,7 +8,6 @@ import {Util} from "../../src/lib/Util.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 contract UtilTest is Test {
-
     function testSubIntFromUint() public {
         assertEq(Util.subIntFromUint(2, 2), 0);
         assertEq(Util.subIntFromUint(1, 2), 1);
@@ -16,16 +15,16 @@ contract UtilTest is Test {
     }
 
     function testSubNegIntFromUintRange(uint256 a, uint256 b) public {
-        vm.assume(a < 2**255-1);
+        vm.assume(a < 2 ** 255 - 1);
         vm.assume(b <= UINT256_MAX - a);
-        assertEq(Util.subIntFromUint(0-int256(a), b), b+a);
+        assertEq(Util.subIntFromUint(0 - int256(a), b), b + a);
     }
 
     function testSubIntFromUintRange(uint256 a, uint256 b) public {
         vm.assume(a >= 0);
         vm.assume(b >= a);
-        vm.assume(a < 2**255-1);
-        assertEq(Util.subIntFromUint(int256(a), b), b-a);
+        vm.assume(a < 2 ** 255 - 1);
+        assertEq(Util.subIntFromUint(int256(a), b), b - a);
     }
 
     function testSubIntFromUintNegativeUint() public {

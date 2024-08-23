@@ -29,8 +29,8 @@ library NonLinearDutchDecayLib {
                 uint256 lastAmount = startAmount;
                 uint16 relativeStartBlock = 0;
                 if (i != 0) {
-                    lastAmount = Util.subIntFromUint(curve.relativeAmount[i-1], startAmount);
-                    relativeStartBlock = Util.getUint16FromPacked(curve.relativeBlocks, i-1);
+                    lastAmount = Util.subIntFromUint(curve.relativeAmount[i - 1], startAmount);
+                    relativeStartBlock = Util.getUint16FromPacked(curve.relativeBlocks, i - 1);
                 }
                 uint256 nextAmount = Util.subIntFromUint(curve.relativeAmount[i], startAmount);
                 // linear interpolation between the two points
