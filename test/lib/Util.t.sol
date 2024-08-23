@@ -45,4 +45,15 @@ contract UtilTest is Test {
             assertEq(Util.getUint16FromPacked(packedArr, i), value);
         }
     }
+
+    function testPackUint16ArrayRevert() public {
+        vm.expectRevert(Util.InvalidArrLength.selector);
+        uint256 packedArr = Util.packUint16Array(ArrayBuilder.fillUint16(17, 1));
+    }
+
+    function testGetUint16FromPackedRevert() public {
+        uint256 packedArr = Util.packUint16Array(ArrayBuilder.fillUint16(5, 1));
+        vm.expectRevert(Util.IndexOutOfBounds.selector);
+        Util.getUint16FromPacked(packedArr, 16);
+    }
 }

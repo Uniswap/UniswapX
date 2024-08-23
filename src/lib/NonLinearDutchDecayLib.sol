@@ -10,7 +10,7 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 library NonLinearDutchDecayLib {
     using FixedPointMathLib for uint256;
 
-    /// @notice locates the surrounding points on the curve
+    /// @notice locates the current position on the curve and calculates the decay
     function decay(NonLinearDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
         internal
         view
