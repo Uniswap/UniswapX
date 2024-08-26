@@ -73,11 +73,10 @@ contract NonLinearDutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: orderHash
         });
-        resolvedOrder.handleExclusiveOverride(
+        resolvedOrder.handleExclusiveOverrideBlock(
             order.cosignerData.exclusiveFiller,
             order.cosignerData.decayStartBlock,
-            order.cosignerData.exclusivityOverrideBps,
-            false
+            order.cosignerData.exclusivityOverrideBps
         );
     }
 

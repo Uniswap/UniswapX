@@ -5,18 +5,30 @@ import {ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ExclusivityLib} from "../../../src/lib/ExclusivityLib.sol";
 
 contract MockExclusivityLib {
-    function handleExclusiveOverride(
+    function handleExclusiveOverrideTimestamp(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
-        uint256 exclusivityOverrideBps,
-        bool timeBased
+        uint256 exclusivityOverrideBps
     ) external view returns (ResolvedOrder memory) {
-        ExclusivityLib.handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, timeBased);
+        ExclusivityLib.handleExclusiveOverrideTimestamp(order, exclusive, exclusivityEnd, exclusivityOverrideBps);
+        return order;
+    }
+    function handleExclusiveOverrideBlock(
+        ResolvedOrder memory order,
+        address exclusive,
+        uint256 exclusivityEnd,
+        uint256 exclusivityOverrideBps
+    ) external view returns (ResolvedOrder memory) {
+        ExclusivityLib.handleExclusiveOverrideBlock(order, exclusive, exclusivityEnd, exclusivityOverrideBps);
         return order;
     }
 
-    function hasFillingRights(address exclusive, uint256 exclusivityEnd, bool timeBased) external view returns (bool pass) {
-        return ExclusivityLib.hasFillingRights(exclusive, exclusivityEnd, timeBased);
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition)
+        external
+        view
+        returns (bool pass)
+    {
+        return ExclusivityLib.hasFillingRights(exclusive, exclusivityEnd, currentPosition);
     }
 }

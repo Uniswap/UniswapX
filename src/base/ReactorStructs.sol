@@ -17,7 +17,7 @@ struct OrderInfo {
     address swapper;
     // The nonce of the order, allowing for signature replay protection and cancellation
     uint256 nonce;
-    // The timestamp/blocknumber after which this order is no longer valid
+    // The timestamp after which this order is no longer valid
     uint256 deadline;
     // Custom validation contract
     IValidationCallback additionalValidationContract;

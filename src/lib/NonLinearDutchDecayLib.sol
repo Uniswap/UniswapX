@@ -3,12 +3,14 @@ pragma solidity ^0.8.0;
 
 import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
 import {NonLinearDutchOutput, NonLinearDutchInput, NonLinearDecay} from "../lib/NonLinearDutchOrderLib.sol";
-import {Util} from "./Util.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
+import {sub} from "./MathExt.sol";
+import {Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 
-/// @notice helpers for handling dutch order objects
+/// @notice helpers for handling non-linear dutch order objects
 library NonLinearDutchDecayLib {
     using FixedPointMathLib for uint256;
+    using {sub} for uint256;
 
     /// @notice locates the current position on the curve and calculates the decay
     function decay(NonLinearDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
@@ -22,17 +24,18 @@ library NonLinearDutchDecayLib {
         }
         uint256 blockDelta = block.number - decayStartBlock;
         // iterate through the points and locate the current segment
-        for (uint256 i = 0; i < curve.relativeAmount.length; i++) {
+        for (uint16 i = 0; i < curve.relativeAmount.length; i++) {
             // relativeBlocks is an array of uint16 packed one uint256
-            uint16 relativeBlock = Util.getUint16FromPacked(curve.relativeBlocks, i);
+            Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
+            uint16 relativeBlock = relativeBlocks.getElement(i);
             if (relativeBlock >= blockDelta) {
                 uint256 lastAmount = startAmount;
                 uint16 relativeStartBlock = 0;
                 if (i != 0) {
-                    lastAmount = Util.subIntFromUint(curve.relativeAmount[i - 1], startAmount);
-                    relativeStartBlock = Util.getUint16FromPacked(curve.relativeBlocks, i - 1);
+                    lastAmount = startAmount.sub(curve.relativeAmount[i - 1]);
+                    relativeStartBlock = relativeBlocks.getElement(i - 1);
                 }
-                uint256 nextAmount = Util.subIntFromUint(curve.relativeAmount[i], startAmount);
+                uint256 nextAmount = startAmount.sub(curve.relativeAmount[i]);
                 // linear interpolation between the two points
                 unchecked {
                     uint256 elapsed = blockDelta - relativeStartBlock;
@@ -46,7 +49,7 @@ library NonLinearDutchDecayLib {
             }
         }
         // handle current block after last decay block
-        decayedAmount = Util.subIntFromUint(curve.relativeAmount[curve.relativeAmount.length - 1], startAmount);
+        decayedAmount = startAmount.sub(curve.relativeAmount[curve.relativeAmount.length - 1]);
     }
 
     /// @notice returns a decayed output using the given dutch spec and times

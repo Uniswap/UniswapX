@@ -22,15 +22,44 @@ library ExclusivityLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEnd The exclusivity end time/block
     /// @param exclusivityOverrideBps The exclusivity override BPS
-    function handleExclusiveOverride(
+    function handleExclusiveOverrideTimestamp(
+        ResolvedOrder memory order,
+        address exclusive,
+        uint256 exclusivityEnd,
+        uint256 exclusivityOverrideBps
+    ) internal view {
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, block.timestamp);
+    }
+
+    /// @notice Applies exclusivity override to the resolved order if necessary
+    /// @param order The order to apply exclusivity override to
+    /// @param exclusive The exclusive address
+    /// @param exclusivityEnd The exclusivity end time/block
+    /// @param exclusivityOverrideBps The exclusivity override BPS
+    function handleExclusiveOverrideBlock(
+        ResolvedOrder memory order,
+        address exclusive,
+        uint256 exclusivityEnd,
+        uint256 exclusivityOverrideBps
+    ) internal view {
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, block.number);
+    }
+
+    /// @notice Applies exclusivity override to the resolved order if necessary
+    /// @param order The order to apply exclusivity override to
+    /// @param exclusive The exclusive address
+    /// @param exclusivityEnd The exclusivity end time/block
+    /// @param exclusivityOverrideBps The exclusivity override BPS
+    /// @param currentPosition The block timestamp or number to determine exclusivity
+    function _handleExclusiveOverride(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
         uint256 exclusivityOverrideBps,
-        bool timeBased
+        uint256 currentPosition
     ) internal view {
         // if the filler has fill right, we proceed with the order as-is
-        if (hasFillingRights(exclusive, exclusivityEnd, timeBased)) {
+        if (hasFillingRights(exclusive, exclusivityEnd, currentPosition)) {
             return;
         }
 
@@ -55,10 +84,7 @@ library ExclusivityLib {
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false
-    function hasFillingRights(address exclusive, uint256 exclusivityEnd, bool timeBased) internal view returns (bool) {
-        return exclusive == address(0) ||
-            (timeBased && block.timestamp > exclusivityEnd) ||
-            (!timeBased && block.number > exclusivityEnd) ||
-            exclusive == msg.sender;
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition) internal view returns (bool) {
+        return exclusive == address(0) || currentPosition > exclusivityEnd || exclusive == msg.sender;
     }
 }
