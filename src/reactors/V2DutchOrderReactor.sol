@@ -61,11 +61,10 @@ contract V2DutchOrderReactor is BaseReactor {
             sig: signedOrder.sig,
             hash: orderHash
         });
-        resolvedOrder.handleExclusiveOverride(
+        resolvedOrder.handleExclusiveOverrideTimestamp(
             order.cosignerData.exclusiveFiller,
             order.cosignerData.decayStartTime,
-            order.cosignerData.exclusivityOverrideBps,
-            true
+            order.cosignerData.exclusivityOverrideBps
         );
     }
 
