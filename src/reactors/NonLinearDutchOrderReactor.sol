@@ -16,7 +16,7 @@ import {
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for non-linear dutch orders
-/// @dev V2 orders must be cosigned by the specified cosigner to override timings and starting values
+/// @dev Non-linear orders must be cosigned by the specified cosigner to override starting block and value
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
 /// - If inputAmount is 0, then use baseInput
@@ -120,11 +120,11 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     /// - deadline must have not passed
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        if (order.baseInput.curve.relativeAmount.length == 0 || order.baseInput.curve.relativeAmount.length > 16) {
+        if (order.baseInput.curve.relativeAmounts.length == 0 || order.baseInput.curve.relativeAmounts.length > 16) {
             revert InvalidDecayCurve();
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {
-            if (order.baseOutputs[i].curve.relativeAmount.length == 0) {
+            if (order.baseOutputs[i].curve.relativeAmounts.length == 0) {
                 revert InvalidDecayCurve();
             }
         }

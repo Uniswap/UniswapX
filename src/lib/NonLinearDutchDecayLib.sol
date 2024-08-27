@@ -22,9 +22,9 @@ library NonLinearDutchDecayLib {
         if (decayStartBlock >= block.number) {
             return startAmount;
         }
-        uint256 blockDelta = block.number - decayStartBlock;
+        uint16 blockDelta = uint16(block.number - decayStartBlock);
         // iterate through the points and locate the current segment
-        for (uint16 i = 0; i < curve.relativeAmount.length; i++) {
+        for (uint16 i = 0; i < curve.relativeAmounts.length; i++) {
             // relativeBlocks is an array of uint16 packed one uint256
             Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
             uint16 relativeBlock = relativeBlocks.getElement(i);
@@ -32,25 +32,41 @@ library NonLinearDutchDecayLib {
                 uint256 lastAmount = startAmount;
                 uint16 relativeStartBlock = 0;
                 if (i != 0) {
-                    lastAmount = startAmount.sub(curve.relativeAmount[i - 1]);
+                    lastAmount = startAmount.sub(curve.relativeAmounts[i - 1]);
                     relativeStartBlock = relativeBlocks.getElement(i - 1);
                 }
-                uint256 nextAmount = startAmount.sub(curve.relativeAmount[i]);
-                // linear interpolation between the two points
-                unchecked {
-                    uint256 elapsed = blockDelta - relativeStartBlock;
-                    uint256 duration = relativeBlock - relativeStartBlock;
-                    if (nextAmount < lastAmount) {
-                        return lastAmount - (lastAmount - nextAmount).mulDivDown(elapsed, duration);
-                    } else {
-                        return lastAmount + (nextAmount - lastAmount).mulDivUp(elapsed, duration);
-                    }
-                }
+                uint256 nextAmount = startAmount.sub(curve.relativeAmounts[i]);
+                return linearDecay(relativeStartBlock, relativeBlock, blockDelta, lastAmount, nextAmount);
             }
         }
         // handle current block after last decay block
-        decayedAmount = startAmount.sub(curve.relativeAmount[curve.relativeAmount.length - 1]);
+        decayedAmount = startAmount.sub(curve.relativeAmounts[curve.relativeAmounts.length - 1]);
     }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startBlock The start of the decay
+    /// @param endBlock The end of the decay
+    /// @param currentBlock The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function linearDecay(
+        uint16 startBlock,
+        uint16 endBlock,
+        uint16 currentBlock,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal pure returns (uint256) {
+        unchecked {
+            uint256 elapsed = currentBlock - startBlock;
+            uint256 duration = endBlock - startBlock;
+            if (endAmount < startAmount) {
+                return startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+            } else {
+                return startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
+            }
+        }
+    }
+
 
     /// @notice returns a decayed output using the given dutch spec and times
     /// @param output The output to decay

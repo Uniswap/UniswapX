@@ -40,7 +40,7 @@ struct NonLinearDecay {
     // 16 uint16 values packed
     // Can represent curves with points 2^16 blocks into the future
     uint256 relativeBlocks;
-    int256[] relativeAmount;
+    int256[] relativeAmounts;
 }
 
 /// @dev An amount of input tokens that increases non-linearly over time
@@ -83,7 +83,7 @@ library NonLinearDutchOrderLib {
     );
     bytes32 internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH = keccak256(NON_LINEAR_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE =
-        abi.encodePacked("NonLinearDecay(", "uint256 relativeBlocks,", "int256[] relativeAmount)");
+        abi.encodePacked("NonLinearDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
@@ -106,7 +106,7 @@ library NonLinearDutchOrderLib {
     function hash(NonLinearDecay memory curve) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                NON_LINEAR_DECAY_TYPE_HASH, curve.relativeBlocks, keccak256(abi.encodePacked(curve.relativeAmount))
+                NON_LINEAR_DECAY_TYPE_HASH, curve.relativeBlocks, keccak256(abi.encodePacked(curve.relativeAmounts))
             )
         );
     }
