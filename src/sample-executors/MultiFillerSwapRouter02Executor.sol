@@ -15,6 +15,8 @@ import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
+    
+    event ReactorChanged(address newReactor, address oldReactor);
 
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
@@ -115,6 +117,20 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param recipient The recipient of the ETH
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+    
+    /// @notice Transfer the entire balance of an ERC20 token in this contract to a recipient. Can only be called by owner.
+    /// @param token The ERC20 token to withdraw
+    /// @param to The recipient of the tokens
+    function withdrawERC20(ERC20 token, address to) external onlyOwner {
+        token.safeTransfer(to, token.balanceOf(address(this)));
+    }
+
+    /// @notice Update the reactor contract address. Can only be called by owner.
+    /// @param _reactor The new reactor contract address
+    function updateReactor(IReactor _reactor) external onlyOwner {
+        emit ReactorChanged(address(_reactor), address(reactor));
+        reactor = _reactor;
     }
 
     /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
