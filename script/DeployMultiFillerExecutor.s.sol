@@ -16,7 +16,7 @@ contract DeploySwapRouter02Executor is Script {
         bytes memory encodedAddresses = vm.envBytes("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WHITELISTED_CALLER");
         address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
         ISwapRouter02 swapRouter02 = ISwapRouter02(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02"));
-        
+
         address[] memory decodedAddresses = abi.decode(encodedAddresses, (address[]));
 
         vm.startBroadcast(privateKey);

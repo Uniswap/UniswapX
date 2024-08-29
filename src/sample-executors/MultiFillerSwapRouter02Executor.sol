@@ -15,7 +15,7 @@ import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 contract MultiFillerSwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
-    
+
     event ReactorChanged(address newReactor, address oldReactor);
 
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
@@ -24,7 +24,7 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, Owned {
     error MsgSenderNotReactor();
 
     ISwapRouter02 private immutable swapRouter02;
-    mapping (address => bool) whitelistedCallers;
+    mapping(address => bool) whitelistedCallers;
     IReactor public reactor;
     WETH private immutable weth;
 
@@ -118,7 +118,7 @@ contract MultiFillerSwapRouter02Executor is IReactorCallback, Owned {
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
     }
-    
+
     /// @notice Transfer the entire balance of an ERC20 token in this contract to a recipient. Can only be called by owner.
     /// @param token The ERC20 token to withdraw
     /// @param to The recipient of the tokens
