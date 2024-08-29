@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {NonLinearDutchDecayLib} from "../../src/lib/NonLinearDutchDecayLib.sol";
+import {NonLinearDutchDecayLib, InvalidDecayCurve} from "../../src/lib/NonLinearDutchDecayLib.sol";
 import {NonLinearDutchOutput, NonLinearDutchInput, NonLinearDecay} from "../../src/lib/NonLinearDutchOrderLib.sol";
 import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
@@ -19,8 +19,68 @@ contract MockNonLinearDutchDecayLibContract {
 contract NonLinearDutchDecayLibTest is Test {
     MockNonLinearDutchDecayLibContract mockNonLinearDutchDecayLibContract = new MockNonLinearDutchDecayLibContract();
 
-    function testDutchDecayNoDecay(uint256 startAmount, uint256 decayStartBlock) public {
+    function testLocateCurvePositionSingle() public {
         NonLinearDecay memory curve = NonLinearDecay({
+            relativeBlocks: toUint256(ArrayBuilder.fillUint16(1, 1)),
+            relativeAmounts: ArrayBuilder.fillInt(1, 0)
+        });
+        uint16 prev;
+        uint16 next;
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 1);
+        assertEq(prev, 0);
+        assertEq(next, 0);
+
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 2);
+        assertEq(prev, 0);
+        assertEq(next, 0);
+    }
+
+
+    function testLocateCurvePositionMulti() public {
+        uint16[] memory blocks = new uint16[](3);
+        blocks[0] = 100; // block 200
+        blocks[1] = 200; // block 300
+        blocks[2] = 300; // block 400
+        int256[] memory decayAmounts = new int256[](3);
+        decayAmounts[0] = -1 ether; // 2 ether
+        decayAmounts[1] = 0 ether; // 1 ether
+        decayAmounts[2] = 1 ether; // 0 ether
+        NonLinearDecay memory curve =
+            NonLinearDecay({relativeBlocks: toUint256(blocks), relativeAmounts: decayAmounts});
+
+        uint16 prev;
+        uint16 next;
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 150);
+        assertEq(prev, 0);
+        assertEq(next, 1);
+
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 200);
+        assertEq(prev, 1);
+        assertEq(next, 1);
+
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 250);
+        assertEq(prev, 1);
+        assertEq(next, 2);
+
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 300);
+        assertEq(prev, 2);
+        assertEq(next, 2);
+
+        (prev, next) = NonLinearDutchDecayLib.locateCurvePosition(curve, 350);
+        assertEq(prev, 2);
+        assertEq(next, 2);
+    }
+
+    function testDutchDecayNoDecay(uint256 startAmount, uint256 decayStartBlock) public {
+        // Empty curve
+        NonLinearDecay memory curve = NonLinearDecay({
+            relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
+            relativeAmounts: ArrayBuilder.fillInt(0, 0)
+        });
+        assertEq(NonLinearDutchDecayLib.decay(curve, startAmount, decayStartBlock), startAmount);
+
+        // Single value with 0 amount change
+        curve = NonLinearDecay({
             relativeBlocks: toUint256(ArrayBuilder.fillUint16(1, 1)),
             relativeAmounts: ArrayBuilder.fillInt(1, 0)
         });
@@ -277,6 +337,18 @@ contract NonLinearDutchDecayLibTest is Test {
         });
         vm.roll(150);
         vm.expectRevert();
+        mockNonLinearDutchDecayLibContract.decay(curve, startAmount, decayStartBlock);
+    }
+
+    function testDutchMismatchedDecay() public {
+        uint256 decayStartBlock = 100;
+        uint256 startAmount = 1 ether;
+        NonLinearDecay memory curve = NonLinearDecay({
+            relativeBlocks: toUint256(ArrayBuilder.fillUint16(16, 1)),
+            relativeAmounts: ArrayBuilder.fillInt(17, 0)
+        });
+        vm.roll(150);
+        vm.expectRevert(InvalidDecayCurve.selector);
         mockNonLinearDutchDecayLibContract.decay(curve, startAmount, decayStartBlock);
     }
 }

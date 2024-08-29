@@ -7,40 +7,88 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {sub} from "./MathExt.sol";
 import {Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 
+/// @notice thrown when the decay curve is invalid
+error InvalidDecayCurve();
+
 /// @notice helpers for handling non-linear dutch order objects
 library NonLinearDutchDecayLib {
+
     using FixedPointMathLib for uint256;
     using {sub} for uint256;
 
     /// @notice locates the current position on the curve and calculates the decay
+    /// @param curve The curve to search
+    /// @param startAmount The absolute start amount
+    /// @param decayStartBlock The absolute start block of the decay
     function decay(NonLinearDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
         internal
         view
         returns (uint256 decayedAmount)
     {
+        // mismatch of relativeAmounts and relativeBlocks
+        if(curve.relativeAmounts.length > 16) {
+            revert InvalidDecayCurve();
+        }
+
         // handle current block before decay or no decay
-        if (decayStartBlock >= block.number) {
+        if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
             return startAmount;
         }
+        Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
         uint16 blockDelta = uint16(block.number - decayStartBlock);
-        // iterate through the points and locate the current segment
-        for (uint16 i = 0; i < curve.relativeAmounts.length; i++) {
-            // relativeBlocks is an array of uint16 packed one uint256
-            Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
-            uint16 relativeBlock = relativeBlocks.getElement(i);
-            if (relativeBlock >= blockDelta) {
-                uint256 lastAmount = startAmount;
-                uint16 relativeStartBlock = 0;
-                if (i != 0) {
-                    lastAmount = startAmount.sub(curve.relativeAmounts[i - 1]);
-                    relativeStartBlock = relativeBlocks.getElement(i - 1);
+        // Special case for when we need to use the decayStartBlock (0)
+        if (relativeBlocks.getElement(0) > blockDelta) {
+            return linearDecay(0, relativeBlocks.getElement(0), blockDelta, startAmount, startAmount.sub(curve.relativeAmounts[0]));
+        }
+        // the current pos is within or after the curve
+        uint16 prev;
+        uint16 next;
+        (prev, next) = locateCurvePosition(curve, blockDelta);
+        uint256 lastAmount = startAmount.sub(curve.relativeAmounts[prev]);
+        uint256 nextAmount = startAmount.sub(curve.relativeAmounts[next]);
+        return linearDecay(relativeBlocks.getElement(prev), relativeBlocks.getElement(next), blockDelta, lastAmount, nextAmount);
+    }
+
+    /// @notice Locates the current position on the curve using a binary search
+    /// @param curve The curve to search
+    /// @param currentRelativeBlock The current relative position
+    /// @return prev The relative block before the current position
+    /// @return next The relative block after the current position
+    function locateCurvePosition(NonLinearDecay memory curve, uint16 currentRelativeBlock)
+        internal
+        pure
+        returns (uint16 prev, uint16 next)
+    {
+        Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
+        uint16 left = 0;
+        uint16 right = uint16(curve.relativeAmounts.length) - 1;
+        uint16 mid;
+
+        while (left <= right) {
+            mid = left + (right - left) / 2;
+            uint16 midBlock = relativeBlocks.getElement(mid);
+
+            if (midBlock == currentRelativeBlock) {
+                return (mid, mid);
+            } else if (midBlock > currentRelativeBlock) {
+                if (mid == 0) {
+                    return (mid, mid);
+                } else if (relativeBlocks.getElement(mid - 1) < currentRelativeBlock) {
+                    return (mid - 1, mid);
+                } else {
+                    right = mid - 1;
                 }
-                uint256 nextAmount = startAmount.sub(curve.relativeAmounts[i]);
-                return linearDecay(relativeStartBlock, relativeBlock, blockDelta, lastAmount, nextAmount);
+            } else {
+                if (mid == curve.relativeAmounts.length - 1) {
+                    return (mid, mid);
+                } else if (relativeBlocks.getElement(mid + 1) > currentRelativeBlock) {
+                    return (mid, mid + 1);
+                } else {
+                    left = mid + 1;
+                }
             }
         }
-        // handle current block after last decay block
-        decayedAmount = startAmount.sub(curve.relativeAmounts[curve.relativeAmounts.length - 1]);
+        revert InvalidDecayCurve();
     }
 
     /// @notice returns the linear interpolation between the two points
@@ -56,6 +104,9 @@ library NonLinearDutchDecayLib {
         uint256 startAmount,
         uint256 endAmount
     ) internal pure returns (uint256) {
+        if (currentBlock >= endBlock) {
+            return endAmount;
+        }
         unchecked {
             uint256 elapsed = currentBlock - startBlock;
             uint256 duration = endBlock - startBlock;
@@ -66,7 +117,6 @@ library NonLinearDutchDecayLib {
             }
         }
     }
-
 
     /// @notice returns a decayed output using the given dutch spec and times
     /// @param output The output to decay

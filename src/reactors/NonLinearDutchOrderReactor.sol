@@ -31,9 +31,6 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     using NonLinearDutchDecayLib for NonLinearDutchInput;
     using ExclusivityLib for ResolvedOrder;
 
-    /// @notice thrown when the decay curve is invalid
-    error InvalidDecayCurve();
-
     /// @notice thrown when an order's deadline is passed
     error DeadlineReached();
 
@@ -116,19 +113,9 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     }
 
     /// @notice validate the dutch order fields
-    /// - decay curves are defined
     /// - deadline must have not passed
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
-        if (order.baseInput.curve.relativeAmounts.length == 0 || order.baseInput.curve.relativeAmounts.length > 16) {
-            revert InvalidDecayCurve();
-        }
-        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
-            if (order.baseOutputs[i].curve.relativeAmounts.length == 0) {
-                revert InvalidDecayCurve();
-            }
-        }
-
         (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
         uint8 v = uint8(order.cosignature[64]);
         // cosigner signs over (orderHash || cosignerData)
