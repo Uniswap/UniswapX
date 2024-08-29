@@ -16,15 +16,19 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     using SafeTransferLib for ERC20;
     using CurrencyLibrary for address;
 
+    event WhitelistedCallerChanged(address newWhitelistedCaller, address oldWhitelistedCaller);
+    event ReactorChanged(address newReactor, address oldReactor);
+
     /// @notice thrown if reactorCallback is called with a non-whitelisted filler
     error CallerNotWhitelisted();
     /// @notice thrown if reactorCallback is called by an address other than the reactor
     error MsgSenderNotReactor();
 
-    ISwapRouter02 private immutable swapRouter02;
-    address private immutable whitelistedCaller;
-    IReactor private immutable reactor;
-    WETH private immutable weth;
+    ISwapRouter02 public immutable swapRouter02;
+    WETH public immutable weth;
+
+    address private whitelistedCaller;
+    IReactor public reactor;
 
     modifier onlyWhitelistedCaller() {
         if (msg.sender != whitelistedCaller) {
@@ -113,6 +117,27 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
     /// @param recipient The recipient of the ETH
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Transfer the entire balance of an ERC20 token in this contract to a recipient. Can only be called by owner.
+    /// @param token The ERC20 token to withdraw
+    /// @param to The recipient of the tokens
+    function withdrawERC20(ERC20 token, address to) external onlyOwner {
+        token.safeTransfer(to, token.balanceOf(address(this)));
+    }
+
+    /// @notice Update the reactor contract address. Can only be called by owner.
+    /// @param _reactor The new reactor contract address
+    function updateReactor(IReactor _reactor) external onlyOwner {
+        emit ReactorChanged(address(_reactor), address(reactor));
+        reactor = _reactor;
+    }
+
+    /// @notice Update the whitelisted caller address. Can only be called by owner.
+    /// @param _whitelistedCaller The new whitelisted caller address
+    function updateWhitelistedCaller(address _whitelistedCaller) external onlyOwner {
+        emit WhitelistedCallerChanged(_whitelistedCaller, whitelistedCaller);
+        whitelistedCaller = _whitelistedCaller;
     }
 
     /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
