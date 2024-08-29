@@ -60,35 +60,16 @@ library NonLinearDutchDecayLib {
         returns (uint16 prev, uint16 next)
     {
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
-        uint16 left = 0;
-        uint16 right = uint16(curve.relativeAmounts.length) - 1;
-        uint16 mid;
-
-        while (left <= right) {
-            mid = left + (right - left) / 2;
-            uint16 midBlock = relativeBlocks.getElement(mid);
-
-            if (midBlock == currentRelativeBlock) {
-                return (mid, mid);
-            } else if (midBlock > currentRelativeBlock) {
-                if (mid == 0) {
-                    return (mid, mid);
-                } else if (relativeBlocks.getElement(mid - 1) < currentRelativeBlock) {
-                    return (mid - 1, mid);
-                } else {
-                    right = mid - 1;
-                }
-            } else {
-                if (mid == curve.relativeAmounts.length - 1) {
-                    return (mid, mid);
-                } else if (relativeBlocks.getElement(mid + 1) > currentRelativeBlock) {
-                    return (mid, mid + 1);
-                } else {
-                    left = mid + 1;
-                }
+        prev = 0;
+        next = 0;
+        while(next < curve.relativeAmounts.length) {
+            if (relativeBlocks.getElement(next) >= currentRelativeBlock) {
+                return (prev, next);
             }
+            prev = next;
+            next++;
         }
-        revert InvalidDecayCurve();
+        return (next - 1, next - 1);
     }
 
     /// @notice returns the linear interpolation between the two points
