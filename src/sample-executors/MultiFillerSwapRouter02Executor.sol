@@ -25,7 +25,7 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
 
     ISwapRouter02 private immutable swapRouter02;
     mapping (address => bool) whitelistedCallers;
-    IReactor private immutable reactor;
+    IReactor public reactor;
     WETH private immutable weth;
 
     modifier onlyWhitelistedCaller() {
