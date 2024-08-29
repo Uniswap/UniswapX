@@ -5,14 +5,14 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
-import {NonLinearDutchDecayLib} from "../lib/NonLinearDutchDecayLib.sol";
+import {V3DutchDecayLib} from "../lib/V3DutchDecayLib.sol";
 import {
-    NonLinearDutchOrderLib,
-    NonLinearDutchOrder,
+    V3DutchOrderLib,
+    V3DutchOrder,
     CosignerData,
-    NonLinearDutchOutput,
-    NonLinearDutchInput
-} from "../lib/NonLinearDutchOrderLib.sol";
+    V3DutchOutput,
+    V3DutchInput
+} from "../lib/V3DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for non-linear dutch orders
@@ -24,11 +24,11 @@ import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 /// - For each outputAmount:
 ///   - If amount is 0, then use baseOutput
 ///   - If amount is nonzero, then ensure it is greater than specified baseOutput and replace startAmount
-contract NonLinearDutchOrderReactor is BaseReactor {
+contract V3DutchOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
-    using NonLinearDutchOrderLib for NonLinearDutchOrder;
-    using NonLinearDutchDecayLib for NonLinearDutchOutput[];
-    using NonLinearDutchDecayLib for NonLinearDutchInput;
+    using V3DutchOrderLib for V3DutchOrder;
+    using V3DutchDecayLib for V3DutchOutput[];
+    using V3DutchDecayLib for V3DutchInput;
     using ExclusivityLib for ResolvedOrder;
 
     /// @notice thrown when an order's deadline is passed
@@ -53,7 +53,7 @@ contract NonLinearDutchOrderReactor is BaseReactor {
         override
         returns (ResolvedOrder memory resolvedOrder)
     {
-        NonLinearDutchOrder memory order = abi.decode(signedOrder.order, (NonLinearDutchOrder));
+        V3DutchOrder memory order = abi.decode(signedOrder.order, (V3DutchOrder));
         // hash the order _before_ overriding amounts, as this is the hash the user would have signed
         bytes32 orderHash = order.hash();
 
@@ -84,12 +84,12 @@ contract NonLinearDutchOrderReactor is BaseReactor {
             order.transferDetails(to),
             order.info.swapper,
             order.hash,
-            NonLinearDutchOrderLib.PERMIT2_ORDER_TYPE,
+            V3DutchOrderLib.PERMIT2_ORDER_TYPE,
             order.sig
         );
     }
 
-    function _updateWithCosignerAmounts(NonLinearDutchOrder memory order) internal pure {
+    function _updateWithCosignerAmounts(V3DutchOrder memory order) internal pure {
         if (order.cosignerData.inputAmount != 0) {
             if (order.cosignerData.inputAmount > order.baseInput.startAmount) {
                 revert InvalidCosignerInput();
@@ -101,7 +101,7 @@ contract NonLinearDutchOrderReactor is BaseReactor {
             revert InvalidCosignerOutput();
         }
         for (uint256 i = 0; i < order.baseOutputs.length; i++) {
-            NonLinearDutchOutput memory output = order.baseOutputs[i];
+            V3DutchOutput memory output = order.baseOutputs[i];
             uint256 outputAmount = order.cosignerData.outputAmounts[i];
             if (outputAmount != 0) {
                 if (outputAmount < output.startAmount) {
@@ -115,7 +115,7 @@ contract NonLinearDutchOrderReactor is BaseReactor {
     /// @notice validate the dutch order fields
     /// - deadline must have not passed
     /// @dev Throws if the order is invalid
-    function _validateOrder(bytes32 orderHash, NonLinearDutchOrder memory order) internal pure {
+    function _validateOrder(bytes32 orderHash, V3DutchOrder memory order) internal pure {
         (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
         uint8 v = uint8(order.cosignature[64]);
         // cosigner signs over (orderHash || cosignerData)
