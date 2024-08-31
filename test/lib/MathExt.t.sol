@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {V3DutchDecayLib} from "../../src/lib/V3DutchDecayLib.sol";
-import {V3DutchOutput, V3DutchInput, V3Decay} from "../../src/lib/V3DutchOrderLib.sol";
+import {NonlinearDutchDecayLib} from "../../src/lib/NonlinearDutchDecayLib.sol";
+import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
 import {sub, NegativeUint} from "../../src/lib/MathExt.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 

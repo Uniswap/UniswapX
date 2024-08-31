@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
-import {V3DutchOutput, V3DutchInput, V3Decay} from "../lib/V3DutchOrderLib.sol";
+import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../lib/V3DutchOrderLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {sub} from "./MathExt.sol";
 import {Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
@@ -11,8 +11,7 @@ import {Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 error InvalidDecayCurve();
 
 /// @notice helpers for handling non-linear dutch order objects
-library V3DutchDecayLib {
-
+library NonlinearDutchDecayLib {
     using FixedPointMathLib for uint256;
     using {sub} for uint256;
 
@@ -20,13 +19,13 @@ library V3DutchDecayLib {
     /// @param curve The curve to search
     /// @param startAmount The absolute start amount
     /// @param decayStartBlock The absolute start block of the decay
-    function decay(V3Decay memory curve, uint256 startAmount, uint256 decayStartBlock)
+    function decay(NonlinearDutchDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
         internal
         view
         returns (uint256 decayedAmount)
     {
         // mismatch of relativeAmounts and relativeBlocks
-        if(curve.relativeAmounts.length > 16) {
+        if (curve.relativeAmounts.length > 16) {
             revert InvalidDecayCurve();
         }
 
@@ -38,15 +37,17 @@ library V3DutchDecayLib {
         uint16 blockDelta = uint16(block.number - decayStartBlock);
         // Special case for when we need to use the decayStartBlock (0)
         if (relativeBlocks.getElement(0) > blockDelta) {
-            return linearDecay(0, relativeBlocks.getElement(0), blockDelta, startAmount, startAmount.sub(curve.relativeAmounts[0]));
+            return linearDecay(
+                0, relativeBlocks.getElement(0), blockDelta, startAmount, startAmount.sub(curve.relativeAmounts[0])
+            );
         }
         // the current pos is within or after the curve
-        uint16 prev;
-        uint16 next;
-        (prev, next) = locateCurvePosition(curve, blockDelta);
+        (uint16 prev, uint16 next) = locateCurvePosition(curve, blockDelta);
         uint256 lastAmount = startAmount.sub(curve.relativeAmounts[prev]);
         uint256 nextAmount = startAmount.sub(curve.relativeAmounts[next]);
-        return linearDecay(relativeBlocks.getElement(prev), relativeBlocks.getElement(next), blockDelta, lastAmount, nextAmount);
+        return linearDecay(
+            relativeBlocks.getElement(prev), relativeBlocks.getElement(next), blockDelta, lastAmount, nextAmount
+        );
     }
 
     /// @notice Locates the current position on the curve using a binary search
@@ -54,15 +55,13 @@ library V3DutchDecayLib {
     /// @param currentRelativeBlock The current relative position
     /// @return prev The relative block before the current position
     /// @return next The relative block after the current position
-    function locateCurvePosition(V3Decay memory curve, uint16 currentRelativeBlock)
+    function locateCurvePosition(NonlinearDutchDecay memory curve, uint16 currentRelativeBlock)
         internal
         pure
         returns (uint16 prev, uint16 next)
     {
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
-        prev = 0;
-        next = 0;
-        while(next < curve.relativeAmounts.length) {
+        while (next < curve.relativeAmounts.length) {
             if (relativeBlocks.getElement(next) >= currentRelativeBlock) {
                 return (prev, next);
             }
@@ -108,7 +107,7 @@ library V3DutchDecayLib {
         view
         returns (OutputToken memory result)
     {
-        uint256 decayedOutput = V3DutchDecayLib.decay(output.curve, output.startAmount, decayStartBlock);
+        uint256 decayedOutput = NonlinearDutchDecayLib.decay(output.curve, output.startAmount, decayStartBlock);
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
@@ -139,7 +138,7 @@ library V3DutchDecayLib {
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = V3DutchDecayLib.decay(input.curve, input.startAmount, decayStartBlock);
+        uint256 decayedInput = NonlinearDutchDecayLib.decay(input.curve, input.startAmount, decayStartBlock);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }

@@ -84,7 +84,11 @@ library ExclusivityLib {
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false
-    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition) internal view returns (bool) {
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition)
+        internal
+        view
+        returns (bool)
+    {
         return exclusive == address(0) || currentPosition > exclusivityEnd || exclusive == msg.sender;
     }
 }

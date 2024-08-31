@@ -5,14 +5,8 @@ import {BaseReactor} from "./BaseReactor.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
-import {V3DutchDecayLib} from "../lib/V3DutchDecayLib.sol";
-import {
-    V3DutchOrderLib,
-    V3DutchOrder,
-    CosignerData,
-    V3DutchOutput,
-    V3DutchInput
-} from "../lib/V3DutchOrderLib.sol";
+import {NonlinearDutchDecayLib} from "../lib/NonlinearDutchDecayLib.sol";
+import {V3DutchOrderLib, V3DutchOrder, CosignerData, V3DutchOutput, V3DutchInput} from "../lib/V3DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Reactor for non-linear dutch orders
@@ -27,8 +21,8 @@ import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 contract V3DutchOrderReactor is BaseReactor {
     using Permit2Lib for ResolvedOrder;
     using V3DutchOrderLib for V3DutchOrder;
-    using V3DutchDecayLib for V3DutchOutput[];
-    using V3DutchDecayLib for V3DutchInput;
+    using NonlinearDutchDecayLib for V3DutchOutput[];
+    using NonlinearDutchDecayLib for V3DutchInput;
     using ExclusivityLib for ResolvedOrder;
 
     /// @notice thrown when an order's deadline is passed

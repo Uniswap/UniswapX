@@ -14,6 +14,7 @@ contract MockExclusivityLib {
         ExclusivityLib.handleExclusiveOverrideTimestamp(order, exclusive, exclusivityEnd, exclusivityOverrideBps);
         return order;
     }
+
     function handleExclusiveOverrideBlock(
         ResolvedOrder memory order,
         address exclusive,

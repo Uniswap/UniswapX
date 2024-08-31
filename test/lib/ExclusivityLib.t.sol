@@ -31,9 +31,7 @@ contract ExclusivityLibTest is Test {
         assertEq(exclusivity.hasFillingRights(exclusive, block.timestamp + 1, block.timestamp), true);
     }
 
-    function testExclusivityFail(address caller, address exclusive, uint256 nowTime, uint256 exclusiveEnd)
-        public
-    {
+    function testExclusivityFail(address caller, address exclusive, uint256 nowTime, uint256 exclusiveEnd) public {
         vm.assume(nowTime <= exclusiveEnd);
         vm.assume(caller != exclusive);
         vm.assume(exclusive != address(0));
@@ -76,7 +74,9 @@ contract ExclusivityLibTest is Test {
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
-    function testHandleExclusiveOverrideTimestampPassNoExclusivity(address caller, uint256 overrideAmt, uint128 amount) public {
+    function testHandleExclusiveOverrideTimestampPassNoExclusivity(address caller, uint256 overrideAmt, uint128 amount)
+        public
+    {
         vm.assume(overrideAmt < 10000);
         ResolvedOrder memory order;
         order.outputs = OutputsBuilder.single(token1, amount, recipient);
@@ -88,7 +88,9 @@ contract ExclusivityLibTest is Test {
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
-    function testHandleExclusiveOverrideBlockPassNoExclusivity(address caller, uint256 overrideAmt, uint128 amount) public {
+    function testHandleExclusiveOverrideBlockPassNoExclusivity(address caller, uint256 overrideAmt, uint128 amount)
+        public
+    {
         vm.assume(overrideAmt < 10000);
         ResolvedOrder memory order;
         order.outputs = OutputsBuilder.single(token1, amount, recipient);
@@ -206,9 +208,12 @@ contract ExclusivityLibTest is Test {
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
-    function testHandleExclusiveOverrideTimestampApplied(address caller, address exclusive, uint256 overrideAmt, uint128 amount)
-        public
-    {
+    function testHandleExclusiveOverrideTimestampApplied(
+        address caller,
+        address exclusive,
+        uint256 overrideAmt,
+        uint128 amount
+    ) public {
         vm.assume(caller != exclusive);
         vm.assume(exclusive != address(0));
         vm.assume(overrideAmt < 10000 && overrideAmt > 0);
@@ -222,9 +227,12 @@ contract ExclusivityLibTest is Test {
         assertEq(handled.outputs[0].recipient, recipient);
     }
 
-    function testHandleExclusiveOverrideBlockApplied(address caller, address exclusive, uint256 overrideAmt, uint128 amount)
-        public
-    {
+    function testHandleExclusiveOverrideBlockApplied(
+        address caller,
+        address exclusive,
+        uint256 overrideAmt,
+        uint128 amount
+    ) public {
         vm.assume(caller != exclusive);
         vm.assume(exclusive != address(0));
         vm.assume(overrideAmt < 10000 && overrideAmt > 0);

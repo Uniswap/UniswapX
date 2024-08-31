@@ -5,6 +5,9 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken} from "../../src/base/ReactorStructs.sol";
 import {DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {PriorityOutput} from "../../src/lib/PriorityOrderLib.sol";
+import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
+import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
+import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 library OutputsBuilder {
     function single(address token, uint256 amount, address recipient) internal pure returns (OutputToken[] memory) {
@@ -85,6 +88,38 @@ library OutputsBuilder {
         PriorityOutput[] memory result = new PriorityOutput[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             result[i] = PriorityOutput(token, amounts[i], mpsPerPriorityFeeWei, recipient);
+        }
+        return result;
+    }
+
+    function singleV3Dutch(address token, uint256 amount, uint256 endAmount, address recipient)
+        internal
+        pure
+        returns (V3DutchOutput[] memory)
+    {
+        int256 delta = int256(amount - endAmount);
+        NonlinearDutchDecay memory curve = NonlinearDutchDecay({
+            relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
+            relativeAmounts: ArrayBuilder.fillInt(1, delta)
+        });
+        V3DutchOutput[] memory result = new V3DutchOutput[](1);
+        result[0] = V3DutchOutput(token, amount, curve, recipient);
+        return result;
+    }
+
+    function multipleV3Dutch(address token, uint256[] memory amounts, uint256 endAmount, address recipient)
+        internal
+        pure
+        returns (V3DutchOutput[] memory)
+    {
+        V3DutchOutput[] memory result = new V3DutchOutput[](amounts.length);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            int256 delta = int256(amounts[i] - endAmount);
+            NonlinearDutchDecay memory curve = NonlinearDutchDecay({
+                relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
+                relativeAmounts: ArrayBuilder.fillInt(1, delta)
+            });
+            result[i] = V3DutchOutput(token, amounts[i], curve, recipient);
         }
         return result;
     }

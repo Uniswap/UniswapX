@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 /// @dev An uint16 array of max 16 values packed into a single uint256
 type Uint16Array is uint256;
+
 using Uint16ArrayLibrary for Uint16Array global;
+
 error IndexOutOfBounds();
 error InvalidArrLength();
 

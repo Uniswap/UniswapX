@@ -36,7 +36,7 @@ struct V3DutchOrder {
 
 /// @dev The changes in tokens (positive or negative) to subtract from the start amount
 /// @dev The relativeBlocks should be strictly increasing
-struct V3Decay {
+struct NonlinearDutchDecay {
     // 16 uint16 values packed
     // Can represent curves with points 2^16 blocks into the future
     uint256 relativeBlocks;
@@ -50,7 +50,7 @@ struct V3DutchInput {
     // The amount of tokens at the starting block
     uint256 startAmount;
     // The amount of tokens at the each future block
-    V3Decay curve;
+    NonlinearDutchDecay curve;
     // The max amount of the curve
     uint256 maxAmount;
 }
@@ -62,7 +62,7 @@ struct V3DutchOutput {
     // The amount of tokens at the start of the time period
     uint256 startAmount;
     // The amount of tokens at the each future block
-    V3Decay curve;
+    NonlinearDutchDecay curve;
     // The address who must receive the tokens to satisfy the order
     address recipient;
 }
@@ -79,11 +79,11 @@ library V3DutchOrderLib {
         "V3DutchOutput[] baseOutputs)"
     );
     bytes internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE = abi.encodePacked(
-        "V3DutchOutput(", "address token,", "uint256 startAmount,", "V3Decay curve,", "address recipient)"
+        "V3DutchOutput(", "address token,", "uint256 startAmount,", "NonlinearDutchDecay curve,", "address recipient)"
     );
     bytes32 internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH = keccak256(NON_LINEAR_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE =
-        abi.encodePacked("V3Decay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
+        abi.encodePacked("NonlinearDutchDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
@@ -103,7 +103,7 @@ library V3DutchOrderLib {
         )
     );
 
-    function hash(V3Decay memory curve) internal pure returns (bytes32) {
+    function hash(NonlinearDutchDecay memory curve) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 NON_LINEAR_DECAY_TYPE_HASH, curve.relativeBlocks, keccak256(abi.encodePacked(curve.relativeAmounts))
