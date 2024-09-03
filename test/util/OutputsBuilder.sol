@@ -102,11 +102,12 @@ library OutputsBuilder {
         return result;
     }
 
-    function multipleV3Dutch(address token, uint256[] memory amounts, NonlinearDutchDecay[] memory curves, address recipient)
-        internal
-        pure
-        returns (V3DutchOutput[] memory)
-    {
+    function multipleV3Dutch(
+        address token,
+        uint256[] memory amounts,
+        NonlinearDutchDecay[] memory curves,
+        address recipient
+    ) internal pure returns (V3DutchOutput[] memory) {
         V3DutchOutput[] memory result = new V3DutchOutput[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             result[i] = V3DutchOutput(token, amounts[i], curves[i], recipient);
