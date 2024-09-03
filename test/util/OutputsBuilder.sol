@@ -92,34 +92,24 @@ library OutputsBuilder {
         return result;
     }
 
-    function singleV3Dutch(address token, uint256 amount, uint256 endAmount, address recipient)
+    function singleV3Dutch(address token, uint256 amount, NonlinearDutchDecay memory curve, address recipient)
         internal
         pure
         returns (V3DutchOutput[] memory)
     {
-        int256 delta = int256(amount - endAmount);
-        NonlinearDutchDecay memory curve = NonlinearDutchDecay({
-            relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
-            relativeAmounts: ArrayBuilder.fillInt(1, delta)
-        });
         V3DutchOutput[] memory result = new V3DutchOutput[](1);
         result[0] = V3DutchOutput(token, amount, curve, recipient);
         return result;
     }
 
-    function multipleV3Dutch(address token, uint256[] memory amounts, uint256 endAmount, address recipient)
+    function multipleV3Dutch(address token, uint256[] memory amounts, NonlinearDutchDecay[] memory curves, address recipient)
         internal
         pure
         returns (V3DutchOutput[] memory)
     {
         V3DutchOutput[] memory result = new V3DutchOutput[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
-            int256 delta = int256(amounts[i] - endAmount);
-            NonlinearDutchDecay memory curve = NonlinearDutchDecay({
-                relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
-                relativeAmounts: ArrayBuilder.fillInt(1, delta)
-            });
-            result[i] = V3DutchOutput(token, amounts[i], curve, recipient);
+            result[i] = V3DutchOutput(token, amounts[i], curves[i], recipient);
         }
         return result;
     }

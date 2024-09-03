@@ -51,9 +51,6 @@ contract V3DutchOrderReactor is BaseReactor {
         // hash the order _before_ overriding amounts, as this is the hash the user would have signed
         bytes32 orderHash = order.hash();
 
-        if (order.info.deadline < block.timestamp) {
-            revert DeadlineReached();
-        }
         _validateOrder(orderHash, order);
         _updateWithCosignerAmounts(order);
 
@@ -108,8 +105,12 @@ contract V3DutchOrderReactor is BaseReactor {
 
     /// @notice validate the dutch order fields
     /// - deadline must have not passed
+    /// - cosigner is valid if specified
     /// @dev Throws if the order is invalid
-    function _validateOrder(bytes32 orderHash, V3DutchOrder memory order) internal pure {
+    function _validateOrder(bytes32 orderHash, V3DutchOrder memory order) internal view {
+        if (order.info.deadline < block.timestamp) {
+            revert DeadlineReached();
+        }
         (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
         uint8 v = uint8(order.cosignature[64]);
         // cosigner signs over (orderHash || cosignerData)

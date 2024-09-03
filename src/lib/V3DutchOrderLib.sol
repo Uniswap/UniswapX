@@ -143,8 +143,8 @@ library V3DutchOrderLib {
     function hash(V3DutchOutput[] memory outputs) internal pure returns (bytes32) {
         unchecked {
             bytes memory packedHashes = new bytes(32 * outputs.length);
-
-            for (uint256 i = 0; i < outputs.length; i++) {
+            uint256 outputsLength = outputs.length;
+            for (uint256 i = 0; i < outputsLength; i++) {
                 bytes32 outputHash = hash(outputs[i]);
                 assembly {
                     mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), outputHash)

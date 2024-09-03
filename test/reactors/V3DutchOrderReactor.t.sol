@@ -27,10 +27,19 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {BaseReactorTest} from "../base/BaseReactor.t.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
+import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
+import {Solarray} from "solarray/Solarray.sol";
+import {sub} from "../../src/lib/MathExt.sol";
 
 contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
-    using V3DutchOrderLib for V3DutchOrder;
+    using V3DutchOrderLib for V3DutchOrder;   
+    OrderQuoter quoter;
+    using {sub} for uint256;
+
+    constructor() {
+        quoter = new OrderQuoter();
+    }
 
     uint256 constant cosignerPrivateKey = 0x99999999;
 
@@ -88,57 +97,9 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         return (SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)), orderHash);
     }
 
-    function testWrongCosigner() public {
-        address wrongCosigner = makeAddr("wrongCosigner");
-        CosignerData memory cosignerData = CosignerData({
-            decayStartBlock: block.number,
-            exclusiveFiller: address(0),
-            exclusivityOverrideBps: 0,
-            inputAmount: 1 ether,
-            outputAmounts: ArrayBuilder.fill(1, 1 ether)
-        });
+    /* Cosigner tests */
 
-        V3DutchOrder memory order = V3DutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
-            cosigner: wrongCosigner,
-            baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 1 ether, swapper),
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
-        SignedOrder memory signedOrder =
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
-        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
-        fillContract.execute(signedOrder);
-    }
-
-    function testInvalidCosignature() public {
-        address wrongCosigner = makeAddr("wrongCosigner");
-        CosignerData memory cosignerData = CosignerData({
-            decayStartBlock: block.number,
-            exclusiveFiller: address(0),
-            exclusivityOverrideBps: 0,
-            inputAmount: 1 ether,
-            outputAmounts: ArrayBuilder.fill(1, 1 ether)
-        });
-
-        V3DutchOrder memory order = V3DutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
-            cosigner: wrongCosigner,
-            baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 1 ether, swapper),
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
-        SignedOrder memory signedOrder =
-            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
-        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
-        fillContract.execute(signedOrder);
-    }
-
-    function testInputOverrideWorse() public {
+    function testV3InputOverrideWorse() public {
         CosignerData memory cosignerData = CosignerData({
             decayStartBlock: block.number,
             exclusiveFiller: address(0),
@@ -152,7 +113,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, 0.8 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 1 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, 0 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -163,7 +129,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
-    function testOutputOverrideWorse() public {
+    function testV3OutputOverrideWorse() public {
         CosignerData memory cosignerData = CosignerData({
             decayStartBlock: block.number,
             exclusiveFiller: address(0),
@@ -177,7 +143,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 0.8 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .2 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -188,7 +159,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
-    function testOutputOverrideWrongLength() public {
+    function testV3OutputOverrideWrongLength() public {
         CosignerData memory cosignerData = CosignerData({
             decayStartBlock: block.number,
             exclusiveFiller: address(0),
@@ -202,7 +173,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 0.8 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .2 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -213,7 +189,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
-    function testOverrideInput() public {
+    function testV3OverrideInput() public {
         uint256 outputAmount = 1 ether;
         uint256 overriddenInputAmount = 0.7 ether;
         tokenIn.mint(swapper, overriddenInputAmount);
@@ -231,7 +207,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, 0.8 ether, CurveBuilder.emptyCurve(), 1 ether),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), outputAmount, outputAmount, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                outputAmount, 
+                CurveBuilder.singlePointCurve(1, 0 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -248,7 +229,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), overriddenInputAmount);
     }
 
-    function testOverrideOutput() public {
+    function testV3OverrideOutput() public {
         uint256 overriddenOutputAmount = 1.1 ether;
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
@@ -266,7 +247,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, inputAmount, CurveBuilder.emptyCurve(), inputAmount),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 0.9 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .1 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -283,7 +269,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testStrictExclusivityInvalidCaller() public {
+    function testV3StrictExclusivityInvalidCaller() public {
         uint256 inputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
         tokenOut.mint(address(fillContract), inputAmount);
@@ -300,7 +286,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, inputAmount, CurveBuilder.emptyCurve(), inputAmount),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 0.9 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .1 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -311,7 +302,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         fillContract.execute(signedOrder);
     }
 
-    function testStrictExclusivityValidCaller() public {
+    function testV3StrictExclusivityValidCaller() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         tokenIn.mint(swapper, inputAmount);
@@ -329,7 +320,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, inputAmount, CurveBuilder.emptyCurve(), inputAmount),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), outputAmount, 0.9 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .1 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -347,7 +343,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testExclusiveOverrideInvalidCallerCosignedAmountOutput() public {
+    function testV3ExclusiveOverrideInvalidCallerCosignedAmountOutput() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 exclusivityOverrideBps = 10;
@@ -366,7 +362,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, inputAmount, CurveBuilder.emptyCurve(), inputAmount),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1 ether, 0.9 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .1 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -379,7 +380,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testExclusiveOverrideInvalidCallerNoCosignedAmountOutput() public {
+    function testV3ExclusiveOverrideInvalidCallerNoCosignedAmountOutput() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 exclusivityOverrideBps = 10;
@@ -398,7 +399,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
             cosigner: vm.addr(cosignerPrivateKey),
             baseInput: V3DutchInput(tokenIn, inputAmount, CurveBuilder.emptyCurve(), inputAmount),
-            baseOutputs: OutputsBuilder.singleV3Dutch(address(tokenOut), outputAmount, 0.9 ether, swapper),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, .1 ether),
+                swapper
+            ),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -412,37 +418,520 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    // function testExecuteInputAndOutputDecay() public {
-    //     uint256 inputAmount = 1 ether;
-    //     uint256 outputAmount = 1 ether;
-    //     uint256 startTime = block.timestamp;
-    //     uint256 deadline = startTime + 1000;
-    //     // Seed both swapper and fillContract with enough tokens (important for dutch order)
-    //     tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
-    //     tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
-    //     tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+    /* Validation tests */
 
-    //     SignedOrder memory order = generateOrder(
-    //         TestDutchOrderSpec({
-    //             currentTime: startTime,
-    //             startTime: startTime,
-    //             endTime: deadline,
-    //             deadline: deadline,
-    //             input: V3DutchInput(tokenIn, inputAmount, inputAmount * 110 / 100),
-    //             outputs: OutputsBuilder.singleV3Dutch(tokenOut, outputAmount, outputAmount * 90 / 100, address(swapper))
-    //         })
-    //     );
-    //     uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
-    //     uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
-    //     vm.expectEmit(false, true, true, false, address(reactor));
-    //     emit Fill(keccak256("not checked"), address(fillContract), swapper, 0);
-    //     vm.warp(startTime + 500);
-    //     fillContract.execute(order);
-    //     uint256 swapperInputBalanceEnd = tokenIn.balanceOf(address(swapper));
-    //     uint256 swapperOutputBalanceEnd = tokenOut.balanceOf(address(swapper));
-    //     assertEq(swapperInputBalanceStart - swapperInputBalanceEnd, inputAmount * 105 / 100);
-    //     assertEq(swapperOutputBalanceEnd - swapperOutputBalanceStart, outputAmount * 95 / 100);
-    // }
+    function testV3WrongCosigner() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+        CosignerData memory cosignerData = CosignerData({
+            decayStartBlock: block.number,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            inputAmount: 1 ether,
+            outputAmounts: ArrayBuilder.fill(1, 1 ether)
+        });
+
+        V3DutchOrder memory order = V3DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: wrongCosigner,
+            baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, 0 ether),
+                swapper
+            ),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testV3InvalidCosignature() public {
+        address wrongCosigner = makeAddr("wrongCosigner");
+        CosignerData memory cosignerData = CosignerData({
+            decayStartBlock: block.number,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            inputAmount: 1 ether,
+            outputAmounts: ArrayBuilder.fill(1, 1 ether)
+        });
+
+        V3DutchOrder memory order = V3DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper),
+            cosigner: wrongCosigner,
+            baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), 
+                1 ether, 
+                CurveBuilder.singlePointCurve(1, 0 ether),
+                swapper
+            ),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    function testV3ExecutePastDeadline() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 startBlock = block.number;
+        uint256 deadline = block.timestamp + 1000;
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: block.number,
+                startBlock: startBlock,
+                deadline: deadline,
+                input: V3DutchInput(
+                    tokenIn,
+                    inputAmount,
+                    CurveBuilder.singlePointCurve(1000, 0-int256(inputAmount * 10 / 100)),
+                    inputAmount * 110 / 100
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    outputAmount,
+                    CurveBuilder.singlePointCurve(1000, int256(inputAmount * 10 / 100)),
+                    address(swapper)
+                )
+            })
+        );
+        vm.warp(deadline + 1);
+        vm.expectRevert(V3DutchOrderReactor.DeadlineReached.selector);
+        fillContract.execute(order);
+    }
+
+    /* Block decay tests */
+
+    function testV3ExecuteInputAndOutputHalfDecay() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 startBlock = block.number;
+        uint256 deadline = block.timestamp + 1000;
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: block.number,
+                startBlock: startBlock,
+                deadline: deadline,
+                input: V3DutchInput(
+                    tokenIn,
+                    inputAmount,
+                    CurveBuilder.singlePointCurve(1000, 0-int256(inputAmount * 10 / 100)),
+                    inputAmount * 110 / 100
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    outputAmount,
+                    CurveBuilder.singlePointCurve(1000, int256(inputAmount * 10 / 100)),
+                    address(swapper)
+                )
+            })
+        );
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
+        vm.expectEmit(false, true, true, false, address(reactor));
+        emit Fill(keccak256("not checked"), address(fillContract), swapper, 0);
+        vm.roll(startBlock + 500);
+        fillContract.execute(order);
+        uint256 swapperInputBalanceEnd = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceEnd = tokenOut.balanceOf(address(swapper));
+        assertEq(swapperInputBalanceStart - swapperInputBalanceEnd, inputAmount * 105 / 100);
+        assertEq(swapperOutputBalanceEnd - swapperOutputBalanceStart, outputAmount * 95 / 100);
+    }
+
+    function testV3ExecuteInputAndOutputFullDecay() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 startBlock = block.number;
+        uint256 deadline = block.timestamp + 1000;
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: block.number,
+                startBlock: startBlock,
+                deadline: deadline,
+                input: V3DutchInput(
+                    tokenIn,
+                    inputAmount,
+                    CurveBuilder.singlePointCurve(1000, 0-int256(inputAmount * 10 / 100)),
+                    inputAmount * 110 / 100
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    outputAmount,
+                    CurveBuilder.singlePointCurve(1000, int256(inputAmount * 10 / 100)),
+                    address(swapper)
+                )
+            })
+        );
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
+        vm.expectEmit(false, true, true, false, address(reactor));
+        emit Fill(keccak256("not checked"), address(fillContract), swapper, 0);
+        vm.roll(startBlock + 1000);
+        fillContract.execute(order);
+        uint256 swapperInputBalanceEnd = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceEnd = tokenOut.balanceOf(address(swapper));
+        assertEq(swapperInputBalanceStart - swapperInputBalanceEnd, inputAmount * 110 / 100);
+        assertEq(swapperOutputBalanceEnd - swapperOutputBalanceStart, outputAmount * 90 / 100);
+    }
+
+    function testV3ResolveNotStarted() public {
+        uint256 currentBlock = 1000;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock + 100,
+                deadline: currentBlock + 200,
+                input: V3DutchInput(
+                    tokenIn, 
+                    1000,
+                    CurveBuilder.singlePointCurve(200, 1000),
+                    2000
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    0,
+                    CurveBuilder.singlePointCurve(200, -100),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 0);
+        assertEq(resolvedOrder.input.amount, 1000);
+    }
+
+    function testV3ResolveOutputHalfwayDecayed() public {
+        uint256 currentBlock = 1000;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock - 100,
+                deadline: currentBlock + 200,
+                input: V3DutchInput(
+                    tokenIn,
+                    0,
+                    CurveBuilder.singlePointCurve(100, 0),
+                    0
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    2000,
+                    CurveBuilder.singlePointCurve(200, 1000),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1500);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    function testV3ResolveOutputFullyDecayed() public {
+        uint256 currentBlock = 1000;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock - 200,
+                deadline: currentBlock + 200,
+                input: V3DutchInput(
+                    tokenIn,
+                    100,
+                    CurveBuilder.singlePointCurve(200, 100),
+                    100
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                   address(tokenOut),
+                   2000,
+                   CurveBuilder.singlePointCurve(200, 1000),
+                   address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    function testV3ResolveInputHalfwayDecayed() public {
+        uint256 currentBlock = 1000;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock - 100,
+                deadline: currentBlock + 200,
+                input: V3DutchInput(
+                    tokenIn,
+                    1000,
+                    CurveBuilder.singlePointCurve(200, 1000),
+                    1000
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    1000,
+                    CurveBuilder.singlePointCurve(200, 0),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 500);
+    }
+
+    function testV3ResolveInputFullyDecayed() public {
+        uint256 currentBlock = 1000;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock - 100,
+                deadline: currentBlock + 200,
+                input: V3DutchInput(
+                    tokenIn,
+                    1000,
+                    CurveBuilder.singlePointCurve(100, 1000),
+                    1000
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    1000,
+                    CurveBuilder.singlePointCurve(100, 0),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    // 1000 - (100 * (1659087340-1659029740) / (65535)) = 913
+    function testV3ResolveEndBlockAfterNow() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(
+                    tokenIn,
+                    0,
+                    CurveBuilder.singlePointCurve(relativeEndBlock, 0),
+                    0
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    1000,
+                    CurveBuilder.singlePointCurve(relativeEndBlock, 100),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 913);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    // Test multiple dutch outputs get resolved correctly.
+    function testV3ResolveMultipleDutchOutputs() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        NonlinearDutchDecay[] memory curves = new NonlinearDutchDecay[](3);
+        curves[0] = CurveBuilder.singlePointCurve(relativeEndBlock, 100);
+        curves[1] = CurveBuilder.singlePointCurve(relativeEndBlock, 1000);
+        curves[2] = CurveBuilder.singlePointCurve(relativeEndBlock, 1000);
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), 0),
+                outputs: OutputsBuilder.multipleV3Dutch(
+                    address(tokenOut),
+                    Solarray.uint256s(1000, 10000, 2000),
+                    curves,
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs.length, 3);
+        assertEq(resolvedOrder.outputs[0].amount, 913);
+        assertEq(resolvedOrder.outputs[1].amount, 9122);
+        assertEq(resolvedOrder.outputs[2].amount, 1122);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    // Test that when decayStartBlock = now, that the output = startAmount
+    function testV3ResolveStartBlockEqualsNow() public {
+        uint256 currentBlock = 1659029740;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                   address(tokenOut),
+                   1000,
+                   CurveBuilder.singlePointCurve(relativeEndBlock, 100),
+                   address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    // At block 1659030395, output will still be 1000. One block later at 1659030396,
+    // the first decay will occur and the output will be 999.
+    function testV3ResolveFirstDecay() public {
+        uint256 startBlock = 1659029740;
+        uint256 currentBlock = 1659030395; // 1659030395 - 1659029740 = 655 = 0.00999 * 65535
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: startBlock,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                   address(tokenOut),
+                   1000,
+                   CurveBuilder.singlePointCurve(relativeEndBlock, 100),
+                   address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+
+        vm.roll(currentBlock + 1);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 999);
+    }
+
+    function testV3FuzzPositiveDecayNeverOutOfBounds(
+        uint128 currentBlock,
+        uint128 decayStartBlock,
+        uint256 startAmount,
+        uint16 decayDuration,
+        uint256 decayAmount
+    ) public {
+        vm.assume(decayAmount > 0);
+        vm.assume(decayAmount < 2 ** 255 - 1);
+        vm.assume(startAmount <= UINT256_MAX - decayAmount);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: uint256(currentBlock),
+                startBlock: uint256(decayStartBlock),
+                deadline: type(uint256).max,
+                input: V3DutchInput(
+                    tokenIn,
+                    0, 
+                    CurveBuilder.singlePointCurve(decayDuration, 0), 
+                    0
+                ),
+                outputs: OutputsBuilder.singleV3Dutch(
+                   address(tokenOut), 
+                   uint256(startAmount), 
+                   CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount)), 
+                   address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertGe(resolvedOrder.outputs[0].amount, startAmount);
+        uint256 endAmount = startAmount + decayAmount;
+        assertLe(resolvedOrder.outputs[0].amount, endAmount);
+    }
+
+    /* Test helpers */
+
+    struct TestDutchOrderSpec {
+        uint256 currentBlock;
+        uint256 startBlock;
+        uint256 deadline;
+        V3DutchInput input;
+        V3DutchOutput[] outputs;
+    }
+
+    /// @dev Create a signed order and return the order and orderHash
+    /// @param request Order to sign
+    function createAndSignDutchOrder(V3DutchOrder memory request)
+        public
+        virtual
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        orderHash = request.hash();
+        return (SignedOrder(abi.encode(request), signOrder(swapperPrivateKey, address(permit2), request)), orderHash);
+    }
+
+    function generateOrder(TestDutchOrderSpec memory spec) internal returns (SignedOrder memory order) {
+        tokenIn.mint(address(swapper), uint256(spec.input.maxAmount));
+        tokenIn.forceApprove(swapper, address(permit2), spec.input.maxAmount);
+
+        uint256[] memory outputAmounts = new uint256[](spec.outputs.length);
+        for (uint256 i = 0; i < spec.outputs.length; i++) {
+            outputAmounts[i] = 0;
+        }
+        CosignerData memory cosignerData = CosignerData({
+            decayStartBlock: spec.startBlock,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0,
+            inputAmount: 0,
+            outputAmounts: outputAmounts
+        });
+        V3DutchOrder memory request = V3DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withDeadline(spec.deadline).withSwapper(address(swapper)),
+            cosigner: vm.addr(cosignerPrivateKey),
+            baseInput: spec.input,
+            baseOutputs: spec.outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        bytes32 orderHash = request.hash();
+        request.cosignature = cosignOrder(orderHash, cosignerData);
+        (order,) = createAndSignDutchOrder(request);
+    }
 
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {
         bytes32 msgHash = keccak256(abi.encodePacked(orderHash, abi.encode(cosignerData)));

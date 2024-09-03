@@ -5,7 +5,7 @@ import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../lib/V3DutchOrderLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {sub} from "./MathExt.sol";
-import {Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
+import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 
 /// @notice thrown when the decay curve is invalid
 error InvalidDecayCurve();
@@ -14,6 +14,7 @@ error InvalidDecayCurve();
 library NonlinearDutchDecayLib {
     using FixedPointMathLib for uint256;
     using {sub} for uint256;
+    using Uint16ArrayLibrary for Uint16Array;
 
     /// @notice locates the current position on the curve and calculates the decay
     /// @param curve The curve to search
@@ -61,12 +62,12 @@ library NonlinearDutchDecayLib {
         returns (uint16 prev, uint16 next)
     {
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
-        while (next < curve.relativeAmounts.length) {
+        uint16 curveLength = uint16(curve.relativeAmounts.length);
+        for (; next < curveLength; next++) {
             if (relativeBlocks.getElement(next) >= currentRelativeBlock) {
                 return (prev, next);
             }
             prev = next;
-            next++;
         }
         return (next - 1, next - 1);
     }

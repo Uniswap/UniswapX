@@ -5,9 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {NonlinearDutchDecayLib} from "../../src/lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
-import {Uint16Array, toUint16Array, InvalidArrLength, IndexOutOfBounds} from "../../src/types/Uint16Array.sol";
+import {Uint16ArrayLibrary, Uint16Array, toUint16Array, InvalidArrLength, IndexOutOfBounds} from "../../src/types/Uint16Array.sol";
 
 contract Uint16ArrayTest is Test {
+    using Uint16ArrayLibrary for Uint16Array;
+
     function testGetElement(uint16 value, uint16 length) public {
         vm.assume(length <= 16);
         Uint16Array packedArr = toUint16Array(ArrayBuilder.fillUint16(length, value));

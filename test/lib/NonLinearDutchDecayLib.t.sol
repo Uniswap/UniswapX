@@ -200,7 +200,6 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         vm.assume(decayAmount > 0);
         vm.assume(decayAmount < 2 ** 255 - 1);
         vm.assume(startAmount <= UINT256_MAX - decayAmount);
-        vm.assume(decayDuration > 0);
 
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount));
         snapStart("V3-DutchDecayBounded");
