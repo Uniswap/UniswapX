@@ -767,7 +767,6 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         uint16 decayDuration,
         uint256 decayAmount
     ) public {
-        vm.assume(decayAmount > 0);
         vm.assume(decayAmount < 2 ** 255 - 1);
         vm.assume(startAmount <= UINT256_MAX - decayAmount);
 
@@ -789,6 +788,156 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertGe(resolvedOrder.outputs[0].amount, startAmount);
         uint256 endAmount = startAmount + decayAmount;
         assertLe(resolvedOrder.outputs[0].amount, endAmount);
+    }
+
+    function testV3FuzzNegativeDecayNeverOutOfBounds(
+        uint128 currentBlock,
+        uint128 decayStartBlock,
+        uint256 startAmount,
+        uint16 decayDuration,
+        uint256 decayAmount
+    ) public {
+        vm.assume(decayAmount < 2 ** 255 - 1);
+        // can't have neg prices
+        vm.assume(startAmount >= decayAmount);
+        vm.assume(startAmount <= UINT256_MAX - decayAmount);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: uint256(currentBlock),
+                startBlock: uint256(decayStartBlock),
+                deadline: type(uint256).max,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(decayDuration, 0), 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut),
+                    uint256(startAmount),
+                    CurveBuilder.singlePointCurve(decayDuration, int256(decayAmount)),
+                    address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertLe(resolvedOrder.outputs[0].amount, startAmount);
+        uint256 endAmount = startAmount.sub(int256(decayAmount));
+        assertGe(resolvedOrder.outputs[0].amount, endAmount);
+    }
+
+    function testV3ResolveMultiPointInputDecay() public {
+        uint256 currentBlock = 1000;
+        uint256 decayStartBlock = currentBlock + 100;
+        vm.roll(currentBlock);
+
+        uint16[] memory blocks = new uint16[](3);
+        blocks[0] = 100;
+        blocks[1] = 200;
+        blocks[2] = 300;
+        int256[] memory decayAmounts = new int256[](3);
+        decayAmounts[0] = -1 ether; // 2 ether
+        decayAmounts[1] = 0 ether; // 1 ether
+        decayAmounts[2] = 1 ether; // 0 ether
+        NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: decayStartBlock,
+                deadline: currentBlock + 400,
+                input: V3DutchInput(tokenIn, 1 ether, curve, 2 ether),
+                outputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1000, CurveBuilder.emptyCurve(), address(0))
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // decay start block
+        vm.roll(decayStartBlock);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // halfway through first decay
+        vm.roll(decayStartBlock + 50);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1.5 ether);
+
+        // 20% through second decay
+        vm.roll(decayStartBlock + 120);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1.8 ether);
+
+        // 70% through third decay
+        vm.roll(decayStartBlock + 270);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 0.3 ether);
+
+        // after last decay (before deadline)
+        vm.roll(decayStartBlock + 305);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 0 ether);
+    }
+
+    function testV3ResolveMultiPointOutputDecay() public {
+        uint256 currentBlock = 1000;
+        uint256 decayStartBlock = currentBlock + 100;
+        vm.roll(currentBlock);
+
+        uint16[] memory blocks = new uint16[](3);
+        blocks[0] = 100;
+        blocks[1] = 200;
+        blocks[2] = 300;
+        int256[] memory decayAmounts = new int256[](3);
+        decayAmounts[0] = -1000; // 2000
+        decayAmounts[1] = 0; // 1000
+        decayAmounts[2] = 1000; // 0
+        NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: decayStartBlock,
+                deadline: currentBlock + 400,
+                input: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether),
+                outputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1000, curve, address(0))
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // decay start block
+        vm.roll(decayStartBlock);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1000);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // halfway through first decay
+        vm.roll(decayStartBlock + 50);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1500);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // 20% through second decay
+        vm.roll(decayStartBlock + 120);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1800);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // 70% through third decay
+        vm.roll(decayStartBlock + 270);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 300);
+        assertEq(resolvedOrder.input.amount, 1 ether);
+
+        // after last decay (before deadline)
+        vm.roll(decayStartBlock + 305);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 0);
+        assertEq(resolvedOrder.input.amount, 1 ether);
     }
 
     /* Test helpers */
