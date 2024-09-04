@@ -37,14 +37,33 @@ library DutchDecayLib {
         } else if (decayStartTime >= block.timestamp) {
             decayedAmount = startAmount;
         } else {
-            unchecked {
-                uint256 elapsed = block.timestamp - decayStartTime;
-                uint256 duration = decayEndTime - decayStartTime;
-                if (endAmount < startAmount) {
-                    decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-                } else {
-                    decayedAmount = startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
-                }
+            decayedAmount = linearDecay(decayStartTime, decayEndTime, block.timestamp, startAmount, endAmount);
+        }
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function linearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal pure returns (uint256) {
+        if (currentPoint >= endPoint) {
+            return endAmount;
+        }
+        unchecked {
+            uint256 elapsed = currentPoint - startPoint;
+            uint256 duration = endPoint - startPoint;
+            if (endAmount < startAmount) {
+                return startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
+            } else {
+                return startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
             }
         }
     }

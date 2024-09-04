@@ -6,6 +6,7 @@ import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../lib/V3DutchOr
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {sub} from "./MathExt.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
+import {DutchDecayLib} from "./DutchDecayLib.sol";
 
 /// @notice thrown when the decay curve is invalid
 error InvalidDecayCurve();
@@ -38,7 +39,7 @@ library NonlinearDutchDecayLib {
         uint16 blockDelta = uint16(block.number - decayStartBlock);
         // Special case for when we need to use the decayStartBlock (0)
         if (relativeBlocks.getElement(0) > blockDelta) {
-            return linearDecay(
+            return DutchDecayLib.linearDecay(
                 0, relativeBlocks.getElement(0), blockDelta, startAmount, startAmount.sub(curve.relativeAmounts[0])
             );
         }
@@ -46,7 +47,7 @@ library NonlinearDutchDecayLib {
         (uint16 prev, uint16 next) = locateCurvePosition(curve, blockDelta);
         uint256 lastAmount = startAmount.sub(curve.relativeAmounts[prev]);
         uint256 nextAmount = startAmount.sub(curve.relativeAmounts[next]);
-        return linearDecay(
+        return DutchDecayLib.linearDecay(
             relativeBlocks.getElement(prev), relativeBlocks.getElement(next), blockDelta, lastAmount, nextAmount
         );
     }
@@ -72,33 +73,6 @@ library NonlinearDutchDecayLib {
         return (next - 1, next - 1);
     }
 
-    /// @notice returns the linear interpolation between the two points
-    /// @param startBlock The start of the decay
-    /// @param endBlock The end of the decay
-    /// @param currentBlock The current position in the decay
-    /// @param startAmount The amount of the start of the decay
-    /// @param endAmount The amount of the end of the decay
-    function linearDecay(
-        uint16 startBlock,
-        uint16 endBlock,
-        uint16 currentBlock,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal pure returns (uint256) {
-        if (currentBlock >= endBlock) {
-            return endAmount;
-        }
-        unchecked {
-            uint256 elapsed = currentBlock - startBlock;
-            uint256 duration = endBlock - startBlock;
-            if (endAmount < startAmount) {
-                return startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-            } else {
-                return startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
-            }
-        }
-    }
-
     /// @notice returns a decayed output using the given dutch spec and times
     /// @param output The output to decay
     /// @param decayStartBlock The block to start decaying
@@ -108,7 +82,7 @@ library NonlinearDutchDecayLib {
         view
         returns (OutputToken memory result)
     {
-        uint256 decayedOutput = NonlinearDutchDecayLib.decay(output.curve, output.startAmount, decayStartBlock);
+        uint256 decayedOutput = decay(output.curve, output.startAmount, decayStartBlock);
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
@@ -139,7 +113,7 @@ library NonlinearDutchDecayLib {
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = NonlinearDutchDecayLib.decay(input.curve, input.startAmount, decayStartBlock);
+        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }
