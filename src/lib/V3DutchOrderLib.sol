@@ -28,12 +28,12 @@ struct V3DutchOrder {
     V3DutchInput baseInput;
     // The tokens that must be received to satisfy the order
     V3DutchOutput[] baseOutputs;
+    // Adjust the startAmount to account for changes to gas
+    uint256 gasSnapshot;
     // signed over by the cosigner
     CosignerData cosignerData;
     // signature from the cosigner over (orderHash || cosignerData)
     bytes cosignature;
-    // Allows us to adjust the startAmount to account for changes to gas
-    uint256 gasSnapshot;
 }
 
 /// @dev The changes in tokens (positive or negative) to subtract from the start amount
@@ -79,24 +79,38 @@ struct V3DutchOutput {
 library V3DutchOrderLib {
     using OrderInfoLib for OrderInfo;
 
-    bytes internal constant NON_LINEAR_DUTCH_ORDER_TYPE = abi.encodePacked(
+    bytes internal constant V3_DUTCH_ORDER_TYPE = abi.encodePacked(
         "V3DutchOrder(",
         "OrderInfo info,",
         "address cosigner,",
         "V3DutchInput baseInput,",
-        "V3DutchOutput[] baseOutputs)"
+        "V3DutchOutput[] baseOutputs," "uint256 gasSnapshot)"
     );
-    bytes internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE = abi.encodePacked(
-        "V3DutchOutput(", "address token,", "uint256 startAmount,", "NonlinearDutchDecay curve,", "address recipient)"
+    bytes internal constant V3_DUTCH_INPUT_TYPE = abi.encodePacked(
+        "V3DutchInput(",
+        "address token,",
+        "uint256 startAmount,",
+        "NonlinearDutchDecay curve,",
+        "uint256 maxAmount,",
+        "uint256 adjustmentPerGweiBasefee)"
     );
-    bytes32 internal constant NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH = keccak256(NON_LINEAR_DUTCH_OUTPUT_TYPE);
+    bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH = keccak256(V3_DUTCH_INPUT_TYPE);
+    bytes internal constant V3_DUTCH_OUTPUT_TYPE = abi.encodePacked(
+        "V3DutchOutput(",
+        "address token,",
+        "uint256 startAmount,",
+        "NonlinearDutchDecay curve,",
+        "address recipient,",
+        "uint256 minAmount,",
+        "uint256 adjustmentPerGweiBasefee)"
+    );
+    bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(V3_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE =
         abi.encodePacked("NonlinearDutchDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
-    bytes internal constant ORDER_TYPE = abi.encodePacked(
-        NON_LINEAR_DECAY_TYPE, NON_LINEAR_DUTCH_ORDER_TYPE, NON_LINEAR_DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE
-    );
+    bytes internal constant ORDER_TYPE =
+        abi.encodePacked(NON_LINEAR_DECAY_TYPE, V3_DUTCH_ORDER_TYPE, V3_DUTCH_OUTPUT_TYPE, OrderInfoLib.ORDER_INFO_TYPE);
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
@@ -104,10 +118,11 @@ library V3DutchOrderLib {
         abi.encodePacked(
             "V3DutchOrder witness)",
             NON_LINEAR_DECAY_TYPE,
-            NON_LINEAR_DUTCH_ORDER_TYPE,
-            NON_LINEAR_DUTCH_OUTPUT_TYPE,
             OrderInfoLib.ORDER_INFO_TYPE,
-            DutchOrderLib.TOKEN_PERMISSIONS_TYPE
+            DutchOrderLib.TOKEN_PERMISSIONS_TYPE,
+            V3_DUTCH_INPUT_TYPE,
+            V3_DUTCH_ORDER_TYPE,
+            V3_DUTCH_OUTPUT_TYPE
         )
     );
 
@@ -125,7 +140,12 @@ library V3DutchOrderLib {
     function hash(V3DutchInput memory input) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH, input.token, input.startAmount, hash(input.curve), input.maxAmount
+                V3_DUTCH_INPUT_TYPE_HASH,
+                input.token,
+                input.startAmount,
+                hash(input.curve),
+                input.maxAmount,
+                input.adjustmentPerGweiBasefee
             )
         );
     }
@@ -136,11 +156,13 @@ library V3DutchOrderLib {
     function hash(V3DutchOutput memory output) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                NON_LINEAR_DUTCH_OUTPUT_TYPE_HASH,
+                V3_DUTCH_OUTPUT_TYPE_HASH,
                 output.token,
                 output.startAmount,
                 hash(output.curve),
-                output.recipient
+                output.recipient,
+                output.minAmount,
+                output.adjustmentPerGweiBasefee
             )
         );
     }
@@ -169,7 +191,12 @@ library V3DutchOrderLib {
     function hash(V3DutchOrder memory order) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                ORDER_TYPE_HASH, order.info.hash(), order.cosigner, hash(order.baseInput), hash(order.baseOutputs)
+                ORDER_TYPE_HASH,
+                order.info.hash(),
+                order.cosigner,
+                hash(order.baseInput),
+                hash(order.baseOutputs),
+                order.gasSnapshot
             )
         );
     }
