@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../lib/V3DutchOrderLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
-import {sub} from "./MathExt.sol";
+import {MathExt} from "./MathExt.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 import {DutchDecayLib} from "./DutchDecayLib.sol";
 
@@ -14,18 +14,20 @@ error InvalidDecayCurve();
 /// @notice helpers for handling non-linear dutch order objects
 library NonlinearDutchDecayLib {
     using FixedPointMathLib for uint256;
-    using {sub} for uint256;
+    using MathExt for uint256;
     using Uint16ArrayLibrary for Uint16Array;
 
     /// @notice locates the current position on the curve and calculates the decay
     /// @param curve The curve to search
     /// @param startAmount The absolute start amount
     /// @param decayStartBlock The absolute start block of the decay
-    function decay(NonlinearDutchDecay memory curve, uint256 startAmount, uint256 decayStartBlock)
-        internal
-        view
-        returns (uint256 decayedAmount)
-    {
+    function decay(
+        NonlinearDutchDecay memory curve,
+        uint256 startAmount,
+        uint256 decayStartBlock,
+        uint256 minAmount,
+        uint256 maxAmount
+    ) internal view returns (uint256 decayedAmount) {
         // mismatch of relativeAmounts and relativeBlocks
         if (curve.relativeAmounts.length > 16) {
             revert InvalidDecayCurve();
@@ -37,19 +39,24 @@ library NonlinearDutchDecayLib {
         }
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
         uint16 blockDelta = uint16(block.number - decayStartBlock);
+        int256 curveDelta;
         // Special case for when we need to use the decayStartBlock (0)
         if (relativeBlocks.getElement(0) > blockDelta) {
-            return DutchDecayLib.linearDecay(
-                0, relativeBlocks.getElement(0), blockDelta, startAmount, startAmount.sub(curve.relativeAmounts[0])
+            curveDelta =
+                DutchDecayLib.linearDecay(0, relativeBlocks.getElement(0), blockDelta, 0, curve.relativeAmounts[0]);
+        } else {
+            // the current pos is within or after the curve
+            (uint16 prev, uint16 next) = locateCurvePosition(curve, blockDelta);
+            // get decay of only the relative amounts
+            curveDelta = DutchDecayLib.linearDecay(
+                relativeBlocks.getElement(prev),
+                relativeBlocks.getElement(next),
+                blockDelta,
+                curve.relativeAmounts[prev],
+                curve.relativeAmounts[next]
             );
         }
-        // the current pos is within or after the curve
-        (uint16 prev, uint16 next) = locateCurvePosition(curve, blockDelta);
-        uint256 lastAmount = startAmount.sub(curve.relativeAmounts[prev]);
-        uint256 nextAmount = startAmount.sub(curve.relativeAmounts[next]);
-        return DutchDecayLib.linearDecay(
-            relativeBlocks.getElement(prev), relativeBlocks.getElement(next), blockDelta, lastAmount, nextAmount
-        );
+        return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
 
     /// @notice Locates the current position on the curve using a binary search
@@ -82,7 +89,8 @@ library NonlinearDutchDecayLib {
         view
         returns (OutputToken memory result)
     {
-        uint256 decayedOutput = decay(output.curve, output.startAmount, decayStartBlock);
+        uint256 decayedOutput =
+            decay(output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max);
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
@@ -113,7 +121,7 @@ library NonlinearDutchDecayLib {
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock);
+        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }

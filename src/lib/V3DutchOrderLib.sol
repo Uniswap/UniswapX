@@ -32,6 +32,8 @@ struct V3DutchOrder {
     CosignerData cosignerData;
     // signature from the cosigner over (orderHash || cosignerData)
     bytes cosignature;
+    // Allows us to adjust the startAmount to account for changes to gas
+    uint256 gasSnapshot;
 }
 
 /// @dev The changes in tokens (positive or negative) to subtract from the start amount
@@ -53,6 +55,8 @@ struct V3DutchInput {
     NonlinearDutchDecay curve;
     // The max amount of the curve
     uint256 maxAmount;
+    // The amount of token to change per wei change in basefee
+    uint256 adjustmentPerGweiBasefee;
 }
 
 /// @dev An amount of output tokens that decreases non-linearly over time
@@ -65,6 +69,10 @@ struct V3DutchOutput {
     NonlinearDutchDecay curve;
     // The address who must receive the tokens to satisfy the order
     address recipient;
+    // The min amount of the curve
+    uint256 minAmount;
+    // The amount of token to change per wei change in basefee
+    uint256 adjustmentPerGweiBasefee;
 }
 
 /// @notice helpers for handling custom curve order objects

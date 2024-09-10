@@ -92,14 +92,20 @@ library OutputsBuilder {
         return result;
     }
 
-    function singleV3Dutch(address token, uint256 amount, NonlinearDutchDecay memory curve, address recipient)
-        internal
-        pure
-        returns (V3DutchOutput[] memory)
-    {
+    function singleV3Dutch(V3DutchOutput memory output) internal pure returns (V3DutchOutput[] memory) {
         V3DutchOutput[] memory result = new V3DutchOutput[](1);
-        result[0] = V3DutchOutput(token, amount, curve, recipient);
+        result[0] = output;
         return result;
+    }
+
+    function singleV3Dutch(
+        address token,
+        uint256 amount,
+        uint256 minAmount,
+        NonlinearDutchDecay memory curve,
+        address recipient
+    ) internal pure returns (V3DutchOutput[] memory) {
+        return singleV3Dutch(V3DutchOutput(token, amount, curve, recipient, minAmount, 0));
     }
 
     function multipleV3Dutch(
@@ -110,7 +116,7 @@ library OutputsBuilder {
     ) internal pure returns (V3DutchOutput[] memory) {
         V3DutchOutput[] memory result = new V3DutchOutput[](amounts.length);
         for (uint256 i = 0; i < amounts.length; i++) {
-            result[i] = V3DutchOutput(token, amounts[i], curves[i], recipient);
+            result[i] = V3DutchOutput(token, amounts[i], curves[i], recipient, 0, 0);
         }
         return result;
     }
