@@ -23,7 +23,12 @@ library MathExt {
     function boundedSub(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
         if (b < 0) {
             // If b is negative, add its absolute value to a
-            r = a + uint256(-b);
+            uint256 absB = uint256(-b);
+            // would overflow
+            if (type(uint256).max - absB < a) {
+                return max;
+            }
+            r = a + absB;
         } else {
             // If b is positive, subtract it from a
             if (a < uint256(b)) {

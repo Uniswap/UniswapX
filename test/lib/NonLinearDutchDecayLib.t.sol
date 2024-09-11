@@ -205,21 +205,37 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         snapEnd();
     }
 
+    function testDutchDecayRange(uint256 startAmount, int256 decayAmount, uint256 decayStartBlock, uint16 decayDuration)
+        public
+    {
+        vm.assume(decayAmount > 0);
+        vm.assume(startAmount <= uint256(type(int256).max - decayAmount));
+
+        NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount));
+        snapStart("V3-DutchDecayRange");
+        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, 0, type(uint256).max);
+        assertGe(decayed, startAmount);
+        assertLe(decayed, startAmount + uint256(decayAmount));
+        snapEnd();
+    }
+
     function testDutchDecayBounded(
         uint256 startAmount,
-        uint256 decayAmount,
+        int256 decayAmount,
         uint256 decayStartBlock,
-        uint16 decayDuration
+        uint16 decayDuration,
+        uint256 minAmount,
+        uint256 maxAmount
     ) public {
         vm.assume(decayAmount > 0);
-        vm.assume(decayAmount < type(uint256).max);
-        vm.assume(startAmount <= UINT256_MAX - decayAmount);
+        vm.assume(startAmount <= uint256(type(int256).max - decayAmount));
+        vm.assume(maxAmount > minAmount);
 
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount));
         snapStart("V3-DutchDecayBounded");
-        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, 0, type(uint256).max);
-        assertGe(decayed, startAmount);
-        assertLe(decayed, startAmount + decayAmount);
+        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        assertGe(decayed, minAmount);
+        assertLe(decayed, maxAmount);
         snapEnd();
     }
 

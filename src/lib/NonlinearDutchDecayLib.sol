@@ -35,7 +35,7 @@ library NonlinearDutchDecayLib {
 
         // handle current block before decay or no decay
         if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
-            return startAmount;
+            return startAmount.boundedSub(0, minAmount, maxAmount);
         }
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
         uint16 blockDelta = uint16(block.number - decayStartBlock);
