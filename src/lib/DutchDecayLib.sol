@@ -17,6 +17,9 @@ library DutchDecayLib {
     /// @notice thrown if the endTime of an order is before startTime
     error EndTimeBeforeStartTime();
 
+    /// @notice thrown if the decay duration is zero
+    error ZeroDuration();
+
     /// @notice calculates an amount using linear decay over time from decayStartTime to decayEndTime
     /// @dev handles both positive and negative decay depending on startAmount and endAmount
     /// @param startAmount The amount of tokens at decayStartTime
@@ -54,18 +57,7 @@ library DutchDecayLib {
         uint256 startAmount,
         uint256 endAmount
     ) internal pure returns (uint256) {
-        if (currentPoint >= endPoint) {
-            return endAmount;
-        }
-        unchecked {
-            uint256 elapsed = currentPoint - startPoint;
-            uint256 duration = endPoint - startPoint;
-            if (endAmount < startAmount) {
-                return startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-            } else {
-                return startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
-            }
-        }
+        return uint256(linearDecay(startPoint, endPoint, currentPoint, int256(startAmount), int256(endAmount)));
     }
 
     /// @notice returns the linear interpolation between the two points

@@ -20,6 +20,10 @@ library MathExt {
         }
     }
 
+    function boundedAdd(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
+        r = boundedSub(a, 0 - b, min, max);
+    }
+
     function boundedSub(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
         if (b < 0) {
             // If b is negative, add its absolute value to a
@@ -38,8 +42,7 @@ library MathExt {
 
             r = a - uint256(b);
         }
-        r = Math.min(r, max);
-        r = Math.max(r, min);
+        r = bound(r, min, max);
     }
 
     function sub(uint256 a, uint256 b) internal pure returns (int256) {
@@ -48,5 +51,9 @@ library MathExt {
         } else {
             return SafeCast.toInt256(a - b);
         }
+    }
+
+    function bound(uint256 value, uint256 min, uint256 max) internal pure returns (uint256) {
+        return Math.min(Math.max(value, min), max);
     }
 }

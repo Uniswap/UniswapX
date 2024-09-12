@@ -24,12 +24,12 @@ struct V3DutchOrder {
     OrderInfo info;
     // The address which must cosign the full order
     address cosigner;
+    // Adjust the startAmount to account for changes to gas
+    uint256 baseFee;
     // The tokens that the swapper will provide when settling the order
     V3DutchInput baseInput;
     // The tokens that must be received to satisfy the order
     V3DutchOutput[] baseOutputs;
-    // Adjust the startAmount to account for changes to gas
-    uint256 gasSnapshot;
     // signed over by the cosigner
     CosignerData cosignerData;
     // signature from the cosigner over (orderHash || cosignerData)
@@ -56,7 +56,7 @@ struct V3DutchInput {
     // The max amount of the curve
     uint256 maxAmount;
     // The amount of token to change per wei change in basefee
-    uint256 adjustmentPerGweiBasefee;
+    uint256 adjustmentPerGweiBaseFee;
 }
 
 /// @dev An amount of output tokens that decreases non-linearly over time
@@ -72,7 +72,7 @@ struct V3DutchOutput {
     // The min amount of the curve
     uint256 minAmount;
     // The amount of token to change per wei change in basefee
-    uint256 adjustmentPerGweiBasefee;
+    uint256 adjustmentPerGweiBaseFee;
 }
 
 /// @notice helpers for handling custom curve order objects
@@ -83,8 +83,9 @@ library V3DutchOrderLib {
         "V3DutchOrder(",
         "OrderInfo info,",
         "address cosigner,",
+        "uint256 baseFee,",
         "V3DutchInput baseInput,",
-        "V3DutchOutput[] baseOutputs," "uint256 gasSnapshot)"
+        "V3DutchOutput[] baseOutputs)"
     );
     bytes internal constant V3_DUTCH_INPUT_TYPE = abi.encodePacked(
         "V3DutchInput(",
@@ -92,7 +93,7 @@ library V3DutchOrderLib {
         "uint256 startAmount,",
         "NonlinearDutchDecay curve,",
         "uint256 maxAmount,",
-        "uint256 adjustmentPerGweiBasefee)"
+        "uint256 adjustmentPerGweiBaseFee)"
     );
     bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH = keccak256(V3_DUTCH_INPUT_TYPE);
     bytes internal constant V3_DUTCH_OUTPUT_TYPE = abi.encodePacked(
@@ -102,7 +103,7 @@ library V3DutchOrderLib {
         "NonlinearDutchDecay curve,",
         "address recipient,",
         "uint256 minAmount,",
-        "uint256 adjustmentPerGweiBasefee)"
+        "uint256 adjustmentPerGweiBaseFee)"
     );
     bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(V3_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE =
@@ -145,7 +146,7 @@ library V3DutchOrderLib {
                 input.startAmount,
                 hash(input.curve),
                 input.maxAmount,
-                input.adjustmentPerGweiBasefee
+                input.adjustmentPerGweiBaseFee
             )
         );
     }
@@ -162,7 +163,7 @@ library V3DutchOrderLib {
                 hash(output.curve),
                 output.recipient,
                 output.minAmount,
-                output.adjustmentPerGweiBasefee
+                output.adjustmentPerGweiBaseFee
             )
         );
     }
@@ -194,9 +195,9 @@ library V3DutchOrderLib {
                 ORDER_TYPE_HASH,
                 order.info.hash(),
                 order.cosigner,
+                order.baseFee,
                 hash(order.baseInput),
-                hash(order.baseOutputs),
-                order.gasSnapshot
+                hash(order.baseOutputs)
             )
         );
     }

@@ -4,7 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {console} from "forge-std/console.sol";
-import {NonlinearDutchDecayLib, InvalidDecayCurve} from "../../src/lib/NonlinearDutchDecayLib.sol";
+import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
+import {NonlinearDutchDecayLib} from "../../src/lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
 import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
@@ -452,7 +453,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         NonlinearDutchDecay memory curve =
             CurveBuilder.multiPointCurve(ArrayBuilder.fillUint16(16, 1), ArrayBuilder.fillInt(17, 0));
         vm.roll(150);
-        vm.expectRevert(InvalidDecayCurve.selector);
+        vm.expectRevert(NonlinearDutchDecayLib.InvalidDecayCurve.selector);
         mockNonlinearDutchDecayLibContract.decay(curve, startAmount, decayStartBlock, 1 ether, 1 ether);
     }
 }

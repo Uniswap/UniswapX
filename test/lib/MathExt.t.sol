@@ -101,4 +101,20 @@ contract MathExtTest is Test {
         vm.expectRevert();
         UINT256_MAX.sub(uint256(1));
     }
+
+    /* bound(uint256 value, uint256 min, uint256 max) */
+
+    function testBound(uint256 value, uint256 min, uint256 max) public {
+        vm.assume(min <= max);
+        uint256 result = value.bound(min, max);
+        assertLe(result, max);
+        assertGe(result, min);
+    }
+
+    function testBoundValueInBounds(uint256 value, uint256 min, uint256 max) public {
+        vm.assume(min <= value);
+        vm.assume(value <= max);
+        uint256 result = value.bound(min, max);
+        assertEq(result, value);
+    }
 }

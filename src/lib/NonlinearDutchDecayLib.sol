@@ -8,14 +8,14 @@ import {MathExt} from "./MathExt.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 import {DutchDecayLib} from "./DutchDecayLib.sol";
 
-/// @notice thrown when the decay curve is invalid
-error InvalidDecayCurve();
-
 /// @notice helpers for handling non-linear dutch order objects
 library NonlinearDutchDecayLib {
     using FixedPointMathLib for uint256;
     using MathExt for uint256;
     using Uint16ArrayLibrary for Uint16Array;
+
+    /// @notice thrown when the decay curve is invalid
+    error InvalidDecayCurve();
 
     /// @notice locates the current position on the curve and calculates the decay
     /// @param curve The curve to search
@@ -35,7 +35,7 @@ library NonlinearDutchDecayLib {
 
         // handle current block before decay or no decay
         if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
-            return startAmount.boundedSub(0, minAmount, maxAmount);
+            return startAmount.bound(minAmount, maxAmount);
         }
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
         uint16 blockDelta = uint16(block.number - decayStartBlock);

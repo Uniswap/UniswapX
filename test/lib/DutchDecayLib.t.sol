@@ -74,27 +74,26 @@ contract DutchDecayLibTest is Test {
         assertEq(DutchDecayLib.decay(2 ether, 1 ether, 100, 200), 1 ether);
     }
 
-    function testDutchDecayBounded(uint256 startAmount, uint256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
+    function testDutchDecayBounded(int256 startAmount, int256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
         public
     {
+        vm.assume(startAmount >= 0);
         vm.assume(endAmount > startAmount);
         vm.assume(decayEndTime > decayStartTime);
-        uint256 decayed = DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
-        assertGe(decayed, startAmount);
-        assertLe(decayed, endAmount);
+        uint256 decayed = DutchDecayLib.decay(uint256(startAmount), uint256(endAmount), decayStartTime, decayEndTime);
+        assertGe(decayed, uint256(startAmount));
+        assertLe(decayed, uint256(endAmount));
     }
 
-    function testDutchDecayNegative(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 decayStartTime,
-        uint256 decayEndTime
-    ) public {
+    function testDutchDecayNegative(int256 startAmount, int256 endAmount, uint256 decayStartTime, uint256 decayEndTime)
+        public
+    {
+        vm.assume(endAmount >= 0);
         vm.assume(endAmount < startAmount);
         vm.assume(decayEndTime > decayStartTime);
-        uint256 decayed = DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
-        assertLe(decayed, startAmount);
-        assertGe(decayed, endAmount);
+        uint256 decayed = DutchDecayLib.decay(uint256(startAmount), uint256(endAmount), decayStartTime, decayEndTime);
+        assertLe(decayed, uint256(startAmount));
+        assertGe(decayed, uint256(endAmount));
     }
 
     function testDutchDecayInvalidTimes(
