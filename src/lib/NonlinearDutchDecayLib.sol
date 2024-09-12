@@ -21,6 +21,7 @@ library NonlinearDutchDecayLib {
     /// @param curve The curve to search
     /// @param startAmount The absolute start amount
     /// @param decayStartBlock The absolute start block of the decay
+    /// @dev Expects the relativeBlocks in curve to be strictly increasing
     function decay(
         NonlinearDutchDecay memory curve,
         uint256 startAmount,
@@ -80,7 +81,7 @@ library NonlinearDutchDecayLib {
         return (next - 1, next - 1);
     }
 
-    /// @notice returns a decayed output using the given dutch spec and times
+    /// @notice returns a decayed output using the given dutch spec and blocks
     /// @param output The output to decay
     /// @param decayStartBlock The block to start decaying
     /// @return result a decayed output
@@ -94,7 +95,7 @@ library NonlinearDutchDecayLib {
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
-    /// @notice returns a decayed output array using the given dutch spec and times
+    /// @notice returns a decayed output array using the given dutch spec and blocks
     /// @param outputs The output array to decay
     /// @param decayStartBlock The block to start decaying
     /// @return result a decayed output array
