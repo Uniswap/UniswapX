@@ -20,7 +20,7 @@ library ExclusivityLib {
     /// @notice Applies exclusivity override to the resolved order if necessary
     /// @param order The order to apply exclusivity override to
     /// @param exclusive The exclusive address
-    /// @param exclusivityEnd The exclusivity end time/block
+    /// @param exclusivityEnd The exclusivity end time
     /// @param exclusivityOverrideBps The exclusivity override BPS
     function handleExclusiveOverrideTimestamp(
         ResolvedOrder memory order,
@@ -34,7 +34,7 @@ library ExclusivityLib {
     /// @notice Applies exclusivity override to the resolved order if necessary
     /// @param order The order to apply exclusivity override to
     /// @param exclusive The exclusive address
-    /// @param exclusivityEnd The exclusivity end time/block
+    /// @param exclusivityEnd The exclusivity end block number
     /// @param exclusivityOverrideBps The exclusivity override BPS
     function handleExclusiveOverrideBlock(
         ResolvedOrder memory order,
@@ -48,7 +48,7 @@ library ExclusivityLib {
     /// @notice Applies exclusivity override to the resolved order if necessary
     /// @param order The order to apply exclusivity override to
     /// @param exclusive The exclusive address
-    /// @param exclusivityEnd The exclusivity end time/block
+    /// @param exclusivityEnd The exclusivity end timestamp or block number
     /// @param exclusivityOverrideBps The exclusivity override BPS
     /// @param currentPosition The block timestamp or number to determine exclusivity
     function _handleExclusiveOverride(
@@ -81,6 +81,9 @@ library ExclusivityLib {
     }
 
     /// @notice checks if the caller currently has filling rights on the order
+    /// @param exclusive The exclusive address
+    /// @param exclusivityEnd The exclusivity end timestamp or block number
+    /// @param currentPosition The timestamp or block number to determine exclusivity
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false

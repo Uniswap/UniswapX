@@ -165,4 +165,11 @@ library V3DutchOrderLib {
             )
         );
     }
+
+    /// @notice get the digest of the cosigner data
+    /// @param order the priorityOrder
+    /// @param orderHash the hash of the order
+    function cosignerDigest(V3DutchOrder memory order, bytes32 orderHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData)));
+    }
 }
