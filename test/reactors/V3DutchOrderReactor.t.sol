@@ -95,7 +95,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             baseOutputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         orderHash = order.hash();
         order.cosignature = cosignOrder(orderHash, cosignerData);
@@ -123,7 +123,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -151,7 +151,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -179,7 +179,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -211,7 +211,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -249,7 +249,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -286,7 +286,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -318,7 +318,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -358,7 +358,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -393,7 +393,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -426,7 +426,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
@@ -454,7 +454,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
         SignedOrder memory signedOrder =
@@ -1443,7 +1443,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             baseOutputs: spec.outputs,
             cosignerData: cosignerData,
             cosignature: bytes(""),
-            baseFee: block.basefee
+            startingBaseFee: block.basefee
         });
         bytes32 orderHash = request.hash();
         request.cosignature = cosignOrder(orderHash, cosignerData);

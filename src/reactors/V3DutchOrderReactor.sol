@@ -111,7 +111,7 @@ contract V3DutchOrderReactor is BaseReactor {
 
     function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
         // positive means an increase in gas
-        int256 gasDeltaGwei = block.basefee.sub(order.baseFee);
+        int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
 
         // Gas increase should increase input
         int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;

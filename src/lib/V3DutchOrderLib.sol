@@ -25,7 +25,7 @@ struct V3DutchOrder {
     // The address which must cosign the full order
     address cosigner;
     // Adjust the startAmount to account for changes to gas
-    uint256 baseFee;
+    uint256 startingBaseFee;
     // The tokens that the swapper will provide when settling the order
     V3DutchInput baseInput;
     // The tokens that must be received to satisfy the order
@@ -83,7 +83,7 @@ library V3DutchOrderLib {
         "V3DutchOrder(",
         "OrderInfo info,",
         "address cosigner,",
-        "uint256 baseFee,",
+        "uint256 startingBaseFee,",
         "V3DutchInput baseInput,",
         "V3DutchOutput[] baseOutputs)"
     );
@@ -195,7 +195,7 @@ library V3DutchOrderLib {
                 ORDER_TYPE_HASH,
                 order.info.hash(),
                 order.cosigner,
-                order.baseFee,
+                order.startingBaseFee,
                 hash(order.baseInput),
                 hash(order.baseOutputs)
             )

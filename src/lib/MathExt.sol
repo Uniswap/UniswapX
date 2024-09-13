@@ -74,7 +74,7 @@ library MathExt {
         }
     }
 
-    /// @notice Bounds a value between a minimum and maximum value.
+    /// @notice Bounds a uint value between a minimum and maximum value.
     /// @param value The value to be bounded.
     /// @param min The minimum value allowed.
     /// @param max The maximum value allowed.

@@ -17,9 +17,6 @@ library DutchDecayLib {
     /// @notice thrown if the endTime of an order is before startTime
     error EndTimeBeforeStartTime();
 
-    /// @notice thrown if the decay duration is zero
-    error ZeroDuration();
-
     /// @notice calculates an amount using linear decay over time from decayStartTime to decayEndTime
     /// @dev handles both positive and negative decay depending on startAmount and endAmount
     /// @param startAmount The amount of tokens at decayStartTime
