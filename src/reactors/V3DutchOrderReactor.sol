@@ -112,7 +112,7 @@ contract V3DutchOrderReactor is BaseReactor {
         if (order.info.deadline < block.timestamp) {
             revert DeadlineReached();
         }
-        
+
         CosignerLib.verify(order.cosigner, order.cosignerDigest(orderHash), order.cosignature);
     }
 }
