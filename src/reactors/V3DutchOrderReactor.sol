@@ -97,7 +97,8 @@ contract V3DutchOrderReactor is BaseReactor {
         if (order.cosignerData.outputAmounts.length != order.baseOutputs.length) {
             revert InvalidCosignerOutput();
         }
-        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+        uint256 outputsLength = order.baseOutputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
             uint256 outputAmount = order.cosignerData.outputAmounts[i];
             if (outputAmount != 0) {
@@ -118,7 +119,8 @@ contract V3DutchOrderReactor is BaseReactor {
         order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
 
         // Gas increase should decrease output
-        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+        uint256 outputsLength = order.baseOutputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
             int256 outputDelta = int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
             output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);

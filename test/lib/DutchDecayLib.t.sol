@@ -107,4 +107,17 @@ contract DutchDecayLibTest is Test {
         vm.expectRevert(DutchDecayLib.EndTimeBeforeStartTime.selector);
         DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
     }
+
+    function testDutchDecayOverflow() public {
+        vm.expectRevert();
+        DutchDecayLib.linearDecay(0, 100, 99, type(int256).max, -1);
+
+        vm.expectRevert();
+        DutchDecayLib.linearDecay(0, 100, 99, -1, type(int256).max);
+    }
+
+    function testDutchDecayDivByZero() public {
+        vm.expectRevert();
+        DutchDecayLib.linearDecay(100, 100, 99, 1, -1);
+    }
 }

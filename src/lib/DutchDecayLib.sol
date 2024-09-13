@@ -73,17 +73,15 @@ library DutchDecayLib {
         if (currentPoint >= endPoint) {
             return endAmount;
         }
-        unchecked {
-            uint256 elapsed = currentPoint - startPoint;
-            uint256 duration = endPoint - startPoint;
-            int256 delta;
-            if (endAmount < startAmount) {
-                delta = int256(0 - uint256(startAmount - endAmount).mulDivDown(elapsed, duration));
-            } else {
-                delta = int256(uint256(endAmount - startAmount).mulDivDown(elapsed, duration));
-            }
-            return startAmount + delta;
+        uint256 elapsed = currentPoint - startPoint;
+        uint256 duration = endPoint - startPoint;
+        int256 delta;
+        if (endAmount < startAmount) {
+            delta = -int256(uint256(startAmount - endAmount).mulDivDown(elapsed, duration));
+        } else {
+            delta = int256(uint256(endAmount - startAmount).mulDivDown(elapsed, duration));
         }
+        return startAmount + delta;
     }
 
     /// @notice returns a decayed output using the given dutch spec and times
