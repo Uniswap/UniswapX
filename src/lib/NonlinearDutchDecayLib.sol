@@ -106,10 +106,8 @@ library NonlinearDutchDecayLib {
     {
         uint256 outputLength = outputs.length;
         result = new OutputToken[](outputLength);
-        unchecked {
-            for (uint256 i = 0; i < outputLength; i++) {
-                result[i] = decay(outputs[i], decayStartBlock);
-            }
+        for (uint256 i = 0; i < outputLength; i++) {
+            result[i] = decay(outputs[i], decayStartBlock);
         }
     }
 

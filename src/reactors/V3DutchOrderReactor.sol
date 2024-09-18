@@ -11,9 +11,10 @@ import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "../lib/MathExt.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {CosignerLib} from "../lib/CosignerLib.sol";
 
-/// @notice Reactor for non-linear dutch orders
-/// @dev Non-linear orders must be cosigned by the specified cosigner to override starting block and value
+/// @notice Reactor for V3 dutch orders
+/// @dev V3 orders must be cosigned by the specified cosigner to override starting block and value
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
 /// - If inputAmount is 0, then use baseInput
@@ -135,12 +136,7 @@ contract V3DutchOrderReactor is BaseReactor {
         if (order.info.deadline < block.timestamp) {
             revert DeadlineReached();
         }
-        (bytes32 r, bytes32 s) = abi.decode(order.cosignature, (bytes32, bytes32));
-        uint8 v = uint8(order.cosignature[64]);
-        // cosigner signs over (orderHash || cosignerData)
-        address signer = ecrecover(keccak256(abi.encodePacked(orderHash, abi.encode(order.cosignerData))), v, r, s);
-        if (order.cosigner != signer || signer == address(0)) {
-            revert InvalidCosignature();
-        }
+
+        CosignerLib.verify(order.cosigner, order.cosignerDigest(orderHash), order.cosignature);
     }
 }

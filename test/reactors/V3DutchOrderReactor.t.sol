@@ -334,7 +334,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
 
-    function testV3ExclusiveOverrideInvalidCallerCosignedAmountOutput() public {
+    function testV3AppliesExclusiveOverride() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 exclusivityOverrideBps = 10;

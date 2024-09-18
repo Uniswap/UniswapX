@@ -452,7 +452,6 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         uint256 startAmount = 1 ether;
         NonlinearDutchDecay memory curve =
             CurveBuilder.multiPointCurve(ArrayBuilder.fillUint16(16, 1), ArrayBuilder.fillInt(17, 0));
-        vm.roll(150);
         vm.expectRevert(NonlinearDutchDecayLib.InvalidDecayCurve.selector);
         mockNonlinearDutchDecayLibContract.decay(curve, startAmount, decayStartBlock, 1 ether, 1 ether);
     }
