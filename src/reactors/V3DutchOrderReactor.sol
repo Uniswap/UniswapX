@@ -8,6 +8,9 @@ import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {NonlinearDutchDecayLib} from "../lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOrderLib, V3DutchOrder, CosignerData, V3DutchOutput, V3DutchInput} from "../lib/V3DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
+import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
+import {MathExt} from "../lib/MathExt.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
 
 /// @notice Reactor for V3 dutch orders
@@ -25,6 +28,8 @@ contract V3DutchOrderReactor is BaseReactor {
     using NonlinearDutchDecayLib for V3DutchOutput[];
     using NonlinearDutchDecayLib for V3DutchInput;
     using ExclusivityLib for ResolvedOrder;
+    using FixedPointMathLib for uint256;
+    using MathExt for uint256;
 
     /// @notice thrown when an order's deadline is passed
     error DeadlineReached();
@@ -54,6 +59,7 @@ contract V3DutchOrderReactor is BaseReactor {
 
         _validateOrder(orderHash, order);
         _updateWithCosignerAmounts(order);
+        _updateWithGasAdjustment(order);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
@@ -92,7 +98,8 @@ contract V3DutchOrderReactor is BaseReactor {
         if (order.cosignerData.outputAmounts.length != order.baseOutputs.length) {
             revert InvalidCosignerOutput();
         }
-        for (uint256 i = 0; i < order.baseOutputs.length; i++) {
+        uint256 outputsLength = order.baseOutputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
             uint256 outputAmount = order.cosignerData.outputAmounts[i];
             if (outputAmount != 0) {
@@ -101,6 +108,23 @@ contract V3DutchOrderReactor is BaseReactor {
                 }
                 output.startAmount = outputAmount;
             }
+        }
+    }
+
+    function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
+        // positive means an increase in gas
+        int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
+
+        // Gas increase should increase input
+        int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+        order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
+
+        // Gas increase should decrease output
+        uint256 outputsLength = order.baseOutputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
+            V3DutchOutput memory output = order.baseOutputs[i];
+            int256 outputDelta = int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+            output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
         }
     }
 

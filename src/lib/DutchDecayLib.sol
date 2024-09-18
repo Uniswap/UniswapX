@@ -54,18 +54,34 @@ library DutchDecayLib {
         uint256 startAmount,
         uint256 endAmount
     ) internal pure returns (uint256) {
+        return uint256(linearDecay(startPoint, endPoint, currentPoint, int256(startAmount), int256(endAmount)));
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function linearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        int256 startAmount,
+        int256 endAmount
+    ) internal pure returns (int256) {
         if (currentPoint >= endPoint) {
             return endAmount;
         }
-        unchecked {
-            uint256 elapsed = currentPoint - startPoint;
-            uint256 duration = endPoint - startPoint;
-            if (endAmount < startAmount) {
-                return startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-            } else {
-                return startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
-            }
+        uint256 elapsed = currentPoint - startPoint;
+        uint256 duration = endPoint - startPoint;
+        int256 delta;
+        if (endAmount < startAmount) {
+            delta = -int256(uint256(startAmount - endAmount).mulDivDown(elapsed, duration));
+        } else {
+            delta = int256(uint256(endAmount - startAmount).mulDivDown(elapsed, duration));
         }
+        return startAmount + delta;
     }
 
     /// @notice returns a decayed output using the given dutch spec and times
