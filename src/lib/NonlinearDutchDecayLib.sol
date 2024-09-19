@@ -38,47 +38,51 @@ library NonlinearDutchDecayLib {
         if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
             return startAmount.bound(minAmount, maxAmount);
         }
-        Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
+
         uint16 blockDelta = uint16(block.number - decayStartBlock);
-        int256 curveDelta;
-        // Special case for when we need to use the decayStartBlock (0)
-        if (relativeBlocks.getElement(0) > blockDelta) {
-            curveDelta =
-                DutchDecayLib.linearDecay(0, relativeBlocks.getElement(0), blockDelta, 0, curve.relativeAmounts[0]);
-        } else {
-            // the current pos is within or after the curve
-            (uint16 prev, uint16 next) = locateCurvePosition(curve, blockDelta);
-            // get decay of only the relative amounts
-            curveDelta = DutchDecayLib.linearDecay(
-                relativeBlocks.getElement(prev),
-                relativeBlocks.getElement(next),
-                blockDelta,
-                curve.relativeAmounts[prev],
-                curve.relativeAmounts[next]
-            );
-        }
+        (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
+            locateCurvePosition(curve, blockDelta);
+        // get decay of only the relative amounts
+        int256 curveDelta = DutchDecayLib.linearDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
+
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
 
-    /// @notice Locates the current position on the curve using a binary search
+    /// @notice Locates the current position on the curve
     /// @param curve The curve to search
     /// @param currentRelativeBlock The current relative position
-    /// @return prev The relative block before the current position
-    /// @return next The relative block after the current position
+    /// @return startPoint The relative block before the current position
+    /// @return endPoint The relative block after the current position
+    /// @return startAmount The relative amount before the current position
+    /// @return endAmount The relative amount after the current position
     function locateCurvePosition(NonlinearDutchDecay memory curve, uint16 currentRelativeBlock)
         internal
         pure
-        returns (uint16 prev, uint16 next)
+        returns (uint16 startPoint, uint16 endPoint, int256 startAmount, int256 endAmount)
     {
         Uint16Array relativeBlocks = fromUnderlying(curve.relativeBlocks);
-        uint16 curveLength = uint16(curve.relativeAmounts.length);
-        for (; next < curveLength; next++) {
-            if (relativeBlocks.getElement(next) >= currentRelativeBlock) {
-                return (prev, next);
-            }
-            prev = next;
+        // Position is before the start of the curve
+        if (relativeBlocks.getElement(0) >= currentRelativeBlock) {
+            return (0, relativeBlocks.getElement(0), 0, curve.relativeAmounts[0]);
         }
-        return (next - 1, next - 1);
+        uint16 lastCurveIndex = uint16(curve.relativeAmounts.length) - 1;
+        for (uint16 i = 1; i <= lastCurveIndex; i++) {
+            if (relativeBlocks.getElement(i) >= currentRelativeBlock) {
+                return (
+                    relativeBlocks.getElement(i - 1),
+                    relativeBlocks.getElement(i),
+                    curve.relativeAmounts[i - 1],
+                    curve.relativeAmounts[i]
+                );
+            }
+        }
+
+        return (
+            relativeBlocks.getElement(lastCurveIndex),
+            relativeBlocks.getElement(lastCurveIndex),
+            curve.relativeAmounts[lastCurveIndex],
+            curve.relativeAmounts[lastCurveIndex]
+        );
     }
 
     /// @notice returns a decayed output using the given dutch spec and blocks

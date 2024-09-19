@@ -3,24 +3,16 @@ pragma solidity ^0.8.0;
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 
-error NegativeUint();
-
 library MathExt {
     /// @notice Subtracts an `int256` value from a `uint256` value and returns the result.
     /// @param a The unsigned integer from which the value is subtracted.
     /// @param b The signed integer to subtract or add.
     /// @return The result of the subtraction or addition.
-    /// @custom:throws NegativeUint if the subtraction would result in a negative value.
     function sub(uint256 a, int256 b) internal pure returns (uint256) {
         if (b < 0) {
             // If b is negative, add its absolute value to a
             return a + uint256(-b);
         } else {
-            // If b is positive, subtract it from a
-            if (a < uint256(b)) {
-                revert NegativeUint();
-            }
-
             return a - uint256(b);
         }
     }

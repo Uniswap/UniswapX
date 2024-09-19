@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 import {NonlinearDutchDecayLib} from "../../src/lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
-import {MathExt, NegativeUint} from "../../src/lib/MathExt.sol";
+import {MathExt} from "../../src/lib/MathExt.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 
 contract MathExtTest is Test {
@@ -32,7 +32,7 @@ contract MathExtTest is Test {
     }
 
     function testSubIntFromUintNegativeUint() public {
-        vm.expectRevert(NegativeUint.selector);
+        vm.expectRevert();
         uint256(1).sub(int256(2));
     }
 

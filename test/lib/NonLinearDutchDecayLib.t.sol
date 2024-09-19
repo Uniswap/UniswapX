@@ -10,7 +10,6 @@ import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3
 import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
-import {NegativeUint} from "../../src/lib/MathExt.sol";
 
 /// @notice mock contract to test NonlinearDutchDecayLib functionality
 contract MockNonlinearDutchDecayLibContract {
@@ -32,13 +31,18 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(1, 0);
 
         snapStart("V3-LocateCurvePositionSingle");
-        (uint16 prev, uint16 next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 1);
-        assertEq(prev, 0);
-        assertEq(next, 0);
+        (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
+            NonlinearDutchDecayLib.locateCurvePosition(curve, 1);
+        assertEq(startPoint, 0);
+        assertEq(endPoint, 1);
+        assertEq(relStartAmount, 0);
+        assertEq(relEndAmount, 0);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 2);
-        assertEq(prev, 0);
-        assertEq(next, 0);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 2);
+        assertEq(startPoint, 1);
+        assertEq(endPoint, 1);
+        assertEq(relStartAmount, 0);
+        assertEq(relEndAmount, 0);
         snapEnd();
     }
 
@@ -56,33 +60,48 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         snapStart("V3-LocateCurvePositionMulti");
         // currentRelativeBlock shouldn't be less than the first block
         // but testing behavior anyways
-        (uint16 prev, uint16 next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 50);
-        assertEq(prev, 0);
-        assertEq(next, 0);
+        (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
+            NonlinearDutchDecayLib.locateCurvePosition(curve, 50);
+        assertEq(startPoint, 0);
+        assertEq(endPoint, 100);
+        assertEq(relStartAmount, 0);
+        assertEq(relEndAmount, -1 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 100);
-        assertEq(prev, 0);
-        assertEq(next, 0);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 100);
+        assertEq(startPoint, 0);
+        assertEq(endPoint, 100);
+        assertEq(relStartAmount, 0);
+        assertEq(relEndAmount, -1 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 150);
-        assertEq(prev, 0);
-        assertEq(next, 1);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 150);
+        assertEq(startPoint, 100);
+        assertEq(endPoint, 200);
+        assertEq(relStartAmount, -1 ether);
+        assertEq(relEndAmount, 0 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 200);
-        assertEq(prev, 0);
-        assertEq(next, 1);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 200);
+        assertEq(startPoint, 100);
+        assertEq(endPoint, 200);
+        assertEq(relStartAmount, -1 ether);
+        assertEq(relEndAmount, 0 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 250);
-        assertEq(prev, 1);
-        assertEq(next, 2);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 250);
+        assertEq(startPoint, 200);
+        assertEq(endPoint, 300);
+        assertEq(relStartAmount, 0 ether);
+        assertEq(relEndAmount, 1 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 300);
-        assertEq(prev, 1);
-        assertEq(next, 2);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 300);
+        assertEq(startPoint, 200);
+        assertEq(endPoint, 300);
+        assertEq(relStartAmount, 0 ether);
+        assertEq(relEndAmount, 1 ether);
 
-        (prev, next) = NonlinearDutchDecayLib.locateCurvePosition(curve, 350);
-        assertEq(prev, 2);
-        assertEq(next, 2);
+        (startPoint, endPoint, relStartAmount, relEndAmount) = NonlinearDutchDecayLib.locateCurvePosition(curve, 350);
+        assertEq(startPoint, 300);
+        assertEq(endPoint, 300);
+        assertEq(relStartAmount, 1 ether);
+        assertEq(relEndAmount, 1 ether);
         snapEnd();
     }
 
