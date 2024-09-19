@@ -37,16 +37,51 @@ library DutchDecayLib {
         } else if (decayStartTime >= block.timestamp) {
             decayedAmount = startAmount;
         } else {
-            unchecked {
-                uint256 elapsed = block.timestamp - decayStartTime;
-                uint256 duration = decayEndTime - decayStartTime;
-                if (endAmount < startAmount) {
-                    decayedAmount = startAmount - (startAmount - endAmount).mulDivDown(elapsed, duration);
-                } else {
-                    decayedAmount = startAmount + (endAmount - startAmount).mulDivUp(elapsed, duration);
-                }
-            }
+            decayedAmount = linearDecay(decayStartTime, decayEndTime, block.timestamp, startAmount, endAmount);
         }
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function linearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal pure returns (uint256) {
+        return uint256(linearDecay(startPoint, endPoint, currentPoint, int256(startAmount), int256(endAmount)));
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function linearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        int256 startAmount,
+        int256 endAmount
+    ) internal pure returns (int256) {
+        if (currentPoint >= endPoint) {
+            return endAmount;
+        }
+        uint256 elapsed = currentPoint - startPoint;
+        uint256 duration = endPoint - startPoint;
+        int256 delta;
+        if (endAmount < startAmount) {
+            delta = -int256(uint256(startAmount - endAmount).mulDivDown(elapsed, duration));
+        } else {
+            delta = int256(uint256(endAmount - startAmount).mulDivDown(elapsed, duration));
+        }
+        return startAmount + delta;
     }
 
     /// @notice returns a decayed output using the given dutch spec and times

@@ -444,6 +444,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
     ) public {
         vm.assume(exclusive != address(0));
         vm.assume(exclusive != caller);
+        vm.assume(exclusive != address(fillContract));
         vm.assume(overrideAmt > 0 && overrideAmt < 10000);
         tokenIn.mint(address(swapper), amountIn);
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
