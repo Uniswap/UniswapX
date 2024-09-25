@@ -30,6 +30,7 @@ import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {Solarray} from "solarray/Solarray.sol";
 import {MathExt} from "../../src/lib/MathExt.sol";
+import {CosignerLib} from "../../src/lib/CosignerLib.sol";
 
 contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
     using OrderInfoBuilder for OrderInfo;
@@ -431,7 +432,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         order.cosignature = cosignOrder(order.hash(), cosignerData);
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
-        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
+        vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -459,7 +460,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         order.cosignature = bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33");
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
-        vm.expectRevert(V3DutchOrderReactor.InvalidCosignature.selector);
+        vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
     }
 
