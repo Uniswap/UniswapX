@@ -34,9 +34,6 @@ contract V3DutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's deadline is passed
     error DeadlineReached();
 
-    /// @notice thrown when an order's cosignature does not match the expected cosigner
-    error InvalidCosignature();
-
     /// @notice thrown when an order's cosigner input is greater than the specified
     error InvalidCosignerInput();
 
