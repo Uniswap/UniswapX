@@ -31,7 +31,7 @@ function toUint16Array(uint16[] memory inputArray) pure returns (Uint16Array uin
 
 library Uint16ArrayLibrary {
     // Retrieve the nth uint16 value from a packed uint256
-    function getElement(Uint16Array packedData, uint256 n) public pure returns (uint16) {
+    function getElement(Uint16Array packedData, uint256 n) internal pure returns (uint16) {
         if (n >= 16) {
             revert IndexOutOfBounds();
         }
