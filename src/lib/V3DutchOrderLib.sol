@@ -110,14 +110,13 @@ library V3DutchOrderLib {
         abi.encodePacked("NonlinearDutchDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
-    bytes internal constant ORDER_TYPE =
-        abi.encodePacked(
-            NON_LINEAR_DECAY_TYPE,
-            V3_DUTCH_INPUT_TYPE,
-            V3_DUTCH_ORDER_TYPE,
-            V3_DUTCH_OUTPUT_TYPE,
-            OrderInfoLib.ORDER_INFO_TYPE
-        );
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        NON_LINEAR_DECAY_TYPE,
+        V3_DUTCH_INPUT_TYPE,
+        V3_DUTCH_ORDER_TYPE,
+        V3_DUTCH_OUTPUT_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE
+    );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
     /// @dev Note that sub-structs have to be defined in alphabetical order in the EIP-712 spec
