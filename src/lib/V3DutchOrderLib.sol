@@ -113,8 +113,8 @@ library V3DutchOrderLib {
     bytes internal constant ORDER_TYPE =
         abi.encodePacked(
             NON_LINEAR_DECAY_TYPE,
-            V3_DUTCH_ORDER_TYPE,
             V3_DUTCH_INPUT_TYPE,
+            V3_DUTCH_ORDER_TYPE,
             V3_DUTCH_OUTPUT_TYPE,
             OrderInfoLib.ORDER_INFO_TYPE
         );
