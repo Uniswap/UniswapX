@@ -111,11 +111,11 @@ library V3DutchOrderLib {
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
-        NON_LINEAR_DECAY_TYPE,
-        V3_DUTCH_INPUT_TYPE,
         V3_DUTCH_ORDER_TYPE,
-        V3_DUTCH_OUTPUT_TYPE,
-        OrderInfoLib.ORDER_INFO_TYPE
+        NON_LINEAR_DECAY_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE,
+        V3_DUTCH_INPUT_TYPE,
+        V3_DUTCH_OUTPUT_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
