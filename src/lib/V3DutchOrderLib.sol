@@ -83,9 +83,9 @@ library V3DutchOrderLib {
         "V3DutchOrder(",
         "OrderInfo info,",
         "address cosigner,",
-        "uint256 startingBaseFee,",
-        "V3DutchInput baseInput,",
-        "V3DutchOutput[] baseOutputs)"
+        "uint256 startingBaseFee,"
+        "V3DutchInput baseInput)"
+        // "V3DutchOutput[] baseOutputs)"
     );
     bytes internal constant V3_DUTCH_INPUT_TYPE = abi.encodePacked(
         "V3DutchInput(",
@@ -107,15 +107,19 @@ library V3DutchOrderLib {
     );
     bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(V3_DUTCH_OUTPUT_TYPE);
     bytes internal constant NON_LINEAR_DECAY_TYPE =
-        abi.encodePacked("NonlinearDutchDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
+        abi.encodePacked(
+            "NonlinearDutchDecay(",
+            "uint256 relativeBlocks)"
+            //"int256[] relativeAmounts)"
+        );
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         V3_DUTCH_ORDER_TYPE,
         NON_LINEAR_DECAY_TYPE,
         OrderInfoLib.ORDER_INFO_TYPE,
-        V3_DUTCH_INPUT_TYPE,
-        V3_DUTCH_OUTPUT_TYPE
+        V3_DUTCH_INPUT_TYPE
+        // V3_DUTCH_OUTPUT_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
@@ -201,8 +205,8 @@ library V3DutchOrderLib {
                 order.info.hash(),
                 order.cosigner,
                 order.startingBaseFee,
-                hash(order.baseInput),
-                hash(order.baseOutputs)
+                hash(order.baseInput)
+                // hash(order.baseOutputs)
             )
         );
     }
