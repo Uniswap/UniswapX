@@ -16,6 +16,9 @@ import {OrderInfoLib} from "../../src/lib/OrderInfoLib.sol";
 
 contract V3DutchOrderHashingTest is Test {
     using V3DutchOrderLib for V3DutchOrder;
+    using V3DutchOrderLib for V3DutchInput;
+    using V3DutchOrderLib for NonlinearDutchDecay;
+    using V3DutchOrderLib for V3DutchOutput[];
 
     function testV3DutchOrderHashing() public {
         // V3DutchOrder memory order = createSampleOrder();
@@ -28,16 +31,40 @@ contract V3DutchOrderHashingTest is Test {
         // V3DutchOrder memory decodedOrder = abi.decode(encodedOrder, (V3DutchOrder));
         // console.log("Decoded Order:");
         // logOrder(decodedOrder);
-        bytes memory encodedSDKOrder = hex"";
+        bytes memory encodedSDKOrder = hex"000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000002e000000000000000000000000000000000000000000000000000000000000004600000000000000000000000000000000000000000000000000000000000000540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006b49d200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005615deb798bb3e4dfa0139dfa1b3d433cc23b72f000000000000000000000000000000000000000000000000000000000000001500000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000001500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001500000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000f7f490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
         V3DutchOrder memory decodedSDKOrder = abi.decode(encodedSDKOrder, (V3DutchOrder));
         console.log("Decoded SDK Order:");
         logOrder(decodedSDKOrder);
         bytes32 orderHash = decodedSDKOrder.hash();
-        console.log("preimage:");
+        console.log("V3 Order Type Hash:");
         console.log(vm.toString(V3DutchOrderLib.ORDER_TYPE_HASH));
         console.log("Order Hash:");
         console.log(vm.toString(orderHash));
 
+        console.log("NonlinearDecay Type Hash:");
+        console.log(vm.toString(V3DutchOrderLib.NON_LINEAR_DECAY_TYPE_HASH));
+        console.log("Input's NonlinearDecay Hash:");
+        console.log(vm.toString(decodedSDKOrder.baseInput.curve.hash()));
+        console.log("Input's Type Hash:", vm.toString(V3DutchOrderLib.V3_DUTCH_INPUT_TYPE_HASH));
+        bytes32 hashedInput = decodedSDKOrder.baseInput.hash();
+        console.log("Hashed Input:", vm.toString(hashedInput));
+
+/* Hardcode Testing
+    int256[] memory relativeAmounts = new int256[](2);
+    relativeAmounts[0] = 1;
+    relativeAmounts[1] = 2;
+
+        NonlinearDutchDecay memory testCurve = NonlinearDutchDecay({
+            relativeBlocks: 131073,
+            relativeAmounts: relativeAmounts
+        });
+        console.logBytes(bytes(abi.encode(decodedSDKOrder.baseInput.curve.relativeAmounts)));
+        console.log("Test Curve Hash:");
+        console.log(vm.toString(testCurve.hash()));
+        */
+
+
+        /*
         bytes32 cosignerDigest = decodedSDKOrder.cosignerDigest(orderHash);
         console.log("Cosigner Digest:");
         console.log(vm.toString(cosignerDigest));
@@ -51,6 +78,7 @@ contract V3DutchOrderHashingTest is Test {
             V3DutchOrderLib.hash(decodedSDKOrder.baseInput),
             V3DutchOrderLib.hash(decodedSDKOrder.baseOutputs)
         )));
+        */
     }
 
     function createSampleOrder() internal returns (V3DutchOrder memory) {
@@ -124,12 +152,18 @@ contract V3DutchOrderHashingTest is Test {
         console.log("  Token:", address(order.baseInput.token));
         console.log("  Start Amount:", order.baseInput.startAmount);
         console.log("  Curve, RelativeBlocks:", order.baseInput.curve.relativeBlocks);
+
+        // bytes32 hashedInputCurve = order.baseInput.curve.hash();
+        // console.log("  Hashed Input Curve:", vm.toString(hashedInputCurve));
+
         for (uint i = 0; i < order.baseInput.curve.relativeAmounts.length; i++) {
             console.log("  Curve, RelativeAmounts:", order.baseInput.curve.relativeAmounts[i]);
         }
         console.log("  Max Amount:", order.baseInput.maxAmount);
         console.log("  adjustmentPerGweiBaseFee:", order.baseInput.adjustmentPerGweiBaseFee);
 
+
+/* Output Logs
         console.log("Base Outputs:");
         for (uint i = 0; i < order.baseOutputs.length; i++) {
             console.log("  Output", i);
@@ -143,6 +177,7 @@ contract V3DutchOrderHashingTest is Test {
             console.log("    minAmount:", order.baseOutputs[i].minAmount);
             console.log("    adjustmentPerGweiBaseFee:", order.baseOutputs[i].adjustmentPerGweiBaseFee);
         }
+        console.log("Outputs hash:", vm.toString(order.baseOutputs.hash()));
         console.log("Cosigner Data:");
         console.log("  decayStartBlock:", order.cosignerData.decayStartBlock);
         console.log("  exclusiveFiller:", order.cosignerData.exclusiveFiller);
@@ -153,5 +188,6 @@ contract V3DutchOrderHashingTest is Test {
         }
         console.log("Cosignature:", vm.toString(order.cosignature));
         console.log("Cosigner:", order.cosigner);
+*/
     }
 }

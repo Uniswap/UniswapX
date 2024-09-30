@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {console2} from "forge-std/console2.sol";
 import {DutchOrderLib} from "./DutchOrderLib.sol";
 import {OrderInfo} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
@@ -84,8 +85,8 @@ library V3DutchOrderLib {
         "OrderInfo info,",
         "address cosigner,",
         "uint256 startingBaseFee,"
-        "V3DutchInput baseInput)"
-        // "V3DutchOutput[] baseOutputs)"
+        "V3DutchInput baseInput,"
+        "V3DutchOutput[] baseOutputs)"
     );
     bytes internal constant V3_DUTCH_INPUT_TYPE = abi.encodePacked(
         "V3DutchInput(",
@@ -95,7 +96,7 @@ library V3DutchOrderLib {
         "uint256 maxAmount,",
         "uint256 adjustmentPerGweiBaseFee)"
     );
-    bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH = keccak256(V3_DUTCH_INPUT_TYPE);
+    bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH = keccak256(abi.encodePacked(V3_DUTCH_INPUT_TYPE, NON_LINEAR_DECAY_TYPE));
     bytes internal constant V3_DUTCH_OUTPUT_TYPE = abi.encodePacked(
         "V3DutchOutput(",
         "address token,",
@@ -105,12 +106,12 @@ library V3DutchOrderLib {
         "uint256 minAmount,",
         "uint256 adjustmentPerGweiBaseFee)"
     );
-    bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(V3_DUTCH_OUTPUT_TYPE);
+    bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(abi.encodePacked(V3_DUTCH_OUTPUT_TYPE, NON_LINEAR_DECAY_TYPE));
     bytes internal constant NON_LINEAR_DECAY_TYPE =
         abi.encodePacked(
             "NonlinearDutchDecay(",
-            "uint256 relativeBlocks)"
-            //"int256[] relativeAmounts)"
+            "uint256 relativeBlocks,"
+            "int256[] relativeAmounts)"
         );
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
 
@@ -118,8 +119,8 @@ library V3DutchOrderLib {
         V3_DUTCH_ORDER_TYPE,
         NON_LINEAR_DECAY_TYPE,
         OrderInfoLib.ORDER_INFO_TYPE,
-        V3_DUTCH_INPUT_TYPE
-        // V3_DUTCH_OUTPUT_TYPE
+        V3_DUTCH_INPUT_TYPE,
+        V3_DUTCH_OUTPUT_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
@@ -148,6 +149,14 @@ library V3DutchOrderLib {
     /// @param input the input to hash
     /// @return the eip-712 input hash
     function hash(V3DutchInput memory input) internal pure returns (bytes32) {
+        console2.logBytes(abi.encode(
+                V3_DUTCH_INPUT_TYPE_HASH,
+                input.token,
+                input.startAmount,
+                hash(input.curve),
+                input.maxAmount,
+                input.adjustmentPerGweiBaseFee
+            ));
         return keccak256(
             abi.encode(
                 V3_DUTCH_INPUT_TYPE_HASH,
@@ -205,8 +214,8 @@ library V3DutchOrderLib {
                 order.info.hash(),
                 order.cosigner,
                 order.startingBaseFee,
-                hash(order.baseInput)
-                // hash(order.baseOutputs)
+                hash(order.baseInput),
+                hash(order.baseOutputs)
             )
         );
     }
