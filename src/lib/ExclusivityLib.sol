@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {IArbSys} from "../interfaces/IArbSys.sol";
 
 /// @title ExclusiveOverride
 /// @dev This library handles order exclusivity
@@ -42,7 +43,12 @@ library ExclusivityLib {
         uint256 exclusivityEnd,
         uint256 exclusivityOverrideBps
     ) internal view {
-        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, block.number);
+        uint256 blockNumber = block.number;
+        // Arbitrum specific block numbers must be fetched from their system contracts
+        if (block.chainid == 42161) {
+            blockNumber = IArbSys(address(100)).arbBlockNumber();
+        }
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumber);
     }
 
     /// @notice Applies exclusivity override to the resolved order if necessary

@@ -7,6 +7,7 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "./MathExt.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 import {DutchDecayLib} from "./DutchDecayLib.sol";
+import {IArbSys} from "../interfaces/IArbSys.sol";
 
 /// @notice helpers for handling non-linear dutch order objects
 library NonlinearDutchDecayLib {
@@ -21,6 +22,8 @@ library NonlinearDutchDecayLib {
     /// @param curve The curve to search
     /// @param startAmount The absolute start amount
     /// @param decayStartBlock The absolute start block of the decay
+    /// @param minAmount The minimum amount to decay to
+    /// @param maxAmount The maximum amount to decay to
     /// @dev Expects the relativeBlocks in curve to be strictly increasing
     function decay(
         NonlinearDutchDecay memory curve,
@@ -34,12 +37,18 @@ library NonlinearDutchDecayLib {
             revert InvalidDecayCurve();
         }
 
+        uint256 blockNumber = block.number;
+        // Arbitrum specific block numbers must be fetched from their system contracts
+        if (block.chainid == 42161) {
+            blockNumber = IArbSys(address(100)).arbBlockNumber();
+        }
+
         // handle current block before decay or no decay
-        if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
+        if (decayStartBlock >= blockNumber || curve.relativeAmounts.length == 0) {
             return startAmount.bound(minAmount, maxAmount);
         }
 
-        uint16 blockDelta = uint16(block.number - decayStartBlock);
+        uint16 blockDelta = uint16(blockNumber - decayStartBlock);
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
