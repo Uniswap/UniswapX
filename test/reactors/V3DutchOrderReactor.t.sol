@@ -1401,6 +1401,54 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.input.amount, 0);
     }
 
+    function testV3GasAdjustmentRounding() public {
+        uint256 currentBlock = 21212121;
+        vm.roll(currentBlock);
+        vm.fee(1 gwei);
+
+        // Order with 0.8 gwei gas adjustments
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock,
+                deadline: currentBlock + 21,
+                input: V3DutchInput(tokenIn, 100 ether, CurveBuilder.emptyCurve(), 101 ether, 0.8 gwei),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    V3DutchOutput(address(tokenOut), 100 ether, CurveBuilder.emptyCurve(), address(0), 99 ether, 0.8 gwei)
+                )
+            })
+        );
+
+        // Test gas increase
+        vm.fee(2 gwei);
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 100 ether + 0.8 gwei, "Input should round up for positive gas change");
+        assertEq(resolvedOrder.outputs[0].amount, 100 ether - 0.8 gwei, "Output should round down for positive gas change");
+
+        // Test gas decrease
+        vm.fee(0.5 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 100 ether - 0.4 gwei, "Input should round down for negative gas change");
+        assertEq(resolvedOrder.outputs[0].amount, 100 ether + 0.4 gwei, "Output should round up for negative gas change");
+
+        // Test gas half
+        vm.fee(0.5 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 100 ether - 0.4 gwei, "Input should round down for gas halving change");
+        assertEq(resolvedOrder.outputs[0].amount, 100 ether + 0.4 gwei, "Output should round up for exact gas halving change");
+
+        // Test smaller gas changes
+        vm.fee(1.1 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 100 ether + 0.08 gwei, "Input should handle small positive gas changes");
+        assertEq(resolvedOrder.outputs[0].amount, 100 ether - 0.08 gwei, "Output should handle small positive gas changes");
+
+        vm.fee(0.9 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 100 ether - 0.08 gwei, "Input should handle small negative gas changes");
+        assertEq(resolvedOrder.outputs[0].amount, 100 ether + 0.08 gwei, "Output should handle small negative gas changes");
+    }
+
     /* Test helpers */
 
     struct TestDutchOrderSpec {

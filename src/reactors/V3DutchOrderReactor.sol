@@ -112,15 +112,19 @@ contract V3DutchOrderReactor is BaseReactor {
         // positive means an increase in gas
         int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
 
-        // Gas increase should increase input
-        int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+        // Gas increase should increase input (round up when positive, down when negative)
+        int256 inputDelta = gasDeltaGwei >= 0
+            ? (int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei + 1 gwei - 1) / 1 gwei
+            : (int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei) / 1 gwei;
         order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
 
-        // Gas increase should decrease output
+        // Gas increase should decrease output (round down when positive, up when negative)
         uint256 outputsLength = order.baseOutputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
-            int256 outputDelta = int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+            int256 outputDelta = gasDeltaGwei >= 0
+                ? (int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei) / 1 gwei
+                : (int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei - 1 gwei + 1) / 1 gwei;
             output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
         }
     }
