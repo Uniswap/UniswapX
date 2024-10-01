@@ -113,9 +113,10 @@ contract V3DutchOrderReactor is BaseReactor {
         int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
 
         // Gas increase should increase input
-        if (order.baseInput.adjustmentPerGweiBaseFee != 0 ) {
+        if (order.baseInput.adjustmentPerGweiBaseFee != 0) {
             int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
-            order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
+            order.baseInput.startAmount =
+                order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
         }
         // Gas increase should decrease output
         uint256 outputsLength = order.baseOutputs.length;
