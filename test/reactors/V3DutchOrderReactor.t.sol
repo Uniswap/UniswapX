@@ -679,7 +679,8 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.input.amount, 0);
     }
 
-    // 1000 - (100 * (1659087340-1659029740) / (65535)) = 913
+    // 1000 - (100 * (1659087340-1659029740) / (65535)) = 912.1
+    // This is the output, which should round up to favor the swapper: 913
     function testV3ResolveEndBlockAfterNow() public {
         uint256 currentBlock = 1659087340;
         uint16 relativeEndBlock = 65535;
@@ -700,6 +701,54 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.outputs[0].amount, 913);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.input.amount, 0);
+    }
+
+    // 1000 - (100 * (1659087340-1659029740) / (65535)) = 912.1
+    // This is the input, which should round down to favor the swapper: 912
+    function testV3ResolveInputEndBlockAfterNow() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 1000, CurveBuilder.singlePointCurve(relativeEndBlock, 100), 1000, 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut), 0, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 912);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.outputs[0].amount, 0);
+    }
+
+    // 1000 - (-100 * (1659087340-1659029740) / (65535)) = 1087.89...
+    // This is the input, which should round down to favor the swapper: 1087
+    function testV3ResolvePositiveSlopeInputEndBlockAfterNow() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 1000, CurveBuilder.singlePointCurve(relativeEndBlock, -100), 1100, 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut), 0, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.input.amount, 1087);
+        assertEq(resolvedOrder.outputs.length, 1);
+        assertEq(resolvedOrder.outputs[0].amount, 0);
     }
 
     // Test multiple dutch outputs get resolved correctly.
@@ -754,11 +803,13 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.input.amount, 0);
     }
 
-    // At block 99, output will still be 1000. One block later at 100 (1% of 10k),
+    // At block 99, output will still be 1000. One block later at 100,
     // the first decay will occur and the output will be 999.
+    // This is because it is the output, which should round up
+    // to favor the swapper (999.01... -> 1000)
     function testV3ResolveFirstDecay() public {
         uint256 startBlock = 0;
-        uint256 currentBlock = 99; // 1659030395 - 1659029740 = 655 = 0.00999 * 65535
+        uint256 currentBlock = 99;
         uint16 relativeEndBlock = 10000;
         vm.roll(currentBlock);
 

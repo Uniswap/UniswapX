@@ -27,7 +27,8 @@ library NonlinearDutchDecayLib {
         uint256 startAmount,
         uint256 decayStartBlock,
         uint256 minAmount,
-        uint256 maxAmount
+        uint256 maxAmount,
+        bool isInput
     ) internal view returns (uint256 decayedAmount) {
         // mismatch of relativeAmounts and relativeBlocks
         if (curve.relativeAmounts.length > 16) {
@@ -43,7 +44,8 @@ library NonlinearDutchDecayLib {
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
-        int256 curveDelta = DutchDecayLib.linearDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
+        int256 curveDelta =
+            DutchDecayLib.v3LinearDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount, isInput);
 
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
@@ -95,7 +97,7 @@ library NonlinearDutchDecayLib {
         returns (OutputToken memory result)
     {
         uint256 decayedOutput =
-            decay(output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max);
+            decay(output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max, false);
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
@@ -124,7 +126,7 @@ library NonlinearDutchDecayLib {
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount);
+        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount, true);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }
