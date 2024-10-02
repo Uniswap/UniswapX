@@ -19,9 +19,12 @@ contract MockExclusivityLib {
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
-        uint256 exclusivityOverrideBps
+        uint256 exclusivityOverrideBps,
+        uint256 blockNumberish
     ) external view returns (ResolvedOrder memory) {
-        ExclusivityLib.handleExclusiveOverrideBlock(order, exclusive, exclusivityEnd, exclusivityOverrideBps);
+        ExclusivityLib.handleExclusiveOverrideBlock(
+            order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumberish
+        );
         return order;
     }
 

@@ -41,14 +41,10 @@ library ExclusivityLib {
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
-        uint256 exclusivityOverrideBps
+        uint256 exclusivityOverrideBps,
+        uint256 blockNumberish
     ) internal view {
-        uint256 blockNumber = block.number;
-        // Arbitrum specific block numbers must be fetched from their system contracts
-        if (block.chainid == 42161) {
-            blockNumber = IArbSys(address(100)).arbBlockNumber();
-        }
-        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumber);
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumberish);
     }
 
     /// @notice Applies exclusivity override to the resolved order if necessary
