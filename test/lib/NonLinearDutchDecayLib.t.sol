@@ -474,4 +474,36 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         vm.expectRevert(NonlinearDutchDecayLib.InvalidDecayCurve.selector);
         mockNonlinearDutchDecayLibContract.decay(curve, startAmount, decayStartBlock, 1 ether, 1 ether);
     }
+
+    function testFuzzDutchDecayBeyondUint16Max(
+        uint256 startAmount,
+        uint256 blockDelta,
+        uint16 lastValidBlock,
+        uint256 decayAmountFuzz
+    ) public {
+        uint256 decayStartBlock = 100;
+        vm.assume(lastValidBlock > 0);
+        vm.assume(startAmount > 0);
+
+        // Testing that we get a fully decayed curve instead of overflowed mistake
+        vm.assume(blockDelta > uint256(type(uint16).max));
+        vm.assume(blockDelta < type(uint256).max - decayStartBlock);
+
+        // Bound decayAmountFuzz between 0 and startAmount
+        decayAmountFuzz = bound(decayAmountFuzz, 0, startAmount);
+
+        uint16[] memory blocks = new uint16[](1);
+        blocks[0] = lastValidBlock;
+
+        int256[] memory decayAmounts = new int256[](1);
+        decayAmounts[0] = int256(decayAmountFuzz);
+
+        NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
+
+        uint256 currentBlock = decayStartBlock + blockDelta;
+        vm.roll(currentBlock);
+        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, 0, startAmount);
+
+        assertEq(decayed, startAmount - decayAmountFuzz, "Should be fully decayed for block delta beyond uint16.max");
+    }
 }
