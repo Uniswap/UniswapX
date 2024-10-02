@@ -6,8 +6,7 @@ import {IArbSys} from "../interfaces/IArbSys.sol";
 /// @title BlockNumberish
 /// A helper contract to get the current block number on different chains
 contract BlockNumberish {
-    // Declare an immutable function type variable for the _getTstorish function
-    // based on chain support for tstore at time of deployment.
+    // Declare an immutable function type variable for the _getBlockNumberish function
     function() view returns (uint256) internal immutable _getBlockNumberish;
 
     constructor() {
