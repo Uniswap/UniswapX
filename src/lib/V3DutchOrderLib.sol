@@ -95,7 +95,8 @@ library V3DutchOrderLib {
         "uint256 maxAmount,",
         "uint256 adjustmentPerGweiBaseFee)"
     );
-    bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH = keccak256(V3_DUTCH_INPUT_TYPE);
+    bytes32 internal constant V3_DUTCH_INPUT_TYPE_HASH =
+        keccak256(abi.encodePacked(V3_DUTCH_INPUT_TYPE, NON_LINEAR_DECAY_TYPE));
     bytes internal constant V3_DUTCH_OUTPUT_TYPE = abi.encodePacked(
         "V3DutchOutput(",
         "address token,",
@@ -105,7 +106,8 @@ library V3DutchOrderLib {
         "uint256 minAmount,",
         "uint256 adjustmentPerGweiBaseFee)"
     );
-    bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH = keccak256(V3_DUTCH_OUTPUT_TYPE);
+    bytes32 internal constant V3_DUTCH_OUTPUT_TYPE_HASH =
+        keccak256(abi.encodePacked(V3_DUTCH_OUTPUT_TYPE, NON_LINEAR_DECAY_TYPE));
     bytes internal constant NON_LINEAR_DECAY_TYPE =
         abi.encodePacked("NonlinearDutchDecay(", "uint256 relativeBlocks,", "int256[] relativeAmounts)");
     bytes32 internal constant NON_LINEAR_DECAY_TYPE_HASH = keccak256(NON_LINEAR_DECAY_TYPE);
