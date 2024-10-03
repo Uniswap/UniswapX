@@ -509,6 +509,10 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
 
         vm.roll(currentBlock);
         uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
-        assertEq(decayed, Math.max(startAmount - decayAmountFuzz, minAmount), "Should be fully decayed for block delta beyond uint16.max");
+        assertEq(
+            decayed,
+            Math.max(startAmount - decayAmountFuzz, minAmount),
+            "Should be fully decayed for block delta beyond uint16.max"
+        );
     }
 }
