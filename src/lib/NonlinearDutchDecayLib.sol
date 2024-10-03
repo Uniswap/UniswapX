@@ -39,7 +39,8 @@ library NonlinearDutchDecayLib {
         if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
             return startAmount.bound(minAmount, maxAmount);
         }
-
+        // If the blockDelta is larger than type(uint16).max, a downcast overflow will occur
+        // We prevent this by capping the blockDelta to type(uint16).max to express a full decay
         uint16 blockDelta = uint16(Math.min(block.number - decayStartBlock, type(uint16).max));
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);

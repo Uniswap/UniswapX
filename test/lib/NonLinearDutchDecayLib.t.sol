@@ -8,6 +8,7 @@ import {DutchDecayLib} from "../../src/lib/DutchDecayLib.sol";
 import {NonlinearDutchDecayLib} from "../../src/lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
 import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
 
@@ -476,21 +477,27 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
     }
 
     function testFuzzDutchDecayBeyondUint16Max(
+        uint16 lastValidBlock, // For curve
+        uint256 decayAmountFuzz, // For curve
+        // decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
         uint256 startAmount,
-        uint256 blockDelta,
-        uint16 lastValidBlock,
-        uint256 decayAmountFuzz
+        uint256 decayStartBlock,
+        uint256 minAmount,
+        uint256 maxAmount,
+        uint256 currentBlock
     ) public {
-        uint256 decayStartBlock = 100;
+        vm.assume(decayStartBlock < type(uint256).max - type(uint16).max);
         vm.assume(lastValidBlock > 0);
-        vm.assume(startAmount > 0);
+        vm.assume(startAmount > 0 && startAmount < uint256(type(int256).max));
+        vm.assume(maxAmount >= startAmount);
+        minAmount = bound(minAmount, 0, startAmount);
+        // bound only takes uint256, so we need to limit decayAmountFuzz to int256.max
+        // because we cast it to int256 in the decay function
+        decayAmountFuzz = bound(decayAmountFuzz, minAmount, startAmount);
 
         // Testing that we get a fully decayed curve instead of overflowed mistake
-        vm.assume(blockDelta > uint256(type(uint16).max));
-        vm.assume(blockDelta < type(uint256).max - decayStartBlock);
-
-        // Bound decayAmountFuzz between 0 and startAmount
-        decayAmountFuzz = bound(decayAmountFuzz, 0, startAmount);
+        // This will happen when the block delta is larger than type(uint16).max
+        vm.assume(currentBlock > decayStartBlock + type(uint16).max);
 
         uint16[] memory blocks = new uint16[](1);
         blocks[0] = lastValidBlock;
@@ -500,10 +507,8 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
 
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
 
-        uint256 currentBlock = decayStartBlock + blockDelta;
         vm.roll(currentBlock);
-        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, 0, startAmount);
-
-        assertEq(decayed, startAmount - decayAmountFuzz, "Should be fully decayed for block delta beyond uint16.max");
+        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        assertEq(decayed, Math.max(startAmount - decayAmountFuzz, minAmount), "Should be fully decayed for block delta beyond uint16.max");
     }
 }
