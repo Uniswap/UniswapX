@@ -12,6 +12,7 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "../lib/MathExt.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
+import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 
 /// @notice Reactor for V3 dutch orders
 /// @dev V3 orders must be cosigned by the specified cosigner to override starting block and value
@@ -109,23 +110,29 @@ contract V3DutchOrderReactor is BaseReactor {
     }
 
     function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
-        // positive means an increase in gas
-        int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
+        // Positive means an increase in gas
+        int256 gasDeltaWei = block.basefee.sub(order.startingBaseFee);
 
-        // Gas increase should increase input (round up when positive, down when negative)
-        int256 inputDelta = gasDeltaGwei >= 0
-            ? (int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei + 1 gwei - 1) / 1 gwei
-            : (int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei) / 1 gwei;
+        // Round in favor of swapper
+        int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
         order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
 
-        // Gas increase should decrease output (round down when positive, up when negative)
         uint256 outputsLength = order.baseOutputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
-            int256 outputDelta = gasDeltaGwei >= 0
-                ? (int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei) / 1 gwei
-                : (int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei - 1 gwei + 1) / 1 gwei;
+            // Round in favor of swapper
+            int256 outputDelta = _computeDelta(output.adjustmentPerGweiBaseFee, gasDeltaWei);
             output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
+        }
+    }
+
+    function _computeDelta(uint256 adjustmentPerGweiBaseFee, int256 gasDeltaWei) internal pure returns (int256) {
+        if (gasDeltaWei >= 0) {
+            // Gas increase: round adjustment down to decrease amount added to input or subtracted from output
+            return int256(adjustmentPerGweiBaseFee.mulDivDown(uint256(gasDeltaWei), 1 gwei));
+        } else {
+            // Gas decrease: round adjustment up to increase amount added to output or subtracted from input
+            return -int256(adjustmentPerGweiBaseFee.mulDivUp(SafeCast.toUint256(-gasDeltaWei), 1 gwei));
         }
     }
 
