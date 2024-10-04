@@ -12,7 +12,6 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "../lib/MathExt.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
-import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
 
 /// @notice Reactor for V3 dutch orders
 /// @dev V3 orders must be cosigned by the specified cosigner to override starting block and value
@@ -132,7 +131,7 @@ contract V3DutchOrderReactor is BaseReactor {
             return int256(adjustmentPerGweiBaseFee.mulDivDown(uint256(gasDeltaWei), 1 gwei));
         } else {
             // Gas decrease: round adjustment up to increase amount added to output or subtracted from input
-            return -int256(adjustmentPerGweiBaseFee.mulDivUp(SafeCast.toUint256(-gasDeltaWei), 1 gwei));
+            return -int256(adjustmentPerGweiBaseFee.mulDivUp(uint256(-gasDeltaWei), 1 gwei));
         }
     }
 
