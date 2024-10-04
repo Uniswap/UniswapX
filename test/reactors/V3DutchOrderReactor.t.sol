@@ -727,6 +727,29 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.outputs[0].amount, 0);
     }
 
+    // 1000 - (100 * (1659087340-1659029740) / (65535)) = 912.1
+    // This is the output, which should round up to favor the swapper: 913
+    function testV3ResolveOutputEndBlockAfterNow() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), 0, 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut), 1000, 900, CurveBuilder.singlePointCurve(relativeEndBlock, 100), address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 913);
+        assertEq(resolvedOrder.input.amount, 0);
+    }
+
     // 1000 - (-100 * (1659087340-1659029740) / (65535)) = 1087.89...
     // This is the input, which should round down to favor the swapper: 1087
     function testV3ResolvePositiveSlopeInputEndBlockAfterNow() public {
@@ -749,6 +772,29 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.input.amount, 1087);
         assertEq(resolvedOrder.outputs.length, 1);
         assertEq(resolvedOrder.outputs[0].amount, 0);
+    }
+
+    // 1000 - (-100 * (1659087340-1659029740) / (65535)) = 1087.89...
+    // This is the output, which should round up to favor the swapper: 1088
+    function testV3ResolvePositiveSlopeOutputEndBlockAfterNow() public {
+        uint256 currentBlock = 1659087340;
+        uint16 relativeEndBlock = 65535;
+        vm.roll(currentBlock);
+
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: 1659029740,
+                deadline: 1659130540,
+                input: V3DutchInput(tokenIn, 0, CurveBuilder.singlePointCurve(relativeEndBlock, 0), 0, 0),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut), 1000, 1000, CurveBuilder.singlePointCurve(relativeEndBlock, -100), address(0)
+                )
+            })
+        );
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        assertEq(resolvedOrder.outputs[0].amount, 1088);
+        assertEq(resolvedOrder.input.amount, 0);
     }
 
     // Test multiple dutch outputs get resolved correctly.
