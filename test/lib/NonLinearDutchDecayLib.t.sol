@@ -24,11 +24,11 @@ contract MockNonlinearDutchDecayLibContract {
     }
 
     function decayOutput(
-    NonlinearDutchDecay memory curve,
-    uint256 startAmount,
-    uint256 decayStartBlock,
-    uint256 minAmount,
-    uint256 maxAmount
+        NonlinearDutchDecay memory curve,
+        uint256 startAmount,
+        uint256 decayStartBlock,
+        uint256 minAmount,
+        uint256 maxAmount
     ) public view {
         NonlinearDutchDecayLib.decayOutput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
     }

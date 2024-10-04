@@ -46,7 +46,7 @@ library NonlinearDutchDecayLib {
         int256 curveDelta;
 
         curveDelta = v3LinearInputDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
-    
+
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
 
@@ -178,7 +178,7 @@ library NonlinearDutchDecayLib {
         uint256 elapsed = currentPoint - startPoint;
         uint256 duration = endPoint - startPoint;
         int256 delta;
- 
+
         // Because startAmount + delta is subtracted from the original amount,
         // we want to maximize startAmount + delta to favor the swapper
         if (endAmount < startAmount) {
@@ -190,7 +190,8 @@ library NonlinearDutchDecayLib {
         return startAmount + delta;
     }
 
-    function v3LinearOutputDecay(       uint256 startPoint,
+    function v3LinearOutputDecay(
+        uint256 startPoint,
         uint256 endPoint,
         uint256 currentPoint,
         int256 startAmount,
@@ -212,6 +213,4 @@ library NonlinearDutchDecayLib {
 
         return startAmount + delta;
     }
-
-
 }
