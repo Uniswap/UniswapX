@@ -45,7 +45,7 @@ library NonlinearDutchDecayLib {
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
         int256 curveDelta =
-            DutchDecayLib.v3LinearDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount, isInput);
+            v3LinearDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount, isInput);
 
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
@@ -128,5 +128,64 @@ library NonlinearDutchDecayLib {
     {
         uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount, true);
         result = InputToken(input.token, decayedInput, input.maxAmount);
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    function v3LinearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        uint256 startAmount,
+        uint256 endAmount,
+        bool isInput
+    ) internal pure returns (uint256) {
+        return
+            uint256(v3LinearDecay(startPoint, endPoint, currentPoint, int256(startAmount), int256(endAmount), isInput));
+    }
+
+    /// @notice returns the linear interpolation between the two points
+    /// @param startPoint The start of the decay
+    /// @param endPoint The end of the decay
+    /// @param currentPoint The current position in the decay
+    /// @param startAmount The amount of the start of the decay
+    /// @param endAmount The amount of the end of the decay
+    /// @dev rounds in favor of the swapper based on input or output
+    function v3LinearDecay(
+        uint256 startPoint,
+        uint256 endPoint,
+        uint256 currentPoint,
+        int256 startAmount,
+        int256 endAmount,
+        bool isInput
+    ) internal pure returns (int256) {
+        if (currentPoint >= endPoint) {
+            return endAmount;
+        }
+        uint256 elapsed = currentPoint - startPoint;
+        uint256 duration = endPoint - startPoint;
+        int256 delta;
+        if (isInput) {
+            // Because startAmount + delta is subtracted from the original amount,
+            // we want to maximize startAmount + delta to favor the swapper
+            if (endAmount < startAmount) {
+                delta = -int256(uint256(startAmount - endAmount).mulDivDown(elapsed, duration));
+            } else {
+                delta = int256(uint256(endAmount - startAmount).mulDivUp(elapsed, duration));
+            }
+        } else {
+            // For outputs, we want to minimize startAmount + delta to favor the swapper
+            if (endAmount < startAmount) {
+                delta = -int256(uint256(startAmount - endAmount).mulDivUp(elapsed, duration));
+            } else {
+                delta = int256(uint256(endAmount - startAmount).mulDivDown(elapsed, duration));
+            }
+        }
+
+        return startAmount + delta;
     }
 }
