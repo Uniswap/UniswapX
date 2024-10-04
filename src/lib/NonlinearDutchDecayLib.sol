@@ -136,24 +136,6 @@ library NonlinearDutchDecayLib {
     /// @param currentPoint The current position in the decay
     /// @param startAmount The amount of the start of the decay
     /// @param endAmount The amount of the end of the decay
-    function v3LinearDecay(
-        uint256 startPoint,
-        uint256 endPoint,
-        uint256 currentPoint,
-        uint256 startAmount,
-        uint256 endAmount,
-        bool isInput
-    ) internal pure returns (uint256) {
-        return
-            uint256(v3LinearDecay(startPoint, endPoint, currentPoint, int256(startAmount), int256(endAmount), isInput));
-    }
-
-    /// @notice returns the linear interpolation between the two points
-    /// @param startPoint The start of the decay
-    /// @param endPoint The end of the decay
-    /// @param currentPoint The current position in the decay
-    /// @param startAmount The amount of the start of the decay
-    /// @param endAmount The amount of the end of the decay
     /// @dev rounds in favor of the swapper based on input or output
     function v3LinearDecay(
         uint256 startPoint,
