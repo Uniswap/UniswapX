@@ -45,7 +45,7 @@ contract MathExtTest is Test {
 
     function testBoundedSub(uint128 a, int128 b, uint256 max, uint256 min) public {
         vm.assume(max >= min);
-        uint256 c = uint256(a).boundedSub(b, max, min);
+        uint256 c = uint256(a).boundedSub(b, min, max);
         assertGe(c, min);
         assertLe(c, max);
     }
@@ -69,6 +69,12 @@ contract MathExtTest is Test {
 
     function testBoundedSubIntFromUintOverflow() public {
         assertEq(UINT256_MAX.boundedSub(-1, 0, type(uint256).max), type(uint256).max);
+    }
+
+    function testBoundedSubRequiresMinLessThanEqualMax(uint256 a, int256 b, uint256 min, uint256 max) public {
+        vm.assume(min > max);
+        vm.expectRevert("MathExt: min must be less than or equal to max");
+        a.boundedSub(b, min, max);
     }
 
     /* sub(uint256 a, uint256 b) tests */

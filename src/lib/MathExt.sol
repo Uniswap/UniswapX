@@ -34,6 +34,7 @@ library MathExt {
     /// @param max The maximum bound for the result.
     /// @return r The result of the bounded subtraction.
     function boundedSub(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
+        require(min <= max, "MathExt: min must be less than or equal to max");
         if (b < 0) {
             // If b is negative, add its absolute value to a
             uint256 absB = uint256(-b);
