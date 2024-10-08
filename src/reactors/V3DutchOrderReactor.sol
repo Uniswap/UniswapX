@@ -8,6 +8,7 @@ import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {NonlinearDutchDecayLib} from "../lib/NonlinearDutchDecayLib.sol";
 import {V3DutchOrderLib, V3DutchOrder, CosignerData, V3DutchOutput, V3DutchInput} from "../lib/V3DutchOrderLib.sol";
 import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
+import {BlockNumberish} from "../base/BlockNumberish.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "../lib/MathExt.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
@@ -22,7 +23,7 @@ import {CosignerLib} from "../lib/CosignerLib.sol";
 /// - For each outputAmount:
 ///   - If amount is 0, then use baseOutput
 ///   - If amount is nonzero, then ensure it is greater than specified baseOutput and replace startAmount
-contract V3DutchOrderReactor is BaseReactor {
+contract V3DutchOrderReactor is BaseReactor, BlockNumberish {
     using Permit2Lib for ResolvedOrder;
     using V3DutchOrderLib for V3DutchOrder;
     using NonlinearDutchDecayLib for V3DutchOutput[];
@@ -40,7 +41,10 @@ contract V3DutchOrderReactor is BaseReactor {
     /// @notice thrown when an order's cosigner output is less than the specified
     error InvalidCosignerOutput();
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
+    constructor(IPermit2 _permit2, address _protocolFeeOwner)
+        BaseReactor(_permit2, _protocolFeeOwner)
+        BlockNumberish()
+    {}
 
     /// @inheritdoc BaseReactor
     function _resolve(SignedOrder calldata signedOrder)
@@ -58,17 +62,20 @@ contract V3DutchOrderReactor is BaseReactor {
         _updateWithCosignerAmounts(order);
         _updateWithGasAdjustment(order);
 
+        uint256 blockNumberish = _getBlockNumberish();
+
         resolvedOrder = ResolvedOrder({
             info: order.info,
-            input: order.baseInput.decay(order.cosignerData.decayStartBlock),
-            outputs: order.baseOutputs.decay(order.cosignerData.decayStartBlock),
+            input: order.baseInput.decay(order.cosignerData.decayStartBlock, blockNumberish),
+            outputs: order.baseOutputs.decay(order.cosignerData.decayStartBlock, blockNumberish),
             sig: signedOrder.sig,
             hash: orderHash
         });
         resolvedOrder.handleExclusiveOverrideBlock(
             order.cosignerData.exclusiveFiller,
             order.cosignerData.decayStartBlock,
-            order.cosignerData.exclusivityOverrideBps
+            order.cosignerData.exclusivityOverrideBps,
+            blockNumberish
         );
     }
 
