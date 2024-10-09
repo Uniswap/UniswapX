@@ -5,6 +5,7 @@ import {OutputToken, InputToken} from "../base/ReactorStructs.sol";
 import {V3DutchOutput, V3DutchInput, NonlinearDutchDecay} from "../lib/V3DutchOrderLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {MathExt} from "./MathExt.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 import {DutchDecayLib} from "./DutchDecayLib.sol";
 
@@ -39,8 +40,9 @@ library NonlinearDutchDecayLib {
         if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
             return startAmount.bound(minAmount, maxAmount);
         }
-
-        uint16 blockDelta = uint16(block.number - decayStartBlock);
+        // If the blockDelta is larger than type(uint16).max, a downcast overflow will occur
+        // We prevent this by capping the blockDelta to type(uint16).max to express a full decay
+        uint16 blockDelta = uint16(Math.min(block.number - decayStartBlock, type(uint16).max));
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
