@@ -18,11 +18,12 @@ library NonlinearDutchDecayLib {
     /// @notice thrown when the decay curve is invalid
     error InvalidDecayCurve();
 
-    /// @notice locates the current position on the curve and calculates the decay
-    /// @param curve The curve to search
-    /// @param startAmount The absolute start amount
-    /// @param decayStartBlock The absolute start block of the decay
+    /// @notice Calculates the decayed amount based on the current block and the defined curve
+    /// @param curve The nonlinear decay curve definition
+    /// @param startAmount The initial amount at the start of the decay
+    /// @param decayStartBlock The absolute block number when the decay begins
     /// @dev Expects the relativeBlocks in curve to be strictly increasing
+    /// @return decayedAmount The amount after applying the decay, bounded by minAmount and maxAmount
     function decay(
         NonlinearDutchDecay memory curve,
         uint256 startAmount,
@@ -50,13 +51,16 @@ library NonlinearDutchDecayLib {
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
 
-    /// @notice Locates the current position on the curve
-    /// @param curve The curve to search
-    /// @param currentRelativeBlock The current relative position
-    /// @return startPoint The relative block before the current position
-    /// @return endPoint The relative block after the current position
-    /// @return startAmount The relative amount before the current position
-    /// @return endAmount The relative amount after the current position
+    /// @notice Locates the current position on the decay curve based on the elapsed blocks
+    /// @param curve The nonlinear decay curve definition
+    /// @param currentRelativeBlock The number of blocks elapsed since decayStartBlock
+    /// @return startPoint The relative block number of the previous curve point
+    /// @return endPoint The relative block number of the next curve point
+    /// @return startAmount The relative change from initial amount at the previous curve point
+    /// @return endAmount The relative change from initial amount at the next curve point
+    /// @dev The returned amounts are changes relative to the initial startAmount, not absolute values
+    /// @dev If currentRelativeBlock is before the first curve point, startPoint and startAmount will be 0
+    /// @dev If currentRelativeBlock is after the last curve point, both points will be the last curve point
     function locateCurvePosition(NonlinearDutchDecay memory curve, uint16 currentRelativeBlock)
         internal
         pure
