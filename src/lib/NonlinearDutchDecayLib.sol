@@ -43,9 +43,7 @@ library NonlinearDutchDecayLib {
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
-        int256 curveDelta;
-
-        curveDelta = v3LinearInputDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
+        int256 curveDelta = v3LinearInputDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
 
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
@@ -71,9 +69,7 @@ library NonlinearDutchDecayLib {
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
-        int256 curveDelta;
-
-        curveDelta = v3LinearOutputDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
+        int256 curveDelta = v3LinearOutputDecay(startPoint, endPoint, blockDelta, relStartAmount, relEndAmount);
 
         return startAmount.boundedSub(curveDelta, minAmount, maxAmount);
     }
