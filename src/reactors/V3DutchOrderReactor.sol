@@ -115,7 +115,8 @@ contract V3DutchOrderReactor is BaseReactor {
         if (order.baseInput.adjustmentPerGweiBaseFee != 0) {
             // Round in favor of swapper
             int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
-            order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
+            order.baseInput.startAmount =
+                order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
         }
         // Gas increase should decrease output
         uint256 outputsLength = order.baseOutputs.length;
