@@ -23,6 +23,7 @@ library MathExt {
     /// @param min The minimum bound for the result.
     /// @param max The maximum bound for the result.
     /// @return r The result of the bounded addition.
+    /// @dev This function reverts when `b == type(int256).min` due to integer overflow.
     function boundedAdd(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
         r = boundedSub(a, 0 - b, min, max);
     }
@@ -33,6 +34,7 @@ library MathExt {
     /// @param min The minimum bound for the result.
     /// @param max The maximum bound for the result.
     /// @return r The result of the bounded subtraction.
+    /// @dev This function reverts when `b == type(int256).min` due to integer overflow.
     function boundedSub(uint256 a, int256 b, uint256 min, uint256 max) internal pure returns (uint256 r) {
         if (b < 0) {
             // If b is negative, add its absolute value to a

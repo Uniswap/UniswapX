@@ -10,9 +10,12 @@ contract BlockNumberish {
     // Declare an immutable function type variable for the _getBlockNumberish function
     function() view returns (uint256) internal immutable _getBlockNumberish;
 
+    uint256 private constant ARB_CHAIN_ID = 42161;
+    address private constant ARB_SYS_ADDRESS = 0x0000000000000000000000000000000000000064;
+    
     constructor() {
         // Set the function to use based on chainid
-        if (block.chainid == 42161) {
+        if (block.chainid == ARB_CHAIN_ID) {
             _getBlockNumberish = _getBlockNumberSyscall;
         } else {
             _getBlockNumberish = _getBlockNumber;
@@ -21,7 +24,7 @@ contract BlockNumberish {
 
     /// @dev Private function to get the block number on arbitrum
     function _getBlockNumberSyscall() private view returns (uint256) {
-        return IArbSys(0x0000000000000000000000000000000000000064).arbBlockNumber();
+        return IArbSys(ARB_SYS_ADDRESS).arbBlockNumber();
     }
 
     /// @dev Private function to get the block number using the opcode
