@@ -14,7 +14,7 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
 
 /// @notice Reactor for V3 dutch orders
-/// @dev V3 orders must be cosigned by the specified cosigner to override starting block and value
+/// @dev V3 orders must be cosigned by the specified cosigner to set the starting block and override the value
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
 /// - If inputAmount is 0, then use baseInput
@@ -109,25 +109,40 @@ contract V3DutchOrderReactor is BaseReactor {
     }
 
     function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
-        // positive means an increase in gas
-        int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
-
+        // Positive means an increase in gas
+        int256 gasDeltaWei = block.basefee.sub(order.startingBaseFee);
         // Gas increase should increase input
-        int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
-        order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
-
+        if (order.baseInput.adjustmentPerGweiBaseFee != 0) {
+            // Round in favor of swapper
+            int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
+            order.baseInput.startAmount =
+                order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
+        }
         // Gas increase should decrease output
         uint256 outputsLength = order.baseOutputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
-            int256 outputDelta = int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
-            output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
+            if (output.adjustmentPerGweiBaseFee != 0) {
+                // Round in favor of swapper
+                int256 outputDelta = _computeDelta(output.adjustmentPerGweiBaseFee, gasDeltaWei);
+                output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
+            }
+        }
+    }
+
+    function _computeDelta(uint256 adjustmentPerGweiBaseFee, int256 gasDeltaWei) internal pure returns (int256) {
+        if (gasDeltaWei >= 0) {
+            // Gas increase: round adjustment down to decrease amount added to input or subtracted from output
+            return int256(adjustmentPerGweiBaseFee.mulDivDown(uint256(gasDeltaWei), 1 gwei));
+        } else {
+            // Gas decrease: round adjustment up to increase amount added to output or subtracted from input
+            return -int256(adjustmentPerGweiBaseFee.mulDivUp(uint256(-gasDeltaWei), 1 gwei));
         }
     }
 
     /// @notice validate the dutch order fields
     /// - deadline must have not passed
-    /// - cosigner is valid if specified
+    /// - cosigner must always be provided and sign the cosignerData
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, V3DutchOrder memory order) internal view {
         if (order.info.deadline < block.timestamp) {
