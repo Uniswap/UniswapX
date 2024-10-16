@@ -1401,6 +1401,56 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         assertEq(resolvedOrder.input.amount, 0);
     }
 
+    function testV3GasAdjustmentRounding() public {
+        uint256 currentBlock = 21212121;
+        vm.roll(currentBlock);
+        vm.fee(1 gwei);
+
+        // Order with 1 wei gas adjustments
+        SignedOrder memory order = generateOrder(
+            TestDutchOrderSpec({
+                currentBlock: currentBlock,
+                startBlock: currentBlock,
+                deadline: currentBlock + 21,
+                input: V3DutchInput(tokenIn, 1000, CurveBuilder.emptyCurve(), 1100, 1),
+                outputs: OutputsBuilder.singleV3Dutch(
+                    V3DutchOutput(address(tokenOut), 1000, CurveBuilder.emptyCurve(), address(0), 900, 1)
+                )
+            })
+        );
+
+        // Test gas increase
+        vm.fee(1.5 gwei);
+        ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
+        // The gas adjusted input would be 1000.5, which should round down to 1000
+        assertEq(resolvedOrder.input.amount, 1000, "Input should round down");
+        // The gas adjusted output would be 999.5, which should round up to 1000
+        assertEq(resolvedOrder.outputs[0].amount, 1000, "Output should round up");
+
+        // Test gas decrease
+        vm.fee(0.5 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        // The gas adjusted input would be 999.5, which should round down to 999
+        assertEq(resolvedOrder.input.amount, 999, "Input should round down");
+        // The gas adjusted output would be 1000.5, which should round up to 1001
+        assertEq(resolvedOrder.outputs[0].amount, 1001, "Output should round up");
+
+        // Test smaller gas changes
+        vm.fee(1.1 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        // The gas adjusted input would be 1000.1, which should round down to 1000
+        assertEq(resolvedOrder.input.amount, 1000, "Input should round down");
+        // The gas adjusted output would be 999.9, which should round up to 1000
+        assertEq(resolvedOrder.outputs[0].amount, 1000, "Output should round up");
+
+        vm.fee(0.9 gwei);
+        resolvedOrder = quoter.quote(order.order, order.sig);
+        // The gas adjusted input would be 999.9, which should round down to 999
+        assertEq(resolvedOrder.input.amount, 999, "Input should round down");
+        // The gas adjusted output would be 1000.1, which should round up to 1001
+        assertEq(resolvedOrder.outputs[0].amount, 1001, "Output should round up");
+    }
+
     /* Test helpers */
 
     struct TestDutchOrderSpec {

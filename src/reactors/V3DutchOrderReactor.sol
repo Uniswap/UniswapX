@@ -109,12 +109,12 @@ contract V3DutchOrderReactor is BaseReactor {
     }
 
     function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
-        // positive means an increase in gas
-        int256 gasDeltaGwei = block.basefee.sub(order.startingBaseFee);
-
+        // Positive means an increase in gas
+        int256 gasDeltaWei = block.basefee.sub(order.startingBaseFee);
         // Gas increase should increase input
         if (order.baseInput.adjustmentPerGweiBaseFee != 0) {
-            int256 inputDelta = int256(order.baseInput.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+            // Round in favor of swapper
+            int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
             order.baseInput.startAmount =
                 order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
         }
@@ -123,9 +123,20 @@ contract V3DutchOrderReactor is BaseReactor {
         for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
             if (output.adjustmentPerGweiBaseFee != 0) {
-                int256 outputDelta = int256(output.adjustmentPerGweiBaseFee) * gasDeltaGwei / 1 gwei;
+                // Round in favor of swapper
+                int256 outputDelta = _computeDelta(output.adjustmentPerGweiBaseFee, gasDeltaWei);
                 output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
             }
+        }
+    }
+
+    function _computeDelta(uint256 adjustmentPerGweiBaseFee, int256 gasDeltaWei) internal pure returns (int256) {
+        if (gasDeltaWei >= 0) {
+            // Gas increase: round adjustment down to decrease amount added to input or subtracted from output
+            return int256(adjustmentPerGweiBaseFee.mulDivDown(uint256(gasDeltaWei), 1 gwei));
+        } else {
+            // Gas decrease: round adjustment up to increase amount added to output or subtracted from input
+            return -int256(adjustmentPerGweiBaseFee.mulDivUp(uint256(-gasDeltaWei), 1 gwei));
         }
     }
 
