@@ -570,10 +570,10 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         mockNonlinearDutchDecayLibContract.decayOutput(curve, startAmount, decayStartBlock, 1 ether, 1 ether);
     }
 
-    function testFuzzDutchDecayBeyondUint16Max(
+    function testFuzzDutchDecayInputBeyondUint16Max(
         uint16 lastValidBlock, // For curve
         uint256 decayAmountFuzz, // For curve
-        // decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        // decayInput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
         uint256 startAmount,
         uint256 decayStartBlock,
         uint256 minAmount,
@@ -602,7 +602,47 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
 
         vm.roll(currentBlock);
-        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        uint256 decayed = NonlinearDutchDecayLib.decayInput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        assertEq(
+            decayed,
+            Math.max(startAmount - decayAmountFuzz, minAmount),
+            "Should be fully decayed for block delta beyond uint16.max"
+        );
+    }
+
+    function testFuzzDutchDecayOutputBeyondUint16Max(
+        uint16 lastValidBlock, // For curve
+        uint256 decayAmountFuzz, // For curve
+        // decayOutput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        uint256 startAmount,
+        uint256 decayStartBlock,
+        uint256 minAmount,
+        uint256 maxAmount,
+        uint256 currentBlock
+    ) public {
+        vm.assume(decayStartBlock < type(uint256).max - type(uint16).max);
+        vm.assume(lastValidBlock > 0);
+        vm.assume(startAmount > 0 && startAmount < uint256(type(int256).max));
+        vm.assume(maxAmount >= startAmount);
+        minAmount = bound(minAmount, 0, startAmount);
+        // bound only takes uint256, so we need to limit decayAmountFuzz to int256.max
+        // because we cast it to int256 in the decay function
+        decayAmountFuzz = bound(decayAmountFuzz, minAmount, startAmount);
+
+        // Testing that we get a fully decayed curve instead of overflowed mistake
+        // This will happen when the block delta is larger than type(uint16).max
+        vm.assume(currentBlock > decayStartBlock + type(uint16).max);
+
+        uint16[] memory blocks = new uint16[](1);
+        blocks[0] = lastValidBlock;
+
+        int256[] memory decayAmounts = new int256[](1);
+        decayAmounts[0] = int256(decayAmountFuzz);
+
+        NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
+
+        vm.roll(currentBlock);
+        uint256 decayed = NonlinearDutchDecayLib.decayOutput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
         assertEq(
             decayed,
             Math.max(startAmount - decayAmountFuzz, minAmount),
