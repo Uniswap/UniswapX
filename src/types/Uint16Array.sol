@@ -37,7 +37,7 @@ library Uint16ArrayLibrary {
         }
         unchecked {
             uint256 shiftAmount = n * 16;
-            uint16 result = uint16((Uint16Array.unwrap(packedData) >> shiftAmount) & 0xFFFF);
+            uint16 result = uint16(Uint16Array.unwrap(packedData) >> shiftAmount);
             return result;
         }
     }

@@ -210,7 +210,7 @@ library V3DutchOrderLib {
     }
 
     /// @notice get the digest of the cosigner data
-    /// @param order the priorityOrder
+    /// @param order the V3DutchOrder
     /// @param orderHash the hash of the order
     function cosignerDigest(V3DutchOrder memory order, bytes32 orderHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(order.cosignerData)));
