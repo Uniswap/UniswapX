@@ -14,7 +14,7 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
 
 /// @notice Reactor for V3 dutch orders
-/// @dev V3 orders must be cosigned by the specified cosigner to override starting block and value
+/// @dev V3 orders must be cosigned by the specified cosigner to set the starting block and override the value
 /// @dev resolution behavior:
 /// - If cosignature is invalid or not from specified cosigner, revert
 /// - If inputAmount is 0, then use baseInput
@@ -111,17 +111,21 @@ contract V3DutchOrderReactor is BaseReactor {
     function _updateWithGasAdjustment(V3DutchOrder memory order) internal view {
         // Positive means an increase in gas
         int256 gasDeltaWei = block.basefee.sub(order.startingBaseFee);
-
-        // Round in favor of swapper
-        int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
-        order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
-
+        // Gas increase should increase input
+        if (order.baseInput.adjustmentPerGweiBaseFee != 0) {
+            // Round in favor of swapper
+            int256 inputDelta = _computeDelta(order.baseInput.adjustmentPerGweiBaseFee, gasDeltaWei);
+            order.baseInput.startAmount = order.baseInput.startAmount.boundedAdd(inputDelta, 0, order.baseInput.maxAmount);
+        }
+        // Gas increase should decrease output
         uint256 outputsLength = order.baseOutputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             V3DutchOutput memory output = order.baseOutputs[i];
-            // Round in favor of swapper
-            int256 outputDelta = _computeDelta(output.adjustmentPerGweiBaseFee, gasDeltaWei);
-            output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
+            if (output.adjustmentPerGweiBaseFee != 0) {
+                // Round in favor of swapper
+                int256 outputDelta = _computeDelta(output.adjustmentPerGweiBaseFee, gasDeltaWei);
+                output.startAmount = output.startAmount.boundedSub(outputDelta, output.minAmount, type(uint256).max);
+            }
         }
     }
 
@@ -137,7 +141,7 @@ contract V3DutchOrderReactor is BaseReactor {
 
     /// @notice validate the dutch order fields
     /// - deadline must have not passed
-    /// - cosigner is valid if specified
+    /// - cosigner must always be provided and sign the cosignerData
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, V3DutchOrder memory order) internal view {
         if (order.info.deadline < block.timestamp) {

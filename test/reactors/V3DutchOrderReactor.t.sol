@@ -1501,8 +1501,8 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         (order,) = createAndSignDutchOrder(request);
     }
 
-    function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private pure returns (bytes memory sig) {
-        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, abi.encode(cosignerData)));
+    function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private view returns (bytes memory sig) {
+        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
     }
