@@ -672,7 +672,9 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
 
         vm.roll(currentBlock);
-        uint256 decayed = NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), minAmount, maxAmount);
+        uint256 decayed = NonlinearDutchDecayLib.decay(
+            curve, startAmount, decayStartBlock, _getBlockNumberish(), minAmount, maxAmount
+        );
         assertEq(
             decayed,
             Math.max(startAmount - decayAmountFuzz, minAmount),

@@ -12,7 +12,7 @@ contract BlockNumberish {
 
     uint256 private constant ARB_CHAIN_ID = 42161;
     address private constant ARB_SYS_ADDRESS = 0x0000000000000000000000000000000000000064;
-    
+
     constructor() {
         // Set the function to use based on chainid
         if (block.chainid == ARB_CHAIN_ID) {
