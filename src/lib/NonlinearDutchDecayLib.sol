@@ -8,6 +8,7 @@ import {MathExt} from "./MathExt.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {Uint16ArrayLibrary, Uint16Array, fromUnderlying} from "../types/Uint16Array.sol";
 import {DutchDecayLib} from "./DutchDecayLib.sol";
+import {IArbSys} from "../interfaces/IArbSys.sol";
 
 /// @notice helpers for handling non-linear dutch order objects
 library NonlinearDutchDecayLib {
@@ -22,12 +23,16 @@ library NonlinearDutchDecayLib {
     /// @param curve The nonlinear decay curve definition
     /// @param startAmount The initial amount at the start of the decay
     /// @param decayStartBlock The absolute block number when the decay begins
+    /// @param blockNumberish The current block number
+    /// @param minAmount The minimum amount to decay to
+    /// @param maxAmount The maximum amount to decay to
     /// @dev Expects the relativeBlocks in curve to be strictly increasing
     /// @return decayedAmount The amount after applying the decay, bounded by minAmount and maxAmount
     function decay(
         NonlinearDutchDecay memory curve,
         uint256 startAmount,
         uint256 decayStartBlock,
+        uint256 blockNumberish,
         uint256 minAmount,
         uint256 maxAmount
     ) internal view returns (uint256 decayedAmount) {
@@ -37,12 +42,12 @@ library NonlinearDutchDecayLib {
         }
 
         // handle current block before decay or no decay
-        if (decayStartBlock >= block.number || curve.relativeAmounts.length == 0) {
+        if (decayStartBlock >= blockNumberish || curve.relativeAmounts.length == 0) {
             return startAmount.bound(minAmount, maxAmount);
         }
         // If the blockDelta is larger than type(uint16).max, a downcast overflow will occur
         // We prevent this by capping the blockDelta to type(uint16).max to express a full decay
-        uint16 blockDelta = uint16(Math.min(block.number - decayStartBlock, type(uint16).max));
+        uint16 blockDelta = uint16(Math.min(blockNumberish - decayStartBlock, type(uint16).max));
         (uint16 startPoint, uint16 endPoint, int256 relStartAmount, int256 relEndAmount) =
             locateCurvePosition(curve, blockDelta);
         // get decay of only the relative amounts
@@ -94,22 +99,25 @@ library NonlinearDutchDecayLib {
     /// @notice returns a decayed output using the given dutch spec and blocks
     /// @param output The output to decay
     /// @param decayStartBlock The block to start decaying
+    /// @param blockNumberish The block number to decay to
     /// @return result a decayed output
-    function decay(V3DutchOutput memory output, uint256 decayStartBlock)
+    function decay(V3DutchOutput memory output, uint256 decayStartBlock, uint256 blockNumberish)
         internal
         view
         returns (OutputToken memory result)
     {
-        uint256 decayedOutput =
-            decay(output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max);
+        uint256 decayedOutput = decay(
+            output.curve, output.startAmount, decayStartBlock, blockNumberish, output.minAmount, type(uint256).max
+        );
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
     /// @notice returns a decayed output array using the given dutch spec and blocks
     /// @param outputs The output array to decay
     /// @param decayStartBlock The block to start decaying
+    /// @param blockNumberish The block number to decay to
     /// @return result a decayed output array
-    function decay(V3DutchOutput[] memory outputs, uint256 decayStartBlock)
+    function decay(V3DutchOutput[] memory outputs, uint256 decayStartBlock, uint256 blockNumberish)
         internal
         view
         returns (OutputToken[] memory result)
@@ -117,20 +125,22 @@ library NonlinearDutchDecayLib {
         uint256 outputLength = outputs.length;
         result = new OutputToken[](outputLength);
         for (uint256 i = 0; i < outputLength; i++) {
-            result[i] = decay(outputs[i], decayStartBlock);
+            result[i] = decay(outputs[i], decayStartBlock, blockNumberish);
         }
     }
 
     /// @notice returns a decayed input using the given dutch spec and times
     /// @param input The input to decay
     /// @param decayStartBlock The block to start decaying
+    /// @param blockNumberish The block number to decay to
     /// @return result a decayed input
-    function decay(V3DutchInput memory input, uint256 decayStartBlock)
+    function decay(V3DutchInput memory input, uint256 decayStartBlock, uint256 blockNumberish)
         internal
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount);
+        uint256 decayedInput =
+            decay(input.curve, input.startAmount, decayStartBlock, blockNumberish, 0, input.maxAmount);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 }
