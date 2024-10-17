@@ -104,8 +104,9 @@ library NonlinearDutchDecayLib {
         view
         returns (OutputToken memory result)
     {
-        uint256 decayedOutput =
-            decay(output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max, v3LinearOutputDecay);
+        uint256 decayedOutput = decay(
+            output.curve, output.startAmount, decayStartBlock, output.minAmount, type(uint256).max, v3LinearOutputDecay
+        );
         result = OutputToken(output.token, decayedOutput, output.recipient);
     }
 
@@ -134,7 +135,8 @@ library NonlinearDutchDecayLib {
         view
         returns (InputToken memory result)
     {
-        uint256 decayedInput = decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount, v3LinearInputDecay);
+        uint256 decayedInput =
+            decay(input.curve, input.startAmount, decayStartBlock, 0, input.maxAmount, v3LinearInputDecay);
         result = InputToken(input.token, decayedInput, input.maxAmount);
     }
 

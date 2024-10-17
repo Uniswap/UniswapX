@@ -50,15 +50,9 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         NonlinearDutchDecay memory curve,
         uint256 startAmount,
         uint256 decayStartBlock,
-        uint256 maxAmount) internal view returns (uint256 decayedAmount) {
-
-        V3DutchInput memory input = V3DutchInput(
-            tokenIn,
-            startAmount,
-            curve,
-            maxAmount,
-            0
-        );
+        uint256 maxAmount
+    ) internal view returns (uint256 decayedAmount) {
+        V3DutchInput memory input = V3DutchInput(tokenIn, startAmount, curve, maxAmount, 0);
         return NonlinearDutchDecayLib.decay(input, decayStartBlock).amount;
     }
 
@@ -68,14 +62,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         uint256 decayStartBlock,
         uint256 minAmount
     ) internal view returns (uint256 decayedAmount) {
-        V3DutchOutput memory output = V3DutchOutput(
-            address(tokenOut),
-            startAmount,
-            curve,
-            address(0),
-            minAmount,
-            0
-        );
+        V3DutchOutput memory output = V3DutchOutput(address(tokenOut), startAmount, curve, address(0), minAmount, 0);
         return NonlinearDutchDecayLib.decay(output, decayStartBlock).amount;
     }
 
@@ -160,19 +147,11 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
     function testDutchDecayNoDecay(uint256 startAmount, uint256 decayStartBlock) public {
         // Empty curve
         snapStart("V3-DutchDecayNoDecay");
-        assertEq(
-            decayOutput(
-                CurveBuilder.emptyCurve(), startAmount, decayStartBlock, startAmount
-            ),
-            startAmount
-        );
+        assertEq(decayOutput(CurveBuilder.emptyCurve(), startAmount, decayStartBlock, startAmount), startAmount);
 
         // Single value with 0 amount change
         assertEq(
-            decayOutput(
-                CurveBuilder.singlePointCurve(1, 0), startAmount, decayStartBlock, startAmount
-            ),
-            startAmount
+            decayOutput(CurveBuilder.singlePointCurve(1, 0), startAmount, decayStartBlock, startAmount), startAmount
         );
         snapEnd();
     }
@@ -185,15 +164,11 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         snapStart("V3-DutchDecayNoDecayYet");
         vm.roll(100);
         // at decayStartBlock
-        assertEq(
-            decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount);
 
         vm.roll(80);
         // before decayStartBlock
-        assertEq(
-            decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount);
         snapEnd();
     }
 
