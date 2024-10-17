@@ -14,30 +14,7 @@ import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken, InputToken} from "../../src/base/ReactorStructs.sol";
 
-/// @notice mock contract to test NonlinearDutchDecayLib functionality
-contract MockNonlinearDutchDecayLibContract {
-    function decayInput(
-        NonlinearDutchDecay memory curve,
-        uint256 startAmount,
-        uint256 decayStartBlock,
-        uint256 maxAmount
-    ) public view {
-        decayInput(curve, startAmount, decayStartBlock, maxAmount);
-    }
-
-    function decayOutput(
-        NonlinearDutchDecay memory curve,
-        uint256 startAmount,
-        uint256 decayStartBlock,
-        uint256 minAmount,
-        uint256 maxAmount
-    ) public view {
-        decayOutput(curve, startAmount, decayStartBlock, minAmount, maxAmount);
-    }
-}
-
 contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
-    MockNonlinearDutchDecayLibContract mockNonlinearDutchDecayLibContract = new MockNonlinearDutchDecayLibContract();
     MockERC20 tokenIn;
     MockERC20 tokenOut;
 
@@ -571,7 +548,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         vm.roll(150);
         vm.expectRevert();
-        mockNonlinearDutchDecayLibContract.decayOutput(curve, startAmount, decayStartBlock, 0 ether, 1 ether);
+        decayOutput(curve, startAmount, decayStartBlock, 1 ether);
     }
 
     function testDutchMismatchedDecay() public {
