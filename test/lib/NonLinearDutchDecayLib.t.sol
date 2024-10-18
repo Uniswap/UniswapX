@@ -12,23 +12,37 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {BlockNumberish} from "../../src/base/BlockNumberish.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {OutputToken, InputToken} from "../../src/base/ReactorStructs.sol";
 
-/// @notice mock contract to test NonlinearDutchDecayLib functionality
-contract MockNonlinearDutchDecayLibContract {
-    function decay(
+contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+
+    constructor() {
+        tokenIn = new MockERC20("Input", "IN", 18);
+        tokenOut = new MockERC20("Output", "OUT", 18);
+    }
+
+    function decayInput(
         NonlinearDutchDecay memory curve,
         uint256 startAmount,
         uint256 decayStartBlock,
-        uint256 blockNumberish,
-        uint256 minAmount,
         uint256 maxAmount
-    ) public view {
-        NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, blockNumberish, minAmount, maxAmount);
+    ) internal view returns (uint256 decayedAmount) {
+        V3DutchInput memory input = V3DutchInput(tokenIn, startAmount, curve, maxAmount, 0);
+        return NonlinearDutchDecayLib.decay(input, decayStartBlock, _getBlockNumberish()).amount;
     }
-}
 
-contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
-    MockNonlinearDutchDecayLibContract mockNonlinearDutchDecayLibContract = new MockNonlinearDutchDecayLibContract();
+    function decayOutput(
+        NonlinearDutchDecay memory curve,
+        uint256 startAmount,
+        uint256 decayStartBlock,
+        uint256 minAmount
+    ) internal view returns (uint256 decayedAmount) {
+        V3DutchOutput memory output = V3DutchOutput(address(tokenOut), startAmount, curve, address(0), minAmount, 0);
+        return NonlinearDutchDecayLib.decay(output, decayStartBlock, _getBlockNumberish()).amount;
+    }
 
     function testLocateCurvePositionSingle() public {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(1, 0);
@@ -111,24 +125,11 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
     function testDutchDecayNoDecay(uint256 startAmount, uint256 decayStartBlock) public {
         // Empty curve
         snapStart("V3-DutchDecayNoDecay");
-        assertEq(
-            NonlinearDutchDecayLib.decay(
-                CurveBuilder.emptyCurve(), startAmount, decayStartBlock, _getBlockNumberish(), startAmount, startAmount
-            ),
-            startAmount
-        );
+        assertEq(decayOutput(CurveBuilder.emptyCurve(), startAmount, decayStartBlock, startAmount), startAmount);
 
         // Single value with 0 amount change
         assertEq(
-            NonlinearDutchDecayLib.decay(
-                CurveBuilder.singlePointCurve(1, 0),
-                startAmount,
-                decayStartBlock,
-                _getBlockNumberish(),
-                startAmount,
-                startAmount
-            ),
-            startAmount
+            decayOutput(CurveBuilder.singlePointCurve(1, 0), startAmount, decayStartBlock, startAmount), startAmount
         );
         snapEnd();
     }
@@ -141,21 +142,11 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         snapStart("V3-DutchDecayNoDecayYet");
         vm.roll(100);
         // at decayStartBlock
-        assertEq(
-            NonlinearDutchDecayLib.decay(
-                curve, startAmount, decayStartBlock, _getBlockNumberish(), startAmount, 2 ether
-            ),
-            startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount);
 
         vm.roll(80);
         // before decayStartBlock
-        assertEq(
-            NonlinearDutchDecayLib.decay(
-                curve, startAmount, decayStartBlock, _getBlockNumberish(), startAmount, 2 ether
-            ),
-            startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, startAmount), startAmount);
         snapEnd();
     }
 
@@ -167,17 +158,11 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         snapStart("V3-DutchDecayNoDecayYetNegative");
         vm.roll(100);
         // at decayStartBlock
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0, 1 ether),
-            startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0), startAmount);
 
         vm.roll(80);
         // before decayStartBlock
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0, 1 ether),
-            startAmount
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0), startAmount);
         snapEnd();
     }
 
@@ -188,29 +173,97 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         snapStart("V3-DutchDecay");
         vm.roll(150);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.5 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.5 ether);
 
         vm.roll(180);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.8 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.8 ether);
 
         vm.roll(110);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.1 ether);
 
         vm.roll(190);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.9 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.9 ether);
         snapEnd();
+    }
+
+    function testDutchInputDecayRounding() public {
+        uint256 decayStartBlock = 0;
+        uint256 startAmount = 2000;
+        int256 decayAmount = 1000;
+        NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(10000, decayAmount);
+
+        vm.roll(0);
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 2000);
+
+        vm.roll(1);
+        // Input should round down to favor the swapper
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 1999);
+
+        vm.roll(9);
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 1999);
+    }
+
+    function testDutchOutputDecayRounding() public {
+        uint256 decayStartBlock = 0;
+        uint256 startAmount = 2000;
+        int256 decayAmount = 1000;
+        NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(10000, decayAmount);
+
+        vm.roll(0);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2000);
+
+        vm.roll(1);
+        // Output should round up to favor the swapper
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2000);
+
+        vm.roll(9);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2000);
+
+        vm.roll(10);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 1999);
+    }
+
+    function testDutchInputUpwardDecayRounding() public {
+        uint256 decayStartBlock = 0;
+        uint256 startAmount = 2000;
+        int256 decayAmount = -1000;
+        NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(10000, decayAmount);
+
+        vm.roll(0);
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 2000);
+
+        vm.roll(1);
+        // Input should round down to favor the swapper
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 2000);
+
+        vm.roll(9);
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 2000);
+
+        vm.roll(10);
+        assertEq(decayInput(curve, startAmount, decayStartBlock, 3000), 2001);
+    }
+
+    function testDutchOutputUpwardDecayRounding() public {
+        uint256 decayStartBlock = 0;
+        uint256 startAmount = 2000;
+        int256 decayAmount = -1000;
+        NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(10000, decayAmount);
+
+        vm.roll(0);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2000);
+
+        vm.roll(1);
+        // Output should round up to favor the swapper
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2001);
+
+        vm.roll(9);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2001);
+
+        vm.roll(10);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2001);
+
+        vm.roll(11);
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1000), 2002);
     }
 
     function testDutchDecayNegative() public {
@@ -220,28 +273,16 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         snapStart("V3-DutchDecayNegative");
         vm.roll(150);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.5 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.5 ether);
 
         vm.roll(180);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.2 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.2 ether);
 
         vm.roll(110);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.9 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.9 ether);
 
         vm.roll(190);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.1 ether);
         snapEnd();
     }
 
@@ -252,16 +293,10 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         snapStart("V3-DutchDecayFullyDecayed");
         vm.roll(200);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            2 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 2 ether);
 
         vm.warp(250);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            2 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 2 ether);
         snapEnd();
     }
 
@@ -272,16 +307,10 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         snapStart("V3-DutchDecayFullyDecayedNegative");
         vm.roll(200);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1 ether);
 
         vm.warp(250);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1 ether);
         snapEnd();
     }
 
@@ -293,9 +322,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
 
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount));
         snapStart("V3-DutchDecayRange");
-        uint256 decayed = NonlinearDutchDecayLib.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), 0, type(uint256).max
-        );
+        uint256 decayed = decayOutput(curve, startAmount, decayStartBlock, 0);
         assertGe(decayed, startAmount);
         assertLe(decayed, startAmount + uint256(decayAmount));
         snapEnd();
@@ -306,20 +333,15 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         int256 decayAmount,
         uint256 decayStartBlock,
         uint16 decayDuration,
-        uint256 minAmount,
-        uint256 maxAmount
+        uint256 minAmount
     ) public {
         vm.assume(decayAmount > 0);
         vm.assume(startAmount <= uint256(type(int256).max - decayAmount));
-        vm.assume(maxAmount > minAmount);
 
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, 0 - int256(decayAmount));
         snapStart("V3-DutchDecayBounded");
-        uint256 decayed = NonlinearDutchDecayLib.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), minAmount, maxAmount
-        );
+        uint256 decayed = decayOutput(curve, startAmount, decayStartBlock, minAmount);
         assertGe(decayed, minAmount);
-        assertLe(decayed, maxAmount);
         snapEnd();
     }
 
@@ -337,9 +359,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
 
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(decayDuration, int256(decayAmount));
         snapStart("V3-DutchDecayNegative");
-        uint256 decayed = NonlinearDutchDecayLib.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), 0, type(uint256).max
-        );
+        uint256 decayed = decayOutput(curve, startAmount, decayStartBlock, 0);
         assertLe(decayed, startAmount);
         assertGe(decayed, startAmount - decayAmount);
         snapEnd();
@@ -359,58 +379,31 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
         snapStart("V3-MultiPointDutchDecay");
         vm.roll(50);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 1 ether);
 
         vm.roll(150);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            1.5 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 1.5 ether);
 
         vm.roll(200);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            2 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 2 ether);
 
         vm.roll(210);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            1.9 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 1.9 ether);
 
         vm.roll(290);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            1.1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 1.1 ether);
 
         vm.roll(300);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 1 ether);
 
         vm.roll(350);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            0.5 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0.5 ether);
 
         vm.roll(400);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            0 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0 ether);
 
         vm.roll(500);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            0 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0 ether);
         snapEnd();
     }
 
@@ -457,130 +450,67 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         snapStart("V3-ExtendedMultiPointDutchDecay");
 
         vm.roll(50);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1 ether);
 
         vm.roll(150);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.05 ether
-        ); // halfway between 100 (1 ether) and 200 (1.1 ether)
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.05 ether); // halfway between 100 (1 ether) and 200 (1.1 ether)
 
         vm.roll(200);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.1 ether
-        ); // 1 + 0.1 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.1 ether); // 1 + 0.1 ether
 
         vm.roll(250);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.15 ether
-        ); // halfway between 200 (1.1 ether) and 300 (1.2 ether)
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.15 ether); // halfway between 200 (1.1 ether) and 300 (1.2 ether)
 
         vm.roll(300);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.2 ether
-        ); // 1 + 0.2 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.2 ether); // 1 + 0.2 ether
 
         vm.roll(350);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.25 ether
-        ); // halfway between 300 (1.2 ether) and 400 (1.3 ether)
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.25 ether); // halfway between 300 (1.2 ether) and 400 (1.3 ether)
 
         vm.roll(400);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.3 ether
-        ); // 1 + 0.3 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.3 ether); // 1 + 0.3 ether
 
         vm.roll(450);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.35 ether
-        ); // halfway between 400 (1.3 ether) and 500 (1.4 ether)
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.35 ether); // halfway between 400 (1.3 ether) and 500 (1.4 ether)
 
         vm.roll(500);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.4 ether
-        ); // 1 + 0.4 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.4 ether); // 1 + 0.4 ether
 
         vm.roll(600);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.5 ether
-        ); // 1 + 0.5 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.5 ether); // 1 + 0.5 ether
 
         vm.roll(700);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.6 ether
-        ); // 1 + 0.6 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.6 ether); // 1 + 0.6 ether
 
         vm.roll(800);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.7 ether
-        ); // 1 + 0.7 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.7 ether); // 1 + 0.7 ether
 
         vm.roll(900);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.8 ether
-        ); // 1 + 0.8 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.8 ether); // 1 + 0.8 ether
 
         vm.roll(1000);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.9 ether
-        ); // 1 + 0.9 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.9 ether); // 1 + 0.9 ether
 
         vm.roll(1100);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            2 ether
-        ); // 1 + 1 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 2 ether); // 1 + 1 ether
 
         vm.roll(1200);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.9 ether
-        ); // 1 + 0.9 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.9 ether); // 1 + 0.9 ether
 
         vm.roll(1300);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.8 ether
-        ); // 1 + 0.8 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.8 ether); // 1 + 0.8 ether
 
         vm.roll(1400);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.7 ether
-        ); // 1 + 0.7 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.7 ether); // 1 + 0.7 ether
 
         vm.roll(1500);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.6 ether
-        ); // 1 + 0.6 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.6 ether); // 1 + 0.6 ether
 
         vm.roll(1600);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.5 ether
-        ); // 1 + 0.5 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.5 ether); // 1 + 0.5 ether
 
         vm.roll(1650);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 2 ether),
-            1.45 ether
-        ); // 1 + 0.45 ether
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 1 ether), 1.45 ether); // 1 + 0.45 ether
 
         snapEnd();
     }
@@ -600,10 +530,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         decayAmounts[2] = 1 ether; // 0 ether
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
         vm.roll(350);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 2 ether),
-            0.25 ether
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0.25 ether);
     }
 
     function testDutchDecayToNegative() public {
@@ -612,9 +539,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         int256 decayAmount = 2 ether;
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         vm.roll(150);
-        assertEq(
-            NonlinearDutchDecayLib.decay(curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 1 ether), 0
-        );
+        assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0);
     }
 
     function testDutchOverflowDecay() public {
@@ -624,9 +549,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.singlePointCurve(100, decayAmount);
         vm.roll(150);
         vm.expectRevert();
-        mockNonlinearDutchDecayLibContract.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), 0 ether, 1 ether
-        );
+        decayOutput(curve, startAmount, decayStartBlock, 1 ether);
     }
 
     function testDutchMismatchedDecay() public {
@@ -635,15 +558,51 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve =
             CurveBuilder.multiPointCurve(ArrayBuilder.fillUint16(16, 1), ArrayBuilder.fillInt(17, 0));
         vm.expectRevert(NonlinearDutchDecayLib.InvalidDecayCurve.selector);
-        mockNonlinearDutchDecayLibContract.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), 1 ether, 1 ether
+        decayOutput(curve, startAmount, decayStartBlock, 1 ether);
+    }
+
+    function testFuzzDutchDecayInputBeyondUint16Max(
+        uint16 lastValidBlock, // For curve
+        uint256 decayAmountFuzz, // For curve
+        // decayInput(curve, startAmount, decayStartBlock, maxAmount);
+        uint256 startAmount,
+        uint256 decayStartBlock,
+        uint256 maxAmount,
+        uint256 currentBlock
+    ) public {
+        vm.assume(decayStartBlock < type(uint256).max - type(uint16).max);
+        vm.assume(lastValidBlock > 0);
+        vm.assume(startAmount > 0 && startAmount < uint256(type(int256).max));
+        vm.assume(maxAmount >= startAmount);
+        // bound only takes uint256, so we need to limit decayAmountFuzz to int256.max
+        // because we cast it to int256 in the decay function
+        decayAmountFuzz = bound(decayAmountFuzz, 0, startAmount);
+
+        // Testing that we get a fully decayed curve instead of overflowed mistake
+        // This will happen when the block delta is larger than type(uint16).max
+        vm.assume(currentBlock > decayStartBlock + type(uint16).max);
+
+        uint16[] memory blocks = new uint16[](1);
+        blocks[0] = lastValidBlock;
+
+        int256[] memory decayAmounts = new int256[](1);
+        decayAmounts[0] = int256(decayAmountFuzz);
+
+        NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
+
+        vm.roll(currentBlock);
+        uint256 decayed = decayInput(curve, startAmount, decayStartBlock, maxAmount);
+        assertEq(
+            decayed,
+            Math.min(startAmount - decayAmountFuzz, maxAmount),
+            "Should be fully decayed for block delta beyond uint16.max"
         );
     }
 
-    function testFuzzDutchDecayBeyondUint16Max(
+    function testFuzzDutchDecayOutputBeyondUint16Max(
         uint16 lastValidBlock, // For curve
         uint256 decayAmountFuzz, // For curve
-        // decay(curve, startAmount, decayStartBlock, minAmount, maxAmount);
+        // decayOutput(curve, startAmount, decayStartBlock, minAmount);
         uint256 startAmount,
         uint256 decayStartBlock,
         uint256 minAmount,
@@ -672,9 +631,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
         NonlinearDutchDecay memory curve = CurveBuilder.multiPointCurve(blocks, decayAmounts);
 
         vm.roll(currentBlock);
-        uint256 decayed = NonlinearDutchDecayLib.decay(
-            curve, startAmount, decayStartBlock, _getBlockNumberish(), minAmount, maxAmount
-        );
+        uint256 decayed = decayOutput(curve, startAmount, decayStartBlock, minAmount);
         assertEq(
             decayed,
             Math.max(startAmount - decayAmountFuzz, minAmount),
