@@ -11,10 +11,11 @@ import {Uint16Array, toUint256} from "../../src/types/Uint16Array.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
+import {BlockNumberish} from "../../src/base/BlockNumberish.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {OutputToken, InputToken} from "../../src/base/ReactorStructs.sol";
 
-contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
+contract NonlinearDutchDecayLibTest is Test, GasSnapshot, BlockNumberish {
     MockERC20 tokenIn;
     MockERC20 tokenOut;
 
@@ -30,7 +31,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         uint256 maxAmount
     ) internal view returns (uint256 decayedAmount) {
         V3DutchInput memory input = V3DutchInput(tokenIn, startAmount, curve, maxAmount, 0);
-        return NonlinearDutchDecayLib.decay(input, decayStartBlock).amount;
+        return NonlinearDutchDecayLib.decay(input, decayStartBlock, _getBlockNumberish()).amount;
     }
 
     function decayOutput(
@@ -40,7 +41,7 @@ contract NonlinearDutchDecayLibTest is Test, GasSnapshot {
         uint256 minAmount
     ) internal view returns (uint256 decayedAmount) {
         V3DutchOutput memory output = V3DutchOutput(address(tokenOut), startAmount, curve, address(0), minAmount, 0);
-        return NonlinearDutchDecayLib.decay(output, decayStartBlock).amount;
+        return NonlinearDutchDecayLib.decay(output, decayStartBlock, _getBlockNumberish()).amount;
     }
 
     function testLocateCurvePositionSingle() public {
