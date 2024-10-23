@@ -129,9 +129,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("OutputPriorityFee");
+        _snapGas("OutputPriorityFee");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -182,9 +182,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("OutputPriorityFeeAndBaselinePriorityFee");
+        _snapGas("OutputPriorityFeeAndBaselinePriorityFee");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -286,9 +286,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("InputPriorityFee");
+        _snapGas("InputPriorityFee");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - scaledInputAmount);
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
@@ -321,9 +321,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("OverrideAuctionTargetBlock");
+        _snapGas("OverrideAuctionTargetBlock");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.stopSnapshotGas();
     }
 
     /// @notice an order can be filled at any time after the auctionStartBlock and before the deadline

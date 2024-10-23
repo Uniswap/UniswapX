@@ -1,0 +1,14 @@
+{
+  "Base-V3DutchOrder-BaseExecuteSingleWithFee": "199526",
+  "Base-V3DutchOrder-ExecuteBatch": "232823",
+  "Base-V3DutchOrder-ExecuteBatchMultipleOutputs": "246882",
+  "Base-V3DutchOrder-ExecuteBatchMultipleOutputsDifferentTokens": "304875",
+  "Base-V3DutchOrder-ExecuteBatchNativeOutput": "226350",
+  "Base-V3DutchOrder-ExecuteSingle": "165913",
+  "Base-V3DutchOrder-ExecuteSingleNativeOutput": "151470",
+  "Base-V3DutchOrder-ExecuteSingleValidation": "175219",
+  "Base-V3DutchOrder-RevertInvalidNonce": "44536",
+  "Base-V3DutchOrder-V3-ExclusiveFiller": "169849",
+  "Base-V3DutchOrder-V3-InputOverride": "169930",
+  "Base-V3DutchOrder-V3-OutputOverride": "169873"
+}
