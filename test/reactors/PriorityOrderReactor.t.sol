@@ -129,7 +129,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("OutputPriorityFee");
+        _snapStart("OutputPriorityFee");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -182,7 +182,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("OutputPriorityFeeAndBaselinePriorityFee");
+        _snapStart("OutputPriorityFeeAndBaselinePriorityFee");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -286,7 +286,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("InputPriorityFee");
+        _snapStart("InputPriorityFee");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -321,7 +321,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("OverrideAuctionTargetBlock");
+        _snapStart("OverrideAuctionTargetBlock");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
     }

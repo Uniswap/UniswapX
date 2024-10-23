@@ -218,7 +218,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapGas("V3-InputOverride");
+        _snapStart("V3-InputOverride");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -256,7 +256,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapGas("V3-OutputOverride");
+        _snapStart("V3-OutputOverride");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -326,7 +326,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         vm.prank(address(1));
 
-        _snapGas("V3-ExclusiveFiller");
+        _snapStart("V3-ExclusiveFiller");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 

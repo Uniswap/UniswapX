@@ -275,7 +275,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapGas("InputOverride");
+        _snapStart("InputOverride");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -311,7 +311,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapGas("OutputOverride");
+        _snapStart("OutputOverride");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -377,7 +377,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         vm.prank(address(1));
 
-        _snapGas("ExclusiveFiller");
+        _snapStart("ExclusiveFiller");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 

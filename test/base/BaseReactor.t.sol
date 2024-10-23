@@ -117,7 +117,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("ExecuteSingle");
+        _snapStart("ExecuteSingle");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -162,7 +162,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("BaseExecuteSingleWithFee");
+        _snapStart("BaseExecuteSingleWithFee");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -202,7 +202,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("ExecuteSingleNativeOutput");
+        _snapStart("ExecuteSingleNativeOutput");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -246,7 +246,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapGas("ExecuteSingleValidation");
+        _snapStart("ExecuteSingleValidation");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
 
@@ -297,7 +297,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapGas("ExecuteBatch");
+        _snapStart("ExecuteBatch");
         fillContract.executeBatch(signedOrders);
         vm.stopSnapshotGas();
 
@@ -345,7 +345,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapGas("ExecuteBatchNativeOutput");
+        _snapStart("ExecuteBatchNativeOutput");
         fillContract.executeBatch(signedOrders);
         vm.stopSnapshotGas();
 
@@ -397,7 +397,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapGas("ExecuteBatchMultipleOutputs");
+        _snapStart("ExecuteBatchMultipleOutputs");
         fillContract.executeBatch(signedOrders);
         vm.stopSnapshotGas();
 
@@ -454,7 +454,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapGas("ExecuteBatchMultipleOutputsDifferentTokens");
+        _snapStart("ExecuteBatchMultipleOutputsDifferentTokens");
         fillContract.executeBatch(signedOrders);
         vm.stopSnapshotGas();
 
@@ -555,7 +555,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             ? OrderAlreadyFilled.selector
             : InvalidNonce.selector;
         vm.expectRevert(revertData);
-        _snapGas("RevertInvalidNonce");
+        _snapStart("RevertInvalidNonce");
         fillContract.execute(signedOrder);
         vm.stopSnapshotGas();
     }
@@ -857,7 +857,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
     }
 
-    function _snapGas(string memory testName) internal {
+    function _snapStart(string memory testName) internal {
         vm.startSnapshotGas(string.concat("Base-", name(), "-", testName));
     }
 }
