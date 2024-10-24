@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Test} from "forge-std/Test.sol";
 import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
@@ -19,7 +18,7 @@ import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoubleExecution.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 
-abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPermit2 {
+abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using ArrayBuilder for uint256[];
     using ArrayBuilder for uint256[][];
@@ -118,9 +117,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("ExecuteSingle");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteSingle");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -163,9 +161,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("BaseExecuteSingleWithFee");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.snapshotGasLastCall("BaseExecuteSingleWithFee");
 
         uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -203,9 +200,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("ExecuteSingleNativeOutput");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteSingleNativeOutput");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -247,9 +243,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
-        _snapStart("ExecuteSingleValidation");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteSingleValidation");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -298,9 +293,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapStart("ExecuteBatch");
         fillContract.executeBatch(signedOrders);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteBatch");
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -346,9 +340,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapStart("ExecuteBatchNativeOutput");
         fillContract.executeBatch(signedOrders);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteBatchNativeOutput");
 
         assertEq(swapper.balance, totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -398,9 +391,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapStart("ExecuteBatchMultipleOutputs");
         fillContract.executeBatch(signedOrders);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteBatchMultipleOutputs");
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -455,9 +447,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-        _snapStart("ExecuteBatchMultipleOutputsDifferentTokens");
         fillContract.executeBatch(signedOrders);
-        snapEnd();
+        vm.snapshotGasLastCall("ExecuteBatchMultipleOutputsDifferentTokens");
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
         assertEq(tokenOut2.balanceOf(swapper), totalOutputAmount2);
@@ -556,9 +547,8 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
             ? OrderAlreadyFilled.selector
             : InvalidNonce.selector;
         vm.expectRevert(revertData);
-        _snapStart("RevertInvalidNonce");
         fillContract.execute(signedOrder);
-        snapEnd();
+        vm.snapshotGasLastCall("RevertInvalidNonce");
     }
 
     /// @dev Test executing two orders on two reactors at once
@@ -856,9 +846,5 @@ abstract contract BaseReactorTest is GasSnapshot, ReactorEvents, Test, DeployPer
         fillContractInputBalanceStart = tokenIn.balanceOf(address(fillContract));
         swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
         fillContractOutputBalanceStart = tokenOut.balanceOf(address(fillContract));
-    }
-
-    function _snapStart(string memory testName) internal {
-        snapStart(string.concat("Base-", name(), "-", testName));
     }
 }

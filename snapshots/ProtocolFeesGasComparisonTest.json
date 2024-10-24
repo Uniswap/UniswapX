@@ -1,0 +1,8 @@
+{
+  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee": "173684",
+  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFeeEthOutput": "162176",
+  "ProtocolFeesGasComparisonTest-InterfaceFee": "162961",
+  "ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput": "146288",
+  "ProtocolFeesGasComparisonTest-NoFees": "146369",
+  "ProtocolFeesGasComparisonTest-NoFeesEthOutput": "124531"
+}

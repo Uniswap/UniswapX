@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
 import {CurrencyLibrary, NATIVE} from "../../src/lib/CurrencyLibrary.sol";
@@ -20,7 +19,7 @@ import {IReactorCallback} from "../../src/interfaces/IReactorCallback.sol";
 
 // This contract will test ETH outputs using DutchOrderReactor as the reactor and MockFillContract for fillContract.
 // Note that this contract only tests ETH outputs when NOT using direct filler.
-contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, GasSnapshot {
+contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
 
     address constant PROTOCOL_FEE_OWNER = address(2);
@@ -63,9 +62,9 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
             input: DutchInput(tokenIn1, ONE, ONE),
             outputs: OutputsBuilder.singleDutch(NATIVE, ONE, 0, swapper1)
         });
-        snapStart("EthOutputTestEthOutput");
+        vm.startSnapshotGas("EthOutputTestEthOutput");
         fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenIn1.balanceOf(address(fillContract)), ONE);
         // There is 0.5 ETH remaining in the fillContract as output has decayed to 0.5 ETH
         assertEq(address(fillContract).balance, ONE / 2);
@@ -112,9 +111,9 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey1, address(permit2), order1));
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
-        snapStart("EthOutputTest3OrdersWithEthAndERC20Outputs");
+        vm.startSnapshotGas("EthOutputTest3OrdersWithEthAndERC20Outputs");
         fillContract.executeBatch(signedOrders);
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenOut1.balanceOf(swapper1), 3 * ONE);
         assertEq(swapper1.balance, 2 * ONE);
         assertEq(swapper2.balance, 3 * ONE);
@@ -212,7 +211,7 @@ contract EthOutputMockFillContractTest is Test, DeployPermit2, PermitSignature, 
 }
 
 // This contract will test ETH outputs using DutchOrderReactor as the reactor and direct filler.
-contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
+contract EthOutputDirectFillerTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchOrderLib for DutchOrder;
 
@@ -273,11 +272,11 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroTestEth1Output");
+        vm.startSnapshotGas("DirectFillerFillMacroTestEth1Output");
         reactor.execute{value: outputAmount}(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order))
         );
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
         assertEq(swapper1.balance, outputAmount);
     }
@@ -357,9 +356,9 @@ contract EthOutputDirectFillerTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey1, address(permit2), order2));
 
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroTestEth2Outputs");
+        vm.startSnapshotGas("DirectFillerFillMacroTestEth2Outputs");
         reactor.executeBatch{value: ONE * 3}(signedOrders);
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenIn1.balanceOf(directFiller), 2 * inputAmount);
         assertEq(swapper1.balance, 3 * ONE);
     }

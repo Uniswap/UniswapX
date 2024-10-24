@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
@@ -20,7 +19,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 
 // This suite of tests test the direct filler fill macro, ie fillContract == address(1).
-contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
+contract DirectFillerFillMacroTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchOrderLib for DutchOrder;
 
@@ -81,9 +80,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroSingleOrder");
+        vm.startSnapshotGas("DirectFillerFillMacroSingleOrder");
         reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
     }
@@ -140,9 +139,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         });
 
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroSingleOrderWithFee");
+        vm.startSnapshotGas("DirectFillerFillMacroSingleOrderWithFee");
         reactor.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey1, address(permit2), order)));
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenOut1.balanceOf(swapper1), outputAmount);
         assertEq(tokenOut1.balanceOf(address(feeRecipient)), outputAmount * feeBps / 10000);
         assertEq(tokenIn1.balanceOf(directFiller), inputAmount);
@@ -179,9 +178,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[0] = SignedOrder(abi.encode(order1), signOrder(swapperPrivateKey1, address(permit2), order1));
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroTwoOrders");
+        vm.startSnapshotGas("DirectFillerFillMacroTwoOrders");
         reactor.executeBatch(signedOrders);
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenOut1.balanceOf(swapper1), 2 * ONE);
         assertEq(tokenOut1.balanceOf(swapper2), ONE);
@@ -250,9 +249,9 @@ contract DirectFillerFillMacroTest is Test, PermitSignature, GasSnapshot, Deploy
         signedOrders[1] = SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey2, address(permit2), order2));
         signedOrders[2] = SignedOrder(abi.encode(order3), signOrder(swapperPrivateKey2, address(permit2), order3));
         vm.prank(directFiller);
-        snapStart("DirectFillerFillMacroThreeOrdersWithFees");
+        vm.startSnapshotGas("DirectFillerFillMacroThreeOrdersWithFees");
         reactor.executeBatch(signedOrders);
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenOut1.balanceOf(swapper1), ONE);
         assertEq(tokenOut1.balanceOf(address(feeRecipient)), ONE * feeBps / 10000);
