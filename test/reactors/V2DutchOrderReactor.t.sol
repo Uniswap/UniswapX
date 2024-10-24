@@ -275,9 +275,8 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapStart("InputOverride");
         fillContract.execute(signedOrder);
-        vm.stopSnapshotGas();
+        vm.snapshotGasLastCall("InputOverride");
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
@@ -311,9 +310,8 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         SignedOrder memory signedOrder =
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
 
-        _snapStart("OutputOverride");
         fillContract.execute(signedOrder);
-        vm.stopSnapshotGas();
+        vm.snapshotGasLastCall("OutputOverride");
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), overriddenOutputAmount);
@@ -377,9 +375,8 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
         vm.prank(address(1));
 
-        _snapStart("ExclusiveFiller");
         fillContract.execute(signedOrder);
-        vm.stopSnapshotGas();
+        vm.snapshotGasLastCall("ExclusiveFiller");
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
