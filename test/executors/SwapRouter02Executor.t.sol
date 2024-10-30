@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SwapRouter02Executor} from "../../src/sample-executors/SwapRouter02Executor.sol";
@@ -19,7 +18,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputParams} from "../../src/external/ISwapRouter02.sol";
 
 // This set of tests will use a mock swap router to simulate the Uniswap swap router.
-contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
+contract SwapRouter02ExecutorTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
 
     uint256 fillerPrivateKey;
@@ -136,12 +135,12 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         });
         multicallData[0] = abi.encodeWithSelector(ISwapRouter02.exactInput.selector, exactInputParams);
 
-        snapStart("SwapRouter02ExecutorExecute");
+        vm.startSnapshotGas("SwapRouter02ExecutorExecute");
         swapRouter02Executor.execute(
             SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);
@@ -194,12 +193,12 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, GasSnapshot, DeployP
         tokensToApproveForSwapRouter02 = new address[](0);
         tokensToApproveForReactor = new address[](0);
 
-        snapStart("SwapRouter02ExecutorExecuteAlreadyApproved");
+        vm.startSnapshotGas("SwapRouter02ExecutorExecuteAlreadyApproved");
         swapRouter02Executor.execute(
             SignedOrder(abi.encode(order2), signOrder(swapperPrivateKey, address(permit2), order2)),
             abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
         );
-        snapEnd();
+        vm.stopSnapshotGas();
 
         assertEq(tokenIn.balanceOf(swapper), 0);
         assertEq(tokenIn.balanceOf(address(swapRouter02Executor)), 0);

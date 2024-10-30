@@ -1,0 +1,12 @@
+{
+  "V3-DutchDecay": "16413",
+  "V3-DutchDecayFullyDecayed": "7908",
+  "V3-DutchDecayFullyDecayedNegative": "7619",
+  "V3-DutchDecayNegative": "15389",
+  "V3-DutchDecayNoDecayYet": "5720",
+  "V3-DutchDecayNoDecayYetNegative": "5694",
+  "V3-ExtendedMultiPointDutchDecay": "106707",
+  "V3-LocateCurvePositionMulti": "17727",
+  "V3-LocateCurvePositionSingle": "4227",
+  "V3-MultiPointDutchDecay": "33868"
+}

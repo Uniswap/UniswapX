@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {Test} from "forge-std/Test.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput} from "../../src/reactors/DutchOrderReactor.sol";
@@ -16,7 +15,7 @@ import {ExclusiveFillerValidation} from "../../src/sample-validation-contracts/E
 import {ResolvedOrderLib} from "../../src/lib/ResolvedOrderLib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
-contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, DeployPermit2 {
+contract ExclusiveFillerValidationTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using DutchOrderLib for DutchOrder;
 
@@ -64,9 +63,9 @@ contract ExclusiveFillerValidationTest is Test, PermitSignature, GasSnapshot, De
 
         // Below snapshot can be compared to `DutchExecuteSingle.snap` to compare an execute with and without
         // exclusive filler validation
-        snapStart("testExclusiveFillerSucceeds");
+        vm.startSnapshotGas("testExclusiveFillerSucceeds");
         fillContract.execute(SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order)));
-        snapEnd();
+        vm.stopSnapshotGas();
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
     }
