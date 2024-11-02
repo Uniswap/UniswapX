@@ -5,10 +5,12 @@ import "forge-std/console2.sol";
 import "forge-std/Script.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {V2DutchOrderReactor} from "../src/reactors/V2DutchOrderReactor.sol";
+import {OrderQuoter} from "../src/lens/OrderQuoter.sol";
 
 struct V2DutchOrderDeployment {
     IPermit2 permit2;
     V2DutchOrderReactor reactor;
+    OrderQuoter quoter;
 }
 
 contract DeployDutchV2 is Script {
@@ -22,10 +24,12 @@ contract DeployDutchV2 is Script {
         vm.startBroadcast();
 
         V2DutchOrderReactor reactor = new V2DutchOrderReactor{salt: 0x00}(IPermit2(PERMIT2), owner);
+        OrderQuoter quoter = new OrderQuoter{salt: 0x00}();
         console2.log("Reactor", address(reactor));
+        console2.log("Quoter", address(quoter));
 
         vm.stopBroadcast();
 
-        return V2DutchOrderDeployment(IPermit2(PERMIT2), reactor);
+        return V2DutchOrderDeployment(IPermit2(PERMIT2), reactor, quoter);
     }
 }
