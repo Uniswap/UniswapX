@@ -7,13 +7,13 @@ import {MultiFillerSwapRouter02Executor} from "../src/sample-executors/MultiFill
 import {ISwapRouter02} from "../src/external/ISwapRouter02.sol";
 import {IReactor} from "../src/interfaces/IReactor.sol";
 
-contract DeploySwapRouter02Executor is Script {
+contract DeployMultiFillerExecutor is Script {
     function setUp() public {}
 
     function run() public returns (MultiFillerSwapRouter02Executor executor) {
         uint256 privateKey = vm.envUint("FOUNDRY_PRIVATE_KEY");
         IReactor reactor = IReactor(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_REACTOR"));
-        bytes memory encodedAddresses = vm.envBytes("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_WHITELISTED_CALLER");
+        bytes memory encodedAddresses = vm.envBytes("FOUNDRY_MULTIFILLER_ADDRESSES_ENCODED");
         address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
         ISwapRouter02 swapRouter02 = ISwapRouter02(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02"));
 
