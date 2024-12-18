@@ -13,6 +13,7 @@ contract DeployMultiFillerExecutor is Script {
     function run() public returns (MultiFillerSwapRouter02Executor executor) {
         uint256 privateKey = vm.envUint("FOUNDRY_PRIVATE_KEY");
         IReactor reactor = IReactor(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_REACTOR"));
+        // can encode with cast abi-encode "foo(address[])" "[addr1, addr2, ...]"
         bytes memory encodedAddresses = vm.envBytes("FOUNDRY_MULTIFILLER_ADDRESSES_ENCODED");
         address owner = vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_OWNER");
         ISwapRouter02 swapRouter02 = ISwapRouter02(vm.envAddress("FOUNDRY_SWAPROUTER02EXECUTOR_DEPLOY_SWAPROUTER02"));
