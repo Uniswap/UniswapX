@@ -29,9 +29,13 @@ contract DeployPriorityOrderReactor is Script, DeployPermit2 {
 
         // will deploy to:
         // - BASE: 0x000000001Ec5656dcdB24D90DFa42742738De729 (salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18)
+        // - Unichain: 0x00000006021a6Bce796be7ba509BBBA71e956e37 (salt: 0x6091db2522bec235454e50e498dc85cd015793826663f960074de69fee448dc4)
         PriorityOrderReactor reactor = new PriorityOrderReactor{
             salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18
         }(IPermit2(PERMIT2), owner);
+        //
+        console2.log("init code hash"); 
+        console2.logBytes32(keccak256(abi.encodePacked(type(PriorityOrderReactor).creationCode, abi.encode(PERMIT2, owner))));
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();

@@ -21,7 +21,8 @@ contract DeployMultiFillerExecutor is Script {
         address[] memory decodedAddresses = abi.decode(encodedAddresses, (address[]));
 
         vm.startBroadcast(privateKey);
-        executor = new MultiFillerSwapRouter02Executor{salt: 0x00}(decodedAddresses, reactor, owner, swapRouter02);
+        bytes32 salt = bytes32(uint256(666));
+        executor = new MultiFillerSwapRouter02Executor{salt: salt}(decodedAddresses, reactor, owner, swapRouter02);
         vm.stopBroadcast();
 
         console2.log("SwapRouter02Executor", address(executor));
