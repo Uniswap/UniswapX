@@ -13,6 +13,11 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {
+    PriceOracleValidation,
+    MixedRouteQuoterV1Wrapper
+} from "../../src/sample-validation-contracts/PriceOracleValidation.sol";
+import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -27,6 +32,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address constant WHALE = 0xF04a5cC80B1E94C69B48f5ee68a08CD2F09A7c3E;
     IPermit2 constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     uint256 constant ONE = 1000000000000000000;
+    address constant MIXED_ROUTE_QUOTER = 0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E;
 
     address swapper;
     address swapper2;
@@ -35,6 +41,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     address filler;
     SwapRouter02Executor swapRouter02Executor;
     DutchOrderReactor dloReactor;
+    IValidationCallback priceOracleValidationContract;
+    MixedRouteQuoterV1Wrapper mixedRouteQuoterV1Wrapper;
 
     function setUp() public {
         swapperPrivateKey = 0xbabe;
@@ -45,6 +53,8 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         vm.createSelectFork(vm.envString("FOUNDRY_RPC_URL"), 16586505);
         dloReactor = new DutchOrderReactor(PERMIT2, address(0));
         swapRouter02Executor = new SwapRouter02Executor(address(this), dloReactor, address(this), SWAPROUTER02);
+        priceOracleValidationContract = IValidationCallback(address(new PriceOracleValidation()));
+        mixedRouteQuoterV1Wrapper = new MixedRouteQuoterV1Wrapper(MIXED_ROUTE_QUOTER);
 
         // Swapper max approves permit post
         vm.prank(swapper);
@@ -408,6 +418,53 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         assertEq(swapper.balance, ONE);
         assertEq(swapper2.balance, ONE / 2);
         assertEq(address(swapRouter02Executor).balance, 319317550497372609);
+    }
+
+    // Same setup as test above
+    function testSwapWethToDaiViaV2_priceOracleValidationContract() public {
+        uint256 inputAmount = 2 * ONE;
+        address[] memory path = new address[](2);
+        path[0] = address(WETH);
+        path[1] = address(DAI);
+        bytes memory encodedPath = abi.encodePacked(path[0], uint24(uint256(3000)), path[1]);
+
+        bytes memory additionalValidationData = abi.encode(
+            address(mixedRouteQuoterV1Wrapper),
+            abi.encodeWithSelector(bytes4(keccak256("quoteExactInput(bytes,uint256)")), encodedPath, inputAmount)
+        );
+
+        uint256 outputAmount = 3000 * ONE;
+
+        DutchOrder memory order = DutchOrder({
+            info: OrderInfoBuilder.init(address(dloReactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withValidationContract(priceOracleValidationContract).withValidationData(additionalValidationData),
+            decayStartTime: block.timestamp - 100,
+            decayEndTime: block.timestamp + 100,
+            input: DutchInput(WETH, inputAmount, inputAmount),
+            outputs: OutputsBuilder.singleDutch(address(DAI), outputAmount, outputAmount, address(swapper))
+        });
+
+        address[] memory tokensToApproveForSwapRouter02 = new address[](1);
+        tokensToApproveForSwapRouter02[0] = address(WETH);
+
+        address[] memory tokensToApproveForReactor = new address[](1);
+        tokensToApproveForReactor[0] = address(DAI);
+        bytes[] memory multicallData = new bytes[](1);
+
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector,
+            inputAmount,
+            outputAmount,
+            path,
+            address(swapRouter02Executor)
+        );
+        swapRouter02Executor.execute(
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(PERMIT2), order)),
+            abi.encode(tokensToApproveForSwapRouter02, tokensToApproveForReactor, multicallData)
+        );
+        assertEq(WETH.balanceOf(swapper), ONE);
+        assertEq(DAI.balanceOf(swapper), outputAmount);
+        assertEq(DAI.balanceOf(address(swapRouter02Executor)), 275438458971501955836);
     }
 
     // There is 10 WETH swapRouter02Executor. Test that we can convert it to ETH
