@@ -5,30 +5,6 @@ import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {ISwapRouter02} from "../external/ISwapRouter02.sol";
 
-/// @notice Helper contract to call MixedRouteQuoterV1 and decode the return data
-contract MixedRouteQuoterV1Wrapper {
-    address private immutable quoter;
-
-    constructor(address _quoter) {
-        quoter = _quoter;
-    }
-
-    fallback(bytes calldata data) external returns (bytes memory) {
-        // quoteExactInput(bytes memory path, uint256 amountIn)
-        if (msg.sig != 0xcdca1753) {
-            revert("Invalid function call");
-        }
-
-        (bool success, bytes memory returnData) = address(quoter).call(data);
-        if (!success) {
-            revert("Failed to call quoter");
-        }
-
-        (uint256 amountOut,,,) = abi.decode(returnData, (uint256, uint160[], uint32[], uint256));
-        return abi.encode(amountOut);
-    }
-}
-
 /// @notice Validation contract that checks
 /// @dev uses swapRouter02
 contract PriceOracleValidation is IValidationCallback {

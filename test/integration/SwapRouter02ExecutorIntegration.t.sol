@@ -13,11 +13,9 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {ISwapRouter02, ExactInputSingleParams} from "../../src/external/ISwapRouter02.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {
-    PriceOracleValidation,
-    MixedRouteQuoterV1Wrapper
-} from "../../src/sample-validation-contracts/PriceOracleValidation.sol";
+import {PriceOracleValidation} from "../../src/sample-validation-contracts/PriceOracleValidation.sol";
 import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
+import {MockMixedRouteQuoterV1Wrapper} from "../util/mock/MockMixedRouteQuoterV1Wrapper.sol";
 
 // This set of tests will use a mainnet fork to test integration.
 contract SwapRouter02IntegrationTest is Test, PermitSignature {
@@ -42,7 +40,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
     SwapRouter02Executor swapRouter02Executor;
     DutchOrderReactor dloReactor;
     IValidationCallback priceOracleValidationContract;
-    MixedRouteQuoterV1Wrapper mixedRouteQuoterV1Wrapper;
+    MockMixedRouteQuoterV1Wrapper mockMixedRouteQuoterV1Wrapper;
 
     function setUp() public {
         swapperPrivateKey = 0xbabe;
@@ -54,7 +52,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         dloReactor = new DutchOrderReactor(PERMIT2, address(0));
         swapRouter02Executor = new SwapRouter02Executor(address(this), dloReactor, address(this), SWAPROUTER02);
         priceOracleValidationContract = IValidationCallback(address(new PriceOracleValidation()));
-        mixedRouteQuoterV1Wrapper = new MixedRouteQuoterV1Wrapper(MIXED_ROUTE_QUOTER);
+        mockMixedRouteQuoterV1Wrapper = new MockMixedRouteQuoterV1Wrapper(MIXED_ROUTE_QUOTER);
 
         // Swapper max approves permit post
         vm.prank(swapper);
@@ -429,7 +427,7 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         bytes memory encodedPath = abi.encodePacked(path[0], uint24(uint256(3000)), path[1]);
 
         bytes memory additionalValidationData = abi.encode(
-            address(mixedRouteQuoterV1Wrapper),
+            address(mockMixedRouteQuoterV1Wrapper),
             abi.encodeWithSelector(bytes4(keccak256("quoteExactInput(bytes,uint256)")), encodedPath, inputAmount)
         );
 
