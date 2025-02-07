@@ -1,0 +1,14 @@
+{
+  "BaseExecuteSingleWithFee": "192359",
+  "ExecuteBatch": "220957",
+  "ExecuteBatchMultipleOutputs": "234094",
+  "ExecuteBatchMultipleOutputsDifferentTokens": "291152",
+  "ExecuteBatchNativeOutput": "217001",
+  "ExecuteSingle": "158808",
+  "ExecuteSingleNativeOutput": "146879",
+  "ExecuteSingleValidation": "168099",
+  "RevertInvalidNonce": "38156",
+  "V3-ExclusiveFiller": "162677",
+  "V3-InputOverride": "162758",
+  "V3-OutputOverride": "162701"
+}

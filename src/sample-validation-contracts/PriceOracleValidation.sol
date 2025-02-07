@@ -35,22 +35,22 @@ contract PriceOracleValidation is IValidationCallback {
     error FailedToCallValidationContract(bytes reason);
     error InsufficientOutput(uint256 minOutput, uint256 actualOutput);
 
-    function validate(address, ResolvedOrder calldata resolvedOrder) external view {
+    function validate(address, ResolvedOrder calldata resolvedOrder) external {
         (address to, bytes memory data) = abi.decode(resolvedOrder.info.additionalValidationData, (address, bytes));
 
         // No strict interface enforced here
-        (bool success, bytes memory returnData) = address(to).staticcall(data);
+        (bool success, bytes memory returnData) = address(to).call(data);
         if (!success) {
             revert FailedToCallValidationContract(returnData);
         }
-        uint256 amount = abi.decode(returnData, (uint256));
+        uint256 amountOut = abi.decode(returnData, (uint256));
 
         uint256 totalOutputAmount;
         for (uint256 i = 0; i < resolvedOrder.outputs.length; i++) {
             totalOutputAmount += resolvedOrder.outputs[i].amount;
         }
-        if (amount < totalOutputAmount) {
-            revert InsufficientOutput(amount, totalOutputAmount);
+        if (amountOut < totalOutputAmount) {
+            revert InsufficientOutput(amountOut, totalOutputAmount);
         }
     }
 }
