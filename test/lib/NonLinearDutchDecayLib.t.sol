@@ -541,6 +541,7 @@ contract NonlinearDutchDecayLibTest is Test, BlockNumberish {
         assertEq(decayOutput(curve, startAmount, decayStartBlock, 0 ether), 0);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testDutchOverflowDecay() public {
         uint256 decayStartBlock = 100;
         uint256 startAmount = 1 ether;
@@ -551,6 +552,7 @@ contract NonlinearDutchDecayLibTest is Test, BlockNumberish {
         decayOutput(curve, startAmount, decayStartBlock, 1 ether);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testDutchMismatchedDecay() public {
         uint256 decayStartBlock = 100;
         uint256 startAmount = 1 ether;
