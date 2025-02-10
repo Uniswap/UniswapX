@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
