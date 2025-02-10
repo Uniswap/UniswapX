@@ -66,9 +66,9 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
 
     /// @notice fill UniswapX orders using UniversalRouter
     /// @param callbackData It has the below encoded:
-    /// address[] memory tokensToApproveForUniversalRouter: Max approve these tokens to universalRouter
+    /// address[] memory tokensToApproveForUniversalRouter: Max approve these tokens to permit2 and universalRouter
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
-    /// bytes[] memory data: execution data
+    /// bytes memory data: execution data
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
         (
             address[] memory tokensToApproveForUniversalRouter,
@@ -118,6 +118,6 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
         token.safeTransfer(to, token.balanceOf(address(this)));
     }
 
-    /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
+    /// @notice Necessary for this contract to receive ETH
     receive() external payable {}
 }
