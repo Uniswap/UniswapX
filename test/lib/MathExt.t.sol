@@ -31,11 +31,13 @@ contract MathExtTest is Test {
         assertEq(b.sub(int256(a)), b - a);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSubIntFromUintNegativeUint() public {
         vm.expectRevert();
         uint256(1).sub(int256(2));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSubIntFromUintOverflow() public {
         vm.expectRevert();
         UINT256_MAX.sub(-1);
@@ -92,11 +94,13 @@ contract MathExtTest is Test {
         assertEq(c, int256(a) - int256(b));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSubUintFromUintUnderflow() public {
         vm.expectRevert();
         uint256(0).sub(type(uint256).max);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSubUintFromUintOverflow() public {
         vm.expectRevert();
         UINT256_MAX.sub(uint256(1));
