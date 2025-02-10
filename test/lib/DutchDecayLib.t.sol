@@ -110,13 +110,13 @@ contract DutchDecayLibTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testDutchDecayUnderflow() public {
+    function testDutchDownwardDecayOverflow() public {
         vm.expectRevert();
         DutchDecayLib.linearDecay(0, 100, 99, type(int256).max, -1);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testDutchDecayOverflow() public {
+    function testDutchUpwardDecayOverflow() public {
         vm.expectRevert();
         DutchDecayLib.linearDecay(0, 100, 99, -1, type(int256).max);
     }
