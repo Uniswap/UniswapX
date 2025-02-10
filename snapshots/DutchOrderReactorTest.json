@@ -1,11 +1,11 @@
 {
-  "BaseExecuteSingleWithFee": "176379",
-  "ExecuteBatch": "188624",
-  "ExecuteBatchMultipleOutputs": "197968",
-  "ExecuteBatchMultipleOutputsDifferentTokens": "251215",
-  "ExecuteBatchNativeOutput": "184650",
-  "ExecuteSingle": "142762",
-  "ExecuteSingleNativeOutput": "130824",
-  "ExecuteSingleValidation": "152072",
-  "RevertInvalidNonce": "22192"
+  "BaseExecuteSingleWithFee": "176167",
+  "ExecuteBatch": "188355",
+  "ExecuteBatchMultipleOutputs": "197673",
+  "ExecuteBatchMultipleOutputsDifferentTokens": "250894",
+  "ExecuteBatchNativeOutput": "184399",
+  "ExecuteSingle": "142617",
+  "ExecuteSingleNativeOutput": "130688",
+  "ExecuteSingleValidation": "151906",
+  "RevertInvalidNonce": "22119"
 }
