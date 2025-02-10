@@ -3,17 +3,15 @@ pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {UniversalRouterExecutor} from "../../src/sample-executors/UniversalRouterExecutor.sol";
 import {InputToken, OrderInfo, SignedOrder} from "../../src/base/ReactorStructs.sol";
-import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {IReactor} from "../../src/interfaces/IReactor.sol";
-import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "../../src/external/IUniversalRouter.sol";
 
 contract UniversalRouterExecutorIntegrationTest is Test, PermitSignature {
