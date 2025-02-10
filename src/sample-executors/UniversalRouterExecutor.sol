@@ -5,6 +5,7 @@ import {Owned} from "solmate/src/auth/Owned.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
@@ -20,12 +21,13 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
     /// @notice thrown if reactorCallback is called by an address other than the reactor
     error MsgSenderNotReactor();
 
-    address private immutable universalRouter;
-    address private immutable whitelistedCaller;
-    IReactor private immutable reactor;
+    address public immutable universalRouter;
+    mapping(address => bool) whitelistedCallers;
+    IReactor public immutable reactor;
+    IPermit2 public immutable permit2;
 
     modifier onlyWhitelistedCaller() {
-        if (msg.sender != whitelistedCaller) {
+        if (whitelistedCallers[msg.sender] == false) {
             revert CallerNotWhitelisted();
         }
         _;
@@ -38,12 +40,19 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
         _;
     }
 
-    constructor(address _whitelistedCaller, IReactor _reactor, address _owner, address _universalRouter)
-        Owned(_owner)
-    {
-        whitelistedCaller = _whitelistedCaller;
+    constructor(
+        address[] memory _whitelistedCallers,
+        IReactor _reactor,
+        address _owner,
+        address _universalRouter,
+        IPermit2 _permit2
+    ) Owned(_owner) {
+        for (uint256 i = 0; i < _whitelistedCallers.length; i++) {
+            whitelistedCallers[_whitelistedCallers[i]] = true;
+        }
         reactor = _reactor;
         universalRouter = _universalRouter;
+        permit2 = _permit2;
     }
 
     /// @notice assume that we already have all output tokens
@@ -70,7 +79,12 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
 
         unchecked {
             for (uint256 i = 0; i < tokensToApproveForUniversalRouter.length; i++) {
-                ERC20(tokensToApproveForUniversalRouter[i]).safeApprove(address(universalRouter), type(uint256).max);
+                // Max approve token to permit2
+                ERC20(tokensToApproveForUniversalRouter[i]).safeApprove(address(permit2), type(uint256).max);
+                // Max approve token to universalRouter via permit2
+                permit2.approve(
+                    tokensToApproveForUniversalRouter[i], address(universalRouter), type(uint160).max, type(uint48).max
+                );
             }
 
             for (uint256 i = 0; i < tokensToApproveForReactor.length; i++) {
@@ -96,6 +110,13 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
     /// @param recipient The recipient of the ETH
     function withdrawETH(address recipient) external onlyOwner {
         SafeTransferLib.safeTransferETH(recipient, address(this).balance);
+    }
+
+    /// @notice Transfer the entire balance of an ERC20 token in this contract to a recipient. Can only be called by owner.
+    /// @param token The ERC20 token to withdraw
+    /// @param to The recipient of the tokens
+    function withdrawERC20(ERC20 token, address to) external onlyOwner {
+        token.safeTransfer(to, token.balanceOf(address(this)));
     }
 
     /// @notice Necessary for this contract to receive ETH when calling unwrapWETH()
