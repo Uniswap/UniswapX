@@ -96,6 +96,7 @@ contract DutchDecayLibTest is Test {
         assertGe(decayed, uint256(endAmount));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testDutchDecayInvalidTimes(
         uint256 startAmount,
         uint256 endAmount,
@@ -108,14 +109,19 @@ contract DutchDecayLibTest is Test {
         DutchDecayLib.decay(startAmount, endAmount, decayStartTime, decayEndTime);
     }
 
-    function testDutchDecayOverflow() public {
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testDutchDownwardDecayOverflow() public {
         vm.expectRevert();
         DutchDecayLib.linearDecay(0, 100, 99, type(int256).max, -1);
+    }
 
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testDutchUpwardDecayOverflow() public {
         vm.expectRevert();
         DutchDecayLib.linearDecay(0, 100, 99, -1, type(int256).max);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testDutchDecayDivByZero() public {
         vm.expectRevert();
         DutchDecayLib.linearDecay(100, 100, 99, 1, -1);

@@ -24,11 +24,13 @@ contract Uint16ArrayTest is Test {
         }
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testToUint16ArrayRevert() public {
         vm.expectRevert(InvalidArrLength.selector);
         toUint16Array(ArrayBuilder.fillUint16(17, 1));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testGetElementRevert() public {
         Uint16Array packedArr = toUint16Array(ArrayBuilder.fillUint16(5, 1));
         vm.expectRevert(IndexOutOfBounds.selector);

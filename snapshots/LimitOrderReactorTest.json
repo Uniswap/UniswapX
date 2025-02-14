@@ -6,6 +6,6 @@
   "ExecuteBatchNativeOutput": "177259",
   "ExecuteSingle": "139086",
   "ExecuteSingleNativeOutput": "127157",
-  "ExecuteSingleValidation": "148377",
+  "ExecuteSingleValidation": "148375",
   "RevertInvalidNonce": "18599"
 }

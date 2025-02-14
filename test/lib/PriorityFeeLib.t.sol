@@ -95,6 +95,7 @@ contract PriorityFeeLibTest is Test {
     }
 
     /// @notice if the amount to scale is large enough to cause a phantom overflow in mulDivUp, we expect a revert
+    /// forge-config: default.allow_internal_expect_revert = true
     function testScaleRevertsOnLargeOutput() public {
         uint256 priorityFee = 0;
         vm.txGasPrice(priorityFee);
@@ -124,6 +125,7 @@ contract PriorityFeeLibTest is Test {
         assertEq(scaledOutput.amount, output.amount);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
         // the amount of MPS to scale the output by
         uint256 scalingFactor = MPS;
