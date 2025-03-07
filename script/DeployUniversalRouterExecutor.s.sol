@@ -23,6 +23,9 @@ contract DeployUniversalRouterExecutor is Script {
         address[] memory decodedAddresses = abi.decode(encodedAddresses, (address[]));
 
         vm.startBroadcast(privateKey);
+        // Base:     0x00000009e70d153a81f4c972dd123c4b71b7441c;
+        // Unichain: 0x00000095Bb1911Ed8C7d0284304e5763EC025123; salt: 0x043aafd713399c7ebda8b941d14405259ac7a84c216d61aec45f46289e969666
+        // Arbitrum: 0x0000002212Ea5434ba5AF91a530F20941BC05f7c; salt: 0xa20c133ff2ecb54c6869a8f9fe341d047d4485dffbf7e296a08e0cda8e08ae17
         executor = new UniversalRouterExecutor{salt: 0x00}(decodedAddresses, reactor, owner, universalRouter, permit2);
         vm.stopBroadcast();
 
