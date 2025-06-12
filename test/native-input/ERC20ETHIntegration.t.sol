@@ -114,11 +114,11 @@ contract ERC20ETHIntegrationTest is Test, DeployPermit2, PermitSignature, Delega
         // Verify the balances
         // Swapper should have totalAmount - swapAmount ETH left and have received outputAmount tokenOut
         assertEq(address(signerAccount).balance, totalAmount - swapAmount);
-        // assertEq(tokenOut.balanceOf(address(signerAccount)), outputAmount);
+        assertEq(tokenOut.balanceOf(address(signerAccount)), outputAmount);
 
-        // // Filler should have 0 tokenOut left and received the swapAmount ETH
-        // assertEq(tokenOut.balanceOf(address(fillContract)), 0);
-        // assertEq(address(fillContract).balance, swapAmount);
+        // Filler should have 0 tokenOut left and received the swapAmount ETH
+        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+        assertEq(address(fillContract).balance, swapAmount);
     }
 
     function cosignOrder(bytes32 orderHash, CosignerData memory cosignerData) private view returns (bytes memory sig) {
