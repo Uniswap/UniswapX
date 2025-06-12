@@ -11,10 +11,6 @@ fs_permissions = [
 ]
 optimizer_runs = 1000000
 
-remappings = [
-    "openzeppelin-contracts/=lib/openzeppelin-contracts/"
-]
-
 [profile.integration]
 match_path = "*/integration/*"
 no_match_path = "override/default/*"
