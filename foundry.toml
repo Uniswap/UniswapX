@@ -9,6 +9,7 @@ fs_permissions = [
     { access = "read-write", path = "./out"},
     { access = "read-write", path = "./lib/calibur/out/"}
 ]
+optimizer = true
 optimizer_runs = 1000000
 
 [profile.integration]
