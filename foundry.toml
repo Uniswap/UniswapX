@@ -1,11 +1,15 @@
 [profile.default]
-solc = "0.8.24"
+solc = "0.8.29"
 src = 'src'
 out = 'out'
 libs = ['lib']
 no_match_path = "*/integration/*"
 ffi = true
-fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
+fs_permissions = [
+    { access = "read-write", path = "./out"},
+    { access = "read-write", path = "./lib/calibur/out/"}
+]
+optimizer = true
 optimizer_runs = 1000000
 
 [profile.integration]

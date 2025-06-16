@@ -13,3 +13,6 @@
 [submodule "lib/solarray"]
 	path = lib/solarray
 	url = https://github.com/evmcheb/solarray
+[submodule "lib/calibur"]
+	path = lib/calibur
+	url = https://github.com/Uniswap/calibur

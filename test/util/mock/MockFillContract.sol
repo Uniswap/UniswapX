@@ -40,4 +40,7 @@ contract MockFillContract is IReactorCallback {
             }
         }
     }
+
+    /// @notice Allow the contract to receive ETH
+    receive() external payable {}
 }
