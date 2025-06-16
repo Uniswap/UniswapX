@@ -9,14 +9,12 @@ import {TestKeyManager, TestKey} from "../../lib/calibur/test/utils/TestKeyManag
 import {KeyType} from "../../lib/calibur/src/libraries/KeyLib.sol";
 
 contract DelegationHandler is Test {
-
     ICalibur public calibur;
     uint256 signerPrivateKey = 0xa11ce;
     address signer = vm.addr(signerPrivateKey);
     TestKey signerTestKey = TestKey(KeyType.Secp256k1, abi.encode(signer), signerPrivateKey);
     EntryPoint public entryPoint;
     ICalibur public signerAccount;
-
 
     // Override to use the correct path for vm.getCode when running from parent project
     function setUpDelegation() public {
