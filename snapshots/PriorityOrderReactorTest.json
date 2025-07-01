@@ -1,15 +1,3 @@
 {
-  "BaseExecuteSingleWithFee": "174229",
-  "ExecuteBatch": "185075",
-  "ExecuteBatchMultipleOutputs": "194283",
-  "ExecuteBatchMultipleOutputsDifferentTokens": "247393",
-  "ExecuteBatchNativeOutput": "181115",
-  "ExecuteSingle": "140964",
-  "ExecuteSingleNativeOutput": "129033",
-  "ExecuteSingleValidation": "149962",
-  "InputPriorityFee": "143267",
-  "OutputPriorityFee": "143273",
-  "OutputPriorityFeeAndBaselinePriorityFee": "143273",
-  "OverrideAuctionTargetBlock": "120313",
-  "RevertInvalidNonce": "8844"
+  "NonSwapperRecipient": "145566"
 }

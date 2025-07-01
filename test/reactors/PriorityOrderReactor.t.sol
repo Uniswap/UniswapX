@@ -649,6 +649,60 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
+    /// @notice Test where the swapper is not one of the output recipients
+    function testExecuteWithNonSwapperRecipient() public {
+        uint256 priorityFee = 100 wei;
+        vm.txGasPrice(priorityFee);
+
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 inputMpsPerPriorityFeeWei = 0;
+        uint256 outputMpsPerPriorityFeeWei = 1;
+        uint256 deadline = block.timestamp + 1000;
+
+        address nonSwapperRecipient = makeAddr("nonSwapper");
+
+        tokenIn.mint(address(swapper), inputAmount * 100);
+        tokenOut.mint(address(fillContract), outputAmount * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        PriorityOutput[] memory outputs =
+            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, nonSwapperRecipient);
+        uint256 scaledOutputAmount = outputs[0].scale(priorityFee).amount;
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        SignedOrder memory signedOrder =
+            SignedOrder(abi.encode(order), signOrder(swapperPrivateKey, address(permit2), order));
+        bytes32 orderHash = order.hash();
+
+        uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
+        uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
+        uint256 nonSwapperOutputBalanceStart = tokenOut.balanceOf(nonSwapperRecipient);
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("NonSwapperRecipient");
+
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart, "Swapper should not receive output");
+        assertEq(tokenOut.balanceOf(nonSwapperRecipient), nonSwapperOutputBalanceStart + scaledOutputAmount, "Non-swapper recipient should receive output");
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount, "Swapper input should decrease");
+    }
+
     function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
         private
         view
