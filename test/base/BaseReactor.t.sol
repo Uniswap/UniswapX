@@ -102,7 +102,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -146,7 +147,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -187,7 +189,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -227,7 +230,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -274,7 +278,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         orders[1] = ResolvedOrder({
@@ -284,7 +289,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
@@ -321,7 +327,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         orders[1] = ResolvedOrder({
@@ -331,7 +338,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
@@ -372,7 +380,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.multiple(address(tokenOut), output1, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         orders[1] = ResolvedOrder({
@@ -382,7 +391,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: OutputsBuilder.multiple(address(tokenOut), output2, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
@@ -428,7 +438,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1,
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         orders[1] = ResolvedOrder({
@@ -438,7 +449,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2,
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
@@ -469,7 +481,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
@@ -519,7 +532,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
@@ -567,7 +581,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: OutputsBuilder.single(address(tokenOut), 1 ether, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         ResolvedOrder memory order2 = ResolvedOrder({
@@ -576,7 +591,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: OutputsBuilder.single(address(tokenOut), 1 ether, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder1, bytes32 orderHash1) = createAndSignOrder(order1);
@@ -615,7 +631,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -653,7 +670,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -692,7 +710,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
@@ -734,7 +753,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
@@ -764,7 +784,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
@@ -788,7 +809,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
@@ -811,7 +833,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper),
             sig: hex"00",
-            hash: bytes32(0)
+            hash: bytes32(0),
+            auctionResolver: address(0)
         });
 
         (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);

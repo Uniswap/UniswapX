@@ -94,7 +94,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, DeployPermit2 {
             InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
-            keccak256(abi.encode(1))
+            keccak256(abi.encode(1)),
+            address(0)
         );
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);
@@ -361,7 +362,8 @@ contract SwapRouter02ExecutorTest is Test, PermitSignature, DeployPermit2 {
             InputToken(tokenIn, ONE, ONE),
             outputs,
             sig,
-            keccak256(abi.encode(1))
+            keccak256(abi.encode(1)),
+            address(0)
         );
         tokenIn.mint(address(swapRouter02Executor), ONE);
         tokenOut.mint(address(mockSwapRouter), ONE);

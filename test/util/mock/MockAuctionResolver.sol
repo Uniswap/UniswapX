@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../../../src/interfaces/IAuctionResolver.sol";
-import {SignedOrder, ResolvedOrder} from "../../../src/base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrder, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../../src/lib/PriorityOrderLib.sol";
 
 /// @notice Mock auction resolver for testing that returns orders as-is
