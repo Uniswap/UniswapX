@@ -22,7 +22,7 @@ interface IDCARegistry {
         uint256 maxFrequency; // Maximum time between chunks (seconds)
         uint256 minChunkSize; // Minimum input amount per chunk
         uint256 maxChunkSize; // Maximum input amount per chunk
-        uint256 minOutputPricePerInput; // Floor price (18 decimals: outputAmount * 1e18 / inputAmount)
+        uint256 minOutputAmount; // Minimum output amount expected for this DCA execution
         uint256 maxSlippage; // Max slippage in basis points (10000 = 100%)
         uint256 deadline; // Intent expiration timestamp
         uint256 nonce; // Replay protection nonce

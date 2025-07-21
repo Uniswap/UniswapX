@@ -61,7 +61,7 @@ contract DCAIntentSignature is Test {
             maxFrequency: 24 hours,
             minChunkSize: 100e18, // 100 tokens
             maxChunkSize: 1000e18, // 1000 tokens
-            minOutputPricePerInput: 0, // No minimum price
+            minOutputAmount: 0, // No minimum output amount
             maxSlippage: 500, // 5% max slippage
             deadline: block.timestamp + 30 days,
             nonce: nonce,

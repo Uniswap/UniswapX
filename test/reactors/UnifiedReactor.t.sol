@@ -272,6 +272,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         vars.intent.maxChunkSize = 1000e18;
         vars.intent.minFrequency = 1 hours;
         vars.intent.maxFrequency = 24 hours;
+        vars.intent.minOutputAmount = outputAmount; // Set minimum output for this execution
 
         // Create cosigner data
         vars.cosignerData = createBasicCosignerData(inputAmount, outputAmount, dcaNonce);
@@ -349,6 +350,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;
         intent.maxFrequency = 24 hours;
+        intent.minOutputAmount = 0.1 ether; // User requires at least 0.1 ETH output per execution
 
         bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
         bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
@@ -451,6 +453,52 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
         signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
         intentHash = dcaRegistry.hashDCAIntent(vars.intent);
+    }
+
+    /// @dev Test that DCA validation enforces user's minimum output amount
+    function test_DCAValidationEnforcesMinOutputAmount() public {
+        setupTokensForTest();
+
+        uint256 inputAmount = 500e18;
+        uint256 userMinOutput = 0.2 ether; // User requires at least 0.2 ETH
+        uint256 lowOutput = 0.1 ether; // Cosigner tries to authorize only 0.1 ETH
+        uint256 intentNonce = 1;
+
+        // Mint tokens
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), lowOutput);
+
+        // Setup AllowanceTransfer
+        vm.startPrank(swapper);
+        tokenIn.approve(address(permit2), type(uint256).max);
+        IAllowanceTransfer(address(permit2)).approve(
+            address(tokenIn),
+            address(unifiedReactor),
+            uint160(inputAmount),
+            uint48(block.timestamp + 30 days)
+        );
+        vm.stopPrank();
+
+        // Create DCA intent with minimum output requirement
+        IDCARegistry.DCAIntent memory intent = createBasicDCAIntent(
+            address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce
+        );
+        intent.minChunkSize = 100e18;
+        intent.maxChunkSize = 1000e18;
+        intent.minFrequency = 1 hours;
+        intent.maxFrequency = 24 hours;
+        intent.minOutputAmount = userMinOutput; // User signed intent requires 0.2 ETH minimum
+
+        bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
+
+        // Try to create order with output below user's minimum
+        (SignedOrder memory signedOrder,) = createDCAOrderWithRegisteredIntent(
+            intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1))
+        );
+
+        // Should revert with DCAFloorPriceNotMet because 0.1 ETH < 0.2 ETH minimum
+        vm.expectRevert(DCARegistry.DCAFloorPriceNotMet.selector);
+        fillContract.execute(signedOrder);
     }
 
     /// @dev Test AllowanceTransfer mode

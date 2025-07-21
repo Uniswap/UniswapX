@@ -36,7 +36,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
 
     /// @notice EIP-712 type hash for DCA intent
     bytes32 public constant DCA_INTENT_TYPEHASH = keccak256(
-        "DCAIntent(address inputToken,address outputToken,address cosigner,uint256 minFrequency,uint256 maxFrequency,uint256 minChunkSize,uint256 maxChunkSize,uint256 minOutputPricePerInput,uint256 maxSlippage,uint256 deadline,uint256 nonce,bytes32 privateIntentHash)"
+        "DCAIntent(address inputToken,address outputToken,address cosigner,uint256 minFrequency,uint256 maxFrequency,uint256 minChunkSize,uint256 maxChunkSize,uint256 minOutputAmount,uint256 maxSlippage,uint256 deadline,uint256 nonce,bytes32 privateIntentHash)"
     );
 
     constructor() EIP712("DCARegistry", "1") {}
@@ -118,6 +118,17 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
             revert InvalidDCAParams();
         }
 
+        // Enforce user's minimum output amount requirement
+        uint256 totalOutputAmount = 0;
+        for (uint256 i = 0; i < order.outputs.length; i++) {
+            if (order.outputs[i].token == intent.outputToken) {
+                totalOutputAmount += order.outputs[i].amount;
+            }
+        }
+        if (totalOutputAmount < intent.minOutputAmount) {
+            revert DCAFloorPriceNotMet();
+        }
+
         // Update state for next validation
         state.executedChunks++;
         state.lastExecutionTime = block.timestamp;
@@ -147,7 +158,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
                     intent.maxFrequency,
                     intent.minChunkSize,
                     intent.maxChunkSize,
-                    intent.minOutputPricePerInput,
+                    intent.minOutputAmount,
                     intent.maxSlippage,
                     intent.deadline,
                     intent.nonce,
