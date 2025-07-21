@@ -1,20 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {BaseReactor} from "./BaseReactor.sol";
-import {Permit2Lib} from "../lib/Permit2Lib.sol";
-import {PriorityOrderLib, PriorityOrder, PriorityInput, PriorityOutput} from "../lib/PriorityOrderLib.sol";
+import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
+import {SignedOrder, ResolvedOrder, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {
+    PriorityOrderLib,
+    PriorityOrder,
+    PriorityInput,
+    PriorityOutput,
+    PriorityCosignerData
+} from "../lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../lib/PriorityFeeLib.sol";
 import {CosignerLib} from "../lib/CosignerLib.sol";
-import {SignedOrder, ResolvedOrder} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
-/// @notice Reactor for priority orders
-/// @dev only supported on chains which use priority fee transaction ordering
-contract PriorityOrderReactor is BaseReactor {
-    using Permit2Lib for ResolvedOrder;
+/// @notice Auction resolver for priority fee based orders
+contract PriorityAuctionResolver is IAuctionResolver {
     using PriorityOrderLib for PriorityOrder;
     using PriorityFeeLib for PriorityInput;
+    using PriorityFeeLib for PriorityOutput;
     using PriorityFeeLib for PriorityOutput[];
 
     /// @notice thrown when an order's deadline is in the past
@@ -28,11 +32,16 @@ contract PriorityOrderReactor is BaseReactor {
     /// @notice thrown when tx gasprice is less than block.basefee
     error InvalidGasPrice();
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) BaseReactor(_permit2, _protocolFeeOwner) {}
+    /// @notice Permit2 instance for nonce checking
+    IPermit2 public immutable permit2;
 
-    /// @inheritdoc BaseReactor
-    function _resolve(SignedOrder calldata signedOrder)
-        internal
+    constructor(IPermit2 _permit2) {
+        permit2 = _permit2;
+    }
+
+    /// @inheritdoc IAuctionResolver
+    function resolve(SignedOrder calldata signedOrder)
+        external
         view
         override
         returns (ResolvedOrder memory resolvedOrder)
@@ -43,30 +52,20 @@ contract PriorityOrderReactor is BaseReactor {
 
         bytes32 orderHash = order.hash();
 
-        _validateOrder(orderHash, order);
-
         uint256 priorityFee = _getPriorityFee(order.baselinePriorityFeeWei);
+
+        // Scale priority input and outputs directly using PriorityFeeLib
+        InputToken memory scaledInput = order.input.scale(priorityFee);
+        OutputToken[] memory scaledOutputs = order.outputs.scale(priorityFee);
 
         resolvedOrder = ResolvedOrder({
             info: order.info,
-            input: order.input.scale(priorityFee),
-            outputs: order.outputs.scale(priorityFee),
+            input: scaledInput,
+            outputs: scaledOutputs,
             sig: signedOrder.sig,
             hash: orderHash,
-            auctionResolver: address(0)
+            auctionResolver: address(this)
         });
-    }
-
-    /// @inheritdoc BaseReactor
-    function _transferInputTokens(ResolvedOrder memory order, address to) internal override {
-        permit2.permitWitnessTransferFrom(
-            order.toPermit(),
-            order.transferDetails(to),
-            order.info.swapper,
-            order.hash,
-            PriorityOrderLib.PERMIT2_ORDER_TYPE,
-            order.sig
-        );
     }
 
     /// @notice validate the priority order fields
@@ -135,5 +134,15 @@ contract PriorityOrderReactor is BaseReactor {
         uint256 flipped = bitmap ^ bit;
 
         if (flipped & bit == 0) revert OrderAlreadyFilled();
+    }
+
+    /// @inheritdoc IAuctionResolver
+    function auctionType() external pure override returns (string memory) {
+        return "PRIORITY";
+    }
+
+    /// @inheritdoc IAuctionResolver
+    function getPermit2OrderType() external pure override returns (string memory) {
+        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
     }
 }

@@ -8,12 +8,20 @@ contract MockValidationContract is IValidationCallback {
     error MockValidationError();
 
     bool public valid;
+    bool public shouldRevert;
 
     function setValid(bool _valid) external {
         valid = _valid;
     }
 
+    function setShouldRevert(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
+    }
+
     function validate(address, ResolvedOrder memory) external view {
+        if (shouldRevert) {
+            revert MockValidationError();
+        }
         if (!valid) {
             revert MockValidationError();
         }

@@ -47,6 +47,7 @@ struct ResolvedOrder {
     OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
+    address auctionResolver;
 }
 
 /// @dev external struct including a generic encoded order and swapper signature

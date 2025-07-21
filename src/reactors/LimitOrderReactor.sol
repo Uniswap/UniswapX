@@ -27,7 +27,8 @@ contract LimitOrderReactor is BaseReactor {
             input: limitOrder.input,
             outputs: limitOrder.outputs,
             sig: signedOrder.sig,
-            hash: limitOrder.hash()
+            hash: limitOrder.hash(),
+            auctionResolver: address(0)
         });
     }
 

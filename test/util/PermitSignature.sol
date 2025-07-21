@@ -46,6 +46,9 @@ contract PermitSignature is Test {
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
 
+    // bytes32 constant UNIFIED_ORDER_TYPE_HASH =
+    //     keccak256(abi.encodePacked(TYPEHASH_STUB, UnifiedOrderLib.PERMIT2_ORDER_TYPE));
+
     function getPermitSignature(
         uint256 privateKey,
         address permit2,
@@ -180,6 +183,22 @@ contract PermitSignature is Test {
             order.hash()
         );
     }
+
+    // function signOrder(uint256 privateKey, address permit2, UnifiedOrder memory order)
+    //     internal
+    //     view
+    //     returns (bytes memory sig)
+    // {
+    //     return signOrder(
+    //         privateKey,
+    //         permit2,
+    //         order.info.baseInfo,
+    //         address(order.input.token),
+    //         order.input.maxAmount,
+    //         UNIFIED_ORDER_TYPE_HASH,
+    //         order.hash()
+    //     );
+    // }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, NAME_HASH, block.chainid, permit2));
