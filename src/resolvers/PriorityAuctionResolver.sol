@@ -54,7 +54,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
 
         uint256 priorityFee = _getPriorityFee(order.baselinePriorityFeeWei);
 
-        // Scale priority input and outputs directly using PriorityFeeLib
         InputToken memory scaledInput = order.input.scale(priorityFee);
         OutputToken[] memory scaledOutputs = order.outputs.scale(priorityFee);
 

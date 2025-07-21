@@ -38,29 +38,27 @@ contract UnifiedReactor is BaseReactor {
             revert EmptyAuctionResolver();
         }
 
-        SignedOrder memory resolverOrder = SignedOrder({
-            order: orderData,
-            sig: signedOrder.sig
-        });
+        SignedOrder memory resolverOrder = SignedOrder({order: orderData, sig: signedOrder.sig});
 
         IAuctionResolver resolver = IAuctionResolver(auctionResolver);
-        
-        try resolver.resolve(resolverOrder) returns (ResolvedOrder memory result) {
-            resolvedOrder = result;
-        } catch (bytes memory reason) {
-            // Translate OrderAlreadyFilled to InvalidNonce for compatibility with base reactor tests
-            if (reason.length >= 4) {
-                bytes4 errorSelector = bytes4(reason);
-                // PriorityAuctionResolver.OrderAlreadyFilled.selector = 0x0700c4b8
-                if (errorSelector == 0x0700c4b8) {
-                    revert InvalidNonce();
-                }
-            }
-            // Re-throw the original error
-            assembly {
-                revert(add(reason, 0x20), mload(reason))
-            }
-        }
+
+        resolvedOrder = resolver.resolve(resolverOrder);
+        //try resolver.resolve(resolverOrder) returns (ResolvedOrder memory result) {
+        //    resolvedOrder = result;
+        //} catch (bytes memory reason) {
+        //    // Translate OrderAlreadyFilled to InvalidNonce for compatibility with base reactor tests
+        //    if (reason.length >= 4) {
+        //        bytes4 errorSelector = bytes4(reason);
+        //        // PriorityAuctionResolver.OrderAlreadyFilled.selector = 0x0700c4b8
+        //        if (errorSelector == 0x0700c4b8) {
+        //            revert InvalidNonce();
+        //        }
+        //    }
+        //    // Re-throw the original error
+        //    assembly {
+        //        revert(add(reason, 0x20), mload(reason))
+        //    }
+        //}
     }
 
     /// @inheritdoc BaseReactor
@@ -78,14 +76,9 @@ contract UnifiedReactor is BaseReactor {
         } else {
             // Use SignatureTransfer - get the order type from the resolver
             string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
-            
+
             permit2.permitWitnessTransferFrom(
-                order.toPermit(),
-                order.transferDetails(to),
-                order.info.swapper,
-                order.hash,
-                orderType,
-                order.sig
+                order.toPermit(), order.transferDetails(to), order.info.swapper, order.hash, orderType, order.sig
             );
         }
     }

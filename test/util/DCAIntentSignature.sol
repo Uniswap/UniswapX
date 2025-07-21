@@ -83,7 +83,6 @@ contract DCAIntentSignature is Test {
             executionTimestamp: block.timestamp,
             inputAmount: inputAmount,
             minOutputAmount: minOutputAmount,
-            maxGasPrice: 100 gwei,
             orderNonce: orderNonce
         });
     }

@@ -18,7 +18,13 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {BaseReactorTest} from "../base/BaseReactor.t.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {PriorityAuctionResolver} from "../../src/resolvers/PriorityAuctionResolver.sol";
-import {PriorityOrder, PriorityInput, PriorityOutput, PriorityCosignerData, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
+import {
+    PriorityOrder,
+    PriorityInput,
+    PriorityOutput,
+    PriorityCosignerData,
+    PriorityOrderLib
+} from "../../src/lib/PriorityOrderLib.sol";
 import {CosignerLib} from "../../src/lib/CosignerLib.sol";
 import {DCARegistry} from "../../src/validation/DCARegistry.sol";
 import {DCAIntentSignature} from "../util/DCAIntentSignature.sol";
@@ -35,7 +41,25 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
     uint256 cosignerPrivateKey = 0x99999999;
     address cosigner;
-    
+
+    /// @dev Struct to avoid stack too deep in DCA order creation
+    struct DCAOrderVars {
+        IDCARegistry.DCAIntent intent;
+        IDCARegistry.DCAOrderCosignerData cosignerData;
+        IDCARegistry.DCAValidationData validationData;
+        bytes encodedValidationData;
+        PriorityOutput[] outputs;
+        PriorityCosignerData priorityCosignerData;
+        PriorityOrder order;
+        bytes priorityOrderBytes;
+        bytes encodedOrder;
+        bytes signature;
+    }
+
+    function name() public pure override returns (string memory) {
+        return "UnifiedReactor";
+    }
+
     /// @notice Helper to cosign priority orders following PriorityOrderReactor pattern
     function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
         private
@@ -47,11 +71,10 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-
     function setUp() public {
         cosigner = vm.addr(cosignerPrivateKey);
 
-        // Deploy resolvers  
+        // Deploy resolvers
         priorityResolver = new PriorityAuctionResolver(permit2);
 
         // Deploy DCA registry
@@ -112,10 +135,10 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         // Encode for UnifiedReactor: (address resolver, bytes orderData)
         bytes memory priorityOrderBytes = abi.encode(order);
         bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-        
+
         orderHash = order.hash();
         bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-        
+
         return (SignedOrder(encodedOrder, signature), orderHash);
     }
 
@@ -127,8 +150,9 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
 
-        OrderInfo memory info = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
-            .withValidationContract(IValidationCallback(validationContract));
+        OrderInfo memory info = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
+            block.timestamp + 1000
+        ).withValidationContract(IValidationCallback(validationContract));
 
         if (useAllowanceTransfer) {
             info.additionalValidationData = abi.encodePacked(uint8(0x01));
@@ -159,10 +183,10 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         // Encode for UnifiedReactor: (address resolver, bytes orderData)
         bytes memory priorityOrderBytes = abi.encode(order);
         bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-        
+
         orderHash = order.hash();
         bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-        
+
         return (SignedOrder(encodedOrder, signature), orderHash);
     }
 
@@ -177,8 +201,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) =
-            createPriorityOrder(false, address(0));
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createPriorityOrder(false, address(0));
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, 0);
@@ -228,11 +251,200 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         bytes memory priorityOrderBytes = abi.encode(order);
         bytes memory encodedOrder = abi.encode(address(0), priorityOrderBytes); // Empty resolver
         bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-        
+
         SignedOrder memory signedOrder = SignedOrder(encodedOrder, signature);
 
         vm.expectRevert(UnifiedReactor.EmptyAuctionResolver.selector);
         fillContract.execute(signedOrder);
+    }
+
+    /// @dev Create a DCA order with specific parameters
+    function createDCAOrder(uint256 inputAmount, uint256 outputAmount, bytes32 dcaNonce, uint256 intentNonce)
+        internal
+        returns (SignedOrder memory signedOrder, bytes32 intentHash)
+    {
+        // Use struct hack to avoid stack too deep
+        DCAOrderVars memory vars;
+        
+        // Create DCA intent
+        vars.intent = createBasicDCAIntent(address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce);
+        vars.intent.minChunkSize = 100e18;
+        vars.intent.maxChunkSize = 1000e18;
+        vars.intent.minFrequency = 1 hours;
+        vars.intent.maxFrequency = 24 hours;
+
+        // Create cosigner data
+        vars.cosignerData = createBasicCosignerData(inputAmount, outputAmount, dcaNonce);
+
+        // Create validation data with signatures
+        vars.validationData = createSignedDCAValidationData(
+            vars.intent, vars.cosignerData, swapperPrivateKey, cosignerPrivateKey, dcaRegistry
+        );
+
+        // Encode validation data with AllowanceTransfer flag
+        vars.encodedValidationData = abi.encodePacked(uint8(0x01), abi.encode(vars.validationData));
+
+        // Create PriorityOrder with DCA validation
+        vars.outputs = new PriorityOutput[](1);
+        vars.outputs[0] = PriorityOutput({
+            token: address(tokenOut), amount: outputAmount, mpsPerPriorityFeeWei: 0, recipient: swapper
+        });
+
+        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        vars.order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(vars.encodedValidationData),
+            cosigner: cosigner,
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
+            outputs: vars.outputs,
+            cosignerData: vars.priorityCosignerData,
+            cosignature: bytes("")
+        });
+        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
+
+        // Encode for UnifiedReactor
+        vars.priorityOrderBytes = abi.encode(vars.order);
+        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
+        vars.signature = signOrder(swapperPrivateKey, address(permit2), vars.order);
+        
+        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
+        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
+    }
+
+    /// @dev Test DCA execution with two chunks
+    function test_executeDCAOrderTwoChunks() public {
+        setupTokensForTest();
+
+        uint256 chunk1Amount = 500e18; // 500 tokens per chunk
+        uint256 chunk2Amount = 300e18; // 300 tokens for second chunk
+        uint256 outputAmount1 = 0.2 ether;
+        uint256 outputAmount2 = 0.12 ether;
+        uint256 totalInputAmount = chunk1Amount + chunk2Amount;
+        uint256 intentNonce = 1; // Same intent for both chunks
+
+        // Mint tokens for both chunks
+        tokenIn.mint(address(swapper), totalInputAmount);
+        tokenOut.mint(address(fillContract), outputAmount1 + outputAmount2);
+
+        // Setup AllowanceTransfer for both chunks
+        vm.startPrank(swapper);
+        tokenIn.approve(address(permit2), type(uint256).max);
+        IAllowanceTransfer(address(permit2)).approve(
+            address(tokenIn),
+            address(unifiedReactor),
+            uint160(totalInputAmount),
+            uint48(block.timestamp + 30 days)
+        );
+        vm.stopPrank();
+
+        // Create the DCA intent once (will be auto-registered on first execution)
+        IDCARegistry.DCAIntent memory intent = createBasicDCAIntent(
+            address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce
+        );
+        intent.minChunkSize = 100e18;
+        intent.maxChunkSize = 1000e18;
+        intent.minFrequency = 1 hours;
+        intent.maxFrequency = 24 hours;
+
+        bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
+        bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
+
+        // Execute first chunk - this will auto-register the DCA intent
+        (SignedOrder memory signedOrder1,) = createDCAOrderWithRegisteredIntent(
+            intent, intentSignature, chunk1Amount, outputAmount1, bytes32(uint256(1))
+        );
+
+        fillContract.execute(signedOrder1);
+
+        // Verify first chunk execution
+        assertEq(tokenIn.balanceOf(swapper), chunk2Amount); // Remaining tokens
+        assertEq(tokenIn.balanceOf(address(fillContract)), chunk1Amount);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount1);
+        
+        // Verify DCA state after first chunk
+        IDCARegistry.DCAExecutionState memory state = dcaRegistry.getExecutionState(intentHash);
+        assertEq(state.executedChunks, 1);
+        assertEq(state.totalInputExecuted, chunk1Amount);
+        assertEq(state.lastExecutionTime, block.timestamp);
+
+        // Wait to satisfy frequency constraints (move forward 2 hours)
+        vm.warp(block.timestamp + 2 hours);
+
+        // Execute second chunk using the same intent (now registered)
+        (SignedOrder memory signedOrder2,) = createDCAOrderWithRegisteredIntent(
+            intent, intentSignature, chunk2Amount, outputAmount2, bytes32(uint256(2))
+        );
+
+        fillContract.execute(signedOrder2);
+
+        // Verify final state
+        assertEq(tokenIn.balanceOf(swapper), 0); // All tokens used
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+        assertEq(tokenOut.balanceOf(swapper), outputAmount1 + outputAmount2);
+        
+        // Verify final DCA state
+        state = dcaRegistry.getExecutionState(intentHash);
+        assertEq(state.executedChunks, 2);
+        assertEq(state.totalInputExecuted, totalInputAmount);
+    }
+
+    /// @dev Create a DCA order using a pre-registered intent
+    function createDCAOrderWithRegisteredIntent(
+        IDCARegistry.DCAIntent memory intent,
+        bytes memory intentSignature,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        bytes32 dcaNonce
+    ) internal returns (SignedOrder memory signedOrder, bytes32 intentHash) {
+        DCAOrderVars memory vars;
+        
+        vars.intent = intent;
+        
+        // Create cosigner data for this specific order
+        vars.cosignerData = createBasicCosignerData(inputAmount, outputAmount, dcaNonce);
+
+        // Create validation data with pre-signed intent
+        vars.validationData = IDCARegistry.DCAValidationData({
+            intent: vars.intent,
+            signature: intentSignature, // Reuse the signed intent
+            cosignerData: vars.cosignerData,
+            cosignature: signCosignerData(dcaRegistry.hashDCAIntent(vars.intent), vars.cosignerData, cosignerPrivateKey)
+        });
+
+        // Encode validation data with AllowanceTransfer flag
+        vars.encodedValidationData = abi.encodePacked(uint8(0x01), abi.encode(vars.validationData));
+
+        // Create PriorityOrder with DCA validation
+        vars.outputs = new PriorityOutput[](1);
+        vars.outputs[0] = PriorityOutput({
+            token: address(tokenOut), amount: outputAmount, mpsPerPriorityFeeWei: 0, recipient: swapper
+        });
+
+        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        vars.order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(vars.encodedValidationData),
+            cosigner: cosigner,
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
+            outputs: vars.outputs,
+            cosignerData: vars.priorityCosignerData,
+            cosignature: bytes("")
+        });
+        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
+
+        // Encode for UnifiedReactor
+        vars.priorityOrderBytes = abi.encode(vars.order);
+        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
+        vars.signature = signOrder(swapperPrivateKey, address(permit2), vars.order);
+        
+        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
+        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
     }
 
     /// @dev Test AllowanceTransfer mode
@@ -253,8 +465,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         );
         vm.stopPrank();
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) =
-            createPriorityOrder(true, address(0)); // true = useAllowanceTransfer
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createPriorityOrder(true, address(0)); // true = useAllowanceTransfer
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, 0);

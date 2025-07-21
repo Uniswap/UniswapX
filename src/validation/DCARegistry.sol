@@ -87,11 +87,6 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
             revert InvalidExecutionTimestamp();
         }
 
-        // Validate gas price if specified
-        if (cosignerData.maxGasPrice > 0 && tx.gasprice > cosignerData.maxGasPrice) {
-            revert InvalidGasPrice();
-        }
-
         // Check order nonce hasn't been used
         if (usedOrderNonces[cosignerData.orderNonce]) {
             revert OrderNonceAlreadyUsed();

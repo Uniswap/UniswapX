@@ -34,7 +34,6 @@ interface IDCARegistry {
         uint256 executionTimestamp; // When cosigner authorizes execution
         uint256 inputAmount; // Specific input amount for this execution
         uint256 minOutputAmount; // Minimum output amount expected
-        uint256 maxGasPrice; // Maximum gas price for execution
         bytes32 orderNonce; // Unique nonce for this order
     }
 
