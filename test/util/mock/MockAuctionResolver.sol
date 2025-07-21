@@ -24,11 +24,8 @@ contract MockAuctionResolver is IAuctionResolver {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
 
         // Convert PriorityInput to InputToken
-        InputToken memory input = InputToken({
-            token: order.input.token,
-            amount: order.input.amount,
-            maxAmount: order.input.amount
-        });
+        InputToken memory input =
+            InputToken({token: order.input.token, amount: order.input.amount, maxAmount: order.input.amount});
 
         // Convert PriorityOutput[] to OutputToken[]
         OutputToken[] memory outputs = new OutputToken[](order.outputs.length);
