@@ -67,7 +67,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
         // Calculate intent hash
         bytes32 intentHash = hashDCAIntent(intent);
 
-        // Verify user signature if intent not already registered
+        // Verify swapper signature if intent not already registered
         if (!registeredIntents[intentHash]) {
             _verifyIntentSignature(intent, validationData.signature, order.info.swapper);
             _registerIntent(intentHash, intent, order.info.swapper);
@@ -117,7 +117,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
             revert InvalidDCAParams();
         }
 
-        // Enforce user's minimum output amount requirement
+        // Enforce swapper's minimum output amount requirement
         uint256 totalOutputAmount = 0;
         for (uint256 i = 0; i < order.outputs.length; i++) {
             if (order.outputs[i].token == intent.outputToken) {
@@ -179,7 +179,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
 
     /// @notice Register a DCA intent with signature verification
     /// @param intent The DCA intent to register
-    /// @param signature User's signature over the intent
+    /// @param signature swapper's signature over the intent
     function registerDCAIntent(DCAIntent memory intent, bytes memory signature) external {
         bytes32 intentHash = hashDCAIntent(intent);
 
@@ -233,11 +233,11 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
     }
 
     /// @notice Internal function to register a DCA intent
-    function _registerIntent(bytes32 intentHash, DCAIntent memory intent, address user) internal {
+    function _registerIntent(bytes32 intentHash, DCAIntent memory intent, address swapper) internal {
         registeredIntents[intentHash] = true;
-        usedNonces[user][intent.nonce] = true;
+        usedNonces[swapper][intent.nonce] = true;
 
-        emit DCAIntentRegistered(intentHash, user, intent);
+        emit DCAIntentRegistered(intentHash, swapper, intent);
     }
 
     /// @notice Validate that the order parameters match the DCA intent and cosigner data

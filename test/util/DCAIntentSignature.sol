@@ -107,14 +107,14 @@ contract DCAIntentSignature is Test {
     /// @notice Create complete DCA validation data with signatures
     /// @param intent The DCA intent
     /// @param cosignerData The cosigner data
-    /// @param userPrivateKey User's private key
+    /// @param swapperPrivateKey swapper's private key
     /// @param cosignerPrivateKey Cosigner's private key
     /// @param dcaRegistry The DCA registry
     /// @return validationData Complete validation data with signatures
     function createSignedDCAValidationData(
         IDCARegistry.DCAIntent memory intent,
         IDCARegistry.DCAOrderCosignerData memory cosignerData,
-        uint256 userPrivateKey,
+        uint256 swapperPrivateKey,
         uint256 cosignerPrivateKey,
         IDCARegistry dcaRegistry
     ) public view returns (IDCARegistry.DCAValidationData memory validationData) {
@@ -122,7 +122,7 @@ contract DCAIntentSignature is Test {
 
         validationData = IDCARegistry.DCAValidationData({
             intent: intent,
-            signature: signDCAIntent(intent, userPrivateKey, dcaRegistry),
+            signature: signDCAIntent(intent, swapperPrivateKey, dcaRegistry),
             cosignerData: cosignerData,
             cosignature: signCosignerData(intentHash, cosignerData, cosignerPrivateKey)
         });

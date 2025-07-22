@@ -83,105 +83,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         return new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
     }
 
-    /// @dev Helper to set up tokens for a test
-    function setupTokensForTest() internal {
-        tokenIn = new MockERC20("Fresh Input", "FIN", 18);
-        tokenOut = new MockERC20("Fresh Output", "FOUT", 18);
-        tokenOut2 = new MockERC20("Fresh Output2", "FOUT2", 18);
-    }
-
-    /// @dev Create and sign a PriorityOrder following PriorityOrderReactor.t.sol pattern
-    function createAndSignOrder(ResolvedOrder memory request)
-        public
-        view
-        override
-        returns (SignedOrder memory signedOrder, bytes32 orderHash)
-    {
-        PriorityOutput[] memory outputs = new PriorityOutput[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
-            outputs[i] = PriorityOutput({
-                token: request.outputs[i].token,
-                amount: request.outputs[i].amount,
-                mpsPerPriorityFeeWei: 0,
-                recipient: request.outputs[i].recipient
-            });
-        }
-
-        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        PriorityOrder memory order = PriorityOrder({
-            info: request.info,
-            cosigner: vm.addr(cosignerPrivateKey),
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: request.input.token, amount: request.input.amount, mpsPerPriorityFeeWei: 0}),
-            outputs: outputs,
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
-
-        // Encode for UnifiedReactor: (address resolver, bytes orderData)
-        bytes memory priorityOrderBytes = abi.encode(order);
-        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-
-        orderHash = order.hash();
-        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-
-        return (SignedOrder(encodedOrder, signature), orderHash);
-    }
-
-    /// @dev Create a PriorityOrder with specific resolver and transfer type
-    function createPriorityOrder(bool useAllowanceTransfer, address validationContract)
-        public
-        view
-        returns (SignedOrder memory signedOrder, bytes32 orderHash)
-    {
-        uint256 inputAmount = 1 ether;
-        uint256 outputAmount = 1 ether;
-
-        OrderInfo memory info = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
-            block.timestamp + 1000
-        ).withValidationContract(IValidationCallback(validationContract));
-
-        if (useAllowanceTransfer) {
-            info.additionalValidationData = abi.encodePacked(uint8(0x01));
-        }
-
-        PriorityOutput[] memory outputs = new PriorityOutput[](1);
-        outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
-        });
-
-        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        PriorityOrder memory order = PriorityOrder({
-            info: info,
-            cosigner: vm.addr(cosignerPrivateKey),
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: outputs,
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
-
-        // Encode for UnifiedReactor: (address resolver, bytes orderData)
-        bytes memory priorityOrderBytes = abi.encode(order);
-        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-
-        orderHash = order.hash();
-        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-
-        return (SignedOrder(encodedOrder, signature), orderHash);
-    }
-
     /// @dev Test execution with priority order resolver
-    function test_executePriorityOrder() public {
+    function test_executeWithPriorityAuctionResolver() public {
         setupTokensForTest();
 
         uint256 inputAmount = 1 ether;
@@ -344,7 +247,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         );
         vm.stopPrank();
 
-        // Create private DCA parameters that user commits to
+        // Create private DCA parameters that swapper commits to
         PrivateDCAParams memory privateParams = createPrivateDCAParams(
             totalInputAmount, // totalAmount matches what we're testing
             2, // expectedChunks: 2 chunks as per test
@@ -360,7 +263,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;
         intent.maxFrequency = 24 hours;
-        intent.minOutputAmount = 0.1 ether; // User requires at least 0.1 ETH output per execution
+        intent.minOutputAmount = 0.1 ether; // swapper requires at least 0.1 ETH output per execution
 
         bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
         bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
@@ -404,12 +307,12 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         assertEq(state.totalInputExecuted, totalInputAmount);
     }
 
-    /// @dev Test that DCA validation enforces user's minimum output amount
+    /// @dev Test that DCA validation enforces swapper's minimum output amount
     function test_DCAFloorPriceEnforced() public {
         setupTokensForTest();
 
         uint256 inputAmount = 500e18;
-        uint256 userMinOutput = 0.2 ether; // User requires at least 0.2 ETH
+        uint256 swapperMinOutput = 0.2 ether; // swapper requires at least 0.2 ETH
         uint256 lowOutput = 0.1 ether; // Cosigner tries to authorize only 0.1 ETH
         uint256 intentNonce = 1;
 
@@ -441,11 +344,11 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;
         intent.maxFrequency = 24 hours;
-        intent.minOutputAmount = userMinOutput; // User signed intent requires 0.2 ETH minimum
+        intent.minOutputAmount = swapperMinOutput; // swapper signed intent requires 0.2 ETH minimum
 
         bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
 
-        // Try to create order with output below user's minimum
+        // Try to create order with output below swapper's minimum
         (SignedOrder memory signedOrder,) =
             createDCAOrderWithRegisteredIntent(intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1)));
 
@@ -555,5 +458,102 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
         signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
         intentHash = dcaRegistry.hashDCAIntent(vars.intent);
+    }
+
+    /// @dev Helper to set up tokens for a test
+    function setupTokensForTest() internal {
+        tokenIn = new MockERC20("Fresh Input", "FIN", 18);
+        tokenOut = new MockERC20("Fresh Output", "FOUT", 18);
+        tokenOut2 = new MockERC20("Fresh Output2", "FOUT2", 18);
+    }
+
+    /// @dev Create and sign a PriorityOrder following PriorityOrderReactor.t.sol pattern
+    function createAndSignOrder(ResolvedOrder memory request)
+        public
+        view
+        override
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        PriorityOutput[] memory outputs = new PriorityOutput[](request.outputs.length);
+        for (uint256 i = 0; i < request.outputs.length; i++) {
+            outputs[i] = PriorityOutput({
+                token: request.outputs[i].token,
+                amount: request.outputs[i].amount,
+                mpsPerPriorityFeeWei: 0,
+                recipient: request.outputs[i].recipient
+            });
+        }
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: request.info,
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: request.input.token, amount: request.input.amount, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        // Encode for UnifiedReactor: (address resolver, bytes orderData)
+        bytes memory priorityOrderBytes = abi.encode(order);
+        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
+
+        orderHash = order.hash();
+        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
+
+        return (SignedOrder(encodedOrder, signature), orderHash);
+    }
+
+    /// @dev Create a PriorityOrder with specific resolver and transfer type
+    function createPriorityOrder(bool useAllowanceTransfer, address validationContract)
+        public
+        view
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+
+        OrderInfo memory info = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
+            block.timestamp + 1000
+        ).withValidationContract(IValidationCallback(validationContract));
+
+        if (useAllowanceTransfer) {
+            info.additionalValidationData = abi.encodePacked(uint8(0x01));
+        }
+
+        PriorityOutput[] memory outputs = new PriorityOutput[](1);
+        outputs[0] = PriorityOutput({
+            token: address(tokenOut),
+            amount: outputAmount,
+            mpsPerPriorityFeeWei: 0,
+            recipient: swapper
+        });
+
+        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        PriorityOrder memory order = PriorityOrder({
+            info: info,
+            cosigner: vm.addr(cosignerPrivateKey),
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
+            outputs: outputs,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        // Encode for UnifiedReactor: (address resolver, bytes orderData)
+        bytes memory priorityOrderBytes = abi.encode(order);
+        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
+
+        orderHash = order.hash();
+        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
+
+        return (SignedOrder(encodedOrder, signature), orderHash);
     }
 }
