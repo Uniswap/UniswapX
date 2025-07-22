@@ -269,9 +269,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
 
         // Execute first chunk - this will auto-register the DCA intent
-        (SignedOrder memory signedOrder1,) = createDCAOrderWithRegisteredIntent(
-            intent, intentSignature, chunk1Amount, outputAmount1, bytes32(uint256(1))
-        );
+        (SignedOrder memory signedOrder1,) =
+            signDCAOrder(intent, intentSignature, chunk1Amount, outputAmount1, bytes32(uint256(1)));
 
         fillContract.execute(signedOrder1);
 
@@ -290,9 +289,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         vm.warp(block.timestamp + 2 hours);
 
         // Execute second chunk using the same intent (now registered)
-        (SignedOrder memory signedOrder2,) = createDCAOrderWithRegisteredIntent(
-            intent, intentSignature, chunk2Amount, outputAmount2, bytes32(uint256(2))
-        );
+        (SignedOrder memory signedOrder2,) =
+            signDCAOrder(intent, intentSignature, chunk2Amount, outputAmount2, bytes32(uint256(2)));
 
         fillContract.execute(signedOrder2);
 
@@ -350,7 +348,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
         // Try to create order with output below swapper's minimum
         (SignedOrder memory signedOrder,) =
-            createDCAOrderWithRegisteredIntent(intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1)));
+            signDCAOrder(intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1)));
 
         // Should revert with DCAFloorPriceNotMet because 0.1 ETH < 0.2 ETH minimum
         vm.expectRevert(DCARegistry.DCAFloorPriceNotMet.selector);
@@ -399,8 +397,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         sig = bytes.concat(r, s, bytes1(v));
     }
 
-    /// @dev Create a DCA order using a pre-registered intent
-    function createDCAOrderWithRegisteredIntent(
+    /// @dev Create a DCA order
+    function signDCAOrder(
         IDCARegistry.DCAIntent memory intent,
         bytes memory intentSignature,
         uint256 inputAmount,
