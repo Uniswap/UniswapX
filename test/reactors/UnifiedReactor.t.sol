@@ -456,7 +456,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
     }
 
     /// @dev Test that DCA validation enforces user's minimum output amount
-    function test_DCAValidationEnforcesMinOutputAmount() public {
+    function test_DCAFloorPriceEnforced() public {
         setupTokensForTest();
 
         uint256 inputAmount = 500e18;
@@ -472,17 +472,13 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         vm.startPrank(swapper);
         tokenIn.approve(address(permit2), type(uint256).max);
         IAllowanceTransfer(address(permit2)).approve(
-            address(tokenIn),
-            address(unifiedReactor),
-            uint160(inputAmount),
-            uint48(block.timestamp + 30 days)
+            address(tokenIn), address(unifiedReactor), uint160(inputAmount), uint48(block.timestamp + 30 days)
         );
         vm.stopPrank();
 
         // Create DCA intent with minimum output requirement
-        IDCARegistry.DCAIntent memory intent = createBasicDCAIntent(
-            address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce
-        );
+        IDCARegistry.DCAIntent memory intent =
+            createBasicDCAIntent(address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce);
         intent.minChunkSize = 100e18;
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;
@@ -492,9 +488,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
 
         // Try to create order with output below user's minimum
-        (SignedOrder memory signedOrder,) = createDCAOrderWithRegisteredIntent(
-            intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1))
-        );
+        (SignedOrder memory signedOrder,) =
+            createDCAOrderWithRegisteredIntent(intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1)));
 
         // Should revert with DCAFloorPriceNotMet because 0.1 ETH < 0.2 ETH minimum
         vm.expectRevert(DCARegistry.DCAFloorPriceNotMet.selector);

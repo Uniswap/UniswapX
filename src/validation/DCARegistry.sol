@@ -31,7 +31,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
     error OrderNonceAlreadyUsed();
     error InvalidTokens();
     error InvalidCosigner();
-    error InvalidExecutionTimestamp();
+    error InvalidauthorizationTimestamp();
     error InvalidGasPrice();
 
     /// @notice EIP-712 type hash for DCA intent
@@ -82,9 +82,9 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
         }
 
         // Validate execution timing
-        if (cosignerData.executionTimestamp > block.timestamp + 300) {
+        if (cosignerData.authorizationTimestamp > block.timestamp + 300) {
             // Allow 5 min future buffer
-            revert InvalidExecutionTimestamp();
+            revert InvalidauthorizationTimestamp();
         }
 
         // Check order nonce hasn't been used

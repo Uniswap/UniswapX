@@ -33,7 +33,7 @@ contract DCAIntentSignature is Test {
         bytes32 intentHash,
         IDCARegistry.DCAOrderCosignerData memory cosignerData,
         uint256 cosignerPrivateKey
-    ) public view returns (bytes memory signature) {
+    ) public pure returns (bytes memory signature) {
         bytes32 hash = keccak256(abi.encodePacked(intentHash, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, hash);
         return bytes.concat(r, s, bytes1(v));
@@ -80,7 +80,7 @@ contract DCAIntentSignature is Test {
         returns (IDCARegistry.DCAOrderCosignerData memory cosignerData)
     {
         cosignerData = IDCARegistry.DCAOrderCosignerData({
-            executionTimestamp: block.timestamp,
+            authorizationTimestamp: block.timestamp,
             inputAmount: inputAmount,
             minOutputAmount: minOutputAmount,
             orderNonce: orderNonce

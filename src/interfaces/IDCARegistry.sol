@@ -31,7 +31,7 @@ interface IDCARegistry {
 
     /// @notice Cosigner data for specific order execution
     struct DCAOrderCosignerData {
-        uint256 executionTimestamp; // When cosigner authorizes execution
+        uint256 authorizationTimestamp; // When cosigner authorizes execution
         uint256 inputAmount; // Specific input amount for this execution
         uint256 minOutputAmount; // Minimum output amount expected
         bytes32 orderNonce; // Unique nonce for this order
