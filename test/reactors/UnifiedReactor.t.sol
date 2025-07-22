@@ -60,17 +60,6 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         return "UnifiedReactor";
     }
 
-    /// @notice Helper to cosign priority orders following PriorityOrderReactor pattern
-    function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
-        private
-        view
-        returns (bytes memory sig)
-    {
-        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
-        sig = bytes.concat(r, s, bytes1(v));
-    }
-
     function setUp() public {
         cosigner = vm.addr(cosignerPrivateKey);
 
@@ -415,67 +404,6 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         assertEq(state.totalInputExecuted, totalInputAmount);
     }
 
-    /// @dev Create a DCA order using a pre-registered intent
-    function createDCAOrderWithRegisteredIntent(
-        IDCARegistry.DCAIntent memory intent,
-        bytes memory intentSignature,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        bytes32 dcaNonce
-    ) public view returns (SignedOrder memory signedOrder, bytes32 intentHash) {
-        DCAOrderVars memory vars;
-
-        vars.intent = intent;
-
-        // Create cosigner data for this specific order
-        vars.cosignerData = createBasicCosignerData(inputAmount, outputAmount, dcaNonce);
-
-        // Create validation data with pre-signed intent
-        vars.validationData = IDCARegistry.DCAValidationData({
-            intent: vars.intent,
-            signature: intentSignature, // Reuse the signed intent
-            cosignerData: vars.cosignerData,
-            cosignature: signCosignerData(dcaRegistry.hashDCAIntent(vars.intent), vars.cosignerData, cosignerPrivateKey)
-        });
-
-        // Encode validation data with AllowanceTransfer flag
-        vars.encodedValidationData = abi.encodePacked(uint8(0x01), abi.encode(vars.validationData));
-
-        // Create PriorityOrder with DCA validation
-        vars.outputs = new PriorityOutput[](1);
-        vars.outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
-        });
-
-        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        vars.order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
-                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(
-                vars.encodedValidationData
-            ),
-            cosigner: cosigner,
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: vars.outputs,
-            cosignerData: vars.priorityCosignerData,
-            cosignature: bytes("")
-        });
-        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
-
-        // Encode for UnifiedReactor
-        vars.priorityOrderBytes = abi.encode(vars.order);
-        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
-        vars.signature = signOrder(swapperPrivateKey, address(permit2), vars.order);
-
-        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
-        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
-    }
-
     /// @dev Test that DCA validation enforces user's minimum output amount
     function test_DCAFloorPriceEnforced() public {
         setupTokensForTest();
@@ -555,5 +483,77 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
         assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+    }
+
+    /// @notice Helper to cosign priority orders following PriorityOrderReactor pattern
+    function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
+        private
+        view
+        returns (bytes memory sig)
+    {
+        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
+        sig = bytes.concat(r, s, bytes1(v));
+    }
+
+    /// @dev Create a DCA order using a pre-registered intent
+    function createDCAOrderWithRegisteredIntent(
+        IDCARegistry.DCAIntent memory intent,
+        bytes memory intentSignature,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        bytes32 dcaNonce
+    ) public view returns (SignedOrder memory signedOrder, bytes32 intentHash) {
+        DCAOrderVars memory vars;
+
+        vars.intent = intent;
+
+        // Create cosigner data for this specific order
+        vars.cosignerData = createBasicCosignerData(inputAmount, outputAmount, dcaNonce);
+
+        // Create validation data with pre-signed intent
+        vars.validationData = IDCARegistry.DCAValidationData({
+            intent: vars.intent,
+            signature: intentSignature, // Reuse the signed intent
+            cosignerData: vars.cosignerData,
+            cosignature: signCosignerData(dcaRegistry.hashDCAIntent(vars.intent), vars.cosignerData, cosignerPrivateKey)
+        });
+
+        // Encode validation data with AllowanceTransfer flag
+        vars.encodedValidationData = abi.encodePacked(uint8(0x01), abi.encode(vars.validationData));
+
+        // Create PriorityOrder with DCA validation
+        vars.outputs = new PriorityOutput[](1);
+        vars.outputs[0] = PriorityOutput({
+            token: address(tokenOut),
+            amount: outputAmount,
+            mpsPerPriorityFeeWei: 0,
+            recipient: swapper
+        });
+
+        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+
+        vars.order = PriorityOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(
+                vars.encodedValidationData
+            ),
+            cosigner: cosigner,
+            auctionStartBlock: block.number,
+            baselinePriorityFeeWei: 0,
+            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
+            outputs: vars.outputs,
+            cosignerData: vars.priorityCosignerData,
+            cosignature: bytes("")
+        });
+        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
+
+        // Encode for UnifiedReactor
+        vars.priorityOrderBytes = abi.encode(vars.order);
+        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
+        vars.signature = signOrder(swapperPrivateKey, address(permit2), vars.order);
+
+        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
+        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
     }
 }
