@@ -82,8 +82,7 @@ contract DCARegistry is IDCARegistry, IValidationCallback, EIP712 {
         }
 
         // Validate execution timing
-        if (cosignerData.authorizationTimestamp > block.timestamp + 300) {
-            // Allow 5 min future buffer
+        if (cosignerData.authorizationTimestamp > block.timestamp) {
             revert InvalidauthorizationTimestamp();
         }
 

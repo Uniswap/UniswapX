@@ -144,7 +144,8 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
     /// @dev Create a PriorityOrder with specific resolver and transfer type
     function createPriorityOrder(bool useAllowanceTransfer, address validationContract)
-        internal
+        public
+        view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
         uint256 inputAmount = 1 ether;
@@ -260,14 +261,25 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
 
     /// @dev Create a DCA order with specific parameters
     function createDCAOrder(uint256 inputAmount, uint256 outputAmount, bytes32 dcaNonce, uint256 intentNonce)
-        internal
+        public
+        view
         returns (SignedOrder memory signedOrder, bytes32 intentHash)
     {
         // Use struct hack to avoid stack too deep
         DCAOrderVars memory vars;
 
-        // Create DCA intent
-        vars.intent = createBasicDCAIntent(address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce);
+        // Create private DCA parameters (cosigner generated)
+        PrivateDCAParams memory privateParams = createPrivateDCAParams(
+            2000e18, // totalAmount: 2000 tokens total DCA
+            4, // expectedChunks: plan for 4 executions
+            800, // maxTotalSlippage: 8% max cumulative slippage
+            keccak256(abi.encodePacked("salt", intentNonce))
+        );
+        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
+
+        // Create DCA intent with private commitment
+        vars.intent =
+            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, intentNonce, privateIntentHash);
         vars.intent.minChunkSize = 100e18;
         vars.intent.maxChunkSize = 1000e18;
         vars.intent.minFrequency = 1 hours;
@@ -343,9 +355,18 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         );
         vm.stopPrank();
 
-        // Create the DCA intent once (will be auto-registered on first execution)
+        // Create private DCA parameters that user commits to
+        PrivateDCAParams memory privateParams = createPrivateDCAParams(
+            totalInputAmount, // totalAmount matches what we're testing
+            2, // expectedChunks: 2 chunks as per test
+            500, // maxTotalSlippage: 5% max cumulative slippage
+            keccak256("two_chunk_test_salt")
+        );
+        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
+
+        // Create the DCA intent with private commitment
         IDCARegistry.DCAIntent memory intent =
-            createBasicDCAIntent(address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce);
+            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, intentNonce, privateIntentHash);
         intent.minChunkSize = 100e18;
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;
@@ -401,7 +422,7 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         uint256 inputAmount,
         uint256 outputAmount,
         bytes32 dcaNonce
-    ) internal returns (SignedOrder memory signedOrder, bytes32 intentHash) {
+    ) public view returns (SignedOrder memory signedOrder, bytes32 intentHash) {
         DCAOrderVars memory vars;
 
         vars.intent = intent;
@@ -476,9 +497,18 @@ contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, 
         );
         vm.stopPrank();
 
+        // Create private DCA parameters for floor price test
+        PrivateDCAParams memory privateParams = createPrivateDCAParams(
+            inputAmount, // totalAmount: single execution test
+            1, // expectedChunks: 1 chunk
+            300, // maxTotalSlippage: 3% max slippage
+            keccak256("floor_price_test_salt")
+        );
+        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
+
         // Create DCA intent with minimum output requirement
         IDCARegistry.DCAIntent memory intent =
-            createBasicDCAIntent(address(tokenIn), address(tokenOut), cosigner, swapper, intentNonce);
+            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, intentNonce, privateIntentHash);
         intent.minChunkSize = 100e18;
         intent.maxChunkSize = 1000e18;
         intent.minFrequency = 1 hours;

@@ -9,6 +9,13 @@ import {IDCARegistry} from "../../src/interfaces/IDCARegistry.sol";
 contract DCAIntentSignature is Test {
     using ECDSA for bytes32;
 
+    struct PrivateDCAParams {
+        uint256 totalAmount;
+        uint256 expectedChunks;
+        uint256 maxTotalSlippage;
+        bytes32 salt;
+    }
+
     /// @notice Create a signature for a DCA intent
     /// @param intent The DCA intent to sign
     /// @param privateKey The private key to sign with
@@ -39,19 +46,29 @@ contract DCAIntentSignature is Test {
         return bytes.concat(r, s, bytes1(v));
     }
 
-    /// @notice Helper to create a basic DCA intent for testing
-    /// @param inputToken Token to sell
-    /// @param outputToken Token to buy
-    /// @param cosigner Trusted cosigner address
-    /// @param user User address
-    /// @param nonce User nonce for replay protection
-    /// @return intent A basic DCA intent with reasonable defaults
-    function createBasicDCAIntent(
+    function hashPrivateDCAParams(PrivateDCAParams memory params) public pure returns (bytes32) {
+        return keccak256(abi.encode(params));
+    }
+
+    function createPrivateDCAParams(uint256 totalAmount, uint256 expectedChunks, uint256 maxTotalSlippage, bytes32 salt)
+        public
+        pure
+        returns (PrivateDCAParams memory)
+    {
+        return PrivateDCAParams({
+            totalAmount: totalAmount,
+            expectedChunks: expectedChunks,
+            maxTotalSlippage: maxTotalSlippage,
+            salt: salt
+        });
+    }
+
+    function createPublicDCAIntent(
         address inputToken,
         address outputToken,
         address cosigner,
-        address user,
-        uint256 nonce
+        uint256 nonce,
+        bytes32 privateIntentHash
     ) public view returns (IDCARegistry.DCAIntent memory intent) {
         intent = IDCARegistry.DCAIntent({
             inputToken: inputToken,
@@ -65,7 +82,7 @@ contract DCAIntentSignature is Test {
             maxSlippage: 500, // 5% max slippage
             deadline: block.timestamp + 30 days,
             nonce: nonce,
-            privateIntentHash: keccak256(abi.encode(user, "private", nonce))
+            privateIntentHash: privateIntentHash
         });
     }
 
