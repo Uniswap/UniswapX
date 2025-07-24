@@ -67,7 +67,6 @@ contract DCAIntentSignature is Test {
         address inputToken,
         address outputToken,
         address cosigner,
-        uint256 nonce,
         bytes32 privateIntentHash
     ) public view returns (IDCARegistry.DCAIntent memory intent) {
         intent = IDCARegistry.DCAIntent({
@@ -81,22 +80,23 @@ contract DCAIntentSignature is Test {
             minOutputAmount: 0, // No minimum output amount
             maxSlippage: 500, // 5% max slippage
             deadline: block.timestamp + 30 days,
-            nonce: nonce,
             privateIntentHash: privateIntentHash
         });
     }
 
     /// @notice Helper to create cosigner data for testing
+    /// @param swapper The actual swapper (user) address
     /// @param inputAmount Input amount for this execution
     /// @param minOutputAmount Minimum output expected
     /// @param orderNonce Unique order nonce
     /// @return cosignerData Basic cosigner data
-    function createBasicCosignerData(uint256 inputAmount, uint256 minOutputAmount, bytes32 orderNonce)
+    function createBasicCosignerData(address swapper, uint256 inputAmount, uint256 minOutputAmount, bytes32 orderNonce)
         public
         view
         returns (IDCARegistry.DCAOrderCosignerData memory cosignerData)
     {
         cosignerData = IDCARegistry.DCAOrderCosignerData({
+            swapper: swapper,
             authorizationTimestamp: block.timestamp,
             inputAmount: inputAmount,
             minOutputAmount: minOutputAmount,

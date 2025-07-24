@@ -25,12 +25,12 @@ interface IDCARegistry {
         uint256 minOutputAmount; // Minimum output amount expected for this DCA execution
         uint256 maxSlippage; // Max slippage in basis points (10000 = 100%)
         uint256 deadline; // Intent expiration timestamp
-        uint256 nonce; // Replay protection nonce
         bytes32 privateIntentHash; // Hash of private parameters (total amount, chunks, etc)
     }
 
     /// @notice Cosigner data for specific order execution
     struct DCAOrderCosignerData {
+        address swapper; // The actual swapper (user) address
         uint256 authorizationTimestamp; // When cosigner authorizes execution
         uint256 inputAmount; // Specific input amount for this execution
         uint256 minOutputAmount; // Minimum output amount expected

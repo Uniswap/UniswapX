@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, ResolvedOrderV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {
     PriorityOrderLib,
     PriorityOrder,
@@ -44,7 +44,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
         external
         view
         override
-        returns (ResolvedOrder memory resolvedOrder)
+        returns (ResolvedOrderV2 memory resolvedOrder)
     {
         PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
 
@@ -57,7 +57,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
         InputToken memory scaledInput = order.input.scale(priorityFee);
         OutputToken[] memory scaledOutputs = order.outputs.scale(priorityFee);
 
-        resolvedOrder = ResolvedOrder({
+        resolvedOrder = ResolvedOrderV2({
             info: order.info,
             input: scaledInput,
             outputs: scaledOutputs,
