@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IReactorCallbackV2} from "../interfaces/IReactorCallbackV2.sol";
-import {IPreExecutionHookV2} from "../interfaces/IPreExecutionHookV2.sol";
+
 import {Permit2LibV2} from "../lib/Permit2LibV2.sol";
 import {SignedOrder, ResolvedOrderV2, OutputToken} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IAuctionResolverV2} from "../interfaces/IAuctionResolverV2.sol";
+import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
@@ -111,7 +111,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
 
         SignedOrder memory resolverOrder = SignedOrder({order: orderData, sig: signedOrder.sig});
 
-        IAuctionResolverV2 resolver = IAuctionResolverV2(auctionResolver);
+        IAuctionResolver resolver = IAuctionResolver(auctionResolver);
         resolvedOrder = resolver.resolve(resolverOrder);
     }
 
@@ -170,14 +170,14 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
     /// @notice Call pre-execution hook if set
     function _callPreExecutionHook(ResolvedOrderV2 memory order) internal {
         if (address(order.info.preExecutionHook) != address(0)) {
-            order.info.preExecutionHook.preExecutionHookV2(msg.sender, order);
+            order.info.preExecutionHook.preExecutionHook(msg.sender, order);
         }
     }
 
     /// @notice Transfer input tokens from swapper to filler using permitWitnessTransferFrom
     function _transferInputTokens(ResolvedOrderV2 memory order, address to) internal {
         // Always use SignatureTransfer - get the order type from the resolver
-        string memory orderType = IAuctionResolverV2(order.auctionResolver).getPermit2OrderType();
+        string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
 
         permit2.permitWitnessTransferFrom(
             order.toPermit(), order.transferDetails(to), order.info.swapper, order.hash, orderType, order.sig

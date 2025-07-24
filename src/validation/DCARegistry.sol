@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IDCARegistry} from "../interfaces/IDCARegistry.sol";
 import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
-import {IPreExecutionHookV2} from "../interfaces/IPreExecutionHookV2.sol";
+
 import {ResolvedOrder, ResolvedOrderV2} from "../base/ReactorStructs.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
@@ -13,7 +13,7 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
 /// @notice Registry for tracking and validating DCA order execution with signature verification
 /// @dev Implements EIP-1271 to act as the swapper for DCA orders, enabling permitWitnessTransferFrom
-contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EIP712, IERC1271 {
+contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
     using ECDSA for bytes32;
     using SafeTransferLib for ERC20;
 
@@ -22,16 +22,16 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
 
     // Track registered intents to prevent replay attacks
     mapping(bytes32 => bool) public registeredIntents;
-    
+
     // Track active order hashes for EIP-1271 validation
     mapping(bytes32 => bool) public activeOrderHashes;
-    
+
     // Track if we're currently executing any order (for EIP-1271 validation)
     bool private _executingOrder;
-    
+
     // Track actual swappers for each intent
     mapping(bytes32 => address) public intentSwappers;
-    
+
     // EIP-1271 magic value
     bytes4 private constant MAGICVALUE = 0x1626ba7e;
 
@@ -85,7 +85,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
 
         // Get the actual swapper for this intent
         address actualSwapper = intentSwappers[intentHash];
-        
+
         // Verify swapper signature if intent not already registered
         if (!registeredIntents[intentHash]) {
             // For new intents, the swapper must be provided in the cosigner data
@@ -156,20 +156,20 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
         state.executedChunks++;
         state.lastExecutionTime = block.timestamp;
         state.totalInputExecuted += inputAmount;
-        
+
         // Mark order hash as active for EIP-1271 validation
         activeOrderHashes[order.hash] = true;
-        
+
         // Set execution flag for EIP-1271 validation
         _executingOrder = true;
-        
+
         // Pull tokens from the actual swapper to this contract
         // The reactor will then pull from this contract via permitWitnessTransferFrom
         ERC20(intent.inputToken).safeTransferFrom(actualSwapper, address(this), inputAmount);
     }
 
     /// @notice Pre-execution hook implementation for V2 orders (UnifiedReactor)
-    function preExecutionHookV2(address, ResolvedOrderV2 calldata order) external override {
+    function preExecutionHook(address, ResolvedOrderV2 calldata order) external override {
         // Decode DCA validation data from preExecutionHookData
         if (order.info.preExecutionHookData.length == 0) {
             revert InvalidDCAParams();
@@ -196,7 +196,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
 
         // Get the actual swapper for this intent
         address actualSwapper = intentSwappers[intentHash];
-        
+
         // Verify swapper signature if intent not already registered
         if (!registeredIntents[intentHash]) {
             // For new intents, the swapper must be provided in the cosigner data
@@ -265,13 +265,13 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
         state.executedChunks++;
         state.lastExecutionTime = block.timestamp;
         state.totalInputExecuted += inputAmount;
-        
+
         // Mark order hash as active for EIP-1271 validation
         activeOrderHashes[order.hash] = true;
-        
+
         // Set execution flag for EIP-1271 validation
         _executingOrder = true;
-        
+
         // Pull tokens from the actual swapper to this contract
         // The reactor will then pull from this contract via permitWitnessTransferFrom
         ERC20(intent.inputToken).safeTransferFrom(actualSwapper, address(this), inputAmount);
@@ -405,7 +405,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
             revert InvalidTokens();
         }
     }
-    
+
     /// @inheritdoc IERC1271
     /// @notice Validates signatures for active DCA orders
     /// @dev This allows the DCARegistry to act as the swapper in permitWitnessTransferFrom
@@ -414,17 +414,17 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
         if (activeOrderHashes[hash]) {
             return MAGICVALUE;
         }
-        
+
         // Also check if any order is currently active (temporary fix)
         // Since we've already validated the order in preExecutionHook, any call to isValidSignature
         // during an active execution should be considered valid
         if (_hasActiveOrders()) {
             return MAGICVALUE;
         }
-        
+
         return bytes4(0);
     }
-    
+
     /// @notice Check if there are any active orders
     function _hasActiveOrders() internal view returns (bool) {
         // Return true only when we're actively executing an order.
@@ -432,14 +432,14 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, IPreExecutionHookV2, EI
         // even when Permit2's computed hash differs from our stored order.hash
         return _executingOrder;
     }
-    
+
     /// @notice Cleanup function to mark order as no longer active after execution
     /// @param orderHash The hash of the completed order
     function markOrderComplete(bytes32 orderHash) external {
         // Only the reactor or authorized contracts should call this
         // For now, we'll allow anyone to call it since the order can only execute once
         delete activeOrderHashes[orderHash];
-        
+
         // Clear execution flag
         _executingOrder = false;
     }

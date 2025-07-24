@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo, OrderInfoV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
+import {OrderInfoLibV2} from "./OrderInfoLibV2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 struct PriorityCosignerData {
@@ -29,6 +30,26 @@ struct PriorityOutput {
 struct PriorityOrder {
     // generic order information
     OrderInfo info;
+    // The address which may cosign the order
+    address cosigner;
+    // the block at which the order can be executed
+    uint256 auctionStartBlock;
+    // the baseline priority fee for the order, above which additional taxes are applied
+    uint256 baselinePriorityFeeWei;
+    // The tokens that the swapper will provide when settling the order
+    PriorityInput input;
+    // The tokens that must be received to satisfy the order
+    PriorityOutput[] outputs;
+    // signed over by the cosigner
+    PriorityCosignerData cosignerData;
+    // signature from the cosigner over (orderHash || cosignerData)
+    bytes cosignature;
+}
+
+/// @dev External struct used to specify priority orders
+struct PriorityOrderV2 {
+    // generic order information
+    OrderInfoV2 info;
     // The address which may cosign the order
     address cosigner;
     // the block at which the order can be executed
@@ -153,6 +174,71 @@ library PriorityOrderLib {
     /// @param order the priorityOrder
     /// @param orderHash the hash of the order
     function cosignerDigest(PriorityOrder memory order, bytes32 orderHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(order.cosignerData)));
+    }
+}
+
+/// @notice helpers for handling priority order V2 objects
+library PriorityOrderLibV2 {
+    using OrderInfoLibV2 for OrderInfoV2;
+
+    // EIP712 notes that nested structs should be ordered alphabetically.
+    // With our added PriorityOrderV2 witness, the top level type becomes
+    // "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,PriorityOrderV2 witness)"
+    // Meaning we order the nested structs as follows:
+    // OrderInfoV2, PriorityInput, PriorityOrderV2, PriorityOutput
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked(
+            "PriorityOrderV2 witness)",
+            OrderInfoLibV2.ORDER_INFO_V2_TYPE,
+            PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
+            TOPLEVEL_PRIORITY_ORDER_V2_TYPE,
+            PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE,
+            PriorityOrderLib.TOKEN_PERMISSIONS_TYPE
+        )
+    );
+
+    bytes internal constant TOPLEVEL_PRIORITY_ORDER_V2_TYPE = abi.encodePacked(
+        "PriorityOrderV2(",
+        "OrderInfoV2 info,",
+        "address cosigner,",
+        "uint256 auctionStartBlock,",
+        "uint256 baselinePriorityFeeWei,",
+        "PriorityInput input,",
+        "PriorityOutput[] outputs)"
+    );
+
+    // EIP712 notes that nested structs should be ordered alphabetically:
+    // OrderInfoV2, PriorityInput, PriorityOutput
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        TOPLEVEL_PRIORITY_ORDER_V2_TYPE,
+        OrderInfoLibV2.ORDER_INFO_V2_TYPE,
+        PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE,
+        PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE
+    );
+    bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
+
+    /// @notice hash the given order
+    /// @param order the order to hash
+    /// @return the eip-712 order hash
+    function hash(PriorityOrderV2 memory order) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                ORDER_TYPE_HASH,
+                order.info.hash(),
+                order.cosigner,
+                order.auctionStartBlock,
+                order.baselinePriorityFeeWei,
+                PriorityOrderLib.hash(order.input),
+                PriorityOrderLib.hash(order.outputs)
+            )
+        );
+    }
+
+    /// @notice get the digest of the cosigner data
+    /// @param order the priorityOrderV2
+    /// @param orderHash the hash of the order
+    function cosignerDigest(PriorityOrderV2 memory order, bytes32 orderHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(order.cosignerData)));
     }
 }

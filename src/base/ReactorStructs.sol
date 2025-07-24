@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
 import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
-import {IPreExecutionHookV2} from "../interfaces/IPreExecutionHookV2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev generic order information
@@ -42,7 +41,7 @@ struct OrderInfoV2 {
     // The timestamp after which this order is no longer valid
     uint256 deadline;
     // Pre-execution hook contract
-    IPreExecutionHookV2 preExecutionHook;
+    IPreExecutionHook preExecutionHook;
     // Encoded pre-execution hook data
     bytes preExecutionHookData;
 }
