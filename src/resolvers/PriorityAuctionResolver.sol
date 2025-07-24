@@ -74,7 +74,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid
-    function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
+    function _validateOrder(bytes32 orderHash, PriorityOrderV2 memory order) internal view {
         if (order.info.deadline < block.timestamp) {
             revert InvalidDeadline();
         }
