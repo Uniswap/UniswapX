@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IDCARegistry} from "../interfaces/IDCARegistry.sol";
 import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
 
-import {ResolvedOrder, ResolvedOrderV2} from "../base/ReactorStructs.sol";
+import {ResolvedOrderV2} from "../base/ReactorStructs.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
 import {IERC1271} from "permit2/src/interfaces/IERC1271.sol";
@@ -56,117 +56,6 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
     );
 
     constructor() EIP712("DCARegistry", "1") {}
-
-    /// @inheritdoc IPreExecutionHook
-    function preExecutionHook(address, ResolvedOrder calldata order) external override {
-        // Decode DCA validation data from additionalValidationData
-        if (order.info.additionalValidationData.length == 0) {
-            revert InvalidDCAParams();
-        }
-
-        bytes memory dcaData = order.info.additionalValidationData;
-
-        // Skip AllowanceTransfer prefix if present
-        if (dcaData.length > 0 && dcaData[0] == 0x01) {
-            // Remove the first byte (AllowanceTransfer flag) and decode the rest
-            bytes memory dcaValidationBytes = new bytes(dcaData.length - 1);
-            for (uint256 i = 1; i < dcaData.length; i++) {
-                dcaValidationBytes[i - 1] = dcaData[i];
-            }
-            dcaData = dcaValidationBytes;
-        }
-
-        DCAValidationData memory validationData = abi.decode(dcaData, (DCAValidationData));
-        DCAIntent memory intent = validationData.intent;
-        DCAOrderCosignerData memory cosignerData = validationData.cosignerData;
-
-        // Calculate intent hash
-        bytes32 intentHash = hashDCAIntent(intent);
-
-        // Get the actual swapper for this intent
-        address actualSwapper = intentSwappers[intentHash];
-
-        // Verify swapper signature if intent not already registered
-        if (!registeredIntents[intentHash]) {
-            // For new intents, the swapper must be provided in the cosigner data
-            actualSwapper = cosignerData.swapper;
-            if (actualSwapper == address(0)) {
-                revert InvalidDCAParams();
-            }
-            _verifyIntentSignature(intent, validationData.signature, actualSwapper);
-            _registerIntent(intentHash, intent, actualSwapper);
-        }
-
-        // Verify cosigner signature
-        _verifyCosignerSignature(intent.cosigner, intentHash, cosignerData, validationData.cosignature);
-
-        // Validate intent is still valid
-        if (intent.deadline < block.timestamp) {
-            revert IntentExpired();
-        }
-
-        // Validate execution timing
-        if (cosignerData.authorizationTimestamp > block.timestamp) {
-            revert InvalidauthorizationTimestamp();
-        }
-
-        // Check order nonce hasn't been used
-        if (usedOrderNonces[cosignerData.orderNonce]) {
-            revert OrderNonceAlreadyUsed();
-        }
-        usedOrderNonces[cosignerData.orderNonce] = true;
-
-        // Validate order matches intent parameters
-        _validateOrderAgainstIntent(order, intent, cosignerData);
-
-        // Update execution state
-        DCAExecutionState storage state = executionStates[intentHash];
-
-        // Check frequency constraints
-        if (state.lastExecutionTime > 0) {
-            uint256 timeSinceLastExecution = block.timestamp - state.lastExecutionTime;
-            if (timeSinceLastExecution < intent.minFrequency || timeSinceLastExecution > intent.maxFrequency) {
-                revert InvalidDCAFrequency();
-            }
-        }
-
-        // Check chunk size constraints
-        uint256 inputAmount = order.input.amount;
-        if (inputAmount < intent.minChunkSize || inputAmount > intent.maxChunkSize) {
-            revert InvalidDCAChunkSize();
-        }
-
-        // Verify cosigner-specified input amount matches order
-        if (cosignerData.inputAmount != inputAmount) {
-            revert InvalidDCAParams();
-        }
-
-        // Enforce swapper's minimum output amount requirement
-        uint256 totalOutputAmount = 0;
-        for (uint256 i = 0; i < order.outputs.length; i++) {
-            if (order.outputs[i].token == intent.outputToken) {
-                totalOutputAmount += order.outputs[i].amount;
-            }
-        }
-        if (totalOutputAmount < intent.minOutputAmount) {
-            revert DCAFloorPriceNotMet();
-        }
-
-        // Update state for next validation
-        state.executedChunks++;
-        state.lastExecutionTime = block.timestamp;
-        state.totalInputExecuted += inputAmount;
-
-        // Mark order hash as active for EIP-1271 validation
-        activeOrderHashes[order.hash] = true;
-
-        // Set execution flag for EIP-1271 validation
-        _executingOrder = true;
-
-        // Pull tokens from the actual swapper to this contract
-        // The reactor will then pull from this contract via permitWitnessTransferFrom
-        ERC20(intent.inputToken).safeTransferFrom(actualSwapper, address(this), inputAmount);
-    }
 
     /// @notice Pre-execution hook implementation for V2 orders (UnifiedReactor)
     function preExecutionHook(address, ResolvedOrderV2 calldata order) external override {
@@ -379,7 +268,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
     /// @notice Validate that the order parameters match the DCA intent and cosigner data
     function _validateOrderAgainstIntent(
-        ResolvedOrder calldata order,
+        ResolvedOrderV2 calldata order,
         DCAIntent memory intent,
         DCAOrderCosignerData memory cosignerData
     ) internal pure {

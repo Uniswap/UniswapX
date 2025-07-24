@@ -5,7 +5,9 @@ import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {SignedOrder, ResolvedOrderV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
 import {
     PriorityOrderLib,
+    PriorityOrderLibV2,
     PriorityOrder,
+    PriorityOrderV2,
     PriorityInput,
     PriorityOutput,
     PriorityCosignerData
@@ -16,7 +18,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Auction resolver for priority fee based orders
 contract PriorityAuctionResolver is IAuctionResolver {
-    using PriorityOrderLib for PriorityOrder;
+    using PriorityOrderLibV2 for PriorityOrderV2;
     using PriorityFeeLib for PriorityInput;
     using PriorityFeeLib for PriorityOutput;
     using PriorityFeeLib for PriorityOutput[];
@@ -46,7 +48,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
         override
         returns (ResolvedOrderV2 memory resolvedOrder)
     {
-        PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
+        PriorityOrderV2 memory order = abi.decode(signedOrder.order, (PriorityOrderV2));
 
         _checkPermit2Nonce(order.info.swapper, order.info.nonce);
 
@@ -142,6 +144,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
 
     /// @inheritdoc IAuctionResolver
     function getPermit2OrderType() external pure override returns (string memory) {
-        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
+        return PriorityOrderLibV2.PERMIT2_ORDER_TYPE;
     }
 }

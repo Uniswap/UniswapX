@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../../../src/interfaces/IAuctionResolver.sol";
-import {SignedOrder, ResolvedOrder, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
-import {PriorityOrder, PriorityOrderLib} from "../../../src/lib/PriorityOrderLib.sol";
+import {SignedOrder, ResolvedOrderV2, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
+import {PriorityOrderV2, PriorityOrderLibV2} from "../../../src/lib/PriorityOrderLib.sol";
 
 /// @notice Mock auction resolver for testing that returns orders as-is
 contract MockAuctionResolver is IAuctionResolver {
-    using PriorityOrderLib for PriorityOrder;
+    using PriorityOrderLibV2 for PriorityOrderV2;
     /// @inheritdoc IAuctionResolver
 
     function auctionType() external pure override returns (string memory) {
@@ -19,9 +19,9 @@ contract MockAuctionResolver is IAuctionResolver {
         external
         view
         override
-        returns (ResolvedOrder memory resolvedOrder)
+        returns (ResolvedOrderV2 memory resolvedOrder)
     {
-        PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
+        PriorityOrderV2 memory order = abi.decode(signedOrder.order, (PriorityOrderV2));
 
         // Convert PriorityInput to InputToken
         InputToken memory input =
@@ -37,7 +37,7 @@ contract MockAuctionResolver is IAuctionResolver {
             });
         }
 
-        resolvedOrder = ResolvedOrder({
+        resolvedOrder = ResolvedOrderV2({
             info: order.info,
             input: input,
             outputs: outputs,
@@ -49,6 +49,6 @@ contract MockAuctionResolver is IAuctionResolver {
 
     /// @inheritdoc IAuctionResolver
     function getPermit2OrderType() external pure override returns (string memory) {
-        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
+        return PriorityOrderLibV2.PERMIT2_ORDER_TYPE;
     }
 }

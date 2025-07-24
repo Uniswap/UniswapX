@@ -182,6 +182,44 @@ library PriorityOrderLib {
 library PriorityOrderLibV2 {
     using OrderInfoLibV2 for OrderInfoV2;
 
+    /// @notice returns the hash of an input token struct
+    function hash(PriorityInput memory input) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                PriorityOrderLib.PRIORITY_INPUT_TOKEN_TYPE_HASH, input.token, input.amount, input.mpsPerPriorityFeeWei
+            )
+        );
+    }
+
+    /// @notice returns the hash of an output token struct
+    function hash(PriorityOutput memory output) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                PriorityOrderLib.PRIORITY_OUTPUT_TOKEN_TYPE_HASH,
+                output.token,
+                output.amount,
+                output.mpsPerPriorityFeeWei,
+                output.recipient
+            )
+        );
+    }
+
+    /// @notice returns the hash of an array of output token struct
+    function hash(PriorityOutput[] memory outputs) private pure returns (bytes32) {
+        unchecked {
+            bytes memory packedHashes = new bytes(32 * outputs.length);
+
+            for (uint256 i = 0; i < outputs.length; i++) {
+                bytes32 outputHash = hash(outputs[i]);
+                assembly {
+                    mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), outputHash)
+                }
+            }
+
+            return keccak256(packedHashes);
+        }
+    }
+
     // EIP712 notes that nested structs should be ordered alphabetically.
     // With our added PriorityOrderV2 witness, the top level type becomes
     // "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,PriorityOrderV2 witness)"
@@ -229,8 +267,8 @@ library PriorityOrderLibV2 {
                 order.cosigner,
                 order.auctionStartBlock,
                 order.baselinePriorityFeeWei,
-                PriorityOrderLib.hash(order.input),
-                PriorityOrderLib.hash(order.outputs)
+                hash(order.input),
+                hash(order.outputs)
             )
         );
     }
