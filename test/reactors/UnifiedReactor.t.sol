@@ -22,7 +22,6 @@ import {MockAuctionResolver} from "../util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
-import {StateModifyingHook} from "../util/mock/StateModifyingHook.sol";
 
 contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilderV2 for OrderInfoV2;
@@ -78,6 +77,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     /// @dev Create a signed order for UnifiedReactor using MockOrder
     function createAndSignOrder(MockOrder memory mockOrder)
         public
+        view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
         orderHash = mockOrder.hash();
@@ -97,6 +97,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     /// @dev Create many signed orders and return
     function createAndSignBatchOrders(MockOrder[] memory orders)
         public
+        view
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
     {
         signedOrders = new SignedOrder[](orders.length);

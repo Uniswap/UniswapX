@@ -24,7 +24,7 @@ contract MockPreExecutionHook is IPreExecutionHook {
     }
 
     /// @inheritdoc IPreExecutionHook
-    function preExecutionHook(address filler, ResolvedOrderV2 calldata resolvedOrder) external override {
+    function preExecutionHook(address filler, ResolvedOrderV2 calldata) external override {
         // First check global validity
         if (!isValid) {
             revert MockPreExecutionError();
