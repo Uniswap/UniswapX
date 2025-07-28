@@ -11,7 +11,8 @@ import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/Exclusi
 import {V2DutchOrder, V2DutchOrderLib} from "../../src/lib/V2DutchOrderLib.sol";
 import {V3DutchOrder, V3DutchOrderLib} from "../../src/lib/V3DutchOrderLib.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
-import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo, OrderInfoV2, InputToken} from "../../src/base/ReactorStructs.sol";
+import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -20,6 +21,7 @@ contract PermitSignature is Test {
     using V2DutchOrderLib for V2DutchOrder;
     using PriorityOrderLib for PriorityOrder;
     using V3DutchOrderLib for V3DutchOrder;
+    using MockOrderLib for MockOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -46,8 +48,8 @@ contract PermitSignature is Test {
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
 
-    // bytes32 constant UNIFIED_ORDER_TYPE_HASH =
-    //     keccak256(abi.encodePacked(TYPEHASH_STUB, UnifiedOrderLib.PERMIT2_ORDER_TYPE));
+    bytes32 constant MOCK_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
 
     function getPermitSignature(
         uint256 privateKey,
@@ -184,21 +186,38 @@ contract PermitSignature is Test {
         );
     }
 
-    // function signOrder(uint256 privateKey, address permit2, UnifiedOrder memory order)
-    //     internal
-    //     view
-    //     returns (bytes memory sig)
-    // {
-    //     return signOrder(
-    //         privateKey,
-    //         permit2,
-    //         order.info.baseInfo,
-    //         address(order.input.token),
-    //         order.input.maxAmount,
-    //         UNIFIED_ORDER_TYPE_HASH,
-    //         order.hash()
-    //     );
-    // }
+    function signOrder(
+        uint256 privateKey,
+        address permit2,
+        OrderInfoV2 memory info,
+        address inputToken,
+        uint256 inputAmount,
+        bytes32 typeHash,
+        bytes32 orderHash
+    ) internal view returns (bytes memory sig) {
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
+            nonce: info.nonce,
+            deadline: info.deadline
+        });
+        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
+    }
+
+    function signOrder(uint256 privateKey, address permit2, MockOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        return signOrder(
+            privateKey,
+            permit2,
+            order.info,
+            address(order.input.token),
+            order.input.maxAmount,
+            MOCK_ORDER_TYPE_HASH,
+            order.hash()
+        );
+    }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, NAME_HASH, block.chainid, permit2));

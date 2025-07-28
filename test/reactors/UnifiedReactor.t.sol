@@ -1,557 +1,462 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
-import {UnifiedReactor} from "../../src/reactors/UnifiedReactor.sol";
-import {BaseReactor} from "../../src/reactors/BaseReactor.sol";
-import {OrderInfo, InputToken, OutputToken, SignedOrder, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
-import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {MockERC20} from "../util/mock/MockERC20.sol";
-import {MockFillContract} from "../util/mock/MockFillContract.sol";
-import {MockFeeController} from "../util/mock/MockFeeController.sol";
-import {MockValidationContract} from "../util/mock/MockValidationContract.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {UnifiedReactor} from "../../src/reactors/UnifiedReactor.sol";
+import {IReactor} from "../../src/interfaces/IReactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
-import {BaseReactorTest} from "../base/BaseReactor.t.sol";
+import {ResolvedOrderV2, SignedOrder, OrderInfoV2, InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {OrderInfoBuilderV2} from "../util/OrderInfoBuilderV2.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
-import {PriorityAuctionResolver} from "../../src/resolvers/PriorityAuctionResolver.sol";
-import {
-    PriorityOrder,
-    PriorityInput,
-    PriorityOutput,
-    PriorityCosignerData,
-    PriorityOrderLib
-} from "../../src/lib/PriorityOrderLib.sol";
-import {CosignerLib} from "../../src/lib/CosignerLib.sol";
-import {DCARegistry} from "../../src/validation/DCARegistry.sol";
-import {DCAIntentSignature} from "../util/DCAIntentSignature.sol";
-import {IDCARegistry} from "../../src/interfaces/IDCARegistry.sol";
-import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
+import {MockFillContractV2} from "../util/mock/MockFillContractV2.sol";
+import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoubleExecution.sol";
+import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
+import {MockFeeController} from "../util/mock/MockFeeController.sol";
+import {MockPreExecutionHook} from "../util/mock/MockPreExecutionHook.sol";
+import {MockAuctionResolver} from "../util/mock/MockAuctionResolver.sol";
+import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
+import {ArrayBuilder} from "../util/ArrayBuilder.sol";
+import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {StateModifyingHook} from "../util/mock/StateModifyingHook.sol";
 
-contract UnifiedReactorTest is PermitSignature, DeployPermit2, BaseReactorTest, DCAIntentSignature {
-    using OrderInfoBuilder for OrderInfo;
-    using PriorityOrderLib for PriorityOrder;
+contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
+    using OrderInfoBuilderV2 for OrderInfoV2;
+    using MockOrderLib for MockOrder;
+    using ArrayBuilder for uint256[];
 
-    UnifiedReactor unifiedReactor;
-    PriorityAuctionResolver priorityResolver;
-    DCARegistry dcaRegistry;
+    uint256 constant ONE = 10 ** 18;
+    address internal constant PROTOCOL_FEE_OWNER = address(1);
 
-    uint256 cosignerPrivateKey = 0x99999999;
-    address cosigner;
+    MockERC20 tokenIn;
+    MockERC20 tokenOut;
+    MockERC20 tokenOut2;
+    MockFillContractV2 fillContract;
+    MockPreExecutionHook preExecutionHook;
+    IPermit2 permit2;
+    MockFeeController feeController;
+    address feeRecipient;
+    UnifiedReactor reactor;
+    MockAuctionResolver mockResolver;
+    uint256 swapperPrivateKey;
+    address swapper;
 
-    /// @dev Struct to avoid stack too deep in DCA order creation
-    struct DCAOrderVars {
-        IDCARegistry.DCAIntent intent;
-        IDCARegistry.DCAOrderCosignerData cosignerData;
-        IDCARegistry.DCAValidationData validationData;
-        bytes encodedValidationData;
-        PriorityOutput[] outputs;
-        PriorityCosignerData priorityCosignerData;
-        PriorityOrder order;
-        bytes priorityOrderBytes;
-        bytes encodedOrder;
-        bytes signature;
-    }
-
-    function name() public pure override returns (string memory) {
-        return "UnifiedReactor";
-    }
+    error InvalidNonce();
+    error InvalidSigner();
+    error InvalidReactor();
+    error DeadlinePassed();
 
     function setUp() public {
-        cosigner = vm.addr(cosignerPrivateKey);
+        tokenIn = new MockERC20("Input", "IN", 18);
+        tokenOut = new MockERC20("Output", "OUT", 18);
+        tokenOut2 = new MockERC20("Output2", "OUT2", 18);
+        swapperPrivateKey = 0x12341234;
+        swapper = vm.addr(swapperPrivateKey);
+        permit2 = IPermit2(deployPermit2());
+        preExecutionHook = new MockPreExecutionHook();
+        preExecutionHook.setValid(true);
+        feeRecipient = makeAddr("feeRecipient");
+        feeController = new MockFeeController(feeRecipient);
 
-        // Deploy resolvers
-        priorityResolver = new PriorityAuctionResolver(permit2);
+        // Deploy UnifiedReactor
+        reactor = new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
 
-        // Deploy DCA registry
-        dcaRegistry = new DCARegistry();
+        // Deploy mock resolver
+        mockResolver = new MockAuctionResolver();
 
-        // Setup validation contract
-        additionalValidationContract.setValid(true);
+        // Deploy fill contract
+        fillContract = new MockFillContractV2(address(reactor));
 
         // Provide ETH to fill contract for native transfers
         vm.deal(address(fillContract), type(uint256).max);
-
-        // Set unifiedReactor reference
-        unifiedReactor = UnifiedReactor(payable(address(reactor)));
     }
 
-    function createReactor() public override returns (BaseReactor) {
-        return new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
+    /// @dev Create a signed order for UnifiedReactor using MockOrder
+    function createAndSignOrder(MockOrder memory mockOrder)
+        public
+        returns (SignedOrder memory signedOrder, bytes32 orderHash)
+    {
+        orderHash = mockOrder.hash();
+
+        // Sign the order
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), mockOrder);
+
+        // Encode the order data for the resolver
+        bytes memory orderData = abi.encode(mockOrder);
+
+        // Wrap with resolver address for UnifiedReactor
+        bytes memory encodedOrder = abi.encode(address(mockResolver), orderData);
+
+        signedOrder = SignedOrder(encodedOrder, sig);
     }
 
-    /// @dev Test execution with priority order resolver
-    function test_executeWithPriorityAuctionResolver() public {
-        setupTokensForTest();
+    /// @dev Create many signed orders and return
+    function createAndSignBatchOrders(MockOrder[] memory orders)
+        public
+        returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
+    {
+        signedOrders = new SignedOrder[](orders.length);
+        orderHashes = new bytes32[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(orders[i]);
+            signedOrders[i] = signed;
+            orderHashes[i] = hash;
+        }
+    }
 
+    /// @dev Helper to create a basic MockOrder
+    function createBasicOrder(uint256 inputAmount, uint256 outputAmount, uint256 deadline)
+        internal
+        view
+        returns (MockOrder memory)
+    {
+        return MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+    }
+
+    /// @dev Checkpoint token balances for assertions
+    function _checkpointBalances()
+        internal
+        view
+        returns (
+            uint256 swapperInputBalance,
+            uint256 fillContractInputBalance,
+            uint256 swapperOutputBalance,
+            uint256 fillContractOutputBalance
+        )
+    {
+        swapperInputBalance = tokenIn.balanceOf(swapper);
+        fillContractInputBalance = tokenIn.balanceOf(address(fillContract));
+        swapperOutputBalance = tokenOut.balanceOf(swapper);
+        fillContractOutputBalance = tokenOut.balanceOf(address(fillContract));
+    }
+
+    /// @dev Test of a simple execute
+    function test_execute() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
 
+        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createPriorityOrder(false, address(0));
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(fillContract), swapper, 0);
-
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
         fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteSingle");
 
-        assertEq(tokenIn.balanceOf(swapper), 0);
-        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
-        assertEq(tokenOut.balanceOf(swapper), outputAmount);
-        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
     }
 
-    /// @dev Test execution with empty auction resolver reverts
-    function test_emptyAuctionResolverReverts() public {
-        setupTokensForTest();
+    // TODO: Add protocol fee test once UnifiedReactor supports ProtocolFees
+    // The current UnifiedReactor implementation doesn't inherit from ProtocolFees
+    // so fee functionality is not available yet.
 
+    /// @dev Basic execute test for native currency output
+    function test_executeNativeOutput() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
 
+        // Seed swapper with tokens and fillContract with ETH
+        tokenIn.mint(address(swapper), inputAmount);
+        vm.deal(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 swapperOutputBalanceStart = address(swapper).balance;
+        uint256 fillContractOutputBalanceStart = address(fillContract).balance;
+        (uint256 swapperInputBalanceStart, uint256 fillContractInputBalanceStart,,) = _checkpointBalances();
+
+        // execute order
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteSingleNativeOutput");
+
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(address(swapper).balance, swapperOutputBalanceStart + outputAmount);
+        assertEq(address(fillContract).balance, fillContractOutputBalanceStart - outputAmount);
+    }
+
+    /// @dev Execute test with a pre-execution hook
+    function test_executeWithPreExecutionHook() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        // Create order with empty resolver address following proper pattern
-        PriorityOutput[] memory outputs = new PriorityOutput[](1);
-        outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
+        // No need to set filler as valid - fillers are valid by default
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                preExecutionHook
+            ),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
-            cosigner: vm.addr(cosignerPrivateKey),
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: outputs,
-            cosignerData: cosignerData,
-            cosignature: bytes("")
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
+
+        // Check pre-execution hook state before
+        uint256 counterBefore = preExecutionHook.preExecutionCounter();
+        uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
+
+        // execute order
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteSingleWithHook");
+
+        // Verify hook was called and state was modified
+        assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
+        assertEq(preExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
+
+        // Verify token transfers
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
+    }
+
+    /// @dev Test pre-execution hook that fails validation
+    function test_executeWithPreExecutionHookFail() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        // Seed both swapper and fillContract with enough tokens
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        // Set hook to invalid state
+        preExecutionHook.setValid(false);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                preExecutionHook
+            ),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        bytes memory priorityOrderBytes = abi.encode(order);
-        bytes memory encodedOrder = abi.encode(address(0), priorityOrderBytes); // Empty resolver
-        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        SignedOrder memory signedOrder = SignedOrder(encodedOrder, signature);
-
-        vm.expectRevert(UnifiedReactor.EmptyAuctionResolver.selector);
+        vm.expectRevert(MockPreExecutionHook.MockPreExecutionError.selector);
         fillContract.execute(signedOrder);
     }
 
-    /// @dev Create a DCA order with specific parameters
-    function createDCAOrder(uint256 inputAmount, uint256 outputAmount, bytes32 dcaNonce, uint256 orderNumber)
-        public
-        view
-        returns (SignedOrder memory signedOrder, bytes32 intentHash)
-    {
-        // Use struct hack to avoid stack too deep
-        DCAOrderVars memory vars;
+    /// @dev Basic batch execute test
+    function test_executeBatch() public {
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = 2 * inputAmount;
 
-        // Create private DCA parameters (cosigner generated)
-        PrivateDCAParams memory privateParams = createPrivateDCAParams(
-            2000e18, // totalAmount: 2000 tokens total DCA
-            4, // expectedChunks: plan for 4 executions
-            800, // maxTotalSlippage: 8% max cumulative slippage
-            keccak256(abi.encodePacked("salt", orderNumber))
-        );
-        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
+        tokenIn.mint(address(swapper), inputAmount * 3);
+        tokenOut.mint(address(fillContract), 6 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
-        // Create DCA intent with private commitment
-        vars.intent =
-            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, privateIntentHash);
-        vars.intent.minChunkSize = 100e18;
-        vars.intent.maxChunkSize = 1000e18;
-        vars.intent.minFrequency = 1 hours;
-        vars.intent.maxFrequency = 24 hours;
-        vars.intent.minOutputAmount = outputAmount; // Set minimum output for this execution
+        uint256 totalOutputAmount = 3 * outputAmount;
+        uint256 totalInputAmount = 3 * inputAmount;
 
-        // Create cosigner data
-        vars.cosignerData = createBasicCosignerData(swapper, inputAmount, outputAmount, dcaNonce);
+        MockOrder[] memory orders = new MockOrder[](2);
 
-        // Create validation data with signatures
-        vars.validationData = createSignedDCAValidationData(
-            vars.intent, vars.cosignerData, swapperPrivateKey, cosignerPrivateKey, dcaRegistry
-        );
-
-        // Encode validation data without AllowanceTransfer flag (EIP-1271 design)
-        vars.encodedValidationData = abi.encode(vars.validationData);
-
-        // Create PriorityOrder with DCA validation
-        vars.outputs = new PriorityOutput[](1);
-        vars.outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
+        orders[0] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(0),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        vars.order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(dcaRegistry)).withNonce(uint256(dcaNonce)).withDeadline(block.timestamp + 1000)
-                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(vars.encodedValidationData),
-            cosigner: cosigner,
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: vars.outputs,
-            cosignerData: vars.priorityCosignerData,
-            cosignature: bytes("")
+        orders[1] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
-        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
 
-        // Encode for UnifiedReactor
-        vars.priorityOrderBytes = abi.encode(vars.order);
-        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
-        // Empty signature since DCARegistry uses EIP-1271
-        vars.signature = "";
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
 
-        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
-        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
-    }
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
-    /// @dev Test DCA execution with two chunks
-    function test_executeDCAOrderTwoChunks() public {
-        setupTokensForTest();
+        fillContract.executeBatch(signedOrders);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteBatch");
 
-        uint256 chunk1Amount = 500e18; // 500 tokens per chunk
-        uint256 chunk2Amount = 300e18; // 300 tokens for second chunk
-        uint256 outputAmount1 = 0.2 ether;
-        uint256 outputAmount2 = 0.12 ether;
-        uint256 totalInputAmount = chunk1Amount + chunk2Amount;
-        // Both chunks use the same intent, but different order nonces
-
-        // Mint tokens for both chunks
-        tokenIn.mint(address(swapper), totalInputAmount);
-        tokenOut.mint(address(fillContract), outputAmount1 + outputAmount2);
-
-        // Setup DCARegistry approval for new EIP-1271 design
-        vm.startPrank(swapper);
-        tokenIn.approve(address(dcaRegistry), totalInputAmount);
-        vm.stopPrank();
-        
-        // DCARegistry needs approval to transfer to permit2
-        vm.prank(address(dcaRegistry));
-        tokenIn.approve(address(permit2), type(uint256).max);
-
-        // Create private DCA parameters that swapper commits to
-        PrivateDCAParams memory privateParams = createPrivateDCAParams(
-            totalInputAmount, // totalAmount matches what we're testing
-            2, // expectedChunks: 2 chunks as per test
-            500, // maxTotalSlippage: 5% max cumulative slippage
-            keccak256("two_chunk_test_salt")
-        );
-        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
-
-        // Create the DCA intent with private commitment
-        IDCARegistry.DCAIntent memory intent =
-            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, privateIntentHash);
-        intent.minChunkSize = 100e18;
-        intent.maxChunkSize = 1000e18;
-        intent.minFrequency = 1 hours;
-        intent.maxFrequency = 24 hours;
-        intent.minOutputAmount = 0.1 ether; // swapper requires at least 0.1 ETH output per execution
-
-        bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
-        bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
-
-        // Execute first chunk - this will auto-register the DCA intent
-        (SignedOrder memory signedOrder1,) =
-            signDCAOrder(intent, intentSignature, chunk1Amount, outputAmount1, bytes32(uint256(1)));
-
-        fillContract.execute(signedOrder1);
-
-        // Verify first chunk execution
-        assertEq(tokenIn.balanceOf(swapper), chunk2Amount); // Remaining tokens
-        assertEq(tokenIn.balanceOf(address(fillContract)), chunk1Amount);
-        assertEq(tokenOut.balanceOf(swapper), outputAmount1);
-
-        // Verify DCA state after first chunk
-        IDCARegistry.DCAExecutionState memory state = dcaRegistry.getExecutionState(intentHash);
-        assertEq(state.executedChunks, 1);
-        assertEq(state.totalInputExecuted, chunk1Amount);
-        assertEq(state.lastExecutionTime, block.timestamp);
-
-        // Wait to satisfy frequency constraints (move forward 2 hours)
-        vm.warp(block.timestamp + 2 hours);
-
-        // Execute second chunk using the same intent (now registered)
-        (SignedOrder memory signedOrder2,) =
-            signDCAOrder(intent, intentSignature, chunk2Amount, outputAmount2, bytes32(uint256(2)));
-
-        fillContract.execute(signedOrder2);
-
-        // Verify final state
-        assertEq(tokenIn.balanceOf(swapper), 0); // All tokens used
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
-        assertEq(tokenOut.balanceOf(swapper), outputAmount1 + outputAmount2);
-
-        // Verify final DCA state
-        state = dcaRegistry.getExecutionState(intentHash);
-        assertEq(state.executedChunks, 2);
-        assertEq(state.totalInputExecuted, totalInputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), totalOutputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), 6 ether - totalOutputAmount);
     }
 
-    /// @dev Test that DCA validation enforces swapper's minimum output amount
-    function test_DCAFloorPriceEnforced() public {
-        setupTokensForTest();
-
-        uint256 inputAmount = 500e18;
-        uint256 swapperMinOutput = 0.2 ether; // swapper requires at least 0.2 ETH
-        uint256 lowOutput = 0.1 ether; // Cosigner tries to authorize only 0.1 ETH
-        // Single order test
-
-        // Mint tokens
-        tokenIn.mint(address(swapper), inputAmount);
-        tokenOut.mint(address(fillContract), lowOutput);
-
-        // Setup DCARegistry approval for new EIP-1271 design
-        vm.startPrank(swapper);
-        tokenIn.approve(address(dcaRegistry), inputAmount);
-        vm.stopPrank();
-        
-        // DCARegistry needs approval to transfer to permit2
-        vm.prank(address(dcaRegistry));
-        tokenIn.approve(address(permit2), type(uint256).max);
-
-        // Create private DCA parameters for floor price test
-        PrivateDCAParams memory privateParams = createPrivateDCAParams(
-            inputAmount, // totalAmount: single execution test
-            1, // expectedChunks: 1 chunk
-            300, // maxTotalSlippage: 3% max slippage
-            keccak256("floor_price_test_salt")
-        );
-        bytes32 privateIntentHash = hashPrivateDCAParams(privateParams);
-
-        // Create DCA intent with minimum output requirement
-        IDCARegistry.DCAIntent memory intent =
-            createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, privateIntentHash);
-        intent.minChunkSize = 100e18;
-        intent.maxChunkSize = 1000e18;
-        intent.minFrequency = 1 hours;
-        intent.maxFrequency = 24 hours;
-        intent.minOutputAmount = swapperMinOutput; // swapper signed intent requires 0.2 ETH minimum
-
-        bytes memory intentSignature = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
-
-        // Try to create order with output below swapper's minimum
-        (SignedOrder memory signedOrder,) =
-            signDCAOrder(intent, intentSignature, inputAmount, lowOutput, bytes32(uint256(1)));
-
-        // Should revert with DCAFloorPriceNotMet because 0.1 ETH < 0.2 ETH minimum
-        vm.expectRevert(DCARegistry.DCAFloorPriceNotMet.selector);
-        fillContract.execute(signedOrder);
-    }
-
-    /// @dev Test AllowanceTransfer mode
-    function test_executeWithAllowanceTransfer() public {
-        setupTokensForTest();
-
+    /// @dev Test invalid reactor error
+    function test_executeInvalidReactor() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
 
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        // Approve reactor for AllowanceTransfer
-        vm.startPrank(swapper);
-        tokenIn.approve(address(permit2), type(uint256).max);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(tokenIn), address(unifiedReactor), uint160(inputAmount), uint48(block.timestamp + 1000)
-        );
-        vm.stopPrank();
+        // Create order with wrong reactor address
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(0x1234)).withSwapper(swapper) // Wrong reactor
+                .withDeadline(deadline),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createPriorityOrder(true, address(0)); // true = useAllowanceTransfer
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        vm.expectRevert(InvalidReactor.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test deadline passed error
+    function test_executeDeadlinePassed() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp - 1; // Past deadline
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        vm.expectRevert(DeadlinePassed.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test signature replay protection
+    function test_executeSignatureReplay() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount * 2);
+        tokenOut.mint(address(fillContract), outputAmount * 2);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
+
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Execute once successfully
+        fillContract.execute(signedOrder);
+
+        // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
+        vm.expectRevert(InvalidNonce.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test with multiple outputs
+    function test_executeBatchMultipleOutputs() public {
+        uint256 inputAmount = 3 ether;
+        uint256[] memory outputAmounts = new uint256[](2);
+        outputAmounts[0] = 2 ether;
+        outputAmounts[1] = 1 ether;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), 3 ether);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
+        });
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(fillContract), swapper, 0);
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
 
         fillContract.execute(signedOrder);
 
-        assertEq(tokenIn.balanceOf(swapper), 0);
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
-        assertEq(tokenOut.balanceOf(swapper), outputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), 3 ether);
         assertEq(tokenOut.balanceOf(address(fillContract)), 0);
     }
 
-    /// @notice Helper to cosign priority orders following PriorityOrderReactor pattern
-    function cosignOrder(bytes32 orderHash, PriorityCosignerData memory cosignerData)
-        private
-        view
-        returns (bytes memory sig)
-    {
-        bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
-        sig = bytes.concat(r, s, bytes1(v));
-    }
+    /// @dev Fuzz test preExecutionHook with random amounts
+    function testFuzz_executeWithPreExecutionHook(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
+        vm.assume(deadline > block.timestamp);
+        vm.assume(inputAmount > 0);
+        vm.assume(outputAmount > 0);
 
-    /// @dev Create a DCA order
-    function signDCAOrder(
-        IDCARegistry.DCAIntent memory intent,
-        bytes memory intentSignature,
-        uint256 inputAmount,
-        uint256 outputAmount,
-        bytes32 dcaNonce
-    ) public view returns (SignedOrder memory signedOrder, bytes32 intentHash) {
-        DCAOrderVars memory vars;
+        // Seed both swapper and fillContract with enough tokens
+        tokenIn.mint(address(swapper), uint256(inputAmount));
+        tokenOut.mint(address(fillContract), uint256(outputAmount));
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        vars.intent = intent;
-
-        // Create cosigner data for this specific order
-        vars.cosignerData = createBasicCosignerData(swapper, inputAmount, outputAmount, dcaNonce);
-
-        // Create validation data with pre-signed intent
-        vars.validationData = IDCARegistry.DCAValidationData({
-            intent: vars.intent,
-            signature: intentSignature, // Reuse the signed intent
-            cosignerData: vars.cosignerData,
-            cosignature: signCosignerData(dcaRegistry.hashDCAIntent(vars.intent), vars.cosignerData, cosignerPrivateKey)
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                preExecutionHook
+            ),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        // Encode validation data without AllowanceTransfer flag (EIP-1271 design)
-        vars.encodedValidationData = abi.encode(vars.validationData);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        // Create PriorityOrder with DCA validation
-        vars.outputs = new PriorityOutput[](1);
-        vars.outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
-        });
+        uint256 counterBefore = preExecutionHook.preExecutionCounter();
+        uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
 
-        vars.priorityCosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
+        // execute order
+        fillContract.execute(signedOrder);
 
-        vars.order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(dcaRegistry)).withNonce(uint256(dcaNonce)).withDeadline(block.timestamp + 1000)
-                .withValidationContract(IValidationCallback(address(dcaRegistry))).withValidationData(vars.encodedValidationData),
-            cosigner: cosigner,
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: vars.outputs,
-            cosignerData: vars.priorityCosignerData,
-            cosignature: bytes("")
-        });
-        vars.order.cosignature = cosignOrder(vars.order.hash(), vars.priorityCosignerData);
+        // Verify hook was called and state was modified
+        assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
+        assertEq(preExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
 
-        // Encode for UnifiedReactor
-        vars.priorityOrderBytes = abi.encode(vars.order);
-        vars.encodedOrder = abi.encode(address(priorityResolver), vars.priorityOrderBytes);
-        // Empty signature since DCARegistry uses EIP-1271
-        vars.signature = "";
-
-        signedOrder = SignedOrder(vars.encodedOrder, vars.signature);
-        intentHash = dcaRegistry.hashDCAIntent(vars.intent);
-    }
-
-    /// @dev Helper to set up tokens for a test
-    function setupTokensForTest() internal {
-        tokenIn = new MockERC20("Fresh Input", "FIN", 18);
-        tokenOut = new MockERC20("Fresh Output", "FOUT", 18);
-        tokenOut2 = new MockERC20("Fresh Output2", "FOUT2", 18);
-    }
-
-    /// @dev Create and sign a PriorityOrder following PriorityOrderReactor.t.sol pattern
-    function createAndSignOrder(ResolvedOrder memory request)
-        public
-        view
-        override
-        returns (SignedOrder memory signedOrder, bytes32 orderHash)
-    {
-        PriorityOutput[] memory outputs = new PriorityOutput[](request.outputs.length);
-        for (uint256 i = 0; i < request.outputs.length; i++) {
-            outputs[i] = PriorityOutput({
-                token: request.outputs[i].token,
-                amount: request.outputs[i].amount,
-                mpsPerPriorityFeeWei: 0,
-                recipient: request.outputs[i].recipient
-            });
-        }
-
-        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        PriorityOrder memory order = PriorityOrder({
-            info: request.info,
-            cosigner: vm.addr(cosignerPrivateKey),
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: request.input.token, amount: request.input.amount, mpsPerPriorityFeeWei: 0}),
-            outputs: outputs,
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
-
-        // Encode for UnifiedReactor: (address resolver, bytes orderData)
-        bytes memory priorityOrderBytes = abi.encode(order);
-        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-
-        orderHash = order.hash();
-        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-
-        return (SignedOrder(encodedOrder, signature), orderHash);
-    }
-
-    /// @dev Create a PriorityOrder with specific resolver and transfer type
-    function createPriorityOrder(bool useAllowanceTransfer, address validationContract)
-        public
-        view
-        returns (SignedOrder memory signedOrder, bytes32 orderHash)
-    {
-        uint256 inputAmount = 1 ether;
-        uint256 outputAmount = 1 ether;
-
-        OrderInfo memory info = OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(
-            block.timestamp + 1000
-        );
-
-        if (useAllowanceTransfer) {
-            info.additionalValidationData = abi.encodePacked(uint8(0x01));
-        }
-
-        PriorityOutput[] memory outputs = new PriorityOutput[](1);
-        outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
-        });
-
-        PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
-
-        PriorityOrder memory order = PriorityOrder({
-            info: info,
-            cosigner: vm.addr(cosignerPrivateKey),
-            auctionStartBlock: block.number,
-            baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: 0}),
-            outputs: outputs,
-            cosignerData: cosignerData,
-            cosignature: bytes("")
-        });
-        order.cosignature = cosignOrder(order.hash(), cosignerData);
-
-        // Encode for UnifiedReactor: (address resolver, bytes orderData)
-        bytes memory priorityOrderBytes = abi.encode(order);
-        bytes memory encodedOrder = abi.encode(address(priorityResolver), priorityOrderBytes);
-
-        orderHash = order.hash();
-        bytes memory signature = signOrder(swapperPrivateKey, address(permit2), order);
-
-        return (SignedOrder(encodedOrder, signature), orderHash);
+        // Verify token transfers
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
+        assertEq(tokenIn.balanceOf(address(fillContract)), uint256(inputAmount));
+        assertEq(tokenOut.balanceOf(address(swapper)), uint256(outputAmount));
+        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
     }
 }

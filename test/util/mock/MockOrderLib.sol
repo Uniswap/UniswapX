@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.0;
+
+import {OrderInfoV2, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
+import {OrderInfoLibV2} from "../../../src/lib/OrderInfoLibV2.sol";
+
+/// @dev Mock order struct for basic UnifiedReactor testing
+struct MockOrder {
+    // generic order information
+    OrderInfoV2 info;
+    // The token that the swapper will provide when settling the order
+    InputToken input;
+    // The tokens that must be received to satisfy the order
+    OutputToken[] outputs;
+}
+
+/// @notice helpers for handling mock order objects
+library MockOrderLib {
+    using OrderInfoLibV2 for OrderInfoV2;
+
+    bytes private constant OUTPUT_TOKEN_TYPE = "OutputToken(address token,uint256 amount,address recipient)";
+    bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
+
+    bytes internal constant ORDER_TYPE = abi.encodePacked(
+        "MockOrder(",
+        "OrderInfoV2 info,",
+        "address inputToken,",
+        "uint256 inputAmount,",
+        "OutputToken[] outputs)",
+        OrderInfoLibV2.ORDER_INFO_V2_TYPE,
+        OUTPUT_TOKEN_TYPE
+    );
+    bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
+
+    string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
+    string internal constant PERMIT2_ORDER_TYPE =
+        string(abi.encodePacked("MockOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+
+    /// @notice returns the hash of an output token struct
+    function hash(OutputToken memory output) private pure returns (bytes32) {
+        return keccak256(abi.encode(OUTPUT_TOKEN_TYPE_HASH, output.token, output.amount, output.recipient));
+    }
+
+    /// @notice returns the hash of an output token struct array
+    function hash(OutputToken[] memory outputs) private pure returns (bytes32) {
+        unchecked {
+            bytes memory packedHashes = new bytes(32 * outputs.length);
+
+            for (uint256 i = 0; i < outputs.length; i++) {
+                bytes32 outputHash = hash(outputs[i]);
+                assembly {
+                    mstore(add(add(packedHashes, 0x20), mul(i, 0x20)), outputHash)
+                }
+            }
+
+            return keccak256(packedHashes);
+        }
+    }
+
+    /// @notice hash the given order
+    /// @param order the order to hash
+    /// @return the eip-712 order hash
+    function hash(MockOrder memory order) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.input.token, order.input.amount, hash(order.outputs))
+        );
+    }
+}

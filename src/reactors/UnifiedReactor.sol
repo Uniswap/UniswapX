@@ -198,4 +198,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
             }
         }
     }
+
+    /// @notice Allow contract to receive ETH for native output orders
+    receive() external payable {}
 }

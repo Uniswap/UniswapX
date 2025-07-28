@@ -13,7 +13,7 @@ contract MockFillContractV2 is IReactorCallbackV2 {
     UnifiedReactor immutable reactor;
 
     constructor(address _reactor) {
-        reactor = UnifiedReactor(_reactor);
+        reactor = UnifiedReactor(payable(_reactor));
     }
 
     /// @notice assume that we already have all output tokens
