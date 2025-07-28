@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {DCARegistry} from "../../src/validation/DCARegistry.sol";
 import {IDCARegistry} from "../../src/interfaces/IDCARegistry.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IERC1271} from "permit2/src/interfaces/IERC1271.sol";
 import {IPreExecutionHook} from "../../src/interfaces/IPreExecutionHook.sol";
 import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
@@ -54,7 +55,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         cosigner = vm.addr(COSIGNER_PRIVATE_KEY);
 
         // Deploy contracts
-        dcaRegistry = new DCARegistry();
+        dcaRegistry = new DCARegistry(IAllowanceTransfer(address(permit2)));
         reactor = new UnifiedReactor(permit2, address(this));
         resolver = new PriorityAuctionResolver(permit2);
 
@@ -94,8 +95,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, keccak256("order nonce"));
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create a mock resolved order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -115,9 +122,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         });
         order.outputs[0] = toOutput(tokenOut, 450e18);
 
-        // Approve DCARegistry to spend swapper's tokens
-        vm.prank(swapper);
-        tokenIn.approve(address(dcaRegistry), 500e18);
+        // No need for token approval; Permit2 allowance will be used
 
         // Call pre-execution hook
         vm.prank(address(reactor));
@@ -158,8 +163,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, keccak256("order nonce"));
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create a mock resolved order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -179,9 +190,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         });
         order.outputs[0] = toOutput(tokenOut, 450e18);
 
-        // Approve DCARegistry to spend swapper's tokens
-        vm.prank(swapper);
-        tokenIn.approve(address(dcaRegistry), 500e18);
+        // No approval needed
 
         uint256 swapperBalanceBefore = tokenIn.balanceOf(swapper);
         uint256 registryBalanceBefore = tokenIn.balanceOf(address(dcaRegistry));
@@ -211,8 +220,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         );
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create a mock resolved order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -250,16 +265,16 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, keccak256("order nonce"));
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
-        // Approve tokens from swapper to DCARegistry
-        vm.prank(swapper);
-        tokenIn.approve(address(dcaRegistry), 500e18);
-
-        // Also approve from DCARegistry to Permit2 for the permitWitnessTransferFrom
-        vm.prank(address(dcaRegistry));
-        tokenIn.approve(address(permit2), type(uint256).max);
+        // No approval needed
 
         // Create order with DCARegistry as swapper
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -314,8 +329,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         );
 
         // Create validation data (signature will be invalid since we're using wrong swapper)
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -327,13 +348,13 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: 500e18, maxAmount: 500e18}),
+            input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
             sig: "",
             hash: keccak256("test order hash"),
             auctionResolver: address(resolver)
         });
-        order.outputs[0] = OutputToken({token: address(tokenOut), amount: 450e18, recipient: address(this)});
+        order.outputs[0] = toOutput(tokenOut, 450e18);
 
         // Should revert with invalid params
         vm.prank(address(reactor));
@@ -352,8 +373,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, keccak256("order nonce"));
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -365,13 +392,13 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: 500e18, maxAmount: 500e18}),
+            input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
             sig: "",
             hash: keccak256("test order hash"),
             auctionResolver: address(resolver)
         });
-        order.outputs[0] = OutputToken({token: address(tokenOut), amount: 450e18, recipient: address(this)});
+        order.outputs[0] = toOutput(tokenOut, 450e18);
 
         // Should revert with intent expired
         vm.prank(address(reactor));
@@ -391,8 +418,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, orderNonce);
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData1 =
-            createSignedDCAValidationData(intent, cosignerData1, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData1 = createSignedDCAValidationData(
+            intent,
+            cosignerData1,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create first order
         ResolvedOrderV2 memory order1 = ResolvedOrderV2({
@@ -404,17 +437,15 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData1)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: 500e18, maxAmount: 500e18}),
+            input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
             sig: "",
             hash: keccak256("test order hash 1"),
             auctionResolver: address(resolver)
         });
-        order1.outputs[0] = OutputToken({token: address(tokenOut), amount: 450e18, recipient: address(this)});
+        order1.outputs[0] = toOutput(tokenOut, 450e18);
 
         // Approve and execute first order
-        vm.prank(swapper);
-        tokenIn.approve(address(dcaRegistry), 1000e18);
 
         vm.prank(address(reactor));
         dcaRegistry.preExecutionHook(filler, order1);
@@ -427,8 +458,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             orderNonce // Same nonce
         );
 
-        IDCARegistry.DCAValidationData memory validationData2 =
-            createSignedDCAValidationData(intent, cosignerData2, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData2 = createSignedDCAValidationData(
+            intent,
+            cosignerData2,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         ResolvedOrderV2 memory order2 = ResolvedOrderV2({
             info: OrderInfoV2({
@@ -439,13 +476,13 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData2)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: 500e18, maxAmount: 500e18}),
+            input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
             sig: "",
             hash: keccak256("test order hash 2"),
             auctionResolver: address(resolver)
         });
-        order2.outputs[0] = OutputToken({token: address(tokenOut), amount: 450e18, recipient: address(this)});
+        order2.outputs[0] = toOutput(tokenOut, 450e18);
 
         // Should revert with order nonce already used
         vm.prank(address(reactor));
@@ -501,8 +538,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         );
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         // Create order
         ResolvedOrderV2 memory order = ResolvedOrderV2({
@@ -514,18 +557,15 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: inputAmount, maxAmount: inputAmount}),
+            input: toInput(tokenIn, inputAmount),
             outputs: new OutputToken[](1),
             sig: "",
             hash: keccak256(abi.encode(inputAmount)),
             auctionResolver: address(resolver)
         });
-        order.outputs[0] =
-            OutputToken({token: address(tokenOut), amount: inputAmount * 90 / 100, recipient: address(this)});
+        order.outputs[0] = toOutput(tokenOut, inputAmount * 90 / 100);
 
-        // Approve and execute
-        vm.prank(swapper);
-        tokenIn.approve(address(dcaRegistry), inputAmount);
+        // No approval needed
 
         vm.prank(address(reactor));
         dcaRegistry.preExecutionHook(filler, order);
@@ -548,8 +588,14 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             createBasicCosignerData(swapper, 500e18, 450e18, orderNonce);
 
         // Create validation data
-        IDCARegistry.DCAValidationData memory validationData =
-            createSignedDCAValidationData(intent, cosignerData, SWAPPER_PRIVATE_KEY, COSIGNER_PRIVATE_KEY, dcaRegistry);
+        IDCARegistry.DCAValidationData memory validationData = createSignedDCAValidationData(
+            intent,
+            cosignerData,
+            SWAPPER_PRIVATE_KEY,
+            COSIGNER_PRIVATE_KEY,
+            dcaRegistry,
+            IAllowanceTransfer(address(permit2))
+        );
 
         orderHash = keccak256(abi.encode(orderNumber, orderNonce));
 
@@ -563,13 +609,13 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
                 preExecutionHookData: abi.encode(validationData)
             }),
-            input: InputToken({token: ERC20(address(tokenIn)), amount: 500e18, maxAmount: 500e18}),
+            input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
             sig: "",
             hash: orderHash,
             auctionResolver: address(resolver)
         });
-        order.outputs[0] = OutputToken({token: address(tokenOut), amount: 450e18, recipient: address(this)});
+        order.outputs[0] = toOutput(tokenOut, 450e18);
 
         // Execute
         vm.prank(address(reactor));

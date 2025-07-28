@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
 import {IDCARegistry} from "../../src/interfaces/IDCARegistry.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IEIP712} from "permit2/src/interfaces/IEIP712.sol";
 
 /// @notice Utility for signing DCA intents and cosigner data in tests and integrations
 contract DCAIntentSignature is Test {
@@ -63,12 +65,11 @@ contract DCAIntentSignature is Test {
         });
     }
 
-    function createPublicDCAIntent(
-        address inputToken,
-        address outputToken,
-        address cosigner,
-        bytes32 privateIntentHash
-    ) public view returns (IDCARegistry.DCAIntent memory intent) {
+    function createPublicDCAIntent(address inputToken, address outputToken, address cosigner, bytes32 privateIntentHash)
+        public
+        view
+        returns (IDCARegistry.DCAIntent memory intent)
+    {
         intent = IDCARegistry.DCAIntent({
             inputToken: inputToken,
             outputToken: outputToken,
@@ -104,27 +105,62 @@ contract DCAIntentSignature is Test {
         });
     }
 
-    /// @notice Create complete DCA validation data with signatures
-    /// @param intent The DCA intent
-    /// @param cosignerData The cosigner data
-    /// @param swapperPrivateKey swapper's private key
-    /// @param cosignerPrivateKey Cosigner's private key
-    /// @param dcaRegistry The DCA registry
-    /// @return validationData Complete validation data with signatures
+    bytes32 private constant PERMIT_DETAILS_TYPEHASH =
+        keccak256("PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)");
+    bytes32 private constant PERMIT_SINGLE_TYPEHASH = keccak256(
+        "PermitSingle(PermitDetails details,address spender,uint256 sigDeadline)PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
+    );
+
+    function _hashPermitSingle(IAllowanceTransfer.PermitSingle memory permit) internal pure returns (bytes32 hash) {
+        bytes32 detailsHash = keccak256(
+            abi.encode(
+                PERMIT_DETAILS_TYPEHASH,
+                permit.details.token,
+                permit.details.amount,
+                permit.details.expiration,
+                permit.details.nonce
+            )
+        );
+        hash = keccak256(abi.encode(PERMIT_SINGLE_TYPEHASH, detailsHash, permit.spender, permit.sigDeadline));
+    }
+
+    /// @notice Create full validation data including PermitSingle and signatures
     function createSignedDCAValidationData(
         IDCARegistry.DCAIntent memory intent,
         IDCARegistry.DCAOrderCosignerData memory cosignerData,
         uint256 swapperPrivateKey,
         uint256 cosignerPrivateKey,
-        IDCARegistry dcaRegistry
+        IDCARegistry dcaRegistry,
+        IAllowanceTransfer permit2
     ) public view returns (IDCARegistry.DCAValidationData memory validationData) {
         bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
+
+        // Build PermitSingle granting max allowance to registry
+        IAllowanceTransfer.PermitSingle memory permit;
+        permit.details = IAllowanceTransfer.PermitDetails({
+            token: intent.inputToken,
+            amount: type(uint160).max,
+            expiration: uint48(intent.deadline),
+            nonce: 0
+        });
+        permit.spender = address(dcaRegistry);
+        permit.sigDeadline = intent.deadline;
+
+        // Compute permit digest per EIP712 from Permit2
+        bytes32 permitHash = _hashPermitSingle(permit);
+        bytes32 domainSeparator = IEIP712(address(permit2)).DOMAIN_SEPARATOR();
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, permitHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapperPrivateKey, digest);
+        bytes memory permitSig = bytes.concat(r, s, bytes1(v));
 
         validationData = IDCARegistry.DCAValidationData({
             intent: intent,
             signature: signDCAIntent(intent, swapperPrivateKey, dcaRegistry),
             cosignerData: cosignerData,
-            cosignature: signCosignerData(intentHash, cosignerData, cosignerPrivateKey)
+            cosignature: signCosignerData(intentHash, cosignerData, cosignerPrivateKey),
+            permit: permit,
+            permitSignature: permitSig
         });
     }
 }
