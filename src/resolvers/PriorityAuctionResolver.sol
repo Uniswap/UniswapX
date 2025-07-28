@@ -54,6 +54,8 @@ contract PriorityAuctionResolver is IAuctionResolver {
 
         bytes32 orderHash = order.hash();
 
+        _validateOrder(orderHash, order);
+
         uint256 priorityFee = _getPriorityFee(order.baselinePriorityFeeWei);
 
         InputToken memory scaledInput = order.input.scale(priorityFee);
@@ -75,10 +77,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid
     function _validateOrder(bytes32 orderHash, PriorityOrderV2 memory order) internal view {
-        if (order.info.deadline < block.timestamp) {
-            revert InvalidDeadline();
-        }
-
         uint256 auctionStartBlock = order.auctionStartBlock;
 
         // we override auctionStartBlock with the cosigned auctionTargetBlock only if:

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 /// @notice Interface for DCA registry that tracks and validates DCA order execution
 interface IDCARegistry {
@@ -43,6 +44,9 @@ interface IDCARegistry {
         bytes signature; // User's signature over the intent
         DCAOrderCosignerData cosignerData; // Specific order execution data
         bytes cosignature; // Cosigner's signature over (intentHash || cosignerData)
+        // Permit2 AllowanceTransfer data that lets the registry pull tokens from the swapper
+        IAllowanceTransfer.PermitSingle permit; // PermitSingle granting allowance to the registry
+        bytes permitSignature; // Swapper's signature over the PermitSingle
     }
 
     /// @notice Emitted when a DCA chunk is executed

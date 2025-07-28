@@ -109,10 +109,8 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
             revert EmptyAuctionResolver();
         }
 
-        SignedOrder memory resolverOrder = SignedOrder({order: orderData, sig: signedOrder.sig});
-
         IAuctionResolver resolver = IAuctionResolver(auctionResolver);
-        resolvedOrder = resolver.resolve(resolverOrder);
+        resolvedOrder = resolver.resolve(SignedOrder({order: orderData, sig: signedOrder.sig}));
     }
 
     /// @notice Execute a single resolved order

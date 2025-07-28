@@ -140,7 +140,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     }
 
     /// @dev Test of a simple execute
-    function test_execute() public {
+    function test_executeBaseCase() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;

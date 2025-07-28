@@ -10,6 +10,7 @@ import {EIP712} from "openzeppelin-contracts/utils/cryptography/EIP712.sol";
 import {IERC1271} from "permit2/src/interfaces/IERC1271.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 /// @notice Registry for tracking and validating DCA order execution with signature verification
 /// @dev Implements EIP-1271 to act as the swapper for DCA orders, enabling permitWitnessTransferFrom
@@ -25,6 +26,9 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
     // Track active order hashes for EIP-1271 validation
     mapping(bytes32 => bool) public activeOrderHashes;
+
+    /// @notice Permit2 AllowanceTransfer contract
+    IAllowanceTransfer public immutable permit2;
 
     // Track if we're currently executing any order (for EIP-1271 validation)
     bool private _executingOrder;
@@ -55,7 +59,9 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
         "DCAIntent(address inputToken,address outputToken,address cosigner,uint256 minFrequency,uint256 maxFrequency,uint256 minChunkSize,uint256 maxChunkSize,uint256 minOutputAmount,uint256 maxSlippage,uint256 deadline,bytes32 privateIntentHash)"
     );
 
-    constructor() EIP712("DCARegistry", "1") {}
+    constructor(IAllowanceTransfer _permit2) EIP712("DCARegistry", "1") {
+        permit2 = _permit2;
+    }
 
     /// @notice Pre-execution hook implementation for V2 orders (UnifiedReactor)
     function preExecutionHook(address, ResolvedOrderV2 calldata order) external override {
@@ -161,9 +167,12 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
         // Set execution flag for EIP-1271 validation
         _executingOrder = true;
 
-        // Pull tokens from the actual swapper to this contract
-        // The reactor will then pull from this contract via permitWitnessTransferFrom
-        ERC20(intent.inputToken).safeTransferFrom(actualSwapper, address(this), inputAmount);
+        // ---------------- Permit2 AllowanceTransfer ----------------
+        // 1. Consume the swapper's PermitSingle to grant the registry allowance
+        permit2.permit(actualSwapper, validationData.permit, validationData.permitSignature);
+
+        // 2. Immediately transfer the required amount from the swapper to this contract
+        permit2.transferFrom(actualSwapper, address(this), uint160(inputAmount), intent.inputToken);
     }
 
     /// @inheritdoc IDCARegistry
