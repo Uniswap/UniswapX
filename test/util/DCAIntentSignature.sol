@@ -124,6 +124,35 @@ contract DCAIntentSignature is Test {
         hash = keccak256(abi.encode(PERMIT_SINGLE_TYPEHASH, detailsHash, permit.spender, permit.sigDeadline));
     }
 
+    // --- helper to build a max-allowance PermitSingle ---
+    function _buildPermitSingle(IDCARegistry.DCAIntent memory intent, address spender)
+        internal
+        pure
+        returns (IAllowanceTransfer.PermitSingle memory permit)
+    {
+        permit.details = IAllowanceTransfer.PermitDetails({
+            token: intent.inputToken,
+            amount: type(uint160).max,
+            expiration: uint48(intent.deadline),
+            nonce: 0
+        });
+        permit.spender = spender;
+        permit.sigDeadline = intent.deadline;
+    }
+
+    // --- helper to sign PermitSingle with swapper key ---
+    function _signPermitSingle(
+        IAllowanceTransfer.PermitSingle memory permit,
+        uint256 privateKey,
+        IAllowanceTransfer permit2
+    ) internal view returns (bytes memory sig) {
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", IEIP712(address(permit2)).DOMAIN_SEPARATOR(), _hashPermitSingle(permit))
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        sig = bytes.concat(r, s, bytes1(v));
+    }
+
     /// @notice Create full validation data including PermitSingle and signatures
     function createSignedDCAValidationData(
         IDCARegistry.DCAIntent memory intent,
@@ -135,32 +164,23 @@ contract DCAIntentSignature is Test {
     ) public view returns (IDCARegistry.DCAValidationData memory validationData) {
         bytes32 intentHash = dcaRegistry.hashDCAIntent(intent);
 
-        // Build PermitSingle granting max allowance to registry
-        IAllowanceTransfer.PermitSingle memory permit;
-        permit.details = IAllowanceTransfer.PermitDetails({
-            token: intent.inputToken,
-            amount: type(uint160).max,
-            expiration: uint48(intent.deadline),
-            nonce: 0
-        });
-        permit.spender = address(dcaRegistry);
-        permit.sigDeadline = intent.deadline;
+        // Build and sign PermitSingle
+        IAllowanceTransfer.PermitSingle memory permit = _buildPermitSingle(intent, address(dcaRegistry));
+        bytes memory permitSig = _signPermitSingle(permit, swapperPrivateKey, permit2);
 
-        // Compute permit digest per EIP712 from Permit2
-        bytes32 permitHash = _hashPermitSingle(permit);
-        bytes32 domainSeparator = IEIP712(address(permit2)).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, permitHash));
+        // Prepare other sigs
+        bytes memory userSig = signDCAIntent(intent, swapperPrivateKey, dcaRegistry);
+        bytes memory coSig = signCosignerData(intentHash, cosignerData, cosignerPrivateKey);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(swapperPrivateKey, digest);
-        bytes memory permitSig = bytes.concat(r, s, bytes1(v));
+        // Assemble final struct
+        IDCARegistry.DCAValidationData memory vd;
+        vd.intent = intent;
+        vd.signature = userSig;
+        vd.cosignerData = cosignerData;
+        vd.cosignature = coSig;
+        vd.permit = permit;
+        vd.permitSignature = permitSig;
 
-        validationData = IDCARegistry.DCAValidationData({
-            intent: intent,
-            signature: signDCAIntent(intent, swapperPrivateKey, dcaRegistry),
-            cosignerData: cosignerData,
-            cosignature: signCosignerData(intentHash, cosignerData, cosignerPrivateKey),
-            permit: permit,
-            permitSignature: permitSig
-        });
+        validationData = vd;
     }
 }

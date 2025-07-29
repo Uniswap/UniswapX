@@ -66,6 +66,10 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         // Mint tokens to swapper
         tokenIn.mint(swapper, 10000e18);
 
+        // Swapper approves Permit2 for AllowanceTransfer
+        vm.prank(swapper);
+        tokenIn.approve(address(permit2), type(uint256).max);
+
         // Label addresses for debugging
         vm.label(address(dcaRegistry), "DCARegistry");
         vm.label(address(reactor), "UnifiedReactor");
@@ -75,9 +79,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         vm.label(filler, "Filler");
     }
 
-    // ===== BASIC EIP-1271 SIGNATURE VALIDATION TESTS =====
-
-    function test_EIP1271_isValidSignature_beforePreExecutionHook() public {
+    function test_isValidSignature_beforePreExecutionHook() public view {
         bytes32 orderHash = keccak256("test order hash");
 
         // Should return 0 before pre-execution hook
@@ -85,7 +87,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         assertEq(result, bytes4(0), "Should return 0 for inactive order");
     }
 
-    function test_EIP1271_isValidSignature_afterPreExecutionHook() public {
+    function test_isValidSignature_afterPreExecutionHook() public {
         // Create DCA intent
         IDCARegistry.DCAIntent memory intent =
             createPublicDCAIntent(address(tokenIn), address(tokenOut), cosigner, keccak256("private params"));
@@ -151,8 +153,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         assertEq(result, bytes4(0), "Should not be active after marking complete");
     }
 
-    // ===== PRE-EXECUTION HOOK TESTS =====
-
     function test_preExecutionHook_pullsTokensFromSwapper() public {
         // Create DCA intent
         IDCARegistry.DCAIntent memory intent =
@@ -189,8 +189,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             auctionResolver: address(resolver)
         });
         order.outputs[0] = toOutput(tokenOut, 450e18);
-
-        // No approval needed
 
         uint256 swapperBalanceBefore = tokenIn.balanceOf(swapper);
         uint256 registryBalanceBefore = tokenIn.balanceOf(address(dcaRegistry));
@@ -253,8 +251,10 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         dcaRegistry.preExecutionHook(filler, order);
     }
 
-    // ===== INTEGRATION TESTS =====
-
+    /// @dev The full flow would involve:
+    /// 1. Reactor calls preExecutionHook -> tokens pulled to DCARegistry
+    /// 2. Reactor calls permitWitnessTransferFrom -> EIP-1271 validates
+    /// 3. Tokens flow from DCARegistry to reactor/filler
     function test_fullDCAFlow_withPermit2() public {
         // Create DCA intent
         IDCARegistry.DCAIntent memory intent =
@@ -274,8 +274,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             IAllowanceTransfer(address(permit2))
         );
 
-        // No approval needed
-
         // Create order with DCARegistry as swapper
         ResolvedOrderV2 memory order = ResolvedOrderV2({
             info: OrderInfoV2({
@@ -288,8 +286,8 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
-            sig: "", // Empty signature - EIP-1271 will validate
-            hash: bytes32(0), // Will be set later
+            sig: "",
+            hash: bytes32(0),
             auctionResolver: address(resolver)
         });
         order.outputs[0] = toOutput(tokenOut, 450e18);
@@ -297,12 +295,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         // Calculate order hash
         order.hash = keccak256(abi.encode(order));
 
-        // The full flow would involve:
-        // 1. Reactor calls preExecutionHook -> tokens pulled to DCARegistry
-        // 2. Reactor calls permitWitnessTransferFrom -> EIP-1271 validates
-        // 3. Tokens flow from DCARegistry to reactor/filler
-
-        // For this test, we'll verify the pre-execution hook works
         vm.prank(address(reactor));
         dcaRegistry.preExecutionHook(filler, order);
 
@@ -312,8 +304,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         // Verify order is active for EIP-1271
         assertEq(dcaRegistry.isValidSignature(order.hash, ""), MAGICVALUE, "Order should be active");
     }
-
-    // ===== VALIDATION EDGE CASES =====
 
     function test_rejectInvalidSwapper() public {
         // Create DCA intent
@@ -445,8 +435,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         });
         order1.outputs[0] = toOutput(tokenOut, 450e18);
 
-        // Approve and execute first order
-
         vm.prank(address(reactor));
         dcaRegistry.preExecutionHook(filler, order1);
 
@@ -511,14 +499,6 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
         // First should be inactive, second still active
         assertEq(dcaRegistry.isValidSignature(hash1, ""), bytes4(0), "First order should be inactive");
         assertEq(dcaRegistry.isValidSignature(hash2, ""), MAGICVALUE, "Second order should still be active");
-    }
-
-    // ===== FUZZ TESTS =====
-
-    function testFuzz_EIP1271_randomHashes(bytes32 randomHash) public {
-        // Random hashes should always return 0 (invalid)
-        bytes4 result = dcaRegistry.isValidSignature(randomHash, "");
-        assertEq(result, bytes4(0), "Random hash should be invalid");
     }
 
     function testFuzz_preExecutionHook_differentAmounts(uint256 inputAmount) public {

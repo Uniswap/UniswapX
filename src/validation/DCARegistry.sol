@@ -72,16 +72,6 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
         bytes memory dcaData = order.info.preExecutionHookData;
 
-        // Skip AllowanceTransfer prefix if present
-        if (dcaData.length > 0 && dcaData[0] == 0x01) {
-            // Remove the first byte (AllowanceTransfer flag) and decode the rest
-            bytes memory dcaValidationBytes = new bytes(dcaData.length - 1);
-            for (uint256 i = 1; i < dcaData.length; i++) {
-                dcaValidationBytes[i - 1] = dcaData[i];
-            }
-            dcaData = dcaValidationBytes;
-        }
-
         DCAValidationData memory validationData = abi.decode(dcaData, (DCAValidationData));
         DCAIntent memory intent = validationData.intent;
         DCAOrderCosignerData memory cosignerData = validationData.cosignerData;
