@@ -136,11 +136,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     }
 
     /// @inheritdoc IAuctionResolver
-    function auctionType() external pure override returns (string memory) {
-        return "PRIORITY";
-    }
-
-    /// @inheritdoc IAuctionResolver
     function getPermit2OrderType() external pure override returns (string memory) {
         return PriorityOrderLibV2.PERMIT2_ORDER_TYPE;
     }

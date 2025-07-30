@@ -12,7 +12,7 @@ contract MockAuctionResolver is IAuctionResolver {
     /// @inheritdoc IAuctionResolver
     function resolve(SignedOrder calldata signedOrder) external view override returns (ResolvedOrderV2 memory) {
         MockOrder memory mockOrder = abi.decode(signedOrder.order, (MockOrder));
-        
+
         return ResolvedOrderV2({
             info: mockOrder.info,
             input: mockOrder.input,
@@ -21,11 +21,6 @@ contract MockAuctionResolver is IAuctionResolver {
             hash: mockOrder.hash(),
             auctionResolver: address(this)
         });
-    }
-
-    /// @inheritdoc IAuctionResolver
-    function auctionType() external pure override returns (string memory) {
-        return "MOCK";
     }
 
     /// @inheritdoc IAuctionResolver
