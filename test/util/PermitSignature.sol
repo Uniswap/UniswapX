@@ -10,7 +10,7 @@ import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
 import {V2DutchOrder, V2DutchOrderLib} from "../../src/lib/V2DutchOrderLib.sol";
 import {V3DutchOrder, V3DutchOrderLib} from "../../src/lib/V3DutchOrderLib.sol";
-import {PriorityOrder, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
+import {PriorityOrder, PriorityOrderLib, PriorityOrderV2, PriorityOrderLibV2} from "../../src/lib/PriorityOrderLib.sol";
 import {OrderInfo, OrderInfoV2, InputToken} from "../../src/base/ReactorStructs.sol";
 import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
 
@@ -20,6 +20,7 @@ contract PermitSignature is Test {
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
     using V2DutchOrderLib for V2DutchOrder;
     using PriorityOrderLib for PriorityOrder;
+    using PriorityOrderLibV2 for PriorityOrderV2;
     using V3DutchOrderLib for V3DutchOrder;
     using MockOrderLib for MockOrder;
 
@@ -44,6 +45,9 @@ contract PermitSignature is Test {
 
     bytes32 constant PRIORITY_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, PriorityOrderLib.PERMIT2_ORDER_TYPE));
+
+    bytes32 constant PRIORITY_ORDER_V2_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, PriorityOrderLibV2.PERMIT2_ORDER_TYPE));
 
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
@@ -166,6 +170,23 @@ contract PermitSignature is Test {
             // amount is max amount for priority orders
             order.input.amount,
             PRIORITY_ORDER_TYPE_HASH,
+            order.hash()
+        );
+    }
+
+    function signOrder(uint256 privateKey, address permit2, PriorityOrderV2 memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        return signOrder(
+            privateKey,
+            permit2,
+            order.info,
+            address(order.input.token),
+            // amount is max amount for priority orders
+            order.input.amount,
+            PRIORITY_ORDER_V2_TYPE_HASH,
             order.hash()
         );
     }
