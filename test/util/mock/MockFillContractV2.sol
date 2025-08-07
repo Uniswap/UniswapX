@@ -21,7 +21,7 @@ contract MockFillContractV2 is IReactorCallbackV2 {
         reactor.executeWithCallback(order, hex"");
     }
 
-    /// @notice assume that we already have all output tokens  
+    /// @notice assume that we already have all output tokens
     function executeWithCallback(SignedOrder calldata order, bytes calldata callbackData) external {
         reactor.executeWithCallback(order, callbackData);
     }
