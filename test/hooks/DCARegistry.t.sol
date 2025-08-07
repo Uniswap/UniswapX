@@ -137,7 +137,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
 
     function test_markOrderComplete_clearsActiveHash() public {
         // First make an order active
-        test_EIP1271_isValidSignature_afterPreExecutionHook();
+        test_isValidSignature_afterPreExecutionHook();
 
         bytes32 orderHash = keccak256("test order hash");
 
