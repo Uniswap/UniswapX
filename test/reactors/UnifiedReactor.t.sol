@@ -33,7 +33,6 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
-    MockERC20 tokenOut2;
     MockFillContractV2 fillContract;
     MockPreExecutionHook preExecutionHook;
     IPermit2 permit2;
@@ -52,7 +51,6 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
-        tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
@@ -172,10 +170,6 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
     }
-
-    // TODO: Add protocol fee test once UnifiedReactor supports ProtocolFees
-    // The current UnifiedReactor implementation doesn't inherit from ProtocolFees
-    // so fee functionality is not available yet.
 
     /// @dev Basic execute test for native currency output
     function test_executeNativeOutput() public {

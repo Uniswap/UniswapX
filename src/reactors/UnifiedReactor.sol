@@ -14,8 +14,8 @@ import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-/// @notice Unified reactor that supports SignatureTransfer with pluggable auction mechanisms
-/// @dev Does not inherit from BaseReactor - uses IPreExecutionHook directly
+/// @notice Unified reactor that supports pre-and-post fill hooks and auction resolver plugins
+/// @dev Does not inherit from BaseReactor
 contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
     using Permit2LibV2 for ResolvedOrderV2;
     using CurrencyLibrary for address;
