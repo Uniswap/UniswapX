@@ -13,10 +13,11 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
 import {ReactorEvents} from "../base/ReactorEvents.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import {ProtocolFeesV2} from "../base/ProtocolFees.sol";
 
 /// @notice Unified reactor that supports pre-and-post fill hooks and auction resolver plugins
 /// @dev Does not inherit from BaseReactor
-contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
+contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGuard {
     using Permit2LibV2 for ResolvedOrderV2;
     using CurrencyLibrary for address;
 
@@ -32,12 +33,8 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
-    /// @notice Protocol fee owner
-    address public immutable protocolFeeOwner;
-
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) {
+    constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFeesV2(_protocolFeeOwner) {
         permit2 = _permit2;
-        protocolFeeOwner = _protocolFeeOwner;
     }
 
     /// @inheritdoc IReactor
@@ -135,6 +132,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ReentrancyGuard {
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedOrderV2 memory order = orders[i];
+                _injectFees(order);
                 _validateOrder(order);
                 _callPreExecutionHook(order);
                 _transferInputTokens(order, msg.sender);
