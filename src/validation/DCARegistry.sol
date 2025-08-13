@@ -38,25 +38,13 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
     // EIP-1271 magic value
     bytes4 private constant MAGICVALUE = 0x1626ba7e;
-
-    error InvalidDCAFrequency();
-    error InvalidDCAChunkSize();
-    error DCAFloorPriceNotMet();
-    error InvalidDCAParams();
-    error InvalidSignature();
-    error InvalidCosignature();
-    error IntentExpired();
-    error IntentAlreadyRegistered();
-    error IntentNotRegistered();
-    error OrderNonceAlreadyUsed();
-    error InvalidTokens();
-    error InvalidCosigner();
-    error InvalidauthorizationTimestamp();
-    error InvalidGasPrice();
+    
+    // Additional errors not in interface
+    error InsufficientOutput();
 
     /// @notice EIP-712 type hash for DCA intent
     bytes32 public constant DCA_INTENT_TYPEHASH = keccak256(
-        "DCAIntent(address inputToken,address outputToken,address cosigner,uint256 minFrequency,uint256 maxFrequency,uint256 minChunkSize,uint256 maxChunkSize,uint256 minOutputAmount,uint256 maxSlippage,uint256 deadline,bytes32 privateIntentHash)"
+        "DCAIntent(address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,bytes32 privateIntentHash)"
     );
 
     constructor(IAllowanceTransfer _permit2) EIP712("DCARegistry", "1") {
@@ -103,7 +91,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
         // Validate execution timing
         if (cosignerData.authorizationTimestamp > block.timestamp) {
-            revert InvalidauthorizationTimestamp();
+            revert InvalidAuthorizationTimestamp();
         }
 
         // Check order nonce hasn't been used
@@ -119,15 +107,15 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
         // Check frequency constraints
         if (state.lastExecutionTime > 0) {
             uint256 timeSinceLastExecution = block.timestamp - state.lastExecutionTime;
-            if (timeSinceLastExecution < intent.minFrequency || timeSinceLastExecution > intent.maxFrequency) {
-                revert InvalidDCAFrequency();
+            if (timeSinceLastExecution < intent.minPeriod || timeSinceLastExecution > intent.maxPeriod) {
+                revert InvalidPeriod();
             }
         }
 
         // Check chunk size constraints
         uint256 inputAmount = order.input.amount;
         if (inputAmount < intent.minChunkSize || inputAmount > intent.maxChunkSize) {
-            revert InvalidDCAChunkSize();
+            revert InvalidChunkSize();
         }
 
         // Verify cosigner-specified input amount matches order
@@ -135,15 +123,23 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
             revert InvalidDCAParams();
         }
 
-        // Enforce swapper's minimum output amount requirement
+        // Validate price meets minimum requirement
         uint256 totalOutputAmount = 0;
         for (uint256 i = 0; i < order.outputs.length; i++) {
             if (order.outputs[i].token == intent.outputToken) {
                 totalOutputAmount += order.outputs[i].amount;
             }
         }
-        if (totalOutputAmount < intent.minOutputAmount) {
-            revert DCAFloorPriceNotMet();
+        
+        // Calculate execution price and validate
+        uint256 executionPrice = (totalOutputAmount * 1e18) / inputAmount;
+        if (executionPrice < intent.minPrice) {
+            revert PriceBelowMinimum();
+        }
+        
+        // Validate output meets cosigner's minimum
+        if (totalOutputAmount < cosignerData.chunkMinOutput) {
+            revert InsufficientOutput();
         }
 
         // Update state for next validation
@@ -184,12 +180,11 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
                     intent.inputToken,
                     intent.outputToken,
                     intent.cosigner,
-                    intent.minFrequency,
-                    intent.maxFrequency,
+                    intent.minPeriod,
+                    intent.maxPeriod,
                     intent.minChunkSize,
                     intent.maxChunkSize,
-                    intent.minOutputAmount,
-                    intent.maxSlippage,
+                    intent.minPrice,
                     intent.deadline,
                     intent.privateIntentHash
                 )
@@ -330,5 +325,68 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
         // Clear execution flag
         _executingOrder = false;
+    }
+
+    // ===== Stub implementations to make contract compile =====
+    
+    function registerIntent(DCAIntent memory, bytes memory) external pure override returns (bytes32) {
+        revert("Not implemented");
+    }
+    
+    function updateIntent(DCAIntentUpdate memory) external pure override {
+        revert("Not implemented");
+    }
+    
+    function cancelIntent(bytes32) external pure override {
+        revert("Not implemented");
+    }
+    
+    function cancelIntents(bytes32[] memory) external pure override {
+        revert("Not implemented");
+    }
+    
+    function getIntentOwner(bytes32) external pure override returns (address) {
+        return address(0);
+    }
+    
+    function getIntent(bytes32) external pure override returns (DCAIntent memory) {
+        revert("Not implemented");
+    }
+    
+    function isIntentActive(bytes32) external pure override returns (bool) {
+        return false;
+    }
+    
+    function isOrderNonceUsed(bytes32 intentHash, bytes32 orderNonce) external view override returns (bool) {
+        bytes32 orderNonceKey = keccak256(abi.encodePacked(intentHash, orderNonce));
+        return usedOrderNonces[orderNonceKey];
+    }
+    
+    function getNextExecutionWindow(bytes32) external pure override returns (uint256, uint256) {
+        return (0, 0);
+    }
+    
+    function canExecute(bytes32, uint256, uint256) external pure override returns (bool, string memory) {
+        return (false, "Not implemented");
+    }
+    
+    function hashIntentUpdate(DCAIntentUpdate memory) external pure override returns (bytes32) {
+        return bytes32(0);
+    }
+    
+    function getIntentStatistics(bytes32) external pure override returns (uint256, uint256, uint256, uint256, uint256) {
+        return (0, 0, 0, 0, 0);
+    }
+    
+    function getActiveIntentsForOwner(address) external pure override returns (bytes32[] memory) {
+        revert("Not implemented");
+    }
+    
+    function calculatePrice(uint256, uint256) external pure override returns (uint256) {
+        return 0;
+    }
+    
+    function validatePrice(bytes32, uint256, uint256) external pure override returns (bool, uint256, uint256) {
+        return (false, 0, 0);
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ResolvedOrderV2} from "../base/ReactorStructs.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 /// @notice Interface for DCA registry that tracks and validates DCA order execution
 interface IDCARegistry {
@@ -46,6 +47,9 @@ interface IDCARegistry {
         bytes signature;                    // User's signature over the intent
         DCAOrderCosignerData cosignerData; // Specific order execution data
         bytes cosignature;                  // Cosigner's signature over (intentHash || cosignerData)
+        // TODO: Remove these permit fields in refactor
+        IAllowanceTransfer.PermitSingle permit;  // Permit2 allowance data
+        bytes permitSignature;              // Signature for permit
     }
 
     /// @notice Parameters for updating an existing DCA intent

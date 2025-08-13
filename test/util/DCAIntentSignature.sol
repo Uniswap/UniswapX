@@ -74,12 +74,11 @@ contract DCAIntentSignature is Test {
             inputToken: inputToken,
             outputToken: outputToken,
             cosigner: cosigner,
-            minFrequency: 1 hours,
-            maxFrequency: 24 hours,
+            minPeriod: 1 hours,
+            maxPeriod: 24 hours,
             minChunkSize: 100e18, // 100 tokens
             maxChunkSize: 1000e18, // 1000 tokens
-            minOutputAmount: 0, // No minimum output amount
-            maxSlippage: 500, // 5% max slippage
+            minPrice: 0, // No minimum price
             deadline: block.timestamp + 30 days,
             privateIntentHash: privateIntentHash
         });
@@ -100,7 +99,7 @@ contract DCAIntentSignature is Test {
             swapper: swapper,
             authorizationTimestamp: block.timestamp,
             inputAmount: inputAmount,
-            minOutputAmount: minOutputAmount,
+            chunkMinOutput: minOutputAmount,
             orderNonce: orderNonce
         });
     }
