@@ -16,7 +16,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContractV2} from "../util/mock/MockFillContractV2.sol";
 import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoubleExecution.sol";
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
-import {MockFeeController} from "../util/mock/MockFeeController.sol";
+import {MockFeeControllerV2} from "../util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../util/mock/MockPreExecutionHook.sol";
 import {MockAuctionResolver} from "../util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
@@ -36,7 +36,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     MockFillContractV2 fillContract;
     MockPreExecutionHook preExecutionHook;
     IPermit2 permit2;
-    MockFeeController feeController;
+    MockFeeControllerV2 feeController;
     address feeRecipient;
     UnifiedReactor reactor;
     MockAuctionResolver mockResolver;
@@ -57,7 +57,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         preExecutionHook = new MockPreExecutionHook();
         preExecutionHook.setValid(true);
         feeRecipient = makeAddr("feeRecipient");
-        feeController = new MockFeeController(feeRecipient);
+        feeController = new MockFeeControllerV2(feeRecipient);
 
         // Deploy UnifiedReactor
         reactor = new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
@@ -73,7 +73,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     }
 
     /// @dev Create a signed order for UnifiedReactor using MockOrder
-    function createAndSignOrder(MockOrder memory mockOrder)
+    function signAndEncodeOrder(MockOrder memory mockOrder)
         public
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
@@ -93,7 +93,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     }
 
     /// @dev Create many signed orders and return
-    function createAndSignBatchOrders(MockOrder[] memory orders)
+    function signAndEncodeBatchOrders(MockOrder[] memory orders)
         public
         view
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
@@ -101,7 +101,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         signedOrders = new SignedOrder[](orders.length);
         orderHashes = new bytes32[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(orders[i]);
+            (SignedOrder memory signed, bytes32 hash) = signAndEncodeOrder(orders[i]);
             signedOrders[i] = signed;
             orderHashes[i] = hash;
         }
@@ -150,7 +150,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -171,6 +171,45 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
     }
 
+    function test_executeWithFee() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+        uint8 feeBps = 3;
+
+        vm.prank(PROTOCOL_FEE_OWNER);
+        reactor.setProtocolFeeController(address(feeController));
+        feeController.setFee(tokenIn, address(tokenOut), feeBps);
+        // Seed both swapper and fillContract with enough tokens (important for dutch order)
+        tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
+        tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        // execute order
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("BaseExecuteSingleWithFee");
+
+        uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount - feeAmount);
+        assertEq(tokenOut.balanceOf(address(feeRecipient)), feeAmount);
+    }
+
     /// @dev Basic execute test for native currency output
     function test_executeNativeOutput() public {
         uint256 inputAmount = 1 ether;
@@ -188,7 +227,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         uint256 swapperOutputBalanceStart = address(swapper).balance;
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
@@ -225,7 +264,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -275,7 +314,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(MockPreExecutionHook.MockPreExecutionError.selector);
         fillContract.execute(signedOrder);
@@ -309,7 +348,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
 
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
@@ -343,7 +382,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(InvalidReactor.selector);
         fillContract.execute(signedOrder);
@@ -360,7 +399,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(DeadlinePassed.selector);
         fillContract.execute(signedOrder);
@@ -377,7 +416,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         // Execute once successfully
         fillContract.execute(signedOrder);
@@ -404,7 +443,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
@@ -436,7 +475,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         uint256 counterBefore = preExecutionHook.preExecutionCounter();
         uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));

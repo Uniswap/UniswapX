@@ -1,6 +1,7 @@
 {
+  "BaseExecuteSingleWithFee": "180689",
   "UnifiedReactorExecuteBatch": "194768",
-  "UnifiedReactorExecuteSingle": "144680",
-  "UnifiedReactorExecuteSingleNativeOutput": "132623",
-  "UnifiedReactorExecuteSingleWithHook": "191356"
+  "UnifiedReactorExecuteSingle": "147159",
+  "UnifiedReactorExecuteSingleNativeOutput": "135102",
+  "UnifiedReactorExecuteSingleWithHook": "193835"
 }

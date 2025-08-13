@@ -42,7 +42,7 @@ contract DutchOrderReactorTest is PermitSignature, DeployPermit2, BaseDutchOrder
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
     /// TODO: Support creating a single dutch order with multiple outputs
-    function createAndSignOrder(ResolvedOrder memory request)
+    function signAndEncodeOrder(ResolvedOrder memory request)
         public
         view
         override

@@ -39,8 +39,10 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
 
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order) external payable override nonReentrant {
-        ResolvedOrderV2 memory resolvedOrder = _resolve(order);
-        _executeOrder(resolvedOrder);
+        ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](1);
+        resolvedOrders[0] = _resolve(order);
+        _prepare(resolvedOrders);
+        _fill(resolvedOrders);
     }
 
     /// @inheritdoc IReactor
@@ -54,7 +56,8 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
             }
         }
 
-        _executeOrders(resolvedOrders);
+        _prepare(resolvedOrders);
+        _fill(resolvedOrders);
     }
 
     /// @inheritdoc IReactor
@@ -64,17 +67,11 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
         override
         nonReentrant
     {
-        ResolvedOrderV2 memory resolvedOrder = _resolve(order);
-        _validateOrder(resolvedOrder);
-        _callPreExecutionHook(resolvedOrder);
-        _transferInputTokens(resolvedOrder, msg.sender);
-
         ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](1);
-        resolvedOrders[0] = resolvedOrder;
+        resolvedOrders[0] = _resolve(order);
+        _prepare(resolvedOrders);
         IReactorCallbackV2(msg.sender).reactorCallback(resolvedOrders, callbackData);
-
-        _transferOutputTokens(resolvedOrder);
-        emit Fill(resolvedOrder.hash, msg.sender, resolvedOrder.info.swapper, resolvedOrder.info.nonce);
+        _fill(resolvedOrders);
     }
 
     /// @inheritdoc IReactor
@@ -108,22 +105,6 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
 
         IAuctionResolver resolver = IAuctionResolver(auctionResolver);
         resolvedOrder = resolver.resolve(SignedOrder({order: orderData, sig: signedOrder.sig}));
-    }
-
-    /// @notice Execute a single resolved order
-    function _executeOrder(ResolvedOrderV2 memory order) internal {
-        _validateOrder(order);
-        _callPreExecutionHook(order);
-        _transferInputTokens(order, msg.sender);
-        _transferOutputTokens(order);
-
-        emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
-    }
-
-    /// @notice Execute multiple resolved orders
-    function _executeOrders(ResolvedOrderV2[] memory orders) internal {
-        _prepare(orders);
-        _fill(orders);
     }
 
     /// @notice Prepare orders for execution (validation and pre-execution hooks)

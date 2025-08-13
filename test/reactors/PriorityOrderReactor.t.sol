@@ -52,7 +52,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
     /// @dev Create and return a basic PriorityOrder along with its signature, hash, and orderInfo
     /// uses default parameter values for auctionStartBlock and mpsPerPriorityFeeWei
-    function createAndSignOrder(ResolvedOrder memory request)
+    function signAndEncodeOrder(ResolvedOrder memory request)
         public
         view
         override

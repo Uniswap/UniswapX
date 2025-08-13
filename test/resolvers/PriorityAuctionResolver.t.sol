@@ -75,7 +75,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
     }
 
     /// @dev Create and sign a PriorityOrderV2 for UnifiedReactor
-    function createAndSignOrder(PriorityOrderV2 memory order)
+    function signAndEncodeOrder(PriorityOrderV2 memory order)
         internal
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
@@ -142,7 +142,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
@@ -197,7 +197,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
@@ -248,7 +248,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
@@ -300,7 +300,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
@@ -334,7 +334,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         vm.roll(block.number + 5);
 
@@ -364,7 +364,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         vm.roll(block.number + 1);
 
@@ -393,7 +393,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
@@ -421,7 +421,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
             cosignature: bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33")
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         vm.roll(block.number + 1);
 
@@ -457,7 +457,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(PriorityAuctionResolver.InputOutputScaling.selector);
         fillContract.execute(signedOrder);
@@ -482,7 +482,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(PriorityAuctionResolver.OrderNotFillable.selector);
         fillContract.execute(signedOrder);
@@ -507,7 +507,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(PriorityAuctionResolver.OrderNotFillable.selector);
         fillContract.execute(signedOrder);
@@ -534,7 +534,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
@@ -558,7 +558,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
             cosignature: bytes.concat(keccak256("invalidSignature"), keccak256("invalidSignature"), hex"33")
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
@@ -589,7 +589,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
         order.cosignature = bytes.concat(r, s, bytes1(v));
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(CosignerLib.InvalidCosignature.selector);
         fillContract.execute(signedOrder);
@@ -617,7 +617,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(PriorityAuctionResolver.InvalidGasPrice.selector);
         fillContract.execute(signedOrder);
@@ -651,7 +651,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
             cosignature: bytes("")
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(PriorityAuctionResolver.OrderAlreadyFilled.selector);
         fillContract.execute(signedOrder);
@@ -703,7 +703,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperInputBalanceStart = tokenIn.balanceOf(address(swapper));
         uint256 swapperOutputBalanceStart = tokenOut.balanceOf(address(swapper));
@@ -749,7 +749,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         });
         order.cosignature = cosignOrder(order.hash(), cosignerData);
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         // Execute once successfully
         fillContract.execute(signedOrder);

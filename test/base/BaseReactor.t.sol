@@ -65,7 +65,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
 
     /// @dev Create a signed order and return the order and orderHash
     /// @param request Order to sign
-    function createAndSignOrder(ResolvedOrder memory request)
+    function signAndEncodeOrder(ResolvedOrder memory request)
         public
         virtual
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
@@ -73,14 +73,14 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
 
     /// @dev Create many signed orders and return
     /// @param requests Array of orders to sign
-    function createAndSignBatchOrders(ResolvedOrder[] memory requests)
+    function signAndEncodeBatchOrders(ResolvedOrder[] memory requests)
         public
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
     {
         signedOrders = new SignedOrder[](requests.length);
         orderHashes = new bytes32[](requests.length);
         for (uint256 i = 0; i < requests.length; i++) {
-            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(requests[i]);
+            (SignedOrder memory signed, bytes32 hash) = signAndEncodeOrder(requests[i]);
             signedOrders[i] = signed;
             orderHashes[i] = hash;
         }
@@ -106,7 +106,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -151,7 +151,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -193,7 +193,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperOutputBalanceStart = address(swapper).balance;
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
@@ -234,7 +234,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -293,7 +293,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -342,7 +342,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -395,7 +395,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -453,7 +453,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -484,7 +484,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0),
             auctionResolver: address(0)
         });
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -509,7 +509,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
         bytes memory oldSignature = signedOrder.sig;
         order.info.nonce = 1;
         // Create a new order, but use the previous signature
-        (signedOrder, orderHash) = createAndSignOrder(order);
+        (signedOrder, orderHash) = signAndEncodeOrder(order);
         signedOrder.sig = oldSignature;
 
         vm.expectRevert(InvalidSigner.selector);
@@ -535,7 +535,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0),
             auctionResolver: address(0)
         });
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -555,7 +555,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
 
         // change deadline so sig and orderhash is different but nonce is the same
         order.info.deadline = block.timestamp + 101;
-        (signedOrder, orderHash) = createAndSignOrder(order);
+        (signedOrder, orderHash) = signAndEncodeOrder(order);
         // since priorityOrders special case the InvalidNonce case
         bytes4 revertData = keccak256(abi.encodePacked(name())) == keccak256(abi.encodePacked("PriorityOrderReactor"))
             ? OrderAlreadyFilled.selector
@@ -595,8 +595,8 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder1, bytes32 orderHash1) = createAndSignOrder(order1);
-        (SignedOrder memory signedOrder2, bytes32 orderHash2) = createAndSignOrder(order2);
+        (SignedOrder memory signedOrder1, bytes32 orderHash1) = signAndEncodeOrder(order1);
+        (SignedOrder memory signedOrder2, bytes32 orderHash2) = signAndEncodeOrder(order2);
 
         (uint256 swapperInputBalanceStart,, uint256 swapperOutputBalanceStart,) = _checkpointBalances();
 
@@ -635,7 +635,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -674,7 +674,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -714,7 +714,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -757,7 +757,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(MockValidationContract.MockValidationError.selector);
         fillContract.execute(signedOrder);
@@ -788,7 +788,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(ResolvedOrderLib.InvalidReactor.selector);
         fillContract.execute(signedOrder);
@@ -813,7 +813,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         // cannot enforce selector as some reactors early throw in this case
         vm.expectRevert();
@@ -837,7 +837,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             auctionResolver: address(0)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
 
         uint256 swapperOutputBalanceStart = address(swapper).balance;
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
