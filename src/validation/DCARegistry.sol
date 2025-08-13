@@ -38,7 +38,7 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
 
     // EIP-1271 magic value
     bytes4 private constant MAGICVALUE = 0x1626ba7e;
-    
+
     // Additional errors not in interface
     error InsufficientOutput();
 
@@ -130,13 +130,13 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
                 totalOutputAmount += order.outputs[i].amount;
             }
         }
-        
+
         // Calculate execution price and validate
         uint256 executionPrice = (totalOutputAmount * 1e18) / inputAmount;
         if (executionPrice < intent.minPrice) {
             revert PriceBelowMinimum();
         }
-        
+
         // Validate output meets cosigner's minimum
         if (totalOutputAmount < cosignerData.chunkMinOutput) {
             revert InsufficientOutput();
@@ -328,64 +328,69 @@ contract DCARegistry is IDCARegistry, IPreExecutionHook, EIP712, IERC1271 {
     }
 
     // ===== Stub implementations to make contract compile =====
-    
+
     function registerIntent(DCAIntent memory, bytes memory) external pure override returns (bytes32) {
         revert("Not implemented");
     }
-    
+
     function updateIntent(DCAIntentUpdate memory) external pure override {
         revert("Not implemented");
     }
-    
+
     function cancelIntent(bytes32) external pure override {
         revert("Not implemented");
     }
-    
+
     function cancelIntents(bytes32[] memory) external pure override {
         revert("Not implemented");
     }
-    
+
     function getIntentOwner(bytes32) external pure override returns (address) {
         return address(0);
     }
-    
+
     function getIntent(bytes32) external pure override returns (DCAIntent memory) {
         revert("Not implemented");
     }
-    
+
     function isIntentActive(bytes32) external pure override returns (bool) {
         return false;
     }
-    
+
     function isOrderNonceUsed(bytes32 intentHash, bytes32 orderNonce) external view override returns (bool) {
         bytes32 orderNonceKey = keccak256(abi.encodePacked(intentHash, orderNonce));
         return usedOrderNonces[orderNonceKey];
     }
-    
+
     function getNextExecutionWindow(bytes32) external pure override returns (uint256, uint256) {
         return (0, 0);
     }
-    
+
     function canExecute(bytes32, uint256, uint256) external pure override returns (bool, string memory) {
         return (false, "Not implemented");
     }
-    
+
     function hashIntentUpdate(DCAIntentUpdate memory) external pure override returns (bytes32) {
         return bytes32(0);
     }
-    
-    function getIntentStatistics(bytes32) external pure override returns (uint256, uint256, uint256, uint256, uint256) {
+
+    function getIntentStatistics(bytes32)
+        external
+        pure
+        override
+        returns (uint256, uint256, uint256, uint256, uint256)
+    {
         return (0, 0, 0, 0, 0);
     }
-    
+
     function getActiveIntentsForOwner(address) external pure override returns (bytes32[] memory) {
         revert("Not implemented");
     }
-    
+
     function calculatePrice(uint256, uint256) external pure override returns (uint256) {
         return 0;
     }
-    
+
     function validatePrice(bytes32, uint256, uint256) external pure override returns (bool, uint256, uint256) {
         return (false, 0, 0);
     }
