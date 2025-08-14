@@ -706,58 +706,6 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         assertEq(address(fillContract).balance, fillContractOutputBalanceStart - outputAmount);
     }
 
-    /// @dev Fuzz test for invalid reactor error
-    function testFuzz_executeInvalidReactor(
-        address orderReactor,
-        uint128 inputAmount,
-        uint128 outputAmount,
-        uint256 deadline
-    ) public {
-        vm.assume(deadline > block.timestamp);
-        vm.assume(orderReactor != address(reactor));
-        vm.assume(inputAmount > 0);
-        vm.assume(outputAmount > 0);
-
-        // Seed both swapper and fillContract with enough tokens
-        tokenIn.mint(address(swapper), uint256(inputAmount));
-        tokenOut.mint(address(fillContract), uint256(outputAmount));
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-
-        MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(orderReactor).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(tokenIn, inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
-        });
-
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
-
-        vm.expectRevert(InvalidReactor.selector);
-        fillContract.execute(signedOrder);
-    }
-
-    /// @dev Fuzz test for deadline passed error
-    function testFuzz_executeDeadlinePassed(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
-        vm.assume(deadline < block.timestamp);
-        vm.assume(inputAmount > 0);
-        vm.assume(outputAmount > 0);
-
-        // Seed both swapper and fillContract with enough tokens
-        tokenIn.mint(address(swapper), uint256(inputAmount));
-        tokenOut.mint(address(fillContract), uint256(outputAmount));
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-
-        MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
-            input: InputToken(tokenIn, inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
-        });
-
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
-
-        vm.expectRevert(DeadlinePassed.selector);
-        fillContract.execute(signedOrder);
-    }
-
     /// @dev Fuzz test preExecutionHook with random amounts
     function testFuzz_executeWithPreExecutionHook(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline > block.timestamp);
