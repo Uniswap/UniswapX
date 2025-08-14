@@ -549,6 +549,47 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         fillContract.execute(signedOrder);
     }
 
+    /// @dev Test nonce reuse protection with different order parameters
+    function test_nonceReuse() public {
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = ONE * 2;
+        tokenIn.mint(address(swapper), inputAmount * 100);
+        tokenOut.mint(address(fillContract), outputAmount * 100);
+        // approve for 2 orders here
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(123),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
+
+        // change deadline so sig and orderhash is different but nonce is the same
+        order.info.deadline = block.timestamp + 101;
+        (signedOrder, orderHash) = signAndEncodeOrder(order);
+        vm.expectRevert(InvalidNonce.selector);
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("UnifiedReactorRevertInvalidNonce");
+    }
+
     /// @dev Fuzz test preExecutionHook with random amounts
     function testFuzz_executeWithPreExecutionHook(uint128 inputAmount, uint128 outputAmount, uint256 deadline) public {
         vm.assume(deadline > block.timestamp);
