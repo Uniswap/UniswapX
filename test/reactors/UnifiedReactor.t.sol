@@ -33,6 +33,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
+    MockERC20 tokenOut2;
     MockFillContractV2 fillContract;
     MockPreExecutionHook preExecutionHook;
     IPermit2 permit2;
@@ -51,6 +52,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
         tokenOut = new MockERC20("Output", "OUT", 18);
+        tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
@@ -364,6 +366,127 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         assertEq(tokenOut.balanceOf(address(fillContract)), 6 ether - totalOutputAmount);
     }
 
+    /// @dev Basic batch execute test with native output
+    function test_executeBatchNativeOutput() public {
+        uint256 inputAmount = ONE;
+        uint256 outputAmount = 2 * inputAmount;
+
+        tokenIn.mint(address(swapper), inputAmount * 3);
+        vm.deal(address(fillContract), 6 ether);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        uint256 totalOutputAmount = 3 * outputAmount;
+        uint256 totalInputAmount = 3 * inputAmount;
+
+        MockOrder[] memory orders = new MockOrder[](2);
+
+        orders[0] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(0),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
+        });
+
+        orders[1] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
+            outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper)
+        });
+
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
+
+        fillContract.executeBatch(signedOrders);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteBatchNativeOutput");
+
+        assertEq(address(swapper).balance, totalOutputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+    }
+
+    /// @dev Test with multiple outputs
+    function test_executeBatchMultipleOutputs() public {
+        uint256 inputAmount = 3 ether;
+        uint256[] memory outputAmounts = new uint256[](2);
+        outputAmounts[0] = 2 ether;
+        outputAmounts[1] = 1 ether;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), 3 ether);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
+        });
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), 3 ether);
+        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+    }
+
+    /// @dev Execute batch with multiple outputs using different tokens
+    function test_executeBatchMultipleOutputsDifferentTokens() public {
+        uint256[] memory output1 = ArrayBuilder.fill(1, 2 * ONE).push(ONE);
+        uint256[] memory output2 = ArrayBuilder.fill(1, 3 * ONE).push(ONE);
+
+        OutputToken[] memory outputs1 = OutputsBuilder.multiple(address(tokenOut), output1, swapper);
+        outputs1[1].token = address(tokenOut2);
+
+        OutputToken[] memory outputs2 = OutputsBuilder.multiple(address(tokenOut), output2, swapper);
+        outputs2[0].token = address(tokenOut2);
+
+        uint256 totalInputAmount = 3 * ONE;
+        uint256 totalOutputAmount1 = 3 * ONE;
+        uint256 totalOutputAmount2 = 4 * ONE;
+        tokenIn.mint(address(swapper), totalInputAmount);
+        tokenOut.mint(address(fillContract), totalOutputAmount1);
+        tokenOut2.mint(address(fillContract), totalOutputAmount2);
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        MockOrder[] memory orders = new MockOrder[](2);
+
+        orders[0] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(0),
+            input: InputToken(tokenIn, ONE, ONE),
+            outputs: outputs1
+        });
+
+        orders[1] = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
+            input: InputToken(tokenIn, ONE * 2, ONE * 2),
+            outputs: outputs2
+        });
+
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
+        vm.expectEmit(true, true, true, true);
+        emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
+
+        fillContract.executeBatch(signedOrders);
+        vm.snapshotGasLastCall("UnifiedReactorExecuteBatchMultipleOutputsDifferentTokens");
+
+        assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
+        assertEq(tokenOut2.balanceOf(swapper), totalOutputAmount2);
+        assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+    }
+
     /// @dev Test invalid reactor error
     function test_executeInvalidReactor() public {
         uint256 inputAmount = 1 ether;
@@ -424,36 +547,6 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
         vm.expectRevert(InvalidNonce.selector);
         fillContract.execute(signedOrder);
-    }
-
-    /// @dev Test with multiple outputs
-    function test_executeBatchMultipleOutputs() public {
-        uint256 inputAmount = 3 ether;
-        uint256[] memory outputAmounts = new uint256[](2);
-        outputAmounts[0] = 2 ether;
-        outputAmounts[1] = 1 ether;
-
-        tokenIn.mint(address(swapper), inputAmount);
-        tokenOut.mint(address(fillContract), 3 ether);
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-
-        MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
-            input: InputToken(tokenIn, inputAmount, inputAmount),
-            outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
-        });
-
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
-
-        vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-
-        fillContract.execute(signedOrder);
-
-        assertEq(tokenIn.balanceOf(address(swapper)), 0);
-        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
-        assertEq(tokenOut.balanceOf(address(swapper)), 3 ether);
-        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
     }
 
     /// @dev Fuzz test preExecutionHook with random amounts

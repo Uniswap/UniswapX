@@ -1,6 +1,8 @@
 {
   "BaseExecuteSingleWithFee": "180689",
   "UnifiedReactorExecuteBatch": "194768",
+  "UnifiedReactorExecuteBatchMultipleOutputsDifferentTokens": "257108",
+  "UnifiedReactorExecuteBatchNativeOutput": "190556",
   "UnifiedReactorExecuteSingle": "147159",
   "UnifiedReactorExecuteSingleNativeOutput": "135102",
   "UnifiedReactorExecuteSingleWithHook": "193835"
