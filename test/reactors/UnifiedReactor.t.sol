@@ -18,6 +18,7 @@ import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoub
 import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {MockFeeControllerV2} from "../util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../util/mock/MockPreExecutionHook.sol";
+import {TokenTransferHook} from "../../src/hooks/TokenTransferHook.sol";
 import {MockAuctionResolver} from "../util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
@@ -36,6 +37,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     MockERC20 tokenOut2;
     MockFillContractV2 fillContract;
     MockPreExecutionHook preExecutionHook;
+    TokenTransferHook tokenTransferHook;
     IPermit2 permit2;
     MockFeeControllerV2 feeController;
     address feeRecipient;
@@ -48,6 +50,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     error InvalidSigner();
     error InvalidReactor();
     error DeadlinePassed();
+    error MissingPreExecutionHook();
 
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -56,8 +59,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
-        preExecutionHook = new MockPreExecutionHook();
+        // Deploy hooks with permit2
+        preExecutionHook = new MockPreExecutionHook(permit2);
         preExecutionHook.setValid(true);
+        tokenTransferHook = new TokenTransferHook(permit2);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeControllerV2(feeRecipient);
 
@@ -109,14 +114,17 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         }
     }
 
-    /// @dev Helper to create a basic MockOrder
+    /// @dev Helper to create a basic MockOrder with the standard token transfer hook
     function createBasicOrder(uint256 inputAmount, uint256 outputAmount, uint256 deadline)
         internal
         view
         returns (MockOrder memory)
     {
         return MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -224,7 +232,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
@@ -337,15 +348,21 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(0)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(1)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
@@ -381,15 +398,21 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(0)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(1)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper)
         });
@@ -420,7 +443,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
         });
@@ -460,15 +486,21 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(0)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(1)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2
         });
@@ -499,8 +531,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         // Create order with wrong reactor address
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(0x1234)).withSwapper(swapper) // Wrong reactor
-                .withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(0x1234))
+                .withSwapper(swapper) // Wrong reactor
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -508,6 +542,32 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
 
         vm.expectRevert(InvalidReactor.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test missing pre-execution hook error
+    function test_executeMissingHook() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        // Create order without a pre-execution hook
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline),
+            // No preExecutionHook set
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+
+        vm.expectRevert(MissingPreExecutionHook.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -559,8 +619,11 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(123),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(block.timestamp + 100)
+                .withNonce(123)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -602,7 +665,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -645,7 +711,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -684,7 +753,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilderV2.init(address(reactor))
+                .withSwapper(swapper)
+                .withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
