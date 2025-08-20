@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IReactorCallbackV2} from "../interfaces/IReactorCallbackV2.sol";
 
-import {Permit2LibV2} from "../lib/Permit2LibV2.sol";
 import {SignedOrder, ResolvedOrderV2, OutputToken} from "../base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
@@ -18,7 +17,6 @@ import {ProtocolFeesV2} from "../base/ProtocolFees.sol";
 /// @notice Unified reactor that supports pre-and-post fill hooks and auction resolver plugins
 /// @dev Does not inherit from BaseReactor
 contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGuard {
-    using Permit2LibV2 for ResolvedOrderV2;
     using CurrencyLibrary for address;
 
     /// @notice thrown when an auction resolver is not set
@@ -29,6 +27,8 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     error InvalidReactor();
     /// @notice thrown when the order's deadline has passed
     error DeadlinePassed();
+    /// @notice thrown when a pre-execution hook is not set
+    error MissingPreExecutionHook();
 
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
@@ -116,7 +116,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
                 _injectFees(order);
                 _validateOrder(order);
                 _callPreExecutionHook(order);
-                _transferInputTokens(order, msg.sender);
+                // Token transfer is now handled by the hook
             }
         }
     }
@@ -144,21 +144,12 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
         }
     }
 
-    /// @notice Call pre-execution hook if set
+    /// @notice Call pre-execution hook (required for all orders)
     function _callPreExecutionHook(ResolvedOrderV2 memory order) internal {
-        if (address(order.info.preExecutionHook) != address(0)) {
-            order.info.preExecutionHook.preExecutionHook(msg.sender, order);
+        if (address(order.info.preExecutionHook) == address(0)) {
+            revert MissingPreExecutionHook();
         }
-    }
-
-    /// @notice Transfer input tokens from swapper to filler using permitWitnessTransferFrom
-    function _transferInputTokens(ResolvedOrderV2 memory order, address to) internal {
-        // Always use SignatureTransfer - get the order type from the resolver
-        string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
-
-        permit2.permitWitnessTransferFrom(
-            order.toPermit(), order.transferDetails(to), order.info.swapper, order.hash, orderType, order.sig
-        );
+        order.info.preExecutionHook.preExecutionHook(msg.sender, order);
     }
 
     /// @notice Transfer output tokens to their recipients

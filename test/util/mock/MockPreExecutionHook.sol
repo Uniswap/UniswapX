@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IPreExecutionHook} from "../../../src/interfaces/IPreExecutionHook.sol";
+import {BaseHook} from "../../../src/base/BaseHook.sol";
 import {ResolvedOrderV2} from "../../../src/base/ReactorStructs.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Mock pre-execution hook for testing, replacing the old validation contract functionality
-contract MockPreExecutionHook is IPreExecutionHook {
+contract MockPreExecutionHook is BaseHook {
     error MockPreExecutionError();
 
     bool public isValid = true;
@@ -15,6 +16,8 @@ contract MockPreExecutionHook is IPreExecutionHook {
     uint256 public preExecutionCounter;
     mapping(address => uint256) public fillerExecutions;
 
+    constructor(IPermit2 _permit2) BaseHook(_permit2) {}
+
     function setValid(bool _valid) external {
         isValid = _valid;
     }
@@ -23,8 +26,8 @@ contract MockPreExecutionHook is IPreExecutionHook {
         invalidFillers[filler] = !valid; // If valid is true, set invalidity to false
     }
 
-    /// @inheritdoc IPreExecutionHook
-    function preExecutionHook(address filler, ResolvedOrderV2 calldata) external override {
+    /// @notice Override the before hook to add custom validation
+    function _beforeTokenTransfer(address filler, ResolvedOrderV2 calldata) internal override {
         // First check global validity
         if (!isValid) {
             revert MockPreExecutionError();
