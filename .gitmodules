@@ -16,9 +16,6 @@
 [submodule "lib/calibur"]
 	path = lib/calibur
 	url = https://github.com/Uniswap/calibur
-[submodule "lib/tribunal"]
-	path = lib/tribunal
-	url = https://github.com/Uniswap/Tribunal
 [submodule "lib/Tribunal"]
 	path = lib/Tribunal
 	url = https://github.com/Uniswap/Tribunal
