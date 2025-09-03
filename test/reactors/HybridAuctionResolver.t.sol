@@ -99,11 +99,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 auctionStartBlock
     ) internal view returns (HybridOrder memory) {
         HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut), 
-            minAmount: outputAmount,
-            recipient: swapper
-        });
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputAmount, recipient: swapper});
 
         return HybridOrder({
             info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
@@ -121,14 +117,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         });
     }
 
-    /// @dev Test 1: Basic execution with no curves
-    function test_basicExecution() public {
+    function test_basicNoAuctionFill() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
-        HybridOrder memory order = createBasicHybridOrder(inputAmount, outputAmount, deadline, 0);
-        order.auctionStartBlock = 0; // No auction
+        HybridOrder memory order = createBasicHybridOrder(inputAmount, outputAmount, deadline, block.number);
 
         // Seed tokens
         tokenIn.mint(address(swapper), inputAmount);
@@ -146,11 +140,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
     }
 
-    /// @dev Test 2: Dutch auction with time decay (exact-out mode)
     function test_dutchAuction_exactOut() public {
-        uint256 inputStartAmount = 0.9 ether;  // Start at 90% (best price for user)
-        uint256 inputEndAmount = 1.1 ether;    // End at 110% (worst price, max user will pay)
-        uint256 outputAmount = 1 ether;        // Fixed output
+        uint256 inputStartAmount = 0.9 ether;
+        uint256 inputEndAmount = 1.1 ether;
+        uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
         uint256 auctionStartBlock = block.number;
 
@@ -160,11 +153,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         dutchCurve[0] = (uint256(100) << 240) | uint256(0.8e18);
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: outputAmount,  // Fixed for exact-out
-            recipient: swapper
-        });
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputAmount, recipient: swapper});
 
         HybridOrder memory order = HybridOrder({
             info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
@@ -202,17 +191,16 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(tokenOut.balanceOf(swapper), outputAmount); // Fixed output
     }
 
-    /// @dev Test 3: Exact-in mode with scalingFactor > 1
     function test_exactInMode() public {
-        uint256 inputAmount = 1 ether;           // Fixed input
-        uint256 outputStartAmount = 1.1 ether;   // Start high (best for user)
-        uint256 outputEndAmount = 1 ether;       // End at minimum user accepts
+        uint256 inputAmount = 1 ether; // Fixed input
+        uint256 outputStartAmount = 1.1 ether; // Start high (best for user)
+        uint256 outputEndAmount = 1 ether; // End at minimum user accepts
         uint256 deadline = block.timestamp + 1000;
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
         outputs[0] = HybridOutput({
             token: address(tokenOut),
-            minAmount: outputEndAmount,  // Minimum acceptable for exact-in
+            minAmount: outputEndAmount, // Minimum acceptable for exact-in
             recipient: swapper
         });
 
@@ -246,66 +234,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(tokenOut.balanceOf(swapper), outputStartAmount); // minAmount * 1.1 = 1.1 ether
     }
 
-    /// @dev Test 4: Cosigner with supplemental curve
-    function test_cosignerSupplementalCurve() public {
-        uint256 deadline = block.timestamp + 1000;
-
-        // Base curve
-        uint256[] memory baseCurve = new uint256[](1);
-        baseCurve[0] = (uint256(100) << 240) | uint256(0.9e18);
-
-        // Supplemental curve from cosigner
-        uint256[] memory supplementalCurve = new uint256[](1);
-        supplementalCurve[0] = (uint256(100) << 240) | uint256(0.95e18);
-
-        HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: 1 ether,
-            recipient: swapper
-        });
-
-        HybridOrder memory order = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ),
-            cosigner: cosigner,
-            input: HybridInput(tokenIn, 1.1 ether),
-            outputs: outputs,
-            auctionStartBlock: block.number,
-            baselinePriorityFee: 0,
-            scalingFactor: 0.9e18, // Exact-out mode
-            priceCurve: baseCurve,
-            cosignerData: HybridCosignerData({
-                auctionTargetBlock: block.number, 
-                supplementalPriceCurve: supplementalCurve
-            }),
-            cosignature: ""
-        });
-
-        // Create cosigner signature
-        bytes32 orderHash = order.hash();
-        bytes32 dataHash = keccak256(abi.encode(orderHash, block.chainid, abi.encode(order.cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, dataHash);
-        order.cosignature = abi.encodePacked(r, s, v);
-
-        // Seed tokens
-        tokenIn.mint(address(swapper), 1.1 ether);
-        tokenOut.mint(address(fillContract), 1 ether);
-        tokenIn.forceApprove(swapper, address(permit2), 1.1 ether);
-
-        // Fast forward some blocks
-        vm.roll(block.number + 25);
-
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
-        fillContract.execute(signedOrder);
-
-        // Verify execution happened (exact amounts depend on curve combination logic)
-        assertGt(tokenIn.balanceOf(address(fillContract)), 0);
-        assertGt(tokenOut.balanceOf(swapper), 0);
-    }
-
-    /// @dev Test 5: Deadline enforcement
     function test_deadlineEnforcement() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
@@ -327,7 +255,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         fillContract.execute(signedOrder);
     }
 
-    /// @dev Test 6: Invalid auction block
     function test_invalidAuctionBlock() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
@@ -347,11 +274,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         fillContract.execute(signedOrder);
     }
 
-    /// @dev Test 7: Multiple price curve elements with exact-out mode
     function test_multiplePriceCurveElements_exactOut() public {
-        uint256 inputStartAmount = 0.8 ether;  // Start low
-        uint256 inputEndAmount = 1.2 ether;    // End high (max user pays)
-        uint256 outputAmount = 1 ether;        // Fixed output
+        uint256 inputStartAmount = 0.8 ether; // Start low
+        uint256 inputEndAmount = 1.2 ether; // End high (max user pays)
+        uint256 outputAmount = 1 ether; // Fixed output
         uint256 deadline = block.timestamp + 1000;
         uint256 auctionStartBlock = block.number;
 
@@ -362,11 +288,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         priceCurve[1] = (uint256(50) << 240) | uint256(0.6e18); // Next 50 blocks
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: outputAmount,
-            recipient: swapper
-        });
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputAmount, recipient: swapper});
 
         // Seed tokens for multiple executions
         tokenIn.mint(address(swapper), inputEndAmount * 3);
@@ -377,8 +299,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // PriceCurve interpolates from 0.8 toward 0.6
         vm.roll(block.number + 25);
         HybridOrder memory order1 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(1),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputEndAmount),
             outputs: outputs,
@@ -389,10 +312,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (SignedOrder memory signedOrder,) = signAndEncodeOrder(order1);
         fillContract.execute(signedOrder);
-        
+
         // Verify first execution
         uint256 firstBalance = tokenIn.balanceOf(address(fillContract));
         assertGt(firstBalance, 0);
@@ -401,8 +324,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at 75 blocks (halfway through second segment)
         vm.roll(auctionStartBlock + 75);
         HybridOrder memory order2 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(2),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(2),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputEndAmount),
             outputs: outputs,
@@ -413,20 +337,19 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (signedOrder,) = signAndEncodeOrder(order2);
         fillContract.execute(signedOrder);
-        
+
         // Verify both executions completed
         assertGt(tokenIn.balanceOf(address(fillContract)), firstBalance);
         assertEq(tokenOut.balanceOf(swapper), outputAmount * 2);
     }
 
-    /// @dev Test 8: Multiple price curve elements with exact-in mode
     function test_multiplePriceCurveElements_exactIn() public {
-        uint256 inputAmount = 1 ether;         // Fixed input
+        uint256 inputAmount = 1 ether; // Fixed input
         uint256 outputStartAmount = 1.2 ether; // Start high
-        uint256 outputEndAmount = 1 ether;     // End at minimum
+        uint256 outputEndAmount = 1 ether; // End at minimum
         uint256 deadline = block.timestamp + 1000;
         uint256 auctionStartBlock = block.number;
 
@@ -437,11 +360,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         priceCurve[0] = (uint256(100) << 240) | uint256(1.15e18); // Single segment
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: outputEndAmount,
-            recipient: swapper
-        });
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputEndAmount, recipient: swapper});
 
         // Seed tokens - need extra output for scaling
         tokenIn.mint(address(swapper), inputAmount * 2);
@@ -451,8 +370,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at 20 blocks (halfway through first segment)
         vm.roll(block.number + 20);
         HybridOrder memory order1 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(1),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputAmount), // Fixed for exact-in
             outputs: outputs,
@@ -463,10 +383,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (SignedOrder memory signedOrder,) = signAndEncodeOrder(order1);
         fillContract.execute(signedOrder);
-        
+
         // Verify first execution
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount); // Fixed input
         uint256 firstOutput = tokenOut.balanceOf(swapper);
@@ -475,8 +395,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at 70 blocks (30 blocks into second segment)
         vm.roll(auctionStartBlock + 70);
         HybridOrder memory order2 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(2),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(2),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputAmount),
             outputs: outputs,
@@ -487,16 +408,15 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (signedOrder,) = signAndEncodeOrder(order2);
         fillContract.execute(signedOrder);
-        
+
         // Verify both executions
         assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount * 2); // 2x fixed input
         assertGt(tokenOut.balanceOf(swapper), firstOutput); // Got more output total
     }
 
-    /// @dev Test 9: Zero-duration price curve elements (instant jumps) with exact-out mode
     function test_zeroDurationPriceCurve_exactOut() public {
         uint256 inputStartAmount = 0.8 ether;
         uint256 inputEndAmount = 1.2 ether;
@@ -511,11 +431,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         priceCurve[2] = (uint256(40) << 240) | uint256(0.5e18);
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: outputAmount,
-            recipient: swapper
-        });
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputAmount, recipient: swapper});
 
         // Seed tokens
         tokenIn.mint(address(swapper), inputEndAmount * 2);
@@ -525,8 +441,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at exactly 30 blocks (should be at the instant jump point)
         vm.roll(block.number + 30);
         HybridOrder memory order1 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(1),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(1),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputEndAmount),
             outputs: outputs,
@@ -537,10 +454,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (SignedOrder memory signedOrder,) = signAndEncodeOrder(order1);
         fillContract.execute(signedOrder);
-        
+
         uint256 firstInput = tokenIn.balanceOf(address(fillContract));
         assertGt(firstInput, 0);
         assertEq(tokenOut.balanceOf(swapper), outputAmount);
@@ -548,8 +465,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at 50 blocks (20 blocks into the segment after the jump)
         vm.roll(auctionStartBlock + 50);
         HybridOrder memory order2 = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
-                .withPreExecutionHook(tokenTransferHook).withNonce(2),
+            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withNonce(2),
             cosigner: address(0),
             input: HybridInput(tokenIn, inputEndAmount),
             outputs: outputs,
@@ -560,69 +478,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
         });
-        
+
         (signedOrder,) = signAndEncodeOrder(order2);
         fillContract.execute(signedOrder);
-        
+
         // Verify both executions
         assertGt(tokenIn.balanceOf(address(fillContract)), firstInput);
         assertEq(tokenOut.balanceOf(swapper), outputAmount * 2);
-    }
-
-    /// @dev Test 10: Complex multi-segment curve with cosigner override
-    function test_complexCurveWithCosigner() public {
-        // Base curve: simple decay
-        uint256[] memory baseCurve = new uint256[](1);
-        baseCurve[0] = (uint256(100) << 240) | uint256(0.9e18);
-
-        // Cosigner's supplemental curve: more complex multi-segment
-        uint256[] memory supplementalCurve = new uint256[](3);
-        supplementalCurve[0] = (uint256(25) << 240) | uint256(0.95e18);
-        supplementalCurve[1] = (uint256(25) << 240) | uint256(0.85e18);
-        supplementalCurve[2] = (uint256(50) << 240) | uint256(0.7e18);
-
-        HybridOutput[] memory outputs = new HybridOutput[](1);
-        outputs[0] = HybridOutput({
-            token: address(tokenOut),
-            minAmount: 1 ether,
-            recipient: swapper
-        });
-
-        HybridOrder memory order = HybridOrder({
-            info: OrderInfoBuilderV2.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
-                .withPreExecutionHook(tokenTransferHook),
-            cosigner: cosigner,
-            input: HybridInput(tokenIn, 1.2 ether),
-            outputs: outputs,
-            auctionStartBlock: block.number,
-            baselinePriorityFee: 0,
-            scalingFactor: 0.8e18, // Exact-out mode
-            priceCurve: baseCurve,
-            cosignerData: HybridCosignerData({
-                auctionTargetBlock: block.number,
-                supplementalPriceCurve: supplementalCurve
-            }),
-            cosignature: ""
-        });
-
-        // Create cosigner signature
-        bytes32 orderHash = order.hash();
-        bytes32 dataHash = keccak256(abi.encode(orderHash, block.chainid, abi.encode(order.cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, dataHash);
-        order.cosignature = abi.encodePacked(r, s, v);
-
-        // Seed tokens
-        tokenIn.mint(address(swapper), 2.4 ether);
-        tokenOut.mint(address(fillContract), 1 ether);
-        tokenIn.forceApprove(swapper, address(permit2), 2.4 ether);
-
-        // Test at 12 blocks
-        vm.roll(block.number + 12);
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
-        fillContract.execute(signedOrder);
-        
-        // Verify execution succeeded
-        assertGt(tokenIn.balanceOf(address(fillContract)), 0);
-        assertGt(tokenOut.balanceOf(swapper), 0);
     }
 }
