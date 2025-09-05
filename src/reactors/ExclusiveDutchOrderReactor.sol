@@ -41,8 +41,7 @@ contract ExclusiveDutchOrderReactor is BaseReactor {
             input: order.input.decay(order.decayStartTime, order.decayEndTime),
             outputs: order.outputs.decay(order.decayStartTime, order.decayEndTime),
             sig: signedOrder.sig,
-            hash: order.hash(),
-            auctionResolver: address(0)
+            hash: order.hash()
         });
         resolvedOrder.handleExclusiveOverrideTimestamp(
             order.exclusiveFiller, order.decayStartTime, order.exclusivityOverrideBps

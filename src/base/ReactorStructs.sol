@@ -68,7 +68,6 @@ struct ResolvedOrder {
     OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
-    address auctionResolver;
 }
 
 /// @dev generic concrete order that specifies exact tokens which need to be sent and received

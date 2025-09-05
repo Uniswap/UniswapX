@@ -69,8 +69,7 @@ contract V3DutchOrderReactor is BaseReactor, BlockNumberish {
             input: order.baseInput.decay(order.cosignerData.decayStartBlock, blockNumberish),
             outputs: order.baseOutputs.decay(order.cosignerData.decayStartBlock, blockNumberish),
             sig: signedOrder.sig,
-            hash: orderHash,
-            auctionResolver: address(0)
+            hash: orderHash
         });
         resolvedOrder.handleExclusiveOverrideBlock(
             order.cosignerData.exclusiveFiller,
