@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IPreExecutionHook} from "../../../src/interfaces/IPreExecutionHook.sol";
 import {ResolvedOrderV2} from "../../../src/base/ReactorStructs.sol";
 
-/// @notice Mock pre-execution hook for testing, replacing the old validation contract functionality
 contract MockPreExecutionHook is IPreExecutionHook {
     error MockPreExecutionError();
 
