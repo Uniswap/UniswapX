@@ -75,7 +75,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     }
 
     /// @dev Create a signed order for UnifiedReactor using MockOrder
-    function signAndEncodeOrder(MockOrder memory mockOrder)
+    function createAndSignOrder(MockOrder memory mockOrder)
         public
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
@@ -103,7 +103,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         signedOrders = new SignedOrder[](orders.length);
         orderHashes = new bytes32[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            (SignedOrder memory signed, bytes32 hash) = signAndEncodeOrder(orders[i]);
+            (SignedOrder memory signed, bytes32 hash) = createAndSignOrder(orders[i]);
             signedOrders[i] = signed;
             orderHashes[i] = hash;
         }
@@ -152,7 +152,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -189,7 +189,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -229,7 +229,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         uint256 swapperOutputBalanceStart = address(swapper).balance;
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
@@ -266,7 +266,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -316,7 +316,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(MockPreExecutionHook.MockPreExecutionError.selector);
         fillContract.execute(signedOrder);
@@ -425,7 +425,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
@@ -505,7 +505,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(InvalidReactor.selector);
         fillContract.execute(signedOrder);
@@ -522,7 +522,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(DeadlinePassed.selector);
         fillContract.execute(signedOrder);
@@ -539,7 +539,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
 
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         // Execute once successfully
         fillContract.execute(signedOrder);
@@ -564,7 +564,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -584,7 +584,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         // change deadline so sig and orderhash is different but nonce is the same
         order.info.deadline = block.timestamp + 101;
-        (signedOrder, orderHash) = signAndEncodeOrder(order);
+        (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
         fillContract.execute(signedOrder);
         vm.snapshotGasLastCall("UnifiedReactorRevertInvalidNonce");
@@ -607,7 +607,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -650,7 +650,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         (
             uint256 swapperInputBalanceStart,
@@ -689,7 +689,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder, bytes32 orderHash) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
 
         uint256 swapperOutputBalanceStart = address(swapper).balance;
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
@@ -725,7 +725,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         uint256 counterBefore = preExecutionHook.preExecutionCounter();
         uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
