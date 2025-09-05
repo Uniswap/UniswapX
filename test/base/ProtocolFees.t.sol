@@ -151,8 +151,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(outputs[0].token), feeBps);
 
@@ -260,8 +259,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(tokenOut), 4);
         feeController.setFee(tokenIn, address(tokenOut2), 3);
@@ -299,8 +297,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(tokenOut2), 3);
 
@@ -341,8 +338,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(tokenOut2), 3);
 
@@ -377,8 +373,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(tokenOut), 5);
         feeController.setFee(tokenIn, address(tokenOut2), 3);
@@ -417,8 +412,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
         feeController.setFee(tokenIn, address(tokenOut), 5);
         feeController.setFee(tokenIn, address(tokenOut2), 3);
@@ -467,8 +461,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
     }
 
@@ -486,8 +479,7 @@ contract ProtocolFeesTest is Test {
             input: InputToken(tokenIn, 1 ether, 1 ether),
             outputs: outputs,
             sig: hex"00",
-            hash: bytes32(0),
-            auctionResolver: address(0)
+            hash: bytes32(0)
         });
     }
 }

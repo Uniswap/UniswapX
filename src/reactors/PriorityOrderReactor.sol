@@ -52,8 +52,7 @@ contract PriorityOrderReactor is BaseReactor {
             input: order.input.scale(priorityFee),
             outputs: order.outputs.scale(priorityFee),
             sig: signedOrder.sig,
-            hash: orderHash,
-            auctionResolver: address(0)
+            hash: orderHash
         });
     }
 
