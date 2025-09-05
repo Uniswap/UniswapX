@@ -5,8 +5,7 @@ import {BaseHook} from "../../../src/base/BaseHook.sol";
 import {ResolvedOrderV2} from "../../../src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
-/// @notice Mock pre-execution hook for testing, replacing the old validation contract functionality
-contract MockPreExecutionHook is BaseHook {
+contract MockPreExecutionHook is IPreExecutionHook {
     error MockPreExecutionError();
 
     bool public isValid = true;
