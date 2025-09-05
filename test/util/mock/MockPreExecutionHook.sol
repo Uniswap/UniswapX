@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import {BaseHook} from "../../../src/base/BaseHook.sol";
 import {ResolvedOrderV2} from "../../../src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {IPreExecutionHook} from "../../../src/interfaces/IPreExecutionHook.sol";
 
-contract MockPreExecutionHook is IPreExecutionHook {
+contract MockPreExecutionHook is BaseHook {
     error MockPreExecutionError();
 
     bool public isValid = true;

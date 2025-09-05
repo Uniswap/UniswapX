@@ -539,7 +539,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
-        (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(MissingPreExecutionHook.selector);
         fillContract.execute(signedOrder);
