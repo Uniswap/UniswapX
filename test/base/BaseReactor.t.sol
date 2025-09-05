@@ -73,7 +73,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
 
     /// @dev Create many signed orders and return
     /// @param requests Array of orders to sign
-    function signAndEncodeBatchOrders(ResolvedOrder[] memory requests)
+    function createAndSignBatchOrders(ResolvedOrder[] memory requests)
         public
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
     {
@@ -287,7 +287,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -334,7 +334,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -385,7 +385,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
@@ -441,7 +441,7 @@ abstract contract BaseReactorTest is ReactorEvents, Test, DeployPermit2 {
             hash: bytes32(0)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
