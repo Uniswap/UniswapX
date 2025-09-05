@@ -222,7 +222,7 @@ contract PermitSignature is Test {
             nonce: info.nonce,
             deadline: info.deadline
         });
-        return getPermitSignature(privateKey, permit2, permit, address(info.reactor), typeHash, orderHash);
+        return getPermitSignature(privateKey, permit2, permit, address(info.preExecutionHook), typeHash, orderHash);
     }
 
     function signOrder(uint256 privateKey, address permit2, MockOrder memory order)
@@ -231,12 +231,15 @@ contract PermitSignature is Test {
         returns (bytes memory sig)
     {
         // Use the pre-execution hook as the spender if it's set, otherwise use reactor
-        address spender = address(order.info.preExecutionHook) != address(0) 
-            ? address(order.info.preExecutionHook) 
+        address spender = address(order.info.preExecutionHook) != address(0)
+            ? address(order.info.preExecutionHook)
             : address(order.info.reactor);
-            
+
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: order.input.maxAmount}),
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token),
+                amount: order.input.maxAmount
+            }),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
