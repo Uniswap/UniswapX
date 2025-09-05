@@ -55,7 +55,7 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
     }
 
     /// @dev Create and return a basic single Dutch limit order along with its signature, orderHash, and orderInfo
-    function signAndEncodeOrder(ResolvedOrder memory request)
+    function createAndSignOrder(ResolvedOrder memory request)
         public
         view
         override
