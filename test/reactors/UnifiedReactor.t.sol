@@ -95,7 +95,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     }
 
     /// @dev Create many signed orders and return
-    function signAndEncodeBatchOrders(MockOrder[] memory orders)
+    function createAndSignBatchOrders(MockOrder[] memory orders)
         public
         view
         returns (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes)
@@ -350,7 +350,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
 
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
@@ -394,7 +394,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper)
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
 
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
@@ -473,7 +473,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
             outputs: outputs2
         });
 
-        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = signAndEncodeBatchOrders(orders);
+        (SignedOrder[] memory signedOrders, bytes32[] memory orderHashes) = createAndSignBatchOrders(orders);
         vm.expectEmit(true, true, true, true);
         emit Fill(orderHashes[0], address(fillContract), swapper, orders[0].info.nonce);
         vm.expectEmit(true, true, true, true);
