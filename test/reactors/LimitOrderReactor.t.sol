@@ -40,7 +40,7 @@ contract LimitOrderReactorTest is PermitSignature, DeployPermit2, BaseReactorTes
     }
 
     /// @dev Create and return a basic LimitOrder along with its signature, hash, and orderInfo
-    function signAndEncodeOrder(ResolvedOrder memory request)
+    function createAndSignOrder(ResolvedOrder memory request)
         public
         view
         override

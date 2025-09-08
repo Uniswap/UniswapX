@@ -6,7 +6,7 @@ import {DCARegistry} from "../../src/validation/DCARegistry.sol";
 import {IDCARegistry} from "../../src/interfaces/IDCARegistry.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IERC1271} from "permit2/src/interfaces/IERC1271.sol";
-import {IPreExecutionHook} from "../../src/interfaces/IPreExecutionHook.sol";
+import {IPreExecutionHook, IPostExecutionHook} from "../../src/interfaces/IHook.sol";
 import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
 import {UnifiedReactor} from "../../src/reactors/UnifiedReactor.sol";
 import {PriorityAuctionResolver} from "../../src/resolvers/PriorityAuctionResolver.sol";
@@ -114,7 +114,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -180,7 +180,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -235,7 +235,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -282,7 +282,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -336,7 +336,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -380,7 +380,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -425,7 +425,9 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData1)
+                preExecutionHookData: abi.encode(validationData1),
+                postExecutionHook: IPostExecutionHook(address(0)),
+                postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -462,7 +464,9 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 2,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData2)
+                preExecutionHookData: abi.encode(validationData2),
+                postExecutionHook: IPostExecutionHook(address(0)),
+                postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),
@@ -536,7 +540,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: 1,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, inputAmount),
             outputs: new OutputToken[](1),
@@ -588,7 +592,7 @@ contract DCARegistryTest is Test, DCAIntentSignature, PermitSignature, DeployPer
                 nonce: orderNumber,
                 deadline: block.timestamp + 1 hours,
                 preExecutionHook: IPreExecutionHook(address(dcaRegistry)),
-                preExecutionHookData: abi.encode(validationData)
+                preExecutionHookData: abi.encode(validationData), postExecutionHook: IPostExecutionHook(address(0)), postExecutionHookData: ''
             }),
             input: toInput(tokenIn, 500e18),
             outputs: new OutputToken[](1),

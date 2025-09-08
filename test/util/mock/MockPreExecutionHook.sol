@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {BaseHook} from "../../../src/base/BaseHook.sol";
+import {BasePreExecutionHook} from "../../../src/base/BaseHook.sol";
 import {ResolvedOrderV2} from "../../../src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {IPreExecutionHook} from "../../../src/interfaces/IHook.sol";
 
-/// @notice Mock pre-execution hook for testing, replacing the old validation contract functionality
-contract MockPreExecutionHook is BaseHook {
+contract MockPreExecutionHook is BasePreExecutionHook {
     error MockPreExecutionError();
 
     bool public isValid = true;
@@ -16,7 +16,7 @@ contract MockPreExecutionHook is BaseHook {
     uint256 public preExecutionCounter;
     mapping(address => uint256) public fillerExecutions;
 
-    constructor(IPermit2 _permit2) BaseHook(_permit2) {}
+    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
 
     function setValid(bool _valid) external {
         isValid = _valid;

@@ -131,6 +131,20 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
                 emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
             }
         }
+        _callPostExecutionHook(orders);
+    }
+
+    /// @notice Call post-execution hook if set
+    function _callPostExecutionHook(ResolvedOrderV2[] memory orders) internal {
+        uint256 ordersLength = orders.length;
+        unchecked {
+            for (uint256 i = 0; i < ordersLength; i++) {
+                ResolvedOrderV2 memory order = orders[i];
+                if (address(order.info.postExecutionHook) != address(0)) {
+                    order.info.postExecutionHook.postExecutionHook(msg.sender, order);
+                }
+            }
+        }
     }
 
     /// @notice Validate basic order properties
@@ -166,7 +180,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
             }
         }
     }
-
+    
     /// @notice Allow contract to receive ETH for native output orders
     receive() external payable {}
 }

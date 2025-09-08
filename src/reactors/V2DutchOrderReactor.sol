@@ -59,8 +59,7 @@ contract V2DutchOrderReactor is BaseReactor {
             input: order.baseInput.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
             outputs: order.baseOutputs.decay(order.cosignerData.decayStartTime, order.cosignerData.decayEndTime),
             sig: signedOrder.sig,
-            hash: orderHash,
-            auctionResolver: address(0)
+            hash: orderHash
         });
         resolvedOrder.handleExclusiveOverrideTimestamp(
             order.cosignerData.exclusiveFiller,

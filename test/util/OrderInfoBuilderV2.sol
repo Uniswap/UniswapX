@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {OrderInfoV2} from "../../src/base/ReactorStructs.sol";
 import {IReactor} from "../../src/interfaces/IReactor.sol";
-import {IPreExecutionHook} from "../../src/interfaces/IPreExecutionHook.sol";
+import {IPreExecutionHook, IPostExecutionHook} from "../../src/interfaces/IHook.sol";
 
 library OrderInfoBuilderV2 {
     function init(address reactor) internal view returns (OrderInfoV2 memory) {
@@ -13,7 +13,9 @@ library OrderInfoBuilderV2 {
             nonce: 0,
             deadline: block.timestamp + 100,
             preExecutionHook: IPreExecutionHook(address(0)),
-            preExecutionHookData: bytes("")
+            preExecutionHookData: bytes(""),
+            postExecutionHook: IPostExecutionHook(address(0)),
+            postExecutionHookData: bytes("")
         });
     }
 
