@@ -87,13 +87,10 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     {
         orderHash = mockOrder.hash();
 
-        // Sign the order
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), mockOrder);
 
-        // Encode the order data for the resolver
         bytes memory orderData = abi.encode(mockOrder);
 
-        // Wrap with resolver address for UnifiedReactor
         bytes memory encodedOrder = abi.encode(address(mockResolver), orderData);
 
         signedOrder = SignedOrder(encodedOrder, sig);

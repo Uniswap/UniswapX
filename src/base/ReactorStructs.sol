@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
-import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
+import {IPreExecutionHook, IPostExecutionHook} from "../interfaces/IHook.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev generic order information
@@ -44,6 +44,10 @@ struct OrderInfoV2 {
     IPreExecutionHook preExecutionHook;
     // Encoded pre-execution hook data
     bytes preExecutionHookData;
+    // Post-execution hook contract
+    IPostExecutionHook postExecutionHook;
+    // Encoded post-execution hook data
+    bytes postExecutionHookData;
 }
 
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order

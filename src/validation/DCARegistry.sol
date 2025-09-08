@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IDCARegistry} from "../interfaces/IDCARegistry.sol";
-import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
+import {IPreExecutionHook} from "../interfaces/IHook.sol";
 
 import {ResolvedOrderV2} from "../base/ReactorStructs.sol";
 import {ECDSA} from "openzeppelin-contracts/utils/cryptography/ECDSA.sol";
