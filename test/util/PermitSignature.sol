@@ -230,11 +230,6 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        // Use the pre-execution hook as the spender if it's set, otherwise use reactor
-        address spender = address(order.info.preExecutionHook) != address(0)
-            ? address(order.info.preExecutionHook)
-            : address(order.info.reactor);
-
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({
                 token: address(order.input.token),
@@ -243,7 +238,7 @@ contract PermitSignature is Test {
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
-        return getPermitSignature(privateKey, permit2, permit, spender, MOCK_ORDER_TYPE_HASH, order.hash());
+        return getPermitSignature(privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash());
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {
