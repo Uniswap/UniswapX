@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {OutputToken} from "../../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 
-/// @notice Interface for getting fee outputs
+/// @notice Interface for getting fee outputs for resolved orders
 interface IProtocolFeeController {
     /// @notice Get fee outputs for the given orders
     /// @param order The orders to get fee outputs for

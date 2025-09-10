@@ -2,23 +2,21 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
-import {SignedOrder, ResolvedOrderV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder,InputToken, OutputToken} from "../../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {
-    PriorityOrderLib,
-    PriorityOrderLibV2,
-    PriorityOrder,
-    PriorityOrderV2,
     PriorityInput,
     PriorityOutput,
     PriorityCosignerData
-} from "../lib/PriorityOrderLib.sol";
-import {PriorityFeeLib} from "../lib/PriorityFeeLib.sol";
-import {CosignerLib} from "../lib/CosignerLib.sol";
+} from "../../lib/PriorityOrderLib.sol";
+import {PriorityOrder, PriorityOrderLib} from "../lib/PriorityOrderLib.sol";
+import {PriorityFeeLib} from "../../lib/PriorityFeeLib.sol";
+import {CosignerLib} from "../../lib/CosignerLib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @notice Auction resolver for priority fee based orders
 contract PriorityAuctionResolver is IAuctionResolver {
-    using PriorityOrderLibV2 for PriorityOrderV2;
+    using PriorityOrderLib for PriorityOrder;
     using PriorityFeeLib for PriorityInput;
     using PriorityFeeLib for PriorityOutput;
     using PriorityFeeLib for PriorityOutput[];
@@ -46,9 +44,9 @@ contract PriorityAuctionResolver is IAuctionResolver {
         external
         view
         override
-        returns (ResolvedOrderV2 memory resolvedOrder)
+        returns (ResolvedOrder memory resolvedOrder)
     {
-        PriorityOrderV2 memory order = abi.decode(signedOrder.order, (PriorityOrderV2));
+        PriorityOrder memory order = abi.decode(signedOrder.order, (PriorityOrder));
 
         _checkPermit2Nonce(order.info.swapper, order.info.nonce);
 
@@ -61,7 +59,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
         InputToken memory scaledInput = order.input.scale(priorityFee);
         OutputToken[] memory scaledOutputs = order.outputs.scale(priorityFee);
 
-        resolvedOrder = ResolvedOrderV2({
+        resolvedOrder = ResolvedOrder({
             info: order.info,
             input: scaledInput,
             outputs: scaledOutputs,
@@ -76,7 +74,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid
-    function _validateOrder(bytes32 orderHash, PriorityOrderV2 memory order) internal view {
+    function _validateOrder(bytes32 orderHash, PriorityOrder memory order) internal view {
         uint256 auctionStartBlock = order.auctionStartBlock;
 
         // we override auctionStartBlock with the cosigned auctionTargetBlock only if:
@@ -137,6 +135,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
 
     /// @inheritdoc IAuctionResolver
     function getPermit2OrderType() external pure override returns (string memory) {
-        return PriorityOrderLibV2.PERMIT2_ORDER_TYPE;
+        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
     }
 }

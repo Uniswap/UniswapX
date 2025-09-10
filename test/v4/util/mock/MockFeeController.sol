@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Owned} from "solmate/src/auth/Owned.sol";
-import {ResolvedOrder, OutputToken} from "../../../src/base/ReactorStructs.sol";
-import {IProtocolFeeController} from "../../../src/interfaces/IProtocolFeeController.sol";
+import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
+import {OutputToken} from "../../../../src/base/ReactorStructs.sol";
+import {IProtocolFeeController} from "../../../../src/v4/interfaces/IProtocolFeeController.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @notice Mock protocol fee controller

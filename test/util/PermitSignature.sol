@@ -10,11 +10,11 @@ import {DutchOrder, DutchOrderLib} from "../../src/lib/DutchOrderLib.sol";
 import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/ExclusiveDutchOrderLib.sol";
 import {V2DutchOrder, V2DutchOrderLib} from "../../src/lib/V2DutchOrderLib.sol";
 import {V3DutchOrder, V3DutchOrderLib} from "../../src/lib/V3DutchOrderLib.sol";
-import {
-    PriorityOrder, PriorityOrderLib, PriorityOrderV2, PriorityOrderLibV2
-} from "../../src/lib/PriorityOrderLib.sol";
-import {OrderInfo, OrderInfoV2, InputToken} from "../../src/base/ReactorStructs.sol";
-import {MockOrder, MockOrderLib} from "../util/mock/MockOrderLib.sol";
+import {PriorityOrder, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
+import {PriorityOrder as PriorityOrderV2, PriorityOrderLib as PriorityOrderLibV2} from "../../src/v4/lib/PriorityOrderLib.sol";
+import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
+import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;

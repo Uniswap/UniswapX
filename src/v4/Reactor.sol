@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IReactor} from "../interfaces/IReactor.sol";
-import {IReactorCallbackV2} from "../interfaces/IReactorCallbackV2.sol";
+import {IReactor} from "../../src/interfaces/IReactor.sol";
+import {IReactorCallback} from "./interfaces/IReactorCallback.sol";
 
-import {SignedOrder, ResolvedOrderV2, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {ResolvedOrder} from "./base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
+import {IAuctionResolver} from "./interfaces/IAuctionResolver.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ReactorEvents} from "../base/ReactorEvents.sol";
+import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
+import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import {ProtocolFeesV2} from "../base/ProtocolFees.sol";
+import {ProtocolFees} from "./base/ProtocolFees.sol";
 
 /// @notice Unified reactor that supports pre-and-post fill hooks and auction resolver plugins
 /// @dev Does not inherit from BaseReactor
-contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGuard {
+contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using CurrencyLibrary for address;
 
     /// @notice thrown when an auction resolver is not set
@@ -33,13 +34,13 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFeesV2(_protocolFeeOwner) {
+    constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
         permit2 = _permit2;
     }
 
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order) external payable override nonReentrant {
-        ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](1);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = _resolve(order);
         _prepare(resolvedOrders);
         _fill(resolvedOrders);
@@ -48,7 +49,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     /// @inheritdoc IReactor
     function executeBatch(SignedOrder[] calldata orders) external payable override nonReentrant {
         uint256 ordersLength = orders.length;
-        ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](ordersLength);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
@@ -67,10 +68,10 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
         override
         nonReentrant
     {
-        ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](1);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](1);
         resolvedOrders[0] = _resolve(order);
         _prepare(resolvedOrders);
-        IReactorCallbackV2(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
         _fill(resolvedOrders);
     }
 
@@ -82,7 +83,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
         nonReentrant
     {
         uint256 ordersLength = orders.length;
-        ResolvedOrderV2[] memory resolvedOrders = new ResolvedOrderV2[](ordersLength);
+        ResolvedOrder[] memory resolvedOrders = new ResolvedOrder[](ordersLength);
 
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
@@ -91,12 +92,12 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
         }
 
         _prepare(resolvedOrders);
-        IReactorCallbackV2(msg.sender).reactorCallback(resolvedOrders, callbackData);
+        IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
         _fill(resolvedOrders);
     }
 
-    /// @notice Resolve a SignedOrder into a ResolvedOrderV2 using the auction resolver
-    function _resolve(SignedOrder calldata signedOrder) internal view returns (ResolvedOrderV2 memory resolvedOrder) {
+    /// @notice Resolve a SignedOrder into a ResolvedOrder using the auction resolver
+    function _resolve(SignedOrder calldata signedOrder) internal view returns (ResolvedOrder memory resolvedOrder) {
         (address auctionResolver, bytes memory orderData) = abi.decode(signedOrder.order, (address, bytes));
 
         if (auctionResolver == address(0)) {
@@ -108,11 +109,11 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Prepare orders for execution (validation and pre-execution hooks)
-    function _prepare(ResolvedOrderV2[] memory orders) internal {
+    function _prepare(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedOrderV2 memory order = orders[i];
+                ResolvedOrder memory order = orders[i];
                 _injectFees(order);
                 _validateOrder(order);
                 _callPreExecutionHook(order);
@@ -122,11 +123,11 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Fill orders by transferring output tokens
-    function _fill(ResolvedOrderV2[] memory orders) internal {
+    function _fill(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedOrderV2 memory order = orders[i];
+                ResolvedOrder memory order = orders[i];
                 _transferOutputTokens(order);
                 emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
             }
@@ -135,11 +136,11 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Call post-execution hook if set
-    function _callPostExecutionHook(ResolvedOrderV2[] memory orders) internal {
+    function _callPostExecutionHook(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedOrderV2 memory order = orders[i];
+                ResolvedOrder memory order = orders[i];
                 if (address(order.info.postExecutionHook) != address(0)) {
                     order.info.postExecutionHook.postExecutionHook(msg.sender, order);
                 }
@@ -148,7 +149,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Validate basic order properties
-    function _validateOrder(ResolvedOrderV2 memory order) internal view {
+    function _validateOrder(ResolvedOrder memory order) internal view {
         if (address(this) != address(order.info.reactor)) {
             revert InvalidReactor();
         }
@@ -159,7 +160,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Call pre-execution hook (required for all orders)
-    function _callPreExecutionHook(ResolvedOrderV2 memory order) internal {
+    function _callPreExecutionHook(ResolvedOrder memory order) internal {
         if (address(order.info.preExecutionHook) == address(0)) {
             revert MissingPreExecutionHook();
         }
@@ -167,7 +168,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
     }
 
     /// @notice Transfer output tokens to their recipients
-    function _transferOutputTokens(ResolvedOrderV2 memory order) internal {
+    function _transferOutputTokens(ResolvedOrder memory order) internal {
         uint256 outputsLength = order.outputs.length;
         unchecked {
             for (uint256 i = 0; i < outputsLength; i++) {
@@ -180,7 +181,7 @@ contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFeesV2, ReentrancyGu
             }
         }
     }
-    
+
     /// @notice Allow contract to receive ETH for native output orders
     receive() external payable {}
 }

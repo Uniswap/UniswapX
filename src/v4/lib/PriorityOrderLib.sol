@@ -1,29 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfo, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {OrderInfo} from "../base/ReactorStructs.sol";
+import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
+import {PriorityInput, PriorityOutput, PriorityCosignerData} from "../../lib/PriorityOrderLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-
-struct PriorityCosignerData {
-    // the block at which the order can be executed (overrides auctionStartBlock)
-    uint256 auctionTargetBlock;
-}
-
-struct PriorityInput {
-    ERC20 token;
-    uint256 amount;
-    // the less amount of input to be received per wei of priority fee
-    uint256 mpsPerPriorityFeeWei;
-}
-
-struct PriorityOutput {
-    address token;
-    uint256 amount;
-    // the extra amount of output to be paid per wei of priority fee
-    uint256 mpsPerPriorityFeeWei;
-    address recipient;
-}
 
 /// @dev External struct used to specify priority orders
 struct PriorityOrder {
@@ -116,7 +98,7 @@ library PriorityOrderLib {
         );
     }
 
-    /// @notice returns the hash of an output token struct
+    /// @notice returns the hash of an array of output token struct
     function hash(PriorityOutput[] memory outputs) private pure returns (bytes32) {
         unchecked {
             bytes memory packedHashes = new bytes(32 * outputs.length);

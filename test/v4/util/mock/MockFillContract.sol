@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {CurrencyLibrary} from "../../../src/lib/CurrencyLibrary.sol";
-import {ResolvedOrderV2, OutputToken, SignedOrder} from "../../../src/base/ReactorStructs.sol";
-import {UnifiedReactor} from "../../../src/reactors/UnifiedReactor.sol";
-import {IReactorCallbackV2} from "../../../src/interfaces/IReactorCallbackV2.sol";
+import {CurrencyLibrary} from "../../../../src/lib/CurrencyLibrary.sol";
+import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
+import {OutputToken, SignedOrder} from "../../../../src/base/ReactorStructs.sol";
+import {UnifiedReactor} from "../../../../src/v4/Reactor.sol";
+import {IReactorCallback} from "../../../../src/v4/interfaces/IReactorCallback.sol";
 
-contract MockFillContractV2 is IReactorCallbackV2 {
+contract MockFillContract is IReactorCallback {
     using CurrencyLibrary for address;
 
     UnifiedReactor immutable reactor;
@@ -32,7 +33,7 @@ contract MockFillContractV2 is IReactorCallbackV2 {
     }
 
     /// @notice assume that we already have all output tokens
-    function reactorCallback(ResolvedOrderV2[] memory resolvedOrders, bytes memory) external {
+    function reactorCallback(ResolvedOrder[] memory resolvedOrders, bytes memory) external {
         for (uint256 i = 0; i < resolvedOrders.length; i++) {
             for (uint256 j = 0; j < resolvedOrders[i].outputs.length; j++) {
                 OutputToken memory output = resolvedOrders[i].outputs[j];

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfoV2, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
-import {OrderInfoLibV2} from "../../../src/lib/OrderInfoLibV2.sol";
+import {OrderInfo} from "../../../../src/v4/base/ReactorStructs.sol";
+import {InputToken, OutputToken} from "../../../../src/base/ReactorStructs.sol";
+import {OrderInfoLib} from "../../../../src/v4/lib/OrderInfoLib.sol";
 
 /// @dev Mock order struct for basic UnifiedReactor testing
 struct MockOrder {
     // generic order information
-    OrderInfoV2 info;
+    OrderInfo info;
     // The token that the swapper will provide when settling the order
     InputToken input;
     // The tokens that must be received to satisfy the order
@@ -16,18 +17,18 @@ struct MockOrder {
 
 /// @notice helpers for handling mock order objects
 library MockOrderLib {
-    using OrderInfoLibV2 for OrderInfoV2;
+    using OrderInfoLib for OrderInfo;
 
     bytes private constant OUTPUT_TOKEN_TYPE = "OutputToken(address token,uint256 amount,address recipient)";
     bytes32 private constant OUTPUT_TOKEN_TYPE_HASH = keccak256(OUTPUT_TOKEN_TYPE);
 
     bytes internal constant ORDER_TYPE = abi.encodePacked(
         "MockOrder(",
-        "OrderInfoV2 info,",
+        "OrderInfo info,",
         "address inputToken,",
         "uint256 inputAmount,",
         "OutputToken[] outputs)",
-        OrderInfoLibV2.ORDER_INFO_V2_TYPE,
+        OrderInfoLib.ORDER_INFO_TYPE,
         OUTPUT_TOKEN_TYPE
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);

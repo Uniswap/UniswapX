@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {ResolvedOrderV2} from "../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 
-/// @notice handling some permit2-specific encoding for V2 structures
-library Permit2LibV2 {
-    /// @notice returns a ResolvedOrderV2 into a permit object
-    function toPermit(ResolvedOrderV2 memory order)
+/// @notice handling some permit2-specific encoding
+library Permit2Lib {
+    /// @notice returns a ResolvedOrder into a permit object
+    function toPermit(ResolvedOrder memory order)
         internal
         pure
         returns (ISignatureTransfer.PermitTransferFrom memory)
@@ -22,8 +22,8 @@ library Permit2LibV2 {
         });
     }
 
-    /// @notice returns a ResolvedOrderV2 into a permit object
-    function transferDetails(ResolvedOrderV2 memory order, address to)
+    /// @notice returns a ResolvedOrder into a permit object
+    function transferDetails(ResolvedOrder memory order, address to)
         internal
         pure
         returns (ISignatureTransfer.SignatureTransferDetails memory)
