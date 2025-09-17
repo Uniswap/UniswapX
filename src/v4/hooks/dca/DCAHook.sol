@@ -40,20 +40,22 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function cancelIntent(uint256 nonce) external override {
-        // TODO: Compute intentId from msg.sender and nonce
-        // TODO: Verify msg.sender owns the intent
-        // TODO: Set cancelled flag in executionStates[intentId]
-        // TODO: Emit IntentCancelled event
+    function cancelIntents(uint256[] calldata nonces) external override {
+        for (uint256 i = 0; i < nonces.length; i++) {
+            _cancelIntent(msg.sender, nonces[i]);
+        }
     }
 
     /// @inheritdoc IDCAHook
-    function cancelIntents(uint256[] calldata nonces) external override {
-        // TODO: Loop through each nonce
-        // TODO: For each, compute intentId from msg.sender and nonce
-        // TODO: Verify msg.sender owns each intent
-        // TODO: Set cancelled flags in executionStates
-        // TODO: Emit IntentCancelled events
+    function cancelIntent(uint256 nonce) external override {
+        _cancelIntent(msg.sender, nonce);
+    }
+
+    function _cancelIntent(address swapper, uint256 nonce) internal {
+        bytes32 intentId = keccak256(abi.encodePacked(swapper, nonce));
+        require(!executionStates[intentId].cancelled, "Intent already cancelled");
+        executionStates[intentId].cancelled = true;
+        emit IntentCancelled(intentId, swapper);
     }
 
     /// @inheritdoc IDCAHook

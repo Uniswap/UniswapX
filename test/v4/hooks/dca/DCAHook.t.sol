@@ -142,4 +142,106 @@ contract DCAHookTest is Test, DeployPermit2 {
         vm.expectRevert("input=0");
         hook.calculatePrice(0, 1000);
     }
+
+    event IntentCancelled(bytes32 indexed intentId, address indexed swapper);
+
+    address constant OTHER = address(0xBEEF);
+
+    function test_cancelIntent_setsCancelledAndEmits() public {
+        uint256 nonce = 7;
+        bytes32 intentId = hook.computeIntentId(SWAPPER, nonce);
+
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId, SWAPPER);
+
+        vm.prank(SWAPPER);
+        hook.cancelIntent(nonce);
+
+        DCAExecutionState memory s = hook.getExecutionState(intentId);
+        assertTrue(s.cancelled, "should be cancelled");
+    }
+
+    function test_cancelIntent_revertsWhenAlreadyCancelled() public {
+        uint256 nonce = 8;
+
+        vm.prank(SWAPPER);
+        hook.cancelIntent(nonce);
+
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntent(nonce);
+    }
+
+    function test_cancelIntents_batchSuccess() public {
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 1; nonces[1] = 2; nonces[2] = 3;
+
+        vm.prank(SWAPPER);
+        hook.cancelIntents(nonces);
+
+        for (uint256 i = 0; i < nonces.length; i++) {
+            bytes32 id = hook.computeIntentId(SWAPPER, nonces[i]);
+            assertTrue(hook.getExecutionState(id).cancelled, "batch: each should be cancelled");
+        }
+    }
+
+    function test_cancelIntents_duplicateInBatch_revertsAtomically() public {
+        // Pre-state: nothing cancelled
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 11; nonces[1] = 11; nonces[2] = 12;
+
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+
+        // Atomicity: no partial writes persisted
+        for (uint256 i = 0; i < nonces.length; i++) {
+            bytes32 id = hook.computeIntentId(SWAPPER, nonces[i]);
+            assertFalse(hook.getExecutionState(id).cancelled, "no state changes after revert");
+        }
+    }
+
+    function test_cancelIntents_revertsIfOnePreCancelled_doesNotAffectOthers() public {
+        // Pre-cancel one nonce in a separate tx
+        vm.prank(SWAPPER);
+        hook.cancelIntent(21);
+
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 21; nonces[1] = 22; nonces[2] = 23;
+
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+
+        // Pre-cancelled remains cancelled (from prior tx); others unchanged
+        bytes32 id21 = hook.computeIntentId(SWAPPER, 21);
+        bytes32 id22 = hook.computeIntentId(SWAPPER, 22);
+        bytes32 id23 = hook.computeIntentId(SWAPPER, 23);
+
+        assertTrue(hook.getExecutionState(id21).cancelled, "pre-cancelled persists across tx");
+        assertFalse(hook.getExecutionState(id22).cancelled, "others unaffected");
+        assertFalse(hook.getExecutionState(id23).cancelled, "others unaffected");
+    }
+
+    function test_cancelIntents_emptyNoop() public {
+        uint256[] memory nonces = new uint256[](0);
+        vm.prank(SWAPPER);
+        hook.cancelIntents(nonces);
+        // no revert, no state change
+    }
+
+    function test_cancelIsolationAcrossSenders() public {
+        uint256 nonce = 42;
+
+        // OTHER cancels THEIR own intent
+        vm.prank(OTHER);
+        hook.cancelIntent(nonce);
+
+        bytes32 idOther = hook.computeIntentId(OTHER, nonce);
+        assertTrue(hook.getExecutionState(idOther).cancelled, "other's intent cancelled");
+
+        // SWAPPER's intent with same nonce remains not cancelled
+        bytes32 idSwapper = hook.computeIntentId(SWAPPER, nonce);
+        assertFalse(hook.getExecutionState(idSwapper).cancelled, "isolation across senders");
+    }
 }
