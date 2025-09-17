@@ -48,10 +48,16 @@ interface IDCAHook is IPreExecutionHook {
     /// @return state The execution state of the intent
     function getExecutionState(bytes32 intentId) external view returns (DCAExecutionState memory state);
 
-    /// @notice Check if an intent is currently active (not cancelled)
+    /// @notice Check if an intent is currently active (not cancelled and within period/deadline)
+    /// @dev Semantics:
+    /// - Uninitialized intents (no executed chunks) are considered active unless cancelled or past deadline.
+    /// - maxPeriod is enforced only after the first execution; before that, it is ignored.
+    /// - A maxPeriod of 0 means no upper bound; a deadline of 0 means no deadline.
     /// @param intentId The unique identifier of the intent
+    /// @param maxPeriod The maximum allowed seconds since last execution (0 = no upper bound)
+    /// @param deadline The intent expiration timestamp (0 = no deadline)
     /// @return active True if the intent is active, false otherwise
-    function isIntentActive(bytes32 intentId) external view returns (bool active);
+    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline) external view returns (bool active);
 
     /// @notice Get the next expected nonce for an intent
     /// @param intentId The unique identifier of the intent

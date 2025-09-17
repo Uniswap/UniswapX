@@ -11,6 +11,9 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 /// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
 /// @dev Inherits from BasePreExecutionHook for token transfer logic
 contract DCAHook is BasePreExecutionHook, IDCAHook {
+    /// @notice Mapping from intentId to execution state
+    /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
+    mapping(bytes32 => DCAExecutionState) public executionStates;
     
     constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
     
@@ -21,6 +24,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     function _beforeTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
         // TODO: Implement DCA validation logic
         // This is where we'll decode and validate the DCA intent
+        // silence unused param warnings in placeholder stub
+        filler; resolvedOrder;
     }
     
     /// @notice Hook for custom logic after token transfer
@@ -30,6 +35,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     function _afterTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
         // TODO: Implement any post-transfer state updates if needed
         // Most DCA logic will be in _beforeTokenTransfer
+        // silence unused param warnings in placeholder stub
+        filler; resolvedOrder;
     }
 
     /// @inheritdoc IDCAHook
@@ -56,20 +63,22 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
 
     /// @inheritdoc IDCAHook
     function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory state) {
-        // TODO
-        return state;
+        return executionStates[intentId];
     }
 
     /// @inheritdoc IDCAHook
-    function isIntentActive(bytes32 intentId) external view override returns (bool active) {
-        // TODO
-        return false;
+    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline) external view override returns (bool active) {
+        DCAExecutionState storage s = executionStates[intentId];
+        if (s.cancelled) return false;
+        if (deadline != 0 && block.timestamp > deadline) return false;
+        if (s.executedChunks == 0) return true;
+        if (maxPeriod != 0 && block.timestamp - s.lastExecutionTime > maxPeriod) return false;
+        return true;
     }
 
     /// @inheritdoc IDCAHook
     function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
-        // TODO: Return nextNonce from executionStates[intentId]
-        return 0;
+        return executionStates[intentId].nextNonce;
     }
 
 
@@ -98,7 +107,11 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             uint256 lastExecutionTime
         ) 
     {
-        // TODO
-        return (0, 0, 0, 0, 0);
+        DCAExecutionState memory s = executionStates[intentId];
+        totalChunks = s.executedChunks;
+        totalInput = s.totalInputExecuted;
+        totalOutput = s.totalOutput;
+        lastExecutionTime = s.lastExecutionTime;
+        averagePrice = totalInput == 0 ? 0 : (totalOutput * 1e18) / totalInput;
     }
 }
