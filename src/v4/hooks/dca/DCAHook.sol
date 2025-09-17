@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.0;
+
+import {IDCAHook} from "../../interfaces/IDCAHook.sol";
+import {BasePreExecutionHook} from "../../base/BaseHook.sol";
+import {ResolvedOrder} from "../../base/ReactorStructs.sol";
+import {DCAIntent, DCAExecutionState, DCAOrderCosignerData} from "./DCAStructs.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+
+/// @title DCAHook
+/// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
+/// @dev Inherits from BasePreExecutionHook for token transfer logic
+contract DCAHook is BasePreExecutionHook, IDCAHook {
+    
+    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
+    
+    /// @notice Validates DCA intent and prepares for token transfer
+    /// @dev Called by BasePreExecutionHook before token transfer
+    /// @param filler The filler of the order
+    /// @param resolvedOrder The resolved order to fill
+    function _beforeTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
+        // TODO: Implement DCA validation logic
+        // This is where we'll decode and validate the DCA intent
+    }
+    
+    /// @notice Hook for custom logic after token transfer
+    /// @dev Called by BasePreExecutionHook after token transfer
+    /// @param filler The filler of the order
+    /// @param resolvedOrder The resolved order to fill
+    function _afterTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
+        // TODO: Implement any post-transfer state updates if needed
+        // Most DCA logic will be in _beforeTokenTransfer
+    }
+
+    /// @inheritdoc IDCAHook
+    function cancelIntent(uint256 nonce) external override {
+        // TODO: Compute intentId from msg.sender and nonce
+        // TODO: Verify msg.sender owns the intent
+        // TODO: Set cancelled flag in executionStates[intentId]
+        // TODO: Emit IntentCancelled event
+    }
+
+    /// @inheritdoc IDCAHook
+    function cancelIntents(uint256[] calldata nonces) external override {
+        // TODO: Loop through each nonce
+        // TODO: For each, compute intentId from msg.sender and nonce
+        // TODO: Verify msg.sender owns each intent
+        // TODO: Set cancelled flags in executionStates
+        // TODO: Emit IntentCancelled events
+    }
+
+    /// @inheritdoc IDCAHook
+    function computeIntentId(address swapper, uint256 nonce) external pure override returns (bytes32) {
+        return keccak256(abi.encodePacked(swapper, nonce));
+    }
+
+    /// @inheritdoc IDCAHook
+    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory state) {
+        // TODO
+        return state;
+    }
+
+    /// @inheritdoc IDCAHook
+    function isIntentActive(bytes32 intentId) external view override returns (bool active) {
+        // TODO
+        return false;
+    }
+
+    /// @inheritdoc IDCAHook
+    function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
+        // TODO: Return nextNonce from executionStates[intentId]
+        return 0;
+    }
+
+
+    /// @inheritdoc IDCAHook
+    function calculatePrice(uint256 inputAmount, uint256 outputAmount) 
+        external 
+        pure 
+        override 
+        returns (uint256 price) 
+    {
+        require(inputAmount != 0, "input=0");
+        return (outputAmount * 1e18) / inputAmount;
+    }
+
+
+    /// @inheritdoc IDCAHook
+    function getIntentStatistics(bytes32 intentId) 
+        external 
+        view 
+        override 
+        returns (
+            uint256 totalChunks,
+            uint256 totalInput,
+            uint256 totalOutput,
+            uint256 averagePrice,
+            uint256 lastExecutionTime
+        ) 
+    {
+        // TODO
+        return (0, 0, 0, 0, 0);
+    }
+}
