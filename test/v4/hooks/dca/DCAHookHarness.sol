@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DCAHook} from "../../../../src/v4/hooks/dca/DCAHook.sol";
-import {DCAExecutionState} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 contract DCAHookHarness is DCAHook {
@@ -24,6 +24,11 @@ contract DCAHookHarness is DCAHook {
         DCAExecutionState storage s = executionStates[intentId];
         s.totalInputExecuted = totalInputExecuted;
         s.totalOutput = totalOutput;
+    }
+
+    /// @notice Exposes the internal _validateOutputAllocations function for testing
+    function validateOutputAllocations(OutputAllocation[] memory outputAllocations) external pure {
+        _validateOutputAllocations(outputAllocations);
     }
 }
 

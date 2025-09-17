@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
-import {DCAExecutionState} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 
 contract DCAHookTest is Test, DeployPermit2 {
     DCAHookHarness hook;
@@ -243,5 +243,155 @@ contract DCAHookTest is Test, DeployPermit2 {
         // SWAPPER's intent with same nonce remains not cancelled
         bytes32 idSwapper = hook.computeIntentId(SWAPPER, nonce);
         assertFalse(hook.getExecutionState(idSwapper).cancelled, "isolation across senders");
+    }
+
+    // OutputAllocation Validation Tests
+    function test_validateOutputAllocations_validSingleRecipient() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](1);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 10000
+        });
+        
+        // Should not revert
+        hook.validateOutputAllocations(allocations);
+    }
+
+
+    function test_validateOutputAllocations_validMultipleRecipients() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](3);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 5000  // 50%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: OTHER,
+            basisPoints: 3000  // 30%
+        });
+        allocations[2] = OutputAllocation({
+            recipient: address(0xFEE),
+            basisPoints: 2000  // 20%
+        });
+        
+        // Should not revert
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_validWithFees() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 9975  // 99.75%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: address(0xFEE),
+            basisPoints: 25    // 0.25% fee
+        });
+        
+        // Should not revert
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_revertsEmptyArray() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](0);
+        
+        vm.expectRevert("Empty allocations");
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_revertsZeroAllocation() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 10000
+        });
+        allocations[1] = OutputAllocation({
+            recipient: OTHER,
+            basisPoints: 0  // Invalid: zero allocation
+        });
+        
+        vm.expectRevert("Zero allocation");
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_revertsBelow100Percent() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 4000  // 40%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: OTHER,
+            basisPoints: 5999  // 59.99% - total 99.99%
+        });
+        
+        vm.expectRevert("Allocations not 100%");
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_revertsAbove100Percent() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 5000  // 50%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: OTHER,
+            basisPoints: 5001  // 50.01% - total 100.01%
+        });
+        
+        vm.expectRevert("Allocations exceed 100%");
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function test_validateOutputAllocations_manyRecipients() public {
+        OutputAllocation[] memory allocations = new OutputAllocation[](10);
+        
+        for (uint256 i = 0; i < 9; i++) {
+            allocations[i] = OutputAllocation({
+                recipient: address(uint160(i + 1)),
+                basisPoints: 1000  // 10% each
+            });
+        }
+        
+        allocations[9] = OutputAllocation({
+            recipient: address(uint160(10)),
+            basisPoints: 1000  // Last 10%
+        });
+        
+        // Should not revert
+        hook.validateOutputAllocations(allocations);
+    }
+
+    function testFuzz_validateOutputAllocations_validDistributions(
+        uint8 numRecipients,
+        uint256 seed
+    ) public {
+        vm.assume(numRecipients > 0 && numRecipients <= 10);
+        
+        OutputAllocation[] memory allocations = new OutputAllocation[](numRecipients);
+        uint256 remainingBasisPoints = 10000;
+        
+        for (uint256 i = 0; i < numRecipients - 1; i++) {
+            // Distribute randomly but ensure we don't exceed remaining
+            uint256 maxAllocation = remainingBasisPoints / (numRecipients - i);
+            uint256 allocation = (uint256(keccak256(abi.encode(seed, i))) % maxAllocation) + 1;
+            
+            allocations[i] = OutputAllocation({
+                recipient: address(uint160(i + 1)),
+                basisPoints: allocation
+            });
+            
+            remainingBasisPoints -= allocation;
+        }
+        
+        // Last recipient gets the remainder to ensure exactly 100%
+        allocations[numRecipients - 1] = OutputAllocation({
+            recipient: address(uint160(numRecipients)),
+            basisPoints: remainingBasisPoints
+        });
+        
+        // Should not revert for any valid distribution
+        hook.validateOutputAllocations(allocations);
     }
 }

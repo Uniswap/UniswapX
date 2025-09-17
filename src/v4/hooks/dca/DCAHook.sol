@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IDCAHook} from "../../interfaces/IDCAHook.sol";
 import {BasePreExecutionHook} from "../../base/BaseHook.sol";
 import {ResolvedOrder} from "../../base/ReactorStructs.sol";
-import {DCAIntent, DCAExecutionState, DCAOrderCosignerData} from "./DCAStructs.sol";
+import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation} from "./DCAStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 /// @title DCAHook
@@ -56,6 +56,32 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         require(!executionStates[intentId].cancelled, "Intent already cancelled");
         executionStates[intentId].cancelled = true;
         emit IntentCancelled(intentId, swapper);
+    }
+
+    /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
+    /// @dev Reverts if allocations don't sum to 10000 or if array is empty
+    /// @dev NOTE: This function intentionally allows:
+    ///      - Duplicate recipients (same address multiple times) - checked off-chain
+    ///      - Zero address as recipient - validated off-chain for user safety
+    ///      These are permitted at the contract level to support advanced use cases
+    ///      but should be prevented in the UI/frontend for typical users
+    /// @param outputAllocations The array of output allocations to validate
+    function _validateOutputAllocations(OutputAllocation[] memory outputAllocations) internal pure {
+        uint256 length = outputAllocations.length;
+        require(length > 0, "Empty allocations");
+        
+        uint256 totalBasisPoints;
+        for (uint256 i = 0; i < length; ) {
+            uint256 basisPoints = outputAllocations[i].basisPoints;
+            require(basisPoints > 0, "Zero allocation");
+            
+            totalBasisPoints += basisPoints;
+            require(totalBasisPoints <= 10000, "Allocations exceed 100%");
+            
+            unchecked { ++i; }
+        }
+        
+        require(totalBasisPoints == 10000, "Allocations not 100%");
     }
 
     /// @inheritdoc IDCAHook
