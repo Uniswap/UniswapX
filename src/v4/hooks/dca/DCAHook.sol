@@ -13,7 +13,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @notice Mapping from intentId to execution state
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
-    mapping(bytes32 => DCAExecutionState) public executionStates;
+    mapping(bytes32 => DCAExecutionState) internal executionStates;
     
     constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
     
