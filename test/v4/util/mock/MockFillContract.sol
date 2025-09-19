@@ -5,16 +5,16 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../../../src/lib/CurrencyLibrary.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {OutputToken, SignedOrder} from "../../../../src/base/ReactorStructs.sol";
-import {UnifiedReactor} from "../../../../src/v4/Reactor.sol";
+import {Reactor} from "../../../../src/v4/Reactor.sol";
 import {IReactorCallback} from "../../../../src/v4/interfaces/IReactorCallback.sol";
 
 contract MockFillContract is IReactorCallback {
     using CurrencyLibrary for address;
 
-    UnifiedReactor immutable reactor;
+    Reactor immutable reactor;
 
     constructor(address _reactor) {
-        reactor = UnifiedReactor(payable(_reactor));
+        reactor = Reactor(payable(_reactor));
     }
 
     /// @notice assume that we already have all output tokens

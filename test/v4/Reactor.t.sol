@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
-import {UnifiedReactor} from "../../src/v4/Reactor.sol";
-import {IReactor} from "../../src/interfaces/IReactor.sol";
+import {Reactor} from "../../src/v4/Reactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfo, ResolvedOrder} from "../../src/v4/base/ReactorStructs.sol";
@@ -15,8 +13,6 @@ import {OrderInfoBuilder} from "../v4/util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../v4/util/mock/MockFillContract.sol";
-import {MockFillContractDoubleExecution} from "../util/mock/MockFillContractDoubleExecution.sol";
-import {MockFillContractWithOutputOverride} from "../util/mock/MockFillContractWithOutputOverride.sol";
 import {MockFeeController} from "../v4/util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../v4/util/mock/MockPreExecutionHook.sol";
 import {TokenTransferHook} from "../../src/v4/hooks/TokenTransferHook.sol";
@@ -25,7 +21,7 @@ import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 
-contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
+contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using MockOrderLib for MockOrder;
     using ArrayBuilder for uint256[];
@@ -42,7 +38,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
     IPermit2 permit2;
     MockFeeController feeController;
     address feeRecipient;
-    UnifiedReactor reactor;
+    Reactor reactor;
     MockAuctionResolver mockResolver;
     uint256 swapperPrivateKey;
     address swapper;
@@ -67,8 +63,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
 
-        // Deploy UnifiedReactor
-        reactor = new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(permit2, PROTOCOL_FEE_OWNER);
 
         // Deploy mock resolver
         mockResolver = new MockAuctionResolver();
@@ -80,7 +75,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         vm.deal(address(fillContract), type(uint256).max);
     }
 
-    /// @dev Create a signed order for UnifiedReactor using MockOrder
+    /// @dev Create a signed order for Reactor using MockOrder
     function createAndSignOrder(MockOrder memory mockOrder)
         public
         view
@@ -170,7 +165,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
         // execute order
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteSingle");
+        vm.snapshotGasLastCall("ReactorExecuteSingle");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -244,7 +239,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         // execute order
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteSingleNativeOutput");
+        vm.snapshotGasLastCall("ReactorExecuteSingleNativeOutput");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
@@ -288,7 +283,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
 
         // execute order
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteSingleWithHook");
+        vm.snapshotGasLastCall("ReactorExecuteSingleWithHook");
 
         // Verify hook was called and state was modified
         assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
@@ -365,7 +360,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
         fillContract.executeBatch(signedOrders);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteBatch");
+        vm.snapshotGasLastCall("ReactorExecuteBatch");
 
         assertEq(tokenIn.balanceOf(address(swapper)), 0);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -409,7 +404,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
         fillContract.executeBatch(signedOrders);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteBatchNativeOutput");
+        vm.snapshotGasLastCall("ReactorExecuteBatchNativeOutput");
 
         assertEq(address(swapper).balance, totalOutputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
@@ -488,7 +483,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         emit Fill(orderHashes[1], address(fillContract), swapper, orders[1].info.nonce);
 
         fillContract.executeBatch(signedOrders);
-        vm.snapshotGasLastCall("UnifiedReactorExecuteBatchMultipleOutputsDifferentTokens");
+        vm.snapshotGasLastCall("ReactorExecuteBatchMultipleOutputsDifferentTokens");
 
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
         assertEq(tokenOut2.balanceOf(swapper), totalOutputAmount2);
@@ -619,7 +614,7 @@ contract UnifiedReactorTest is ReactorEvents, Test, PermitSignature, DeployPermi
         (signedOrder, orderHash) = createAndSignOrder(order);
         vm.expectRevert(InvalidNonce.selector);
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactorRevertInvalidNonce");
+        vm.snapshotGasLastCall("ReactorRevertInvalidNonce");
     }
 
     /// @dev Basic execute fuzz test, checks balance before and after

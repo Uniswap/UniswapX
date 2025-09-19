@@ -15,9 +15,9 @@ import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {ProtocolFees} from "./base/ProtocolFees.sol";
 
-/// @notice Unified reactor that supports pre-and-post fill hooks and auction resolver plugins
+/// @notice modular UniswapX Reactor that supports pre-and-post fill hooks and auction resolver plugins
 /// @dev Does not inherit from BaseReactor
-contract UnifiedReactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
+contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using CurrencyLibrary for address;
 
     /// @notice thrown when an auction resolver is not set

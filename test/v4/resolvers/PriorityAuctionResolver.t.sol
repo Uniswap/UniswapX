@@ -9,7 +9,7 @@ import {ResolvedOrder} from "../../../src/v4/base/ReactorStructs.sol";
 import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
-import {UnifiedReactor} from "../../../src/v4/Reactor.sol";
+import {Reactor} from "../../../src/v4/Reactor.sol";
 import {PriorityAuctionResolver} from "../../../src/v4/resolvers/PriorityAuctionResolver.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../../src/v4/lib/PriorityOrderLib.sol";
 import {
@@ -45,7 +45,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
     TokenTransferHook tokenTransferHook;
     MockFeeController feeController;
     address feeRecipient;
-    UnifiedReactor reactor;
+    Reactor reactor;
     PriorityAuctionResolver resolver;
     uint256 swapperPrivateKey;
     address swapper;
@@ -63,8 +63,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         feeController = new MockFeeController(feeRecipient);
         tokenTransferHook = new TokenTransferHook(permit2);
 
-        // Deploy UnifiedReactor and PriorityAuctionResolver
-        reactor = new UnifiedReactor(permit2, PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(permit2, PROTOCOL_FEE_OWNER);
         resolver = new PriorityAuctionResolver(permit2);
 
         // Deploy fill contract
@@ -78,7 +77,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         vm.deal(address(fillContract), type(uint256).max);
     }
 
-    /// @dev Create and sign a PriorityOrder for UnifiedReactor
+    /// @dev Create and sign a PriorityOrder
     function createAndSignOrder(PriorityOrder memory order)
         internal
         view
@@ -92,7 +91,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         // Encode the order data for the resolver
         bytes memory orderData = abi.encode(order);
 
-        // Wrap with resolver address for UnifiedReactor
+        // Wrap with resolver address
         bytes memory encodedOrder = abi.encode(address(resolver), orderData);
 
         signedOrder = SignedOrder(encodedOrder, sig);
@@ -156,9 +155,8 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
 
-        // Execute order through UnifiedReactor
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactor_PriorityOutputFee");
+        vm.snapshotGasLastCall("Reactor_PriorityOutputFee");
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -214,7 +212,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
 
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactor_PriorityOutputFeeWithBaseline");
+        vm.snapshotGasLastCall("Reactor_PriorityOutputFeeWithBaseline");
 
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + scaledOutputAmount);
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -321,7 +319,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
 
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactor_PriorityInputFee");
+        vm.snapshotGasLastCall("Reactor_PriorityInputFee");
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - scaledInputAmount);
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
@@ -355,7 +353,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
 
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("UnifiedReactor_OverrideAuctionTargetBlock");
+        vm.snapshotGasLastCall("Reactor_OverrideAuctionTargetBlock");
     }
 
     /// @dev Test execution after auction start block
