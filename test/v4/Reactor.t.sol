@@ -314,15 +314,17 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                0
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
@@ -358,15 +360,17 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                0
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper)
         });
@@ -438,15 +442,17 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder[] memory orders = new MockOrder[](2);
 
         orders[0] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(0).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                0
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1
         });
 
         orders[1] = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(1).withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
+                1
+            ).withPreExecutionHook(tokenTransferHook),
             input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2
         });

@@ -12,11 +12,7 @@ import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {Reactor} from "../../../src/v4/Reactor.sol";
 import {PriorityAuctionResolver} from "../../../src/v4/resolvers/PriorityAuctionResolver.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../../src/v4/lib/PriorityOrderLib.sol";
-import {
-    PriorityInput,
-    PriorityOutput,
-    PriorityCosignerData
-} from "../../../src/lib/PriorityOrderLib.sol";
+import {PriorityInput, PriorityOutput, PriorityCosignerData} from "../../../src/lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../../../src/lib/PriorityFeeLib.sol";
 import {CosignerLib} from "../../../src/lib/CosignerLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";

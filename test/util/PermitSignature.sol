@@ -11,7 +11,10 @@ import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/Exclusi
 import {V2DutchOrder, V2DutchOrderLib} from "../../src/lib/V2DutchOrderLib.sol";
 import {V3DutchOrder, V3DutchOrderLib} from "../../src/lib/V3DutchOrderLib.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
-import {PriorityOrder as PriorityOrderV2, PriorityOrderLib as PriorityOrderLibV2} from "../../src/v4/lib/PriorityOrderLib.sol";
+import {
+    PriorityOrder as PriorityOrderV2,
+    PriorityOrderLib as PriorityOrderLibV2
+} from "../../src/v4/lib/PriorityOrderLib.sol";
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
 import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
@@ -238,7 +241,9 @@ contract PermitSignature is Test {
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
-        return getPermitSignature(privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash());
+        return getPermitSignature(
+            privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash()
+        );
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {

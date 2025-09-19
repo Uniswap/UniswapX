@@ -2,13 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
-import {SignedOrder,InputToken, OutputToken} from "../../base/ReactorStructs.sol";
+import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
-import {
-    PriorityInput,
-    PriorityOutput,
-    PriorityCosignerData
-} from "../../lib/PriorityOrderLib.sol";
+import {PriorityInput, PriorityOutput, PriorityCosignerData} from "../../lib/PriorityOrderLib.sol";
 import {PriorityOrder, PriorityOrderLib} from "../lib/PriorityOrderLib.sol";
 import {PriorityFeeLib} from "../../lib/PriorityFeeLib.sol";
 import {CosignerLib} from "../../lib/CosignerLib.sol";
@@ -68,7 +64,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
             auctionResolver: address(this)
         });
     }
-    
+
     /// @inheritdoc IAuctionResolver
     function getPermit2OrderType() external pure override returns (string memory) {
         return PriorityOrderLib.PERMIT2_ORDER_TYPE;

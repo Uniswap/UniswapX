@@ -25,7 +25,6 @@ struct OrderInfo {
     bytes additionalValidationData;
 }
 
-
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order
 struct InputToken {
     ERC20 token;
@@ -49,7 +48,6 @@ struct ResolvedOrder {
     bytes sig;
     bytes32 hash;
 }
-
 
 /// @dev external struct including a generic encoded order and swapper signature
 ///  The order bytes will be parsed and mapped to a ResolvedOrder in the concrete reactor contract

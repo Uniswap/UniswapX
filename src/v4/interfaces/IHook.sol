@@ -11,7 +11,7 @@ interface IPreExecutionHook {
     /// @dev This function can modify state, unlike the view-only validate function
     function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external;
 }
-    
+
 /// @notice Hook to be called after transferring output tokens, enabling chained actions
 interface IPostExecutionHook {
     /// @notice Called by the reactor after order execution for chained actions
