@@ -68,6 +68,11 @@ contract PriorityAuctionResolver is IAuctionResolver {
             auctionResolver: address(this)
         });
     }
+    
+    /// @inheritdoc IAuctionResolver
+    function getPermit2OrderType() external pure override returns (string memory) {
+        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
+    }
 
     /// @notice validate the priority order fields
     /// - deadline must be in the future
@@ -131,10 +136,5 @@ contract PriorityAuctionResolver is IAuctionResolver {
         uint256 flipped = bitmap ^ bit;
 
         if (flipped & bit == 0) revert OrderAlreadyFilled();
-    }
-
-    /// @inheritdoc IAuctionResolver
-    function getPermit2OrderType() external pure override returns (string memory) {
-        return PriorityOrderLib.PERMIT2_ORDER_TYPE;
     }
 }
