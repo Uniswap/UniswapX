@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+
 import {DeployPermit2} from "../util/DeployPermit2.sol";
+import {IReactor} from "../../src/v4/interfaces/IReactor.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {Reactor} from "../../src/v4/Reactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
@@ -42,12 +44,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     MockAuctionResolver mockResolver;
     uint256 swapperPrivateKey;
     address swapper;
-
-    error InvalidNonce();
-    error InvalidSigner();
-    error InvalidReactor();
-    error DeadlinePassed();
-    error MissingPreExecutionHook();
 
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -489,7 +485,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        vm.expectRevert(InvalidReactor.selector);
+        vm.expectRevert(IReactor.InvalidReactor.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -513,7 +509,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        vm.expectRevert(MissingPreExecutionHook.selector);
+        vm.expectRevert(IReactor.MissingPreExecutionHook.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -530,7 +526,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        vm.expectRevert(DeadlinePassed.selector);
+        vm.expectRevert(IReactor.DeadlinePassed.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -550,7 +546,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         fillContract.execute(signedOrder);
 
         // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
-        vm.expectRevert(InvalidNonce.selector);
+        vm.expectRevert(IReactor.InvalidNonce.selector);
         fillContract.execute(signedOrder);
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IReactor} from "../../src/interfaces/IReactor.sol";
+import {IReactor} from "./interfaces/IReactor.sol";
 import {IReactorCallback} from "./interfaces/IReactorCallback.sol";
 
 import {SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
@@ -19,17 +19,6 @@ import {ProtocolFees} from "./base/ProtocolFees.sol";
 /// @dev Does not inherit from BaseReactor
 contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using CurrencyLibrary for address;
-
-    /// @notice thrown when an auction resolver is not set
-    error EmptyAuctionResolver();
-    /// @notice thrown when an order's nonce has already been used
-    error InvalidNonce();
-    /// @notice thrown when the order targets a different reactor
-    error InvalidReactor();
-    /// @notice thrown when the order's deadline has passed
-    error DeadlinePassed();
-    /// @notice thrown when a pre-execution hook is not set
-    error MissingPreExecutionHook();
 
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
