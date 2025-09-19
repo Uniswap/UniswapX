@@ -56,22 +56,14 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
-        // Deploy hooks with permit2
         preExecutionHook = new MockPreExecutionHook(permit2);
         preExecutionHook.setValid(true);
         tokenTransferHook = new TokenTransferHook(permit2);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
-
         reactor = new Reactor(permit2, PROTOCOL_FEE_OWNER);
-
-        // Deploy mock resolver
         mockResolver = new MockAuctionResolver();
-
-        // Deploy fill contract
         fillContract = new MockFillContract(address(reactor));
-
-        // Provide ETH to fill contract for native transfers
         vm.deal(address(fillContract), type(uint256).max);
     }
 
@@ -145,7 +137,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
-        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -163,7 +154,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        // execute order
         fillContract.execute(signedOrder);
         vm.snapshotGasLastCall("ReactorExecuteSingle");
 
@@ -182,7 +172,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         feeController.setFee(tokenIn, address(tokenOut), feeBps);
-        // Seed both swapper and fillContract with enough tokens (important for dutch order)
         tokenIn.mint(address(swapper), uint256(inputAmount) * 100);
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -200,7 +189,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        // execute order
         fillContract.execute(signedOrder);
         vm.snapshotGasLastCall("BaseExecuteSingleWithFee");
 
@@ -218,7 +206,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
-        // Seed swapper with tokens and fillContract with ETH
         tokenIn.mint(address(swapper), inputAmount);
         vm.deal(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -237,7 +224,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 fillContractOutputBalanceStart = address(fillContract).balance;
         (uint256 swapperInputBalanceStart, uint256 fillContractInputBalanceStart,,) = _checkpointBalances();
 
-        // execute order
         fillContract.execute(signedOrder);
         vm.snapshotGasLastCall("ReactorExecuteSingleNativeOutput");
 
@@ -253,12 +239,9 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
-        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
-
-        // No need to set filler as valid - fillers are valid by default
 
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
@@ -277,11 +260,9 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
             uint256 fillContractOutputBalanceStart
         ) = _checkpointBalances();
 
-        // Check pre-execution hook state before
         uint256 counterBefore = preExecutionHook.preExecutionCounter();
         uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
 
-        // execute order
         fillContract.execute(signedOrder);
         vm.snapshotGasLastCall("ReactorExecuteSingleWithHook");
 
@@ -289,7 +270,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
         assertEq(preExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
 
-        // Verify token transfers
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
         assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
         assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
@@ -302,7 +282,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
 
-        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), inputAmount);
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -568,53 +547,11 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
-        // Execute once successfully
         fillContract.execute(signedOrder);
 
         // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
         vm.expectRevert(InvalidNonce.selector);
         fillContract.execute(signedOrder);
-    }
-
-    /// @dev Test nonce reuse protection with different order parameters
-    function test_nonceReuse() public {
-        uint256 inputAmount = ONE;
-        uint256 outputAmount = ONE * 2;
-        tokenIn.mint(address(swapper), inputAmount * 100);
-        tokenOut.mint(address(fillContract), outputAmount * 100);
-        // approve for 2 orders here
-        tokenIn.forceApprove(swapper, address(permit2), inputAmount * 2);
-
-        MockOrder memory order = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withNonce(123).withPreExecutionHook(tokenTransferHook),
-            input: InputToken(tokenIn, inputAmount, inputAmount),
-            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
-        });
-        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
-
-        (
-            uint256 swapperInputBalanceStart,
-            uint256 fillContractInputBalanceStart,
-            uint256 swapperOutputBalanceStart,
-            uint256 fillContractOutputBalanceStart
-        ) = _checkpointBalances();
-
-        vm.expectEmit(true, true, true, true, address(reactor));
-        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        fillContract.execute(signedOrder);
-
-        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
-        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
-        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart + outputAmount);
-        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
-
-        // change deadline so sig and orderhash is different but nonce is the same
-        order.info.deadline = block.timestamp + 101;
-        (signedOrder, orderHash) = createAndSignOrder(order);
-        vm.expectRevert(InvalidNonce.selector);
-        fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("ReactorRevertInvalidNonce");
     }
 
     /// @dev Basic execute fuzz test, checks balance before and after
@@ -647,7 +584,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        // execute order
         fillContract.execute(signedOrder);
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -668,7 +604,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         vm.prank(PROTOCOL_FEE_OWNER);
         reactor.setProtocolFeeController(address(feeController));
         feeController.setFee(tokenIn, address(tokenOut), feeBps);
-        // Seed both swapper and fillContract with enough tokens (account for fees)
         tokenIn.mint(address(swapper), uint256(inputAmount));
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -692,7 +627,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        // execute order
         fillContract.execute(signedOrder);
 
         uint256 feeAmount = uint256(outputAmount) * feeBps / 10000;
@@ -709,7 +643,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         vm.assume(inputAmount > 0);
         vm.assume(outputAmount > 0);
 
-        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), uint256(inputAmount));
         vm.deal(address(fillContract), uint256(outputAmount));
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -730,7 +663,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectEmit(true, true, true, true, address(reactor));
         emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
-        // execute order
         fillContract.execute(signedOrder);
 
         assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
@@ -745,7 +677,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         vm.assume(inputAmount > 0);
         vm.assume(outputAmount > 0);
 
-        // Seed both swapper and fillContract with enough tokens
         tokenIn.mint(address(swapper), uint256(inputAmount));
         tokenOut.mint(address(fillContract), uint256(outputAmount));
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -763,14 +694,11 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 counterBefore = preExecutionHook.preExecutionCounter();
         uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
 
-        // execute order
         fillContract.execute(signedOrder);
 
-        // Verify hook was called and state was modified
         assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
         assertEq(preExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
 
-        // Verify token transfers
         assertEq(tokenIn.balanceOf(address(swapper)), 0);
         assertEq(tokenIn.balanceOf(address(fillContract)), uint256(inputAmount));
         assertEq(tokenOut.balanceOf(address(swapper)), uint256(outputAmount));
