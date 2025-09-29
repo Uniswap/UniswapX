@@ -6,6 +6,7 @@ import {BasePreExecutionHook} from "../../base/BaseHook.sol";
 import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation} from "./DCAStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /// @title DCAHook
 /// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
@@ -191,11 +192,11 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
             // Price = output/input * 1e18
-            executionPrice = (cosignerData.limitAmount * 1e18) / cosignerData.execAmount;
+            executionPrice = Math.mulDiv(cosignerData.limitAmount, 1e18, cosignerData.execAmount);
         } else {
             // execAmount = exact output; limitAmount = max acceptable input
             // Price = output/input * 1e18
-            executionPrice = (cosignerData.execAmount * 1e18) / cosignerData.limitAmount;
+            executionPrice = Math.mulDiv(cosignerData.execAmount, 1e18, cosignerData.limitAmount);
         }
         require(executionPrice >= intent.minPrice, "DCA: price<min");
     }
@@ -221,7 +222,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         
         for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
-            uint256 expected = (totalOutput * intent.outputAllocations[i].basisPoints) / 10000;
+            uint256 expected = Math.mulDiv(totalOutput, intent.outputAllocations[i].basisPoints, 10000);
             uint256 actual = 0;
             for (uint256 j = 0; j < outputs.length; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
@@ -277,7 +278,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         returns (uint256 price) 
     {
         require(inputAmount != 0, "input=0");
-        return (outputAmount * 1e18) / inputAmount;
+        // Safely do (outputAmount * 1e18) / inputAmount
+        return Math.mulDiv(outputAmount, 1e18, inputAmount);
     }
 
 
