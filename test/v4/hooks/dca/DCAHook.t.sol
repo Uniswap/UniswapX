@@ -6,6 +6,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
 import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
 
 contract DCAHookTest is Test, DeployPermit2 {
     DCAHookHarness hook;
@@ -13,6 +14,9 @@ contract DCAHookTest is Test, DeployPermit2 {
     
     address constant SWAPPER = address(0x1234);
     uint256 constant NONCE = 0;
+    
+    // Events from IDCAHook
+    event IntentCancelled(bytes32 indexed intentId, address indexed swapper);
     
     function setUp() public {
         permit2 = IPermit2(deployPermit2());
@@ -523,6 +527,167 @@ contract DCAHookTest is Test, DeployPermit2 {
         }
     }
     
+    // ============ cancelIntent Tests ============
+    
+    function test_cancelIntent_success() public {
+        uint256 nonce = 42;
+        bytes32 expectedIntentId = hook.computeIntentId(SWAPPER, nonce);
+        
+        // Setup: SWAPPER calls cancelIntent
+        vm.prank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(expectedIntentId, SWAPPER);
+        hook.cancelIntent(nonce);
+        
+        // Verify state changed
+        DCAExecutionState memory state = hook.getExecutionState(expectedIntentId);
+        assertTrue(state.cancelled, "Intent should be marked as cancelled");
+        
+        // Verify intent is inactive
+        assertFalse(hook.isIntentActive(expectedIntentId, 0, 0), "Cancelled intent should be inactive");
+    }
+    
+    function test_cancelIntent_onlyMsgSender() public {
+        uint256 nonce = 42;
+        address otherUser = address(0x9999);
+        
+        // Attempt to cancel another user's intent fails
+        bytes32 swapperIntentId = hook.computeIntentId(SWAPPER, nonce);
+        bytes32 otherIntentId = hook.computeIntentId(otherUser, nonce);
+        
+        // otherUser cannot cancel SWAPPER's intent (different intentId computed)
+        vm.prank(otherUser);
+        hook.cancelIntent(nonce); // This cancels otherUser's intent, not SWAPPER's
+        
+        // Verify SWAPPER's intent is still active
+        DCAExecutionState memory swapperState = hook.getExecutionState(swapperIntentId);
+        assertFalse(swapperState.cancelled, "SWAPPER's intent should not be cancelled by other user");
+        
+        // Verify otherUser's intent is cancelled
+        DCAExecutionState memory otherState = hook.getExecutionState(otherIntentId);
+        assertTrue(otherState.cancelled, "Other user's intent should be cancelled");
+    }
+    
+    function test_cancelIntent_idempotent() public {
+        uint256 nonce = 42;
+        bytes32 expectedIntentId = hook.computeIntentId(SWAPPER, nonce);
+        
+        // First cancel
+        vm.startPrank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(expectedIntentId, SWAPPER);
+        hook.cancelIntent(nonce);
+        
+        // Verify cancelled
+        DCAExecutionState memory state1 = hook.getExecutionState(expectedIntentId);
+        assertTrue(state1.cancelled, "Should be cancelled after first call");
+        
+        // Second cancel - should revert per the implementation
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntent(nonce);
+        
+        // State remains unchanged
+        DCAExecutionState memory state2 = hook.getExecutionState(expectedIntentId);
+        assertTrue(state2.cancelled, "Should remain cancelled");
+        vm.stopPrank();
+    }
+    
+    function test_cancelIntent_differentNonces() public {
+        uint256 nonce1 = 42;
+        uint256 nonce2 = 43;
+        bytes32 intentId1 = hook.computeIntentId(SWAPPER, nonce1);
+        bytes32 intentId2 = hook.computeIntentId(SWAPPER, nonce2);
+        
+        // Cancel only first intent
+        vm.prank(SWAPPER);
+        hook.cancelIntent(nonce1);
+        
+        // Verify first is cancelled, second is not
+        DCAExecutionState memory state1 = hook.getExecutionState(intentId1);
+        DCAExecutionState memory state2 = hook.getExecutionState(intentId2);
+        
+        assertTrue(state1.cancelled, "First intent should be cancelled");
+        assertFalse(state2.cancelled, "Second intent should not be cancelled");
+    }
+    
+    function test_cancelIntent_withExistingState() public {
+        uint256 nonce = 42;
+        bytes32 intentId = hook.computeIntentId(SWAPPER, nonce);
+        
+        // Setup existing state
+        hook.__setPacked(intentId, 5, false);
+        hook.__setExecutedMeta(intentId, 10, block.timestamp - 100);
+        hook.__setTotals(intentId, 1e18, 2000e6);
+        
+        // Verify state before cancel
+        DCAExecutionState memory stateBefore = hook.getExecutionState(intentId);
+        assertEq(stateBefore.nextNonce, 5, "nextNonce should be set");
+        assertEq(stateBefore.executedChunks, 10, "executedChunks should be set");
+        assertFalse(stateBefore.cancelled, "Should not be cancelled yet");
+        
+        // Cancel
+        vm.prank(SWAPPER);
+        hook.cancelIntent(nonce);
+        
+        // Verify cancelled but other state preserved
+        DCAExecutionState memory stateAfter = hook.getExecutionState(intentId);
+        assertTrue(stateAfter.cancelled, "Should be cancelled");
+        assertEq(stateAfter.nextNonce, 5, "nextNonce should be preserved");
+        assertEq(stateAfter.executedChunks, 10, "executedChunks should be preserved");
+        assertEq(stateAfter.totalInputExecuted, 1e18, "totalInputExecuted should be preserved");
+        assertEq(stateAfter.totalOutput, 2000e6, "totalOutput should be preserved");
+    }
+    
+    function test_cancelIntent_emitsCorrectEvent() public {
+        uint256 nonce = 123;
+        bytes32 expectedIntentId = hook.computeIntentId(SWAPPER, nonce);
+        
+        // Expect exact event parameters
+        vm.prank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(expectedIntentId, SWAPPER);
+        hook.cancelIntent(nonce);
+    }
+    
+    function testFuzz_cancelIntent_variousNonces(uint256 nonce) public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, nonce);
+        
+        // Cancel with fuzzed nonce
+        vm.prank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId, SWAPPER);
+        hook.cancelIntent(nonce);
+        
+        // Verify cancelled
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        assertTrue(state.cancelled, "Fuzz: intent should be cancelled");
+        
+        // Verify idempotent revert
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntent(nonce);
+    }
+    
+    function testFuzz_cancelIntent_differentSwappers(address swapper1, address swapper2, uint256 nonce) public {
+        vm.assume(swapper1 != swapper2);
+        vm.assume(swapper1 != address(0));
+        vm.assume(swapper2 != address(0));
+        
+        bytes32 intentId1 = hook.computeIntentId(swapper1, nonce);
+        bytes32 intentId2 = hook.computeIntentId(swapper2, nonce);
+        
+        // swapper1 cancels their intent
+        vm.prank(swapper1);
+        hook.cancelIntent(nonce);
+        
+        // Only swapper1's intent is cancelled
+        DCAExecutionState memory state1 = hook.getExecutionState(intentId1);
+        DCAExecutionState memory state2 = hook.getExecutionState(intentId2);
+        
+        assertTrue(state1.cancelled, "Fuzz: swapper1's intent should be cancelled");
+        assertFalse(state2.cancelled, "Fuzz: swapper2's intent should not be cancelled");
+    }
+    
     function test_getNextNonce() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         
@@ -645,8 +810,6 @@ contract DCAHookTest is Test, DeployPermit2 {
         vm.expectRevert();
         hook.calculatePrice(1, output);
     }
-
-    event IntentCancelled(bytes32 indexed intentId, address indexed swapper);
 
     address constant OTHER = address(0xBEEF);
 
