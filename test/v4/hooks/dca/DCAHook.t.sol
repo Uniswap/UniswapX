@@ -152,6 +152,69 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(state.totalOutput, output, "Fuzz: totalOutput precision");
     }
     
+    // ============ getNextNonce Tests ============
+    
+    function test_getNextNonce_default() public view {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 nextNonce = hook.getNextNonce(intentId);
+        assertEq(nextNonce, 0, "Uninitialized intent should have nextNonce of 0");
+    }
+    
+    function test_getNextNonce_afterSet() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 expectedNonce = 5;
+        
+        hook.__setPacked(intentId, expectedNonce, false);
+        uint96 nextNonce = hook.getNextNonce(intentId);
+        
+        assertEq(nextNonce, expectedNonce, "Should return exact value set via harness");
+    }
+    
+    function test_getNextNonce_nearMaxValue() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 nearMax = type(uint96).max - 1;
+        
+        hook.__setPacked(intentId, nearMax, false);
+        uint96 nextNonce = hook.getNextNonce(intentId);
+        
+        assertEq(nextNonce, nearMax, "Should handle values near uint96 max without overflow");
+    }
+    
+    function test_getNextNonce_maxValue() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 maxValue = type(uint96).max;
+        
+        hook.__setPacked(intentId, maxValue, false);
+        uint96 nextNonce = hook.getNextNonce(intentId);
+        
+        assertEq(nextNonce, maxValue, "Should handle uint96 max value");
+    }
+    
+    function test_getNextNonce_isolatedFromOtherFields() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 expectedNonce = 42;
+        
+        // Set nonce with cancelled=true and set other fields
+        hook.__setPacked(intentId, expectedNonce, true);
+        hook.__setExecutedMeta(intentId, 999, block.timestamp);
+        hook.__setTotals(intentId, 1e18, 2000e6);
+        
+        uint96 nextNonce = hook.getNextNonce(intentId);
+        
+        assertEq(nextNonce, expectedNonce, "nextNonce should be isolated from other state modifications");
+    }
+    
+    function testFuzz_getNextNonce_precision(uint96 nonce) public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        hook.__setPacked(intentId, nonce, false);
+        uint96 retrievedNonce = hook.getNextNonce(intentId);
+        
+        assertEq(retrievedNonce, nonce, "Should preserve exact uint96 value through storage");
+    }
+
+    // TODO: overflow nonce test when complete flow is implemented
+    
     function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public {
         // Fuzz test: verify abi.encodePacked equality for any inputs
         bytes32 expectedId = keccak256(abi.encodePacked(swapper, nonce));
