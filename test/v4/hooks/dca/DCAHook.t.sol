@@ -215,6 +215,130 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     // TODO: overflow nonce test when complete flow is implemented
     
+    // ============ getIntentStatistics Tests ============
+    
+    function test_getIntentStatistics_default() public view {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
+            = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalChunks, 0, "Default totalChunks should be 0");
+        assertEq(totalInput, 0, "Default totalInput should be 0");
+        assertEq(totalOutput, 0, "Default totalOutput should be 0");
+        assertEq(averagePrice, 0, "Default averagePrice should be 0");
+        assertEq(lastExecutionTime, 0, "Default lastExecutionTime should be 0");
+    }
+    
+    function test_getIntentStatistics_populatedValues() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        uint256 expectedChunks = 10;
+        uint256 expectedLastExec = block.timestamp - 3600;
+        uint256 expectedInput = 5e18; // 5 tokens with 18 decimals
+        uint256 expectedOutput = 10000e6; // 10000 tokens with 6 decimals
+        
+        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExec);
+        hook.__setTotals(intentId, expectedInput, expectedOutput);
+        
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
+            = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalChunks, expectedChunks, "Should return exact executedChunks");
+        assertEq(totalInput, expectedInput, "Should return exact totalInputExecuted");
+        assertEq(totalOutput, expectedOutput, "Should return exact totalOutput");
+        assertEq(lastExecutionTime, expectedLastExec, "Should return exact lastExecutionTime");
+        
+        // averagePrice = (totalOutput * 1e18) / totalInput
+        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        assertEq(averagePrice, expectedPrice, "averagePrice should equal (totalOutput * 1e18) / totalInput");
+        assertEq(averagePrice, 2000e6, "averagePrice should be 2000e6 for this scenario");
+    }
+    
+    function test_getIntentStatistics_zeroInputHandling() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Set output but no input - edge case for division by zero
+        hook.__setTotals(intentId, 0, 1000e6);
+        
+        (,, uint256 totalOutput, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalOutput, 1000e6, "Should return totalOutput even with zero input");
+        assertEq(averagePrice, 0, "averagePrice should be 0 when totalInput is 0");
+    }
+    
+    function test_getIntentStatistics_precisionCheck() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Test with values that require precise division
+        uint256 expectedInput = 3e18; // 3 tokens
+        uint256 expectedOutput = 7500e6; // 7500 tokens
+        
+        hook.__setTotals(intentId, expectedInput, expectedOutput);
+        
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        // averagePrice = (7500e6 * 1e18) / 3e18 = 2500e18
+        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        assertEq(averagePrice, expectedPrice, "Should maintain precision in price calculation");
+        assertEq(averagePrice, 2500e6, "averagePrice should be exactly 2500e6");
+    }
+    
+    function test_getIntentStatistics_largeValues() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Test with large but safe values
+        uint256 expectedInput = 1000000e18; // 1 million tokens
+        uint256 expectedOutput = 2000000000e6; // 2 billion tokens
+        
+        hook.__setTotals(intentId, expectedInput, expectedOutput);
+        
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        assertEq(averagePrice, expectedPrice, "Should handle large values correctly");
+        assertEq(averagePrice, 2000e6, "averagePrice should be 2000e6 for large values");
+    }
+    
+    function testFuzz_getIntentStatistics_priceMath(
+        uint128 totalInputExecuted,
+        uint128 totalOutputAmount
+    ) public {
+        vm.assume(totalInputExecuted > 0); // Avoid division by zero
+        
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        hook.__setTotals(intentId, totalInputExecuted, totalOutputAmount);
+        
+        (,, uint256 totalOutput, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        uint256 expectedPrice = (uint256(totalOutputAmount) * 1e18) / uint256(totalInputExecuted);
+        assertEq(averagePrice, expectedPrice, "Fuzz: averagePrice calculation should be exact");
+        assertEq(totalOutput, totalOutputAmount, "Fuzz: totalOutput should match input");
+    }
+    
+    function testFuzz_getIntentStatistics_allFields(
+        uint128 chunks,
+        uint128 lastExec,
+        uint128 inputAmount,
+        uint128 outputAmount
+    ) public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        hook.__setExecutedMeta(intentId, chunks, lastExec);
+        hook.__setTotals(intentId, inputAmount, outputAmount);
+        
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
+            = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalChunks, chunks, "Fuzz: totalChunks precision");
+        assertEq(totalInput, inputAmount, "Fuzz: totalInput precision");
+        assertEq(totalOutput, outputAmount, "Fuzz: totalOutput precision");
+        assertEq(lastExecutionTime, lastExec, "Fuzz: lastExecutionTime precision");
+        
+        uint256 expectedPrice = inputAmount == 0 ? 0 : (uint256(outputAmount) * 1e18) / uint256(inputAmount);
+        assertEq(averagePrice, expectedPrice, "Fuzz: averagePrice should match formula");
+    }
+    
     function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public {
         // Fuzz test: verify abi.encodePacked equality for any inputs
         bytes32 expectedId = keccak256(abi.encodePacked(swapper, nonce));
