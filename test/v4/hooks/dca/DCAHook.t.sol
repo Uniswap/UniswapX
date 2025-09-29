@@ -41,6 +41,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(actual2, expected2, "Should match abi.encodePacked encoding");
     }
     
+    // ============ getExecutionState Tests ============
+    
     function test_getExecutionState_uninitialized() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
@@ -51,6 +53,103 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(state.lastExecutionTime, 0, "Last execution time should be 0 for uninitialized state");
         assertEq(state.totalInputExecuted, 0, "Total input should be 0 for uninitialized state");
         assertEq(state.totalOutput, 0, "Total output should be 0 for uninitialized state");
+    }
+    
+    function test_getExecutionState_afterPackedWrite() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint96 expectedNonce = 42;
+        bool expectedCancelled = true;
+        
+        hook.__setPacked(intentId, expectedNonce, expectedCancelled);
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        
+        assertEq(state.nextNonce, expectedNonce, "Should return exact nextNonce written");
+        assertEq(state.cancelled, expectedCancelled, "Should return exact cancelled flag written");
+        assertEq(state.executedChunks, 0, "Unwritten fields remain zero");
+        assertEq(state.lastExecutionTime, 0, "Unwritten fields remain zero");
+        assertEq(state.totalInputExecuted, 0, "Unwritten fields remain zero");
+        assertEq(state.totalOutput, 0, "Unwritten fields remain zero");
+    }
+    
+    function test_getExecutionState_afterExecutedMetaWrite() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint256 expectedChunks = 5;
+        uint256 expectedLastExecution = block.timestamp;
+        
+        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExecution);
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        
+        assertEq(state.executedChunks, expectedChunks, "Should return exact executedChunks written");
+        assertEq(state.lastExecutionTime, expectedLastExecution, "Should return exact lastExecutionTime written");
+        assertEq(state.nextNonce, 0, "Unwritten fields remain zero");
+        assertEq(state.cancelled, false, "Unwritten fields remain false");
+        assertEq(state.totalInputExecuted, 0, "Unwritten fields remain zero");
+        assertEq(state.totalOutput, 0, "Unwritten fields remain zero");
+    }
+    
+    function test_getExecutionState_afterTotalsWrite() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        uint256 expectedInputExecuted = 1e18;
+        uint256 expectedOutput = 2000e6;
+        
+        hook.__setTotals(intentId, expectedInputExecuted, expectedOutput);
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        
+        assertEq(state.totalInputExecuted, expectedInputExecuted, "Should return exact totalInputExecuted written");
+        assertEq(state.totalOutput, expectedOutput, "Should return exact totalOutput written");
+        assertEq(state.nextNonce, 0, "Unwritten fields remain zero");
+        assertEq(state.cancelled, false, "Unwritten fields remain false");
+        assertEq(state.executedChunks, 0, "Unwritten fields remain zero");
+        assertEq(state.lastExecutionTime, 0, "Unwritten fields remain zero");
+    }
+    
+    function test_getExecutionState_fullStateWrite() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Write all fields
+        uint96 expectedNonce = 100;
+        bool expectedCancelled = true;
+        uint256 expectedChunks = 10;
+        uint256 expectedLastExecution = block.timestamp - 3600;
+        uint256 expectedInputExecuted = 5e18;
+        uint256 expectedOutput = 10000e6;
+        
+        hook.__setPacked(intentId, expectedNonce, expectedCancelled);
+        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExecution);
+        hook.__setTotals(intentId, expectedInputExecuted, expectedOutput);
+        
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        
+        assertEq(state.nextNonce, expectedNonce, "Should return exact nextNonce");
+        assertEq(state.cancelled, expectedCancelled, "Should return exact cancelled flag");
+        assertEq(state.executedChunks, expectedChunks, "Should return exact executedChunks");
+        assertEq(state.lastExecutionTime, expectedLastExecution, "Should return exact lastExecutionTime");
+        assertEq(state.totalInputExecuted, expectedInputExecuted, "Should return exact totalInputExecuted");
+        assertEq(state.totalOutput, expectedOutput, "Should return exact totalOutput");
+    }
+    
+    function testFuzz_getExecutionState_precision(
+        uint96 nonce,
+        bool cancelled,
+        uint128 chunks,
+        uint128 lastExec,
+        uint128 inputExecuted,
+        uint128 output
+    ) public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        hook.__setPacked(intentId, nonce, cancelled);
+        hook.__setExecutedMeta(intentId, chunks, lastExec);
+        hook.__setTotals(intentId, inputExecuted, output);
+        
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        
+        assertEq(state.nextNonce, nonce, "Fuzz: nextNonce precision");
+        assertEq(state.cancelled, cancelled, "Fuzz: cancelled precision");
+        assertEq(state.executedChunks, chunks, "Fuzz: executedChunks precision");
+        assertEq(state.lastExecutionTime, lastExec, "Fuzz: lastExecutionTime precision");
+        assertEq(state.totalInputExecuted, inputExecuted, "Fuzz: totalInputExecuted precision");
+        assertEq(state.totalOutput, output, "Fuzz: totalOutput precision");
     }
     
     function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public {
