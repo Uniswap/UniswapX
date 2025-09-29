@@ -118,22 +118,16 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedOrder memory order = orders[i];
                 _transferOutputTokens(order);
+                _callPostExecutionHook(order);
                 emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
             }
         }
-        _callPostExecutionHook(orders);
     }
 
     /// @notice Call post-execution hook if set
-    function _callPostExecutionHook(ResolvedOrder[] memory orders) internal {
-        uint256 ordersLength = orders.length;
-        unchecked {
-            for (uint256 i = 0; i < ordersLength; i++) {
-                ResolvedOrder memory order = orders[i];
-                if (address(order.info.postExecutionHook) != address(0)) {
-                    order.info.postExecutionHook.postExecutionHook(msg.sender, order);
-                }
-            }
+    function _callPostExecutionHook(ResolvedOrder memory order) internal {
+        if (address(order.info.postExecutionHook) != address(0)) {
+            order.info.postExecutionHook.postExecutionHook(msg.sender, order);
         }
     }
 
