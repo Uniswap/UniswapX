@@ -20,10 +20,25 @@ contract DCAHookTest is Test, DeployPermit2 {
         vm.warp(1 days);
     }
     
+    // ============ computeIntentId Tests ============
+
     function test_computeIntentId() public {
+        // Test deterministic behavior - same inputs always produce same output
         bytes32 expectedId = keccak256(abi.encodePacked(SWAPPER, NONCE));
-        bytes32 actualId = hook.computeIntentId(SWAPPER, NONCE);
-        assertEq(actualId, expectedId, "Intent ID should match expected hash");
+        bytes32 actualId1 = hook.computeIntentId(SWAPPER, NONCE);
+        bytes32 actualId2 = hook.computeIntentId(SWAPPER, NONCE);
+        
+        assertEq(actualId1, expectedId, "Intent ID should match expected hash");
+        assertEq(actualId1, actualId2, "Same inputs should produce same ID");
+        
+        // Test encoding consistency with different values
+        address testSwapper = address(0xBEEF);
+        uint256 testNonce = 42;
+        
+        bytes32 expected2 = keccak256(abi.encodePacked(testSwapper, testNonce));
+        bytes32 actual2 = hook.computeIntentId(testSwapper, testNonce);
+        
+        assertEq(actual2, expected2, "Should match abi.encodePacked encoding");
     }
     
     function test_getExecutionState_uninitialized() public {
@@ -38,10 +53,15 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(state.totalOutput, 0, "Total output should be 0 for uninitialized state");
     }
     
-    function testFuzz_computeIntentId(address swapper, uint256 nonce) public {
+    function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public {
+        // Fuzz test: verify abi.encodePacked equality for any inputs
         bytes32 expectedId = keccak256(abi.encodePacked(swapper, nonce));
         bytes32 actualId = hook.computeIntentId(swapper, nonce);
-        assertEq(actualId, expectedId, "Intent ID should be deterministic");
+        assertEq(actualId, expectedId, "Intent ID should match abi.encodePacked for any inputs");
+        
+        // Verify determinism - calling again should produce same result
+        bytes32 actualId2 = hook.computeIntentId(swapper, nonce);
+        assertEq(actualId, actualId2, "Should be deterministic for fuzzed inputs");
     }
     
     function test_isIntentActive_uninitializedIntent() public {
@@ -130,17 +150,84 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(lastExecutionTime, execTime, "Should return correct execution time");
     }
     
-    function test_calculatePrice() public {
-        // Test normal calculation
-        assertEq(hook.calculatePrice(1 ether, 2 ether), 2e18, "Price of 2 ETH out for 1 ETH in should be 2e18");
-        assertEq(hook.calculatePrice(1000, 500), 5e17, "Price of 500 out for 1000 in should be 0.5e18");
+    // ========================================
+    // Price Calculation Tests
+    // ========================================
+
+    function test_calculatePrice_boundaryEquality() public {
+        // Test prices at boundary values
+        uint256 minPrice = 1e18; // Example min price of 1.0
         
-        // Test with different decimal scales
-        assertEq(hook.calculatePrice(1e6, 1e18), 1e30, "Should handle different decimal scales");
+        // Exactly at boundary
+        uint256 inputAmount = 1e18;
+        uint256 outputAmount = 1e18;
+        uint256 calculatedPrice = hook.calculatePrice(inputAmount, outputAmount);
+        assertEq(calculatedPrice, minPrice, "Price should equal min price at boundary");
         
-        // Test zero input reverts
+        // Slightly above boundary
+        outputAmount = 1e18 + 1;
+        calculatedPrice = hook.calculatePrice(inputAmount, outputAmount);
+        assertTrue(calculatedPrice > minPrice, "Price should be above min price");
+        
+        // Slightly below boundary (would fail validation)
+        outputAmount = 1e18 - 1;
+        calculatedPrice = hook.calculatePrice(inputAmount, outputAmount);
+        assertTrue(calculatedPrice < minPrice, "Price should be below min price");
+    }
+
+    function test_calculatePrice_extremeValues() public {
+        // Test with very large values
+        uint256 maxUint = type(uint256).max / 1e18; // Avoid overflow
+        assertEq(hook.calculatePrice(maxUint, maxUint), 1e18, "Max values with 1:1 ratio");
+        
+        // Test with minimum non-zero values
+        assertEq(hook.calculatePrice(1, 1), 1e18, "Minimum values 1:1");
+        assertEq(hook.calculatePrice(1, 2), 2e18, "Minimum input with 2x output");
+        
+        // Test precision preservation
+        uint256 preciseInput = 123456789;
+        uint256 preciseOutput = 987654321;
+        uint256 expectedPrice = (preciseOutput * 1e18) / preciseInput;
+        assertEq(hook.calculatePrice(preciseInput, preciseOutput), expectedPrice, "Precise calculation");
+    }
+
+    function test_calculatePrice_zeroInputReverts() public {
+        // Test that zero input always reverts
         vm.expectRevert("input=0");
         hook.calculatePrice(0, 1000);
+        
+        vm.expectRevert("input=0");
+        hook.calculatePrice(0, 0);
+        
+        vm.expectRevert("input=0");
+        hook.calculatePrice(0, type(uint256).max);
+    }
+
+    function test_calculatePrice_zeroOutputAllowed() public {
+        // Zero output should be allowed (though economically meaningless)
+        assertEq(hook.calculatePrice(1e18, 0), 0, "Zero output should give zero price");
+        assertEq(hook.calculatePrice(1, 0), 0, "Zero output with small input");
+        assertEq(hook.calculatePrice(type(uint256).max / 1e18, 0), 0, "Zero output with large input");
+    }
+
+    function test_calculatePrice_noOverflowAtBoundary() public {
+        // Test values just below overflow threshold should work
+        uint256 maxSafeOutput = type(uint256).max / 1e18;
+        uint256 price = hook.calculatePrice(1, maxSafeOutput);
+        assertEq(price, maxSafeOutput * 1e18, "Should calculate correctly at boundary");
+        
+        // With larger input, proportionally smaller output should work
+        uint256 largeInput = 1e18;
+        uint256 safeOutput = type(uint256).max / 1e18;
+        price = hook.calculatePrice(largeInput, safeOutput);
+        assertEq(price, safeOutput, "Should handle large values below overflow");
+    }
+
+    function testFuzz_calculatePrice_overflowReverts(uint256 output) public {
+        vm.assume(output > type(uint256).max / 1e18);
+
+        vm.expectRevert();
+        hook.calculatePrice(1, output);
     }
 
     event IntentCancelled(bytes32 indexed intentId, address indexed swapper);
