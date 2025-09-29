@@ -688,6 +688,220 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertFalse(state2.cancelled, "Fuzz: swapper2's intent should not be cancelled");
     }
     
+    // ============ cancelIntents (batch) Tests ============
+    
+    function test_cancelIntents_emptyArray() public {
+        uint256[] memory nonces = new uint256[](0);
+        
+        // Empty array should succeed without doing anything
+        vm.prank(SWAPPER);
+        hook.cancelIntents(nonces);
+        
+        // No state changes
+        bytes32 intentId = hook.computeIntentId(SWAPPER, 0);
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        assertFalse(state.cancelled, "Should not cancel any intents");
+    }
+    
+    function test_cancelIntents_singleIntent() public {
+        uint256[] memory nonces = new uint256[](1);
+        nonces[0] = 42;
+        
+        bytes32 intentId = hook.computeIntentId(SWAPPER, 42);
+        
+        // Cancel single intent via batch
+        vm.prank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId, SWAPPER);
+        hook.cancelIntents(nonces);
+        
+        // Verify cancelled
+        DCAExecutionState memory state = hook.getExecutionState(intentId);
+        assertTrue(state.cancelled, "Intent should be cancelled");
+    }
+    
+    function test_cancelIntents_multipleIntents() public {
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 10;
+        nonces[1] = 20;
+        nonces[2] = 30;
+        
+        bytes32 intentId1 = hook.computeIntentId(SWAPPER, 10);
+        bytes32 intentId2 = hook.computeIntentId(SWAPPER, 20);
+        bytes32 intentId3 = hook.computeIntentId(SWAPPER, 30);
+        
+        // Expect events for all three
+        vm.prank(SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId1, SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId2, SWAPPER);
+        vm.expectEmit(true, true, false, true);
+        emit IntentCancelled(intentId3, SWAPPER);
+        
+        hook.cancelIntents(nonces);
+        
+        // Verify all cancelled
+        assertTrue(hook.getExecutionState(intentId1).cancelled, "Intent 1 should be cancelled");
+        assertTrue(hook.getExecutionState(intentId2).cancelled, "Intent 2 should be cancelled");
+        assertTrue(hook.getExecutionState(intentId3).cancelled, "Intent 3 should be cancelled");
+    }
+    
+    function test_cancelIntents_partialRepeats_revertsAll() public {
+        uint256[] memory nonces = new uint256[](5);
+        nonces[0] = 10;
+        nonces[1] = 20;
+        nonces[2] = 10; // Repeat - will cause revert
+        nonces[3] = 30;
+        nonces[4] = 20; // Another repeat
+        
+        bytes32 intentId1 = hook.computeIntentId(SWAPPER, 10);
+        bytes32 intentId2 = hook.computeIntentId(SWAPPER, 20);
+        bytes32 intentId3 = hook.computeIntentId(SWAPPER, 30);
+        
+        // Entire transaction reverts on duplicate
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+        
+        // Nothing was cancelled - transaction reverted
+        assertFalse(hook.getExecutionState(intentId1).cancelled, "Intent 1 not cancelled due to revert");
+        assertFalse(hook.getExecutionState(intentId2).cancelled, "Intent 2 not cancelled due to revert");
+        assertFalse(hook.getExecutionState(intentId3).cancelled, "Intent 3 not cancelled due to revert");
+    }
+    
+    function test_cancelIntents_allRepeats_revertsAll() public {
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 42;
+        nonces[1] = 42; // Repeat - will cause revert
+        nonces[2] = 42;
+        
+        bytes32 intentId = hook.computeIntentId(SWAPPER, 42);
+        
+        // Transaction reverts on first duplicate
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+        
+        // Nothing was cancelled - transaction reverted
+        assertFalse(hook.getExecutionState(intentId).cancelled, "Intent not cancelled due to revert");
+    }
+    
+    function test_cancelIntents_preCancelledInBatch_revertsAll() public {
+        uint256[] memory nonces = new uint256[](3);
+        nonces[0] = 100;
+        nonces[1] = 101;
+        nonces[2] = 102;
+        
+        bytes32 intentId1 = hook.computeIntentId(SWAPPER, 100);
+        bytes32 intentId2 = hook.computeIntentId(SWAPPER, 101);
+        bytes32 intentId3 = hook.computeIntentId(SWAPPER, 102);
+        
+        // Pre-cancel the middle one
+        vm.prank(SWAPPER);
+        hook.cancelIntent(101);
+        assertTrue(hook.getExecutionState(intentId2).cancelled, "Intent 2 pre-cancelled");
+        
+        // Try to cancel all three (should fail on middle)
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+        
+        // First and third remain uncancelled due to revert
+        assertFalse(hook.getExecutionState(intentId1).cancelled, "Intent 1 not cancelled due to revert");
+        assertTrue(hook.getExecutionState(intentId2).cancelled, "Intent 2 remains cancelled from before");
+        assertFalse(hook.getExecutionState(intentId3).cancelled, "Intent 3 not cancelled due to revert");
+    }
+    
+    function test_cancelIntents_onlyMsgSender() public {
+        uint256[] memory nonces = new uint256[](2);
+        nonces[0] = 50;
+        nonces[1] = 51;
+        
+        address otherUser = address(0x9999);
+        
+        bytes32 swapperIntentId1 = hook.computeIntentId(SWAPPER, 50);
+        bytes32 swapperIntentId2 = hook.computeIntentId(SWAPPER, 51);
+        bytes32 otherIntentId1 = hook.computeIntentId(otherUser, 50);
+        bytes32 otherIntentId2 = hook.computeIntentId(otherUser, 51);
+        
+        // Other user cancels their own intents (not SWAPPER's)
+        vm.prank(otherUser);
+        hook.cancelIntents(nonces);
+        
+        // SWAPPER's intents remain active
+        assertFalse(hook.getExecutionState(swapperIntentId1).cancelled, "SWAPPER intent 1 should not be cancelled");
+        assertFalse(hook.getExecutionState(swapperIntentId2).cancelled, "SWAPPER intent 2 should not be cancelled");
+        
+        // Other user's intents are cancelled
+        assertTrue(hook.getExecutionState(otherIntentId1).cancelled, "Other intent 1 should be cancelled");
+        assertTrue(hook.getExecutionState(otherIntentId2).cancelled, "Other intent 2 should be cancelled");
+    }
+    
+    function test_cancelIntents_largeArray() public {
+        uint256 count = 100;
+        uint256[] memory nonces = new uint256[](count);
+        
+        // Fill array with unique nonces
+        for (uint256 i = 0; i < count; i++) {
+            nonces[i] = i + 1000;
+        }
+        
+        // Cancel all
+        vm.prank(SWAPPER);
+        hook.cancelIntents(nonces);
+        
+        // Verify sampling (first, middle, last)
+        bytes32 firstId = hook.computeIntentId(SWAPPER, 1000);
+        bytes32 middleId = hook.computeIntentId(SWAPPER, 1050);
+        bytes32 lastId = hook.computeIntentId(SWAPPER, 1099);
+        
+        assertTrue(hook.getExecutionState(firstId).cancelled, "First intent should be cancelled");
+        assertTrue(hook.getExecutionState(middleId).cancelled, "Middle intent should be cancelled");
+        assertTrue(hook.getExecutionState(lastId).cancelled, "Last intent should be cancelled");
+    }
+    
+    function testFuzz_cancelIntents_variousSizes(uint8 size) public {
+        vm.assume(size > 0 && size <= 20); // Reasonable bounds for fuzzing
+        
+        uint256[] memory nonces = new uint256[](size);
+        for (uint256 i = 0; i < size; i++) {
+            nonces[i] = i + 5000; // Offset to avoid collision with other tests
+        }
+        
+        // Cancel all
+        vm.prank(SWAPPER);
+        hook.cancelIntents(nonces);
+        
+        // Verify all cancelled
+        for (uint256 i = 0; i < size; i++) {
+            bytes32 intentId = hook.computeIntentId(SWAPPER, nonces[i]);
+            assertTrue(hook.getExecutionState(intentId).cancelled, "Fuzz: all intents should be cancelled");
+        }
+    }
+    
+    function testFuzz_cancelIntents_withRepeats(uint256 nonce1, uint256 nonce2) public {
+        vm.assume(nonce1 != nonce2);
+        
+        uint256[] memory nonces = new uint256[](4);
+        nonces[0] = nonce1;
+        nonces[1] = nonce2;
+        nonces[2] = nonce1; // Repeat
+        nonces[3] = nonce2; // Would repeat but not reached
+        
+        bytes32 intentId1 = hook.computeIntentId(SWAPPER, nonce1);
+        bytes32 intentId2 = hook.computeIntentId(SWAPPER, nonce2);
+        
+        // Should revert on first repeat - nothing gets cancelled
+        vm.prank(SWAPPER);
+        vm.expectRevert("Intent already cancelled");
+        hook.cancelIntents(nonces);
+        
+        // Nothing cancelled due to revert
+        assertFalse(hook.getExecutionState(intentId1).cancelled, "Fuzz: intent1 not cancelled due to revert");
+        assertFalse(hook.getExecutionState(intentId2).cancelled, "Fuzz: intent2 not cancelled due to revert");
+    }
+    
     function test_getNextNonce() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         
