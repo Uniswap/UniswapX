@@ -350,47 +350,177 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(actualId, actualId2, "Should be deterministic for fuzzed inputs");
     }
     
-    function test_isIntentActive_uninitializedIntent() public {
+    // ============ isIntentActive Tests ============
+    
+    function test_isIntentActive_uninitialized_noConstraints() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         
-        // Uninitialized intent with no deadline or maxPeriod should be active
-        assertTrue(hook.isIntentActive(intentId, 0, 0), "Uninitialized intent with no constraints should be active");
-        
-        // With deadline in future should still be active
-        assertTrue(hook.isIntentActive(intentId, 0, block.timestamp + 1000), "Should be active before deadline");
-        
-        // With deadline in past should be inactive
-        assertFalse(hook.isIntentActive(intentId, 0, block.timestamp - 21), "Should be inactive after deadline");
-        
-        // MaxPeriod doesn't affect uninitialized intents (no lastExecutionTime to compare)
-        assertTrue(hook.isIntentActive(intentId, 3600, 0), "Uninitialized intent ignores maxPeriod");
+        // No deadline or maxPeriod => always true for uninitialized
+        assertTrue(hook.isIntentActive(intentId, 0, 0), "Uninitialized with no constraints should be active");
     }
     
-    function test_isIntentActive_withExecutedChunks() public {
+    function test_isIntentActive_uninitialized_deadlineConstraints() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        // Simulate an executed chunk using harness setters
+        
+        // Future deadline => true
+        uint256 futureDeadline = block.timestamp + 1000;
+        assertTrue(hook.isIntentActive(intentId, 0, futureDeadline), "Should be active before deadline");
+        
+        // Past deadline => false
+        uint256 pastDeadline = block.timestamp - 1;
+        assertFalse(hook.isIntentActive(intentId, 0, pastDeadline), "Should be inactive after deadline");
+        
+        // Exactly at deadline
+        assertTrue(hook.isIntentActive(intentId, 0, block.timestamp), "Should be active at exact deadline");
+    }
+    
+    function test_isIntentActive_uninitialized_maxPeriodIgnored() public view {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // maxPeriod should be ignored when executedChunks == 0
+        assertTrue(hook.isIntentActive(intentId, 1, 0), "maxPeriod=1 ignored for uninitialized");
+        assertTrue(hook.isIntentActive(intentId, 3600, 0), "maxPeriod=3600 ignored for uninitialized");
+        assertTrue(hook.isIntentActive(intentId, type(uint256).max, 0), "maxPeriod=max ignored for uninitialized");
+    }
+    
+    function test_isIntentActive_withExecutions_withinMaxPeriod() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
         uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
         hook.__setExecutedMeta(intentId, 1, lastExecTime);
         
-        // Should be active if maxPeriod is longer than time since last execution
-        assertTrue(hook.isIntentActive(intentId, 7200, 0), "Should be active within maxPeriod");
-        
-        // Should be inactive if maxPeriod is shorter than time since last execution
-        assertFalse(hook.isIntentActive(intentId, 1800, 0), "Should be inactive after maxPeriod");
-        
-        // Should be inactive if deadline passed regardless of maxPeriod
-        assertFalse(hook.isIntentActive(intentId, 7200, block.timestamp - 21), "Should be inactive after deadline");
+        // Within maxPeriod window => true
+        assertTrue(hook.isIntentActive(intentId, 3601, 0), "Active when within maxPeriod by 1 second");
+        assertTrue(hook.isIntentActive(intentId, 7200, 0), "Active when well within maxPeriod");
     }
     
-    function test_isIntentActive_cancelled() public {
+    function test_isIntentActive_withExecutions_overMaxPeriod() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        // Set cancelled flag via harness
+        
+        uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
+        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        
+        // Over maxPeriod window => false
+        assertFalse(hook.isIntentActive(intentId, 3599, 0), "Inactive when over maxPeriod by 1 second");
+        assertFalse(hook.isIntentActive(intentId, 1800, 0), "Inactive when well over maxPeriod");
+        assertFalse(hook.isIntentActive(intentId, 1, 0), "Inactive when far over maxPeriod");
+    }
+    
+    function test_isIntentActive_withExecutions_exactMaxPeriod() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        uint256 lastExecTime = block.timestamp - 3600; // Exactly 1 hour ago
+        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        
+        // Exactly at maxPeriod boundary
+        assertTrue(hook.isIntentActive(intentId, 3600, 0), "Active at exact maxPeriod boundary");
+    }
+    
+    function test_isIntentActive_deadlineDominance() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        uint256 lastExecTime = block.timestamp - 100; // Recent execution
+        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        
+        // Past deadline => false regardless of valid maxPeriod
+        uint256 pastDeadline = block.timestamp - 1;
+        assertFalse(hook.isIntentActive(intentId, 7200, pastDeadline), "Deadline dominates: past deadline always false");
+        assertFalse(hook.isIntentActive(intentId, 0, pastDeadline), "Past deadline with maxPeriod=0 still false");
+    }
+    
+    function test_isIntentActive_cancelledDominance() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Set cancelled flag
         hook.__setPacked(intentId, 0, true);
         
-        // Should always be inactive if cancelled
-        assertFalse(hook.isIntentActive(intentId, 0, 0), "Cancelled intent should be inactive");
-        assertFalse(hook.isIntentActive(intentId, 0, block.timestamp + 1000), "Cancelled intent should be inactive even before deadline");
-        assertFalse(hook.isIntentActive(intentId, 3600, 0), "Cancelled intent should be inactive regardless of maxPeriod");
+        // Cancelled => always false regardless of other conditions
+        assertFalse(hook.isIntentActive(intentId, 0, 0), "Cancelled with no constraints");
+        assertFalse(hook.isIntentActive(intentId, 0, block.timestamp + 1000), "Cancelled with future deadline");
+        assertFalse(hook.isIntentActive(intentId, type(uint256).max, type(uint256).max), "Cancelled with max values");
+        
+        // Even with executions and valid periods
+        hook.__setExecutedMeta(intentId, 1, block.timestamp - 100);
+        assertFalse(hook.isIntentActive(intentId, 7200, block.timestamp + 1000), "Cancelled dominates all valid conditions");
+    }
+    
+    function test_isIntentActive_sentinel_maxPeriodZero() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Set execution far in the past
+        uint256 veryOldExecution = 1;
+        vm.warp(1000000);
+        hook.__setExecutedMeta(intentId, 1, veryOldExecution);
+        
+        // maxPeriod = 0 => no upper bound check (sentinel value)
+        assertTrue(hook.isIntentActive(intentId, 0, 0), "maxPeriod=0 disables period check");
+        assertTrue(hook.isIntentActive(intentId, 0, block.timestamp + 1000), "maxPeriod=0 with future deadline");
+    }
+    
+    function test_isIntentActive_sentinel_deadlineZero() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // deadline = 0 => no deadline check (sentinel value)
+        assertTrue(hook.isIntentActive(intentId, 0, 0), "deadline=0 disables deadline check");
+        
+        // With executions
+        hook.__setExecutedMeta(intentId, 1, block.timestamp - 100);
+        assertTrue(hook.isIntentActive(intentId, 7200, 0), "deadline=0 with valid maxPeriod");
+    }
+    
+    function test_isIntentActive_priorityOrder() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Test check priority: cancelled > deadline > executedChunks > maxPeriod
+        
+        // 1. Cancelled overrides everything
+        hook.__setPacked(intentId, 0, true);
+        assertFalse(hook.isIntentActive(intentId, type(uint256).max, type(uint256).max), "Cancelled checked first");
+        
+        // 2. Reset and test deadline priority
+        hook.__setPacked(intentId, 0, false);
+        assertFalse(hook.isIntentActive(intentId, 0, block.timestamp - 1), "Deadline checked second");
+        
+        // 3. With no executions, returns true even with maxPeriod
+        assertTrue(hook.isIntentActive(intentId, 1, block.timestamp + 1000), "No executions returns true");
+        
+        // 4. With executions, maxPeriod is checked
+        hook.__setExecutedMeta(intentId, 1, block.timestamp - 3600);
+        assertFalse(hook.isIntentActive(intentId, 1800, block.timestamp + 1000), "maxPeriod checked last");
+    }
+    
+    function testFuzz_isIntentActive_boundaries(
+        uint128 timeSinceLastExec,
+        uint128 maxPeriod,
+        uint128 timeUntilDeadline,
+        bool cancelled,
+        bool hasExecutions
+    ) public {
+        vm.assume(timeSinceLastExec < block.timestamp);
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Setup state
+        hook.__setPacked(intentId, 0, cancelled);
+        if (hasExecutions) {
+            hook.__setExecutedMeta(intentId, 1, block.timestamp - timeSinceLastExec);
+        }
+        
+        uint256 deadline = timeUntilDeadline == 0 ? 0 : block.timestamp + timeUntilDeadline;
+        
+        bool result = hook.isIntentActive(intentId, maxPeriod, deadline);
+        
+        // Verify logic
+        if (cancelled) {
+            assertFalse(result, "Fuzz: cancelled always false");
+        } else if (deadline != 0 && block.timestamp > deadline) {
+            assertFalse(result, "Fuzz: past deadline always false");
+        } else if (!hasExecutions) {
+            assertTrue(result, "Fuzz: no executions always true (if not cancelled/past deadline)");
+        } else if (maxPeriod != 0 && timeSinceLastExec > maxPeriod) {
+            assertFalse(result, "Fuzz: over maxPeriod false");
+        } else {
+            assertTrue(result, "Fuzz: should be active");
+        }
     }
     
     function test_getNextNonce() public {
@@ -405,7 +535,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(hook.getNextNonce(intentId), 5, "Should return stored nextNonce");
     }
     
-    function test_getIntentStatistics_uninitialized() public {
+    function test_getIntentStatistics_uninitialized() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         
         (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
@@ -440,7 +570,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     // Price Calculation Tests
     // ========================================
 
-    function test_calculatePrice_boundaryEquality() public {
+    function test_calculatePrice_boundaryEquality() public view {
         // Test prices at boundary values
         uint256 minPrice = 1e18; // Example min price of 1.0
         
@@ -461,7 +591,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertTrue(calculatedPrice < minPrice, "Price should be below min price");
     }
 
-    function test_calculatePrice_extremeValues() public {
+    function test_calculatePrice_extremeValues() public view {
         // Test with very large values
         uint256 maxUint = type(uint256).max / 1e18; // Avoid overflow
         assertEq(hook.calculatePrice(maxUint, maxUint), 1e18, "Max values with 1:1 ratio");
@@ -489,14 +619,14 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.calculatePrice(0, type(uint256).max);
     }
 
-    function test_calculatePrice_zeroOutputAllowed() public {
+    function test_calculatePrice_zeroOutputAllowed() public view {
         // Zero output should be allowed (though economically meaningless)
         assertEq(hook.calculatePrice(1e18, 0), 0, "Zero output should give zero price");
         assertEq(hook.calculatePrice(1, 0), 0, "Zero output with small input");
         assertEq(hook.calculatePrice(type(uint256).max / 1e18, 0), 0, "Zero output with large input");
     }
 
-    function test_calculatePrice_noOverflowAtBoundary() public {
+    function test_calculatePrice_noOverflowAtBoundary() public view {
         // Test values just below overflow threshold should work
         uint256 maxSafeOutput = type(uint256).max / 1e18;
         uint256 price = hook.calculatePrice(1, maxSafeOutput);
