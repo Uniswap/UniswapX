@@ -42,10 +42,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         bytes32 intentId = keccak256(abi.encodePacked(intent.swapper, intent.nonce));
 
         // 3) Verify swapper signature (EIP-712) over full intent with privateIntentHash
-        bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
-        bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
-        address recoveredSigner = DCALib.recover(digest, swapperSignature);
-        require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
+        _validateSwapperSignature(intent, privateIntentHash, swapperSignature);
 
         // 4) Static field checks (binding correctness)
         _validateStaticFields(intent, resolvedOrder);
@@ -114,6 +111,17 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         require(!executionStates[intentId].cancelled, "Intent already cancelled");
         executionStates[intentId].cancelled = true;
         emit IntentCancelled(intentId, swapper);
+    }
+
+    function _validateSwapperSignature(
+        DCAIntent memory intent,
+        bytes32 privateIntentHash,
+        bytes memory swapperSignature
+    ) internal view {
+        bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
+        bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
+        address recoveredSigner = DCALib.recover(digest, swapperSignature);
+        require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
     }
 
     /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
