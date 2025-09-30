@@ -51,10 +51,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         _validateAllocations(intent.outputAllocations);
 
         // 6) Verify cosigner authorization
-        // bytes32 cosignerDigest = keccak256(abi.encode(cosignerData)); // per spec
-        // require(SignatureChecker.isValidSignatureNow(intent.cosigner, cosignerDigest, cosignerSignature), "DCA: bad cosigner sig");
-        // require(cosignerData.swapper == intent.swapper, "DCA: cosigner swapper mismatch");
-        // require(cosignerData.nonce == intent.nonce, "DCA: cosigner nonce mismatch");
+        _validateCosignerSignature(intent, cosignerData, cosignerSignature);
 
         // 7) State checks (stateless intent; stateful execution)
         DCAExecutionState storage s = executionStates[intentId];
@@ -122,6 +119,19 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
         address recoveredSigner = DCALib.recover(digest, swapperSignature);
         require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
+    }
+
+    function _validateCosignerSignature(
+        DCAIntent memory intent,
+        DCAOrderCosignerData memory cosignerData,
+        bytes memory cosignerSignature
+    ) internal view {
+        bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
+        bytes32 cosignerDigest = DCALib.digest(domainSeparator, cosignerStructHash);
+        address recoveredCosigner = DCALib.recover(cosignerDigest, cosignerSignature);
+        require(recoveredCosigner == intent.cosigner, "DCA: bad cosigner sig");
+        require(cosignerData.swapper == intent.swapper, "DCA: cosigner swapper mismatch");
+        require(cosignerData.nonce == intent.nonce, "DCA: cosigner nonce mismatch");
     }
 
     /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
