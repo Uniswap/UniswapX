@@ -75,9 +75,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         // 11) Output validation and allocations
         _validateOutputsAndAllocations(intent, cosignerData, resolvedOrder.outputs);
 
-        // 12) Finalize validation
-        // // DO NOT mutate state here; BasePreExecutionHook will now call _transferInputTokens(...)
-        // // State updates (executedChunks, totals, nextNonce++) will be performed in _afterTokenTransfer
+        // 12) Update state TODO: swapper-only output or total?
     }
     
     /// @notice Hook for custom logic after token transfer
@@ -110,6 +108,11 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         emit IntentCancelled(intentId, swapper);
     }
 
+    /// @notice Validates the swapper's EIP-712 signature over the DCA intent
+    /// @dev Verifies the signature using the provided private intent hash to reconstruct the full intent hash
+    /// @param intent The DCA intent to validate (with zeroed privateIntent field)
+    /// @param privateIntentHash The hash of the private intent data (computed off-chain)
+    /// @param swapperSignature The EIP-712 signature from the swapper
     function _validateSwapperSignature(
         DCAIntent memory intent,
         bytes32 privateIntentHash,
@@ -121,6 +124,11 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
     }
 
+    /// @notice Validates the cosigner's EIP-712 signature and authorization data
+    /// @dev Verifies both the signature and that cosigner data matches the intent
+    /// @param intent The DCA intent containing expected cosigner and swapper/nonce info
+    /// @param cosignerData The cosigner authorization data containing execution parameters
+    /// @param cosignerSignature The EIP-712 signature from the cosigner
     function _validateCosignerSignature(
         DCAIntent memory intent,
         DCAOrderCosignerData memory cosignerData,
@@ -326,6 +334,6 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         totalInput = s.totalInputExecuted;
         totalOutput = s.totalOutput;
         lastExecutionTime = s.lastExecutionTime;
-        averagePrice = totalInput == 0 ? 0 : (totalOutput * 1e18) / totalInput;
+        averagePrice = totalInput == 0 ? 0 : (totalOutput * 1e18) / totalInput; // TODO: muldiv
     }
 }
