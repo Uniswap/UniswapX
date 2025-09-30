@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IReactor} from "../interfaces/IReactor.sol";
 import {IValidationCallback} from "../interfaces/IValidationCallback.sol";
+import {IPreExecutionHook} from "../interfaces/IPreExecutionHook.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev generic order information
@@ -23,6 +24,26 @@ struct OrderInfo {
     IValidationCallback additionalValidationContract;
     // Encoded validation params for additionalValidationContract
     bytes additionalValidationData;
+}
+
+/// @dev generic order information
+///  should be included as the first field in any concrete order types
+struct OrderInfoV2 {
+    // The address of the reactor that this order is targeting
+    // Note that this must be included in every order so the swapper
+    // signature commits to the specific reactor that they trust to fill their order properly
+    IReactor reactor;
+    // The address of the user which created the order
+    // Note that this must be included so that order hashes are unique by swapper
+    address swapper;
+    // The nonce of the order, allowing for signature replay protection and cancellation
+    uint256 nonce;
+    // The timestamp after which this order is no longer valid
+    uint256 deadline;
+    // Pre-execution hook contract
+    IPreExecutionHook preExecutionHook;
+    // Encoded pre-execution hook data
+    bytes preExecutionHookData;
 }
 
 /// @dev tokens that need to be sent from the swapper in order to satisfy an order
@@ -47,6 +68,16 @@ struct ResolvedOrder {
     OutputToken[] outputs;
     bytes sig;
     bytes32 hash;
+}
+
+/// @dev generic concrete order that specifies exact tokens which need to be sent and received
+struct ResolvedOrderV2 {
+    OrderInfoV2 info;
+    InputToken input;
+    OutputToken[] outputs;
+    bytes sig;
+    bytes32 hash;
+    address auctionResolver;
 }
 
 /// @dev external struct including a generic encoded order and swapper signature
