@@ -75,7 +75,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         // 11) Output validation and allocations
         _validateOutputsAndAllocations(intent, cosignerData, resolvedOrder.outputs);
 
-        // 12) Update state TODO: swapper-only output or total?
+        // 12) Update execution state
+        _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
     }
     
     /// @notice Hook for custom logic after token transfer
@@ -275,6 +276,32 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             // exact output must be matched
             require(totalOutput == cosignerData.execAmount, "DCA: wrong total output");
         }
+    }
+
+    /// @notice Updates the execution state after successful validation
+    /// @dev Updates counters, totals, timestamps and nonce for the DCA intent
+    /// @param intentId The unique identifier for this DCA intent
+    /// @param inputAmount The amount of input tokens being executed
+    /// @param outputs The output tokens being distributed
+    function _updateExecutionState(
+        bytes32 intentId,
+        uint256 inputAmount,
+        OutputToken[] memory outputs
+    ) internal {
+        DCAExecutionState storage state = executionStates[intentId];
+        
+        // Calculate total output amount
+        uint256 totalOutput = 0;
+        for (uint256 i = 0; i < outputs.length; i++) {
+            totalOutput += outputs[i].amount;
+        }
+        
+        // Update execution state
+        state.executedChunks++;
+        state.lastExecutionTime = block.timestamp;
+        state.totalInputExecuted += inputAmount;
+        state.totalOutput += totalOutput;
+        state.nextNonce++;
     }
 
     /// @inheritdoc IDCAHook
