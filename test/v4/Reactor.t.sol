@@ -17,6 +17,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockFillContract} from "../v4/util/mock/MockFillContract.sol";
 import {MockFeeController} from "../v4/util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../v4/util/mock/MockPreExecutionHook.sol";
+import {MockPostExecutionHook} from "../v4/util/mock/MockPostExecutionHook.sol";
 import {TokenTransferHook} from "../../src/v4/hooks/TokenTransferHook.sol";
 import {MockAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
@@ -36,6 +37,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     MockERC20 tokenOut2;
     MockFillContract fillContract;
     MockPreExecutionHook preExecutionHook;
+    MockPostExecutionHook postExecutionHook;
     TokenTransferHook tokenTransferHook;
     IPermit2 permit2;
     MockFeeController feeController;
@@ -54,6 +56,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         permit2 = IPermit2(deployPermit2());
         preExecutionHook = new MockPreExecutionHook(permit2);
         preExecutionHook.setValid(true);
+        postExecutionHook = new MockPostExecutionHook();
         tokenTransferHook = new TokenTransferHook(permit2);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
@@ -273,7 +276,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     }
 
     /// @dev Test pre-execution hook that fails validation
-    function test_executeWithPreExecutionHookFail() public {
+    function test_executeWithPreExecutionHookRevert() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
@@ -297,6 +300,114 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         vm.expectRevert(MockPreExecutionHook.MockPreExecutionError.selector);
         fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test execute with post-execution hook
+    function test_executeWithPostExecutionHook() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withPostExecutionHook(postExecutionHook),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+
+        uint256 counterBefore = postExecutionHook.postExecutionCounter();
+        uint256 fillerExecutionsBefore = postExecutionHook.fillerExecutions(address(fillContract));
+        uint256 swapperExecutionsBefore = postExecutionHook.swapperExecutions(swapper);
+
+        fillContract.execute(signedOrder);
+
+        // Verify post-hook was called
+        assertEq(postExecutionHook.postExecutionCounter(), counterBefore + 1);
+        assertEq(postExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
+        assertEq(postExecutionHook.swapperExecutions(swapper), swapperExecutionsBefore + 1);
+        assertEq(postExecutionHook.lastFiller(), address(fillContract));
+        assertEq(postExecutionHook.lastSwapper(), swapper);
+        assertEq(postExecutionHook.lastOrderHash(), orderHash);
+        assertEq(postExecutionHook.lastInputAmount(), inputAmount);
+        assertEq(postExecutionHook.lastOutputAmount(), outputAmount);
+
+        // Verify tokens transferred correctly
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), outputAmount);
+        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+    }
+
+    /// @dev Test execute with post-execution hook that reverts
+    function test_executeWithPostExecutionHookRevert() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        postExecutionHook.setShouldRevert(true);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withPostExecutionHook(postExecutionHook),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Should revert with MockPostExecutionError
+        vm.expectRevert(MockPostExecutionHook.MockPostExecutionError.selector);
+        fillContract.execute(signedOrder);
+
+        // Verify no tokens were transferred due to revert
+        assertEq(tokenIn.balanceOf(address(swapper)), inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), 0);
+        assertEq(tokenOut.balanceOf(address(swapper)), 0);
+        assertEq(tokenOut.balanceOf(address(fillContract)), outputAmount);
+    }
+
+    /// @dev Test execute with both pre and post execution hooks
+    function test_executeWithBothHooks() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                preExecutionHook
+            ).withPostExecutionHook(postExecutionHook),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 preCounterBefore = preExecutionHook.preExecutionCounter();
+        uint256 postCounterBefore = postExecutionHook.postExecutionCounter();
+
+        fillContract.execute(signedOrder);
+
+        // Verify both hooks were called
+        assertEq(preExecutionHook.preExecutionCounter(), preCounterBefore + 1);
+        assertEq(postExecutionHook.postExecutionCounter(), postCounterBefore + 1);
+        assertEq(postExecutionHook.lastFiller(), address(fillContract));
+        assertEq(postExecutionHook.lastSwapper(), swapper);
     }
 
     /// @dev Basic batch execute test
@@ -469,6 +580,39 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         assertEq(tokenOut.balanceOf(swapper), totalOutputAmount1);
         assertEq(tokenOut2.balanceOf(swapper), totalOutputAmount2);
         assertEq(tokenIn.balanceOf(address(fillContract)), totalInputAmount);
+    }
+
+    /// @dev Test executeBatch with post-execution hook
+    function test_executeBatchWithPostExecutionHook() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        // Create 3 orders
+        MockOrder[] memory orders = new MockOrder[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            tokenIn.mint(address(swapper), inputAmount);
+            tokenOut.mint(address(fillContract), outputAmount);
+            tokenIn.forceApprove(swapper, address(permit2), inputAmount * (i + 1));
+
+            orders[i] = MockOrder({
+                info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withNonce(i)
+                    .withPreExecutionHook(tokenTransferHook).withPostExecutionHook(postExecutionHook),
+                input: InputToken(tokenIn, inputAmount, inputAmount),
+                outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+            });
+        }
+
+        (SignedOrder[] memory signedOrders,) = createAndSignBatchOrders(orders);
+
+        uint256 counterBefore = postExecutionHook.postExecutionCounter();
+
+        fillContract.executeBatch(signedOrders);
+
+        // Verify post-hook was called for each order
+        assertEq(postExecutionHook.postExecutionCounter(), counterBefore + 3);
+        assertEq(postExecutionHook.fillerExecutions(address(fillContract)), 3);
+        assertEq(postExecutionHook.swapperExecutions(swapper), 3);
     }
 
     /// @dev Test invalid reactor error
@@ -701,6 +845,47 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);
         assertEq(preExecutionHook.fillerExecutions(address(fillContract)), fillerExecutionsBefore + 1);
 
+        assertEq(tokenIn.balanceOf(address(swapper)), 0);
+        assertEq(tokenIn.balanceOf(address(fillContract)), uint256(inputAmount));
+        assertEq(tokenOut.balanceOf(address(swapper)), uint256(outputAmount));
+        assertEq(tokenOut.balanceOf(address(fillContract)), 0);
+    }
+
+    /// @dev Fuzz test with post-execution hook
+    function testFuzz_executeWithPostExecutionHook(uint128 inputAmount, uint128 outputAmount, uint256 deadline)
+        public
+    {
+        vm.assume(deadline > block.timestamp);
+        vm.assume(inputAmount > 0);
+        vm.assume(outputAmount > 0);
+
+        tokenIn.mint(address(swapper), uint256(inputAmount));
+        tokenOut.mint(address(fillContract), uint256(outputAmount));
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withPostExecutionHook(postExecutionHook),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+
+        uint256 counterBefore = postExecutionHook.postExecutionCounter();
+
+        fillContract.execute(signedOrder);
+
+        // Verify post-hook was called with correct data
+        assertEq(postExecutionHook.postExecutionCounter(), counterBefore + 1);
+        assertEq(postExecutionHook.lastFiller(), address(fillContract));
+        assertEq(postExecutionHook.lastSwapper(), swapper);
+        assertEq(postExecutionHook.lastOrderHash(), orderHash);
+        assertEq(postExecutionHook.lastInputAmount(), uint256(inputAmount));
+        assertEq(postExecutionHook.lastOutputAmount(), uint256(outputAmount));
+
+        // Verify tokens transferred correctly
         assertEq(tokenIn.balanceOf(address(swapper)), 0);
         assertEq(tokenIn.balanceOf(address(fillContract)), uint256(inputAmount));
         assertEq(tokenOut.balanceOf(address(swapper)), uint256(outputAmount));

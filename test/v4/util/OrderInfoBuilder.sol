@@ -51,4 +51,22 @@ library OrderInfoBuilder {
         info.preExecutionHookData = _preExecutionHookData;
         return info;
     }
+
+    function withPostExecutionHook(OrderInfo memory info, IPostExecutionHook _postExecutionHook)
+        internal
+        pure
+        returns (OrderInfo memory)
+    {
+        info.postExecutionHook = _postExecutionHook;
+        return info;
+    }
+
+    function withPostExecutionHookData(OrderInfo memory info, bytes memory _postExecutionHookData)
+        internal
+        pure
+        returns (OrderInfo memory)
+    {
+        info.postExecutionHookData = _postExecutionHookData;
+        return info;
+    }
 }
