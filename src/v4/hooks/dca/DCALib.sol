@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {DCAIntent, PrivateIntent, OutputAllocation} from "./DCAStructs.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData} from "./DCAStructs.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 library DCALib {
@@ -24,6 +24,10 @@ library DCALib {
         "OutputAllocation(address recipient,uint256 basisPoints)"
         "PrivateIntent(uint256 totalInputAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
     bytes32 constant DCA_INTENT_TYPEHASH = keccak256(DCA_INTENT_TYPE);
+
+    bytes constant DCA_COSIGNER_DATA_TYPE =
+        "DCAOrderCosignerData(address swapper,uint256 nonce,uint256 execAmount,uint256 limitAmount,uint96 orderNonce)";
+    bytes32 constant DCA_COSIGNER_DATA_TYPEHASH = keccak256(DCA_COSIGNER_DATA_TYPE);
 
     // ----- Hash helpers -----
 
@@ -123,6 +127,17 @@ library DCALib {
             paramsHash2,
             outputAllocHash,
             privateIntentHash
+        ));
+    }
+
+    function hashCosignerData(DCAOrderCosignerData memory cosignerData) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            DCA_COSIGNER_DATA_TYPEHASH,
+            cosignerData.swapper,
+            cosignerData.nonce,
+            cosignerData.execAmount,
+            cosignerData.limitAmount,
+            cosignerData.orderNonce
         ));
     }
 
