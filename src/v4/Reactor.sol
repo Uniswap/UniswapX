@@ -6,8 +6,6 @@ import {IReactorCallback} from "./interfaces/IReactorCallback.sol";
 
 import {SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {ResolvedOrder} from "./base/ReactorStructs.sol";
-import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IAuctionResolver} from "./interfaces/IAuctionResolver.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
@@ -20,12 +18,7 @@ import {ProtocolFees} from "./base/ProtocolFees.sol";
 contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using CurrencyLibrary for address;
 
-    /// @notice Permit2 instance for signature verification and token transfers
-    IPermit2 public immutable permit2;
-
-    constructor(IPermit2 _permit2, address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {
-        permit2 = _permit2;
-    }
+    constructor(address _protocolFeeOwner) ProtocolFees(_protocolFeeOwner) {}
 
     /// @inheritdoc IReactor
     function execute(SignedOrder calldata order) external payable override nonReentrant {

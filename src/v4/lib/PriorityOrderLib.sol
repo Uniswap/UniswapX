@@ -2,10 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../base/ReactorStructs.sol";
-import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 import {PriorityInput, PriorityOutput, PriorityCosignerData} from "../../lib/PriorityOrderLib.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
 /// @dev External struct used to specify priority orders
 struct PriorityOrder {

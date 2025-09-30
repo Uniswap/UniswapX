@@ -61,7 +61,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         tokenTransferHook = new TokenTransferHook(permit2);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);
-        reactor = new Reactor(permit2, PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(PROTOCOL_FEE_OWNER);
         mockResolver = new MockAuctionResolver();
         fillContract = new MockFillContract(address(reactor));
         vm.deal(address(fillContract), type(uint256).max);

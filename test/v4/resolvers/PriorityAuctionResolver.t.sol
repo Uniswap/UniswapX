@@ -59,7 +59,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         feeController = new MockFeeController(feeRecipient);
         tokenTransferHook = new TokenTransferHook(permit2);
 
-        reactor = new Reactor(permit2, PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(PROTOCOL_FEE_OWNER);
         resolver = new PriorityAuctionResolver(permit2);
 
         // Deploy fill contract

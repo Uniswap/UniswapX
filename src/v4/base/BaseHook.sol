@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IPreExecutionHook} from "../interfaces/IHook.sol";
 import {ResolvedOrder} from "./ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 
@@ -14,10 +13,10 @@ abstract contract BasePreExecutionHook is IPreExecutionHook {
     using Permit2Lib for ResolvedOrder;
 
     /// @notice Permit2 instance for signature verification and token transfers
-    IPermit2 public immutable permit2;
+    IPermit2 public immutable PERMIT2;
 
     constructor(IPermit2 _permit2) {
-        permit2 = _permit2;
+        PERMIT2 = _permit2;
     }
 
     /// @inheritdoc IPreExecutionHook
@@ -52,7 +51,7 @@ abstract contract BasePreExecutionHook is IPreExecutionHook {
         string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
 
         // Execute the token transfer via Permit2
-        permit2.permitWitnessTransferFrom(
+        PERMIT2.permitWitnessTransferFrom(
             order.toPermit(), order.transferDetails(to), order.info.swapper, order.hash, orderType, order.sig
         );
     }
