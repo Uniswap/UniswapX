@@ -67,9 +67,9 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         
         // 8) Period gating (enforce minPeriod/maxPeriod only after first execution)
         if (s.executedChunks > 0) {
-            uint256 dt = block.timestamp - s.lastExecutionTime;
-            require(dt >= intent.minPeriod, "DCA: too soon");
-            if (intent.maxPeriod != 0) require(dt <= intent.maxPeriod, "DCA: too late");
+            uint256 elapsed = block.timestamp - s.lastExecutionTime;
+            require(elapsed >= intent.minPeriod, "DCA: too soon");
+            if (intent.maxPeriod != 0) require(elapsed <= intent.maxPeriod, "DCA: too late");
         }
 
         // 9) Chunk size checks
