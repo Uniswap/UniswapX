@@ -103,10 +103,10 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
         unchecked {
             for (uint256 i = 0; i < ordersLength; i++) {
                 ResolvedOrder memory order = orders[i];
-                _injectFees(order);
                 _validateOrder(order);
                 _callPreExecutionHook(order);
-                // Token transfer is now handled by the hook
+                _injectFees(order);
+                // Token transfer is handled by the hook
             }
         }
     }

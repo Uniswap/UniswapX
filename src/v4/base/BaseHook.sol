@@ -9,7 +9,7 @@ import {Permit2Lib} from "../lib/Permit2Lib.sol";
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 
 /// @notice Base hook contract that enforces token transfer logic
-/// @dev All pre-execution hooks MUST inherit from this contract to ensure token transfers happen
+/// @dev inherit from this contract for default token transfer logic using permit2's Signature transfer
 abstract contract BasePreExecutionHook is IPreExecutionHook {
     using Permit2Lib for ResolvedOrder;
 

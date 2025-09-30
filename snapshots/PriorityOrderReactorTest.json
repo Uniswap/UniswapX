@@ -1,15 +1,15 @@
 {
-  "BaseExecuteSingleWithFee": "174229",
-  "ExecuteBatch": "185075",
-  "ExecuteBatchMultipleOutputs": "194283",
-  "ExecuteBatchMultipleOutputsDifferentTokens": "247393",
-  "ExecuteBatchNativeOutput": "181115",
-  "ExecuteSingle": "140964",
-  "ExecuteSingleNativeOutput": "129033",
-  "ExecuteSingleValidation": "149962",
-  "InputPriorityFee": "143267",
-  "OutputPriorityFee": "143273",
-  "OutputPriorityFeeAndBaselinePriorityFee": "143273",
-  "OverrideAuctionTargetBlock": "120313",
-  "RevertInvalidNonce": "8844"
+  "BaseExecuteSingleWithFee": "209292",
+  "ExecuteBatch": "231242",
+  "ExecuteBatchMultipleOutputs": "244900",
+  "ExecuteBatchMultipleOutputsDifferentTokens": "302460",
+  "ExecuteBatchNativeOutput": "224332",
+  "ExecuteSingle": "164670",
+  "ExecuteSingleNativeOutput": "151264",
+  "ExecuteSingleValidation": "179850",
+  "InputPriorityFee": "167049",
+  "OutputPriorityFee": "167302",
+  "OutputPriorityFeeAndBaselinePriorityFee": "167302",
+  "OverrideAuctionTargetBlock": "145312",
+  "RevertInvalidNonce": "13603"
 }
