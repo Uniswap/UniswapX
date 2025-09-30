@@ -5,6 +5,7 @@ import {IDCAHook} from "../../interfaces/IDCAHook.sol";
 import {BasePreExecutionHook} from "../../base/BaseHook.sol";
 import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation} from "./DCAStructs.sol";
+import {DCALib} from "./DCALib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
@@ -12,11 +13,16 @@ import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 /// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
 /// @dev Inherits from BasePreExecutionHook for token transfer logic
 contract DCAHook is BasePreExecutionHook, IDCAHook {
+    /// @notice EIP-712 domain separator
+    bytes32 public immutable domainSeparator;
+    
     /// @notice Mapping from intentId to execution state
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
     mapping(bytes32 => DCAExecutionState) internal executionStates;
     
-    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
+    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {
+        domainSeparator = DCALib.computeDomainSeparator(address(this));
+    }
     
     /// @notice Validates DCA intent and prepares for token transfer
     /// @dev Called by BasePreExecutionHook before token transfer
@@ -36,9 +42,10 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         bytes32 intentId = keccak256(abi.encodePacked(intent.swapper, intent.nonce));
 
         // 3) Verify swapper signature (EIP-712) over full intent with privateIntentHash
-        // bytes32 fullIntentHash = _computeFullIntentHash(intent, privateIntentHash); // per spec, replaces zeroed PrivateIntent
-        // bytes32 digest = _hashTypedData(fullIntentHash); // domain-separated digest
-        // require(SignatureChecker.isValidSignatureNow(intent.swapper, digest, swapperSignature), "DCA: bad swapper sig");
+        bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
+        bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
+        address recoveredSigner = DCALib.recover(digest, swapperSignature);
+        require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
 
         // 4) Static field checks (binding correctness)
         _validateStaticFields(intent, resolvedOrder);

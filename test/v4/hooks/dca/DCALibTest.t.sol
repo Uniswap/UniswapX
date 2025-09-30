@@ -15,9 +15,6 @@ contract DCALibTest is Test {
     string  constant VERSION = "1";
     uint256 constant CHAINID = 1;
 
-    bytes32 constant EIP712_DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-
     function setUp() public {
         signer = vm.addr(PK);
         vm.chainId(CHAINID);
@@ -25,14 +22,8 @@ contract DCALibTest is Test {
 
     // --- helpers ---
 
-    function _domainSeparator(address verifying) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            EIP712_DOMAIN_TYPEHASH,
-            keccak256(bytes(NAME)),
-            keccak256(bytes(VERSION)),
-            CHAINID,
-            verifying
-        ));
+    function _domainSeparator(address verifying) internal view returns (bytes32) {
+        return DCALib.computeDomainSeparator(verifying);
     }
 
     function _sampleIntent(address verifying, uint256 deadline) internal view returns (DCAIntent memory) {

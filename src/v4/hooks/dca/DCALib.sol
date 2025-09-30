@@ -5,6 +5,11 @@ import {DCAIntent, PrivateIntent, OutputAllocation} from "./DCAStructs.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 library DCALib {
+    // ----- EIP-712 Domain -----
+    bytes32 constant EIP712_DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+    
     // ----- Type strings -----
     bytes constant PRIVATE_INTENT_TYPE =
         "PrivateIntent(uint256 totalInputAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
@@ -132,5 +137,16 @@ library DCALib {
     // Recover signer
     function recover(bytes32 digest_, bytes memory signature) internal pure returns (address) {
         return ECDSA.recover(digest_, signature);
+    }
+    
+    // Compute domain separator
+    function computeDomainSeparator(address verifyingContract) internal view returns (bytes32) {
+        return keccak256(abi.encode(
+            EIP712_DOMAIN_TYPEHASH,
+            keccak256(bytes("DCAHook")),
+            keccak256(bytes("1")),
+            block.chainid,
+            verifyingContract
+        ));
     }
 }
