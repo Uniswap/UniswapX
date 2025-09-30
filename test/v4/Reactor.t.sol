@@ -30,6 +30,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     using ArrayBuilder for uint256[];
 
     uint256 constant ONE = 10 ** 18;
+    bytes4 constant INVALID_NONCE_SELECTOR = 0x756688fe;
     address internal constant PROTOCOL_FEE_OWNER = address(1);
 
     MockERC20 tokenIn;
@@ -696,7 +697,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         fillContract.execute(signedOrder);
 
         // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
-        vm.expectRevert(IReactor.InvalidNonce.selector);
+        vm.expectRevert(INVALID_NONCE_SELECTOR);
         fillContract.execute(signedOrder);
     }
 

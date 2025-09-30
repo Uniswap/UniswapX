@@ -1,12 +1,12 @@
 {
-  "V3-DutchDecay": "23035",
-  "V3-DutchDecayFullyDecayed": "10150",
-  "V3-DutchDecayFullyDecayedNegative": "9507",
-  "V3-DutchDecayNegative": "21075",
-  "V3-DutchDecayNoDecayYet": "6900",
-  "V3-DutchDecayNoDecayYetNegative": "6878",
-  "V3-ExtendedMultiPointDutchDecay": "149752",
-  "V3-LocateCurvePositionMulti": "27103",
-  "V3-LocateCurvePositionSingle": "6428",
-  "V3-MultiPointDutchDecay": "47288"
+  "V3-DutchDecay": "16223",
+  "V3-DutchDecayFullyDecayed": "7828",
+  "V3-DutchDecayFullyDecayedNegative": "7545",
+  "V3-DutchDecayNegative": "15219",
+  "V3-DutchDecayNoDecayYet": "5692",
+  "V3-DutchDecayNoDecayYetNegative": "5664",
+  "V3-ExtendedMultiPointDutchDecay": "104848",
+  "V3-LocateCurvePositionMulti": "17509",
+  "V3-LocateCurvePositionSingle": "4180",
+  "V3-MultiPointDutchDecay": "33409"
 }

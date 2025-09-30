@@ -7,8 +7,6 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 interface IReactor {
     /// @notice thrown when an auction resolver is not set
     error EmptyAuctionResolver();
-    /// @notice thrown when an order's nonce has already been used
-    error InvalidNonce();
     /// @notice thrown when the order targets a different reactor
     error InvalidReactor();
     /// @notice thrown when the order's deadline has passed

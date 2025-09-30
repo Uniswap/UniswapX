@@ -1,14 +1,14 @@
 {
-  "BaseExecuteSingleWithFee": "234109",
-  "ExecuteBatch": "281073",
-  "ExecuteBatchMultipleOutputs": "301881",
-  "ExecuteBatchMultipleOutputsDifferentTokens": "366610",
-  "ExecuteBatchNativeOutput": "274163",
-  "ExecuteSingle": "189478",
-  "ExecuteSingleNativeOutput": "176072",
-  "ExecuteSingleValidation": "204658",
-  "RevertInvalidNonce": "58478",
-  "V3-ExclusiveFiller": "193532",
-  "V3-InputOverride": "193613",
-  "V3-OutputOverride": "193559"
+  "BaseExecuteSingleWithFee": "185581",
+  "ExecuteBatch": "207976",
+  "ExecuteBatchMultipleOutputs": "220493",
+  "ExecuteBatchMultipleOutputsDifferentTokens": "276931",
+  "ExecuteBatchNativeOutput": "204016",
+  "ExecuteSingle": "152307",
+  "ExecuteSingleNativeOutput": "140376",
+  "ExecuteSingleValidation": "161305",
+  "RevertInvalidNonce": "31936",
+  "V3-ExclusiveFiller": "156182",
+  "V3-InputOverride": "156263",
+  "V3-OutputOverride": "156206"
 }
