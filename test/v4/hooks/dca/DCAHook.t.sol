@@ -988,13 +988,13 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_calculatePrice_zeroInputReverts() public {
         // Test that zero input always reverts
-        vm.expectRevert("input=0");
+        vm.expectRevert(IDCAHook.ZeroInputAmount.selector);
         hook.calculatePrice(0, 1000);
         
-        vm.expectRevert("input=0");
+        vm.expectRevert(IDCAHook.ZeroInputAmount.selector);
         hook.calculatePrice(0, 0);
         
-        vm.expectRevert("input=0");
+        vm.expectRevert(IDCAHook.ZeroInputAmount.selector);
         hook.calculatePrice(0, type(uint256).max);
     }
 

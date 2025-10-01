@@ -206,18 +206,30 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         uint256 inputAmount
     ) internal pure {
         if (intent.isExactIn) {
-            require(cosignerData.execAmount >= intent.minChunkSize, "DCA: input<min");
-            require(cosignerData.execAmount <= intent.maxChunkSize, "DCA: input>max");
-            // BasePreExecutionHook will transfer order.input.amount; ensure it matches execAmount for EXACT_IN
-            require(inputAmount == cosignerData.execAmount, "DCA: input amount mismatch");
+            if (cosignerData.execAmount < intent.minChunkSize) {
+                revert InputBelowMin(cosignerData.execAmount, intent.minChunkSize);
+            }
+            if (cosignerData.execAmount > intent.maxChunkSize) {
+                revert InputAboveMax(cosignerData.execAmount, intent.maxChunkSize);
+            }
+            // We will transfer order.input.amount; ensure it matches execAmount for EXACT_IN
+            if (inputAmount != cosignerData.execAmount) {
+                revert InputAmountMismatch(inputAmount, cosignerData.execAmount);
+            }
         } else {
             // EXACT_OUT: execAmount is the exact output amount to deliver
-            require(cosignerData.execAmount >= intent.minChunkSize, "DCA: output<min");
-            require(cosignerData.execAmount <= intent.maxChunkSize, "DCA: output>max");
-            require(inputAmount > 0, "DCA: zero input");
-            // CRITICAL: Ensure actual input doesn't exceed the cosigner's limit
-            // This prevents over-withdrawal from the swapper via Permit2
-            require(inputAmount <= cosignerData.limitAmount, "DCA: input>limit");
+            if (cosignerData.execAmount < intent.minChunkSize) {
+                revert OutputBelowMin(cosignerData.execAmount, intent.minChunkSize);
+            }
+            if (cosignerData.execAmount > intent.maxChunkSize) {
+                revert OutputAboveMax(cosignerData.execAmount, intent.maxChunkSize);
+            }
+            if (inputAmount == 0) {
+                revert ZeroInput();
+            }
+            if (inputAmount > cosignerData.limitAmount) {
+                revert InputAboveLimit(inputAmount, cosignerData.limitAmount);
+            }
         }
     }
 
@@ -234,15 +246,25 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         DCAExecutionState storage s = executionStates[intentId];
         
         // State checks
-        require(!s.cancelled, "DCA: cancelled");
-        if (intent.deadline != 0) require(block.timestamp <= intent.deadline, "DCA: expired");
-        require(cosignerData.orderNonce == s.nextNonce, "DCA: wrong chunk nonce");
+        if (s.cancelled) {
+            revert IntentIsCancelled(intentId);
+        }
+        if (intent.deadline != 0 && block.timestamp > intent.deadline) {
+            revert IntentExpired(block.timestamp, intent.deadline);
+        }
+        if (cosignerData.orderNonce != s.nextNonce) {
+            revert WrongChunkNonce(cosignerData.orderNonce, s.nextNonce);
+        }
         
         // Period gating (enforce minPeriod/maxPeriod only after first execution)
         if (s.executedChunks > 0) {
             uint256 elapsed = block.timestamp - s.lastExecutionTime;
-            require(elapsed >= intent.minPeriod, "DCA: too soon");
-            if (intent.maxPeriod != 0) require(elapsed <= intent.maxPeriod, "DCA: too late");
+            if (elapsed < intent.minPeriod) {
+                revert TooSoon(elapsed, intent.minPeriod);
+            }
+            if (intent.maxPeriod != 0 && elapsed > intent.maxPeriod) {
+                revert TooLate(elapsed, intent.maxPeriod);
+            }
         }
     }
 
@@ -264,7 +286,9 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             // Price = output/input * 1e18
             executionPrice = Math.mulDiv(cosignerData.execAmount, 1e18, cosignerData.limitAmount);
         }
-        require(executionPrice >= intent.minPrice, "DCA: price<min");
+        if (executionPrice < intent.minPrice) {
+            revert PriceBelowMin(executionPrice, intent.minPrice);
+        }
     }
 
     /// @notice Validates outputs match expected allocations and amounts
@@ -295,18 +319,26 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             }
             if (intent.isExactIn) {
                 // Allow ±1 wei for integer division rounding
-                require(actual + 1 >= expected && actual <= expected + 1, "DCA: allocation mismatch");
+                if (!(actual + 1 >= expected && actual <= expected + 1)) {
+                    revert AllocationMismatch(rcpt, actual, expected);
+                }
             } else {
-                require(actual == expected, "DCA: allocation mismatch");
+                if (actual != expected) {
+                    revert AllocationMismatch(rcpt, actual, expected);
+                }
             }
         }
 
         if (intent.isExactIn) {
             // total output produced must meet the limit
-            require(totalOutput >= cosignerData.limitAmount, "DCA: insufficient output");
+            if (totalOutput < cosignerData.limitAmount) {
+                revert InsufficientOutput(totalOutput, cosignerData.limitAmount);
+            }
         } else {
             // exact output must be matched
-            require(totalOutput == cosignerData.execAmount, "DCA: wrong total output");
+            if (totalOutput != cosignerData.execAmount) {
+                revert WrongTotalOutput(totalOutput, cosignerData.execAmount);
+            }
         }
     }
 
@@ -369,7 +401,9 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         override 
         returns (uint256 price) 
     {
-        require(inputAmount != 0, "input=0");
+        if (inputAmount == 0) {
+            revert ZeroInputAmount();
+        }
         // Safely do (outputAmount * 1e18) / inputAmount
         return Math.mulDiv(outputAmount, 1e18, inputAmount);
     }

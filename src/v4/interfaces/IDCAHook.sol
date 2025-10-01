@@ -70,6 +70,87 @@ interface IDCAHook is IPreExecutionHook {
     /// @param expectedToken The expected output token from the intent
     error WrongOutputToken(address outputToken, address expectedToken);
     
+    /// @notice Thrown when input amount is below minimum chunk size (EXACT_IN)
+    /// @param amount The actual input amount
+    /// @param minChunkSize The minimum allowed chunk size
+    error InputBelowMin(uint256 amount, uint256 minChunkSize);
+    
+    /// @notice Thrown when input amount exceeds maximum chunk size (EXACT_IN)
+    /// @param amount The actual input amount
+    /// @param maxChunkSize The maximum allowed chunk size
+    error InputAboveMax(uint256 amount, uint256 maxChunkSize);
+    
+    /// @notice Thrown when output amount is below minimum chunk size (EXACT_OUT)
+    /// @param amount The actual output amount
+    /// @param minChunkSize The minimum allowed chunk size
+    error OutputBelowMin(uint256 amount, uint256 minChunkSize);
+    
+    /// @notice Thrown when output amount exceeds maximum chunk size (EXACT_OUT)
+    /// @param amount The actual output amount
+    /// @param maxChunkSize The maximum allowed chunk size
+    error OutputAboveMax(uint256 amount, uint256 maxChunkSize);
+    
+    /// @notice Thrown when input amount doesn't match execAmount (EXACT_IN)
+    /// @param inputAmount The input amount in the order
+    /// @param execAmount The expected exec amount from cosigner data
+    error InputAmountMismatch(uint256 inputAmount, uint256 execAmount);
+    
+    /// @notice Thrown when input amount is zero (EXACT_OUT)
+    error ZeroInput();
+    
+    /// @notice Thrown when input exceeds cosigner's limit (EXACT_OUT)
+    /// @param inputAmount The actual input amount
+    /// @param limitAmount The cosigner's limit amount
+    error InputAboveLimit(uint256 inputAmount, uint256 limitAmount);
+    
+    /// @notice Thrown when attempting to execute a cancelled intent
+    /// @param intentId The identifier of the cancelled intent
+    error IntentIsCancelled(bytes32 intentId);
+    
+    /// @notice Thrown when the intent has expired
+    /// @param currentTime The current block timestamp
+    /// @param deadline The intent's deadline
+    error IntentExpired(uint256 currentTime, uint256 deadline);
+    
+    /// @notice Thrown when the order nonce doesn't match the expected nonce
+    /// @param providedNonce The nonce provided in the cosigner data
+    /// @param expectedNonce The expected next nonce for the intent
+    error WrongChunkNonce(uint96 providedNonce, uint96 expectedNonce);
+    
+    /// @notice Thrown when execution is attempted too soon after the last execution
+    /// @param elapsed The time elapsed since last execution
+    /// @param minPeriod The minimum required period between executions
+    error TooSoon(uint256 elapsed, uint256 minPeriod);
+    
+    /// @notice Thrown when execution is attempted too late after the last execution
+    /// @param elapsed The time elapsed since last execution
+    /// @param maxPeriod The maximum allowed period between executions
+    error TooLate(uint256 elapsed, uint256 maxPeriod);
+    
+    /// @notice Thrown when the execution price is below the minimum price floor
+    /// @param executionPrice The actual execution price (scaled by 1e18)
+    /// @param minPrice The minimum acceptable price (scaled by 1e18)
+    error PriceBelowMin(uint256 executionPrice, uint256 minPrice);
+    
+    /// @notice Thrown when output allocation doesn't match expected amount
+    /// @param recipient The recipient address
+    /// @param actual The actual amount allocated to the recipient
+    /// @param expected The expected amount for the recipient
+    error AllocationMismatch(address recipient, uint256 actual, uint256 expected);
+    
+    /// @notice Thrown when total output is insufficient (EXACT_IN)
+    /// @param totalOutput The total output amount produced
+    /// @param limitAmount The minimum required output amount
+    error InsufficientOutput(uint256 totalOutput, uint256 limitAmount);
+    
+    /// @notice Thrown when total output doesn't match expected amount (EXACT_OUT)
+    /// @param totalOutput The actual total output amount
+    /// @param execAmount The expected exact output amount
+    error WrongTotalOutput(uint256 totalOutput, uint256 execAmount);
+    
+    /// @notice Thrown when input amount is zero in price calculation
+    error ZeroInputAmount();
+    
     /// @notice Emitted when an intent is cancelled
     /// @param intentId The unique identifier of the intent
     /// @param swapper The address of the swapper who cancelled the intent
