@@ -2,17 +2,25 @@
 pragma solidity ^0.8.0;
 
 import {IDCAHook} from "../../interfaces/IDCAHook.sol";
-import {BasePreExecutionHook} from "../../base/BaseHook.sol";
+import {IPreExecutionHook} from "../../interfaces/IHook.sol";
 import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation} from "./DCAStructs.sol";
 import {DCALib} from "./DCALib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {Permit2Lib} from "../../lib/Permit2Lib.sol";
+import {IAuctionResolver} from "../../interfaces/IAuctionResolver.sol";
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /// @title DCAHook
 /// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
-/// @dev Inherits from BasePreExecutionHook for token transfer logic
-contract DCAHook is BasePreExecutionHook, IDCAHook {
+/// @dev Implements IPreExecutionHook for flexibility
+contract DCAHook is IPreExecutionHook, IDCAHook {
+    using Permit2Lib for ResolvedOrder;
+    /// @notice Permit2 instance for signature verification and token transfers
+
+    IPermit2 public immutable permit2;
+
     /// @notice EIP-712 domain separator
     bytes32 public immutable domainSeparator;
 
@@ -20,14 +28,24 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
     mapping(bytes32 => DCAExecutionState) internal executionStates;
 
-    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {
+    constructor(IPermit2 _permit2) {
+        permit2 = _permit2;
         domainSeparator = DCALib.computeDomainSeparator(address(this));
     }
 
+    /// @inheritdoc IPreExecutionHook
+    function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override {
+        // First validate the DCA intent
+        _validateDCAIntent(filler, resolvedOrder);
+
+        // Then transfer input tokens
+        _transferInputTokens(resolvedOrder, filler);
+    }
+
     /// @notice Validates DCA intent and prepares for token transfer
-    /// @dev Called by BasePreExecutionHook before token transfer
+    /// @dev Called before token transfer to validate the DCA order
     /// @param resolvedOrder The resolved order to fill
-    function _beforeTokenTransfer(address, ResolvedOrder calldata resolvedOrder) internal override {
+    function _validateDCAIntent(address, ResolvedOrder calldata resolvedOrder) internal {
         // 1) Decode pre-execution data
         (
             DCAIntent memory intent, // PrivateIntent is zeroed on-chain
@@ -68,6 +86,10 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
 
         // 11) Update execution state
         _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
+    }
+
+    function _transferInputTokens(ResolvedOrder calldata order, address to) private {
+        // TODO: Implement token transfer logic with AllowanceTransfer
     }
 
     /// @inheritdoc IDCAHook
