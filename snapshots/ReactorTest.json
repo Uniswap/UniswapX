@@ -1,9 +1,9 @@
 {
-  "BaseExecuteSingleWithFee": "196500",
-  "ReactorExecuteBatch": "222107",
-  "ReactorExecuteBatchMultipleOutputsDifferentTokens": "286261",
-  "ReactorExecuteBatchNativeOutput": "217895",
-  "ReactorExecuteSingle": "162102",
-  "ReactorExecuteSingleNativeOutput": "150045",
+  "BaseExecuteSingleWithFee": "196555",
+  "ReactorExecuteBatch": "222217",
+  "ReactorExecuteBatchMultipleOutputsDifferentTokens": "286371",
+  "ReactorExecuteBatchNativeOutput": "218005",
+  "ReactorExecuteSingle": "162157",
+  "ReactorExecuteSingleNativeOutput": "150100",
   "ReactorExecuteSingleWithHook": "204452"
 }

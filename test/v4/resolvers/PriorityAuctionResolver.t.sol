@@ -56,13 +56,12 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         cosigner = vm.addr(cosignerPrivateKey);
         permit2 = IPermit2(deployPermit2());
         feeRecipient = makeAddr("feeRecipient");
-        feeController = new MockFeeController(feeRecipient);
-        tokenTransferHook = new TokenTransferHook(permit2);
 
+        feeController = new MockFeeController(feeRecipient);
         reactor = new Reactor(PROTOCOL_FEE_OWNER);
         resolver = new PriorityAuctionResolver(permit2);
+        tokenTransferHook = new TokenTransferHook(permit2, reactor);
 
-        // Deploy fill contract
         fillContract = new MockFillContract(address(reactor));
 
         // Provide tokens for tests
