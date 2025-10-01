@@ -26,9 +26,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     
     /// @notice Validates DCA intent and prepares for token transfer
     /// @dev Called by BasePreExecutionHook before token transfer
-    /// @param filler The filler of the order
     /// @param resolvedOrder The resolved order to fill
-    function _beforeTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
+    function _beforeTokenTransfer(address, ResolvedOrder calldata resolvedOrder) internal override {
         // 1) Decode pre-execution data
         (
             DCAIntent memory intent,              // PrivateIntent is zeroed on-chain
