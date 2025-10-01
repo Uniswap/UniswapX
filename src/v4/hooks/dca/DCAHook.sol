@@ -66,8 +66,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         // 4) Static field checks (binding correctness)
         _validateStaticFields(intent, resolvedOrder);
 
-        // 5) Output allocations validation
-        _validateAllocations(intent.outputAllocations);
+        // 5) Validate allocation structure (sum to 100%, no zeros)
+        _validateAllocationStructure(intent.outputAllocations);
 
         // 6) Verify cosigner authorization
         _validateCosignerSignature(intent, cosignerData, cosignerSignature);
@@ -81,8 +81,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         // 9) Price floor check (1e18 scaling)
         _validatePriceFloor(intent, cosignerData);
 
-        // 10) Output validation and allocations
-        _validateOutputsAndAllocations(intent, cosignerData, resolvedOrder.outputs);
+        // 10) Validate outputs match allocations and meet requirements
+        _validateOutputDistribution(intent, cosignerData, resolvedOrder.outputs);
 
         // 11) Update execution state
         _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
@@ -163,7 +163,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     ///      These are permitted at the contract level to support advanced use cases
     ///      but should be prevented in the UI/frontend for typical users
     /// @param outputAllocations The array of output allocations to validate
-    function _validateAllocations(OutputAllocation[] memory outputAllocations) internal pure {
+    function _validateAllocationStructure(OutputAllocation[] memory outputAllocations) internal pure {
         uint256 length = outputAllocations.length;
         if (length == 0) {
             revert EmptyAllocations();
@@ -310,12 +310,12 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
     }
 
-    /// @notice Validates outputs match expected allocations and amounts
-    /// @dev Verifies that outputs are distributed according to the intent's allocations
+    /// @notice Validates that actual outputs match expected distribution and meet limit requirements
+    /// @dev Verifies outputs are distributed per allocations and total meets minimum/exact requirements
     /// @param intent The DCA intent containing allocation requirements
     /// @param cosignerData The cosigner data containing limit amounts
     /// @param outputs The actual outputs from the resolved order
-    function _validateOutputsAndAllocations(
+    function _validateOutputDistribution(
         DCAIntent memory intent,
         DCAOrderCosignerData memory cosignerData,
         OutputToken[] memory outputs
