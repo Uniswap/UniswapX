@@ -57,8 +57,14 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         // 4) Transfer input tokens
         _transferInputTokens(resolvedOrder, filler);
 
-        // 5) Update execution state
-        _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
+        // 5) Update execution state and get cumulative totals
+        (uint256 totalInputExecuted, uint256 totalOutputExecuted) =
+            _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
+
+        // 6) Emit executing chunk event
+        emit ExecutingChunk(
+            intentId, cosignerData.execAmount, cosignerData.limitAmount, totalInputExecuted, totalOutputExecuted
+        );
     }
 
     /// @notice Validates DCA intent parameters and execution conditions
@@ -382,7 +388,12 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @param intentId The unique identifier for this DCA intent
     /// @param inputAmount The amount of input tokens being executed
     /// @param outputs The output tokens being distributed
-    function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs) internal {
+    /// @return totalInputExecuted The cumulative input amount after this execution
+    /// @return totalOutputExecuted The cumulative output amount after this execution
+    function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs)
+        internal
+        returns (uint256 totalInputExecuted, uint256 totalOutputExecuted)
+    {
         // Use memory to reduce SSTOREs
         DCAExecutionState memory state = executionStates[intentId];
 
@@ -401,6 +412,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         // single SSTORE
         executionStates[intentId] = state;
+
+        // Return cumulative totals for event emission
+        return (state.totalInputExecuted, state.totalOutput);
     }
 
     /// @inheritdoc IDCAHook

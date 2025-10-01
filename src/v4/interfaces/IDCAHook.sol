@@ -156,13 +156,13 @@ interface IDCAHook is IPreExecutionHook {
     /// @param swapper The address of the swapper who cancelled the intent
     event IntentCancelled(bytes32 indexed intentId, address indexed swapper);
 
-    /// @notice Emitted when a DCA chunk is executed
+    /// @notice Emitted when a DCA chunk is executing
     /// @param intentId The unique identifier of the intent
     /// @param execAmount The amount being executed (input for EXACT_IN, output for EXACT_OUT)
     /// @param limitAmount The limit amount (min output for EXACT_IN, max input for EXACT_OUT)
     /// @param totalInputExecuted Cumulative input amount after this execution
     /// @param totalOutput Cumulative output amount after this execution
-    event ChunkExecuted(
+    event ExecutingChunk(
         bytes32 indexed intentId,
         uint256 execAmount,
         uint256 limitAmount,
