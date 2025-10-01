@@ -310,8 +310,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Set input but no output
         hook.__setTotals(intentId, 1000e18, 0);
 
-        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,)
-        = hook.getIntentStatistics(intentId);
+        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
 
         assertEq(totalInput, 1000e18, "Should return totalInput even with zero output");
         assertEq(totalOutput, 0, "Should return zero output");
@@ -324,8 +323,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Both input and output are zero
         hook.__setTotals(intentId, 0, 0);
 
-        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,) =
-            hook.getIntentStatistics(intentId);
+        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
 
         assertEq(totalInput, 0, "Should return zero input");
         assertEq(totalOutput, 0, "Should return zero output");
