@@ -45,9 +45,7 @@ library DCALib {
     function hashPrivateIntent(PrivateIntent memory p) internal pure returns (bytes32) {
         bytes32 oracleFeedsHash = _hashBytes32Array(p.oracleFeeds);
         return keccak256(
-            abi.encode(
-                PRIVATE_INTENT_TYPEHASH, p.totalAmount, p.exactFrequency, p.numChunks, p.salt, oracleFeedsHash
-            )
+            abi.encode(PRIVATE_INTENT_TYPEHASH, p.totalAmount, p.exactFrequency, p.numChunks, p.salt, oracleFeedsHash)
         );
     }
 
