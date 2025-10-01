@@ -21,7 +21,7 @@ struct DCAIntent {
 }
 
 struct PrivateIntent {
-    uint256 totalInputAmount;
+    uint256 totalAmount; // Total amount on the exact side (input for EXACT_IN, output for EXACT_OUT)
     uint256 exactFrequency;
     uint256 numChunks;
     bytes32 salt;

@@ -29,7 +29,7 @@ contract DCALibTest is Test {
     function _sampleIntent(address verifying, uint256 deadline) internal view returns (DCAIntent memory) {
         // build PrivateIntent
         PrivateIntent memory priv = PrivateIntent({
-            totalInputAmount: 1000,
+            totalAmount: 1000,
             exactFrequency: 3600, // 1h
             numChunks: 10,
             salt: keccak256("test-salt"),
@@ -65,7 +65,7 @@ contract DCALibTest is Test {
     function _sampleIntentOnChain(address verifying, uint256 deadline) internal view returns (DCAIntent memory) {
         // build PrivateIntent with all 0s
         PrivateIntent memory priv = PrivateIntent({
-            totalInputAmount: 0,
+            totalAmount: 0,
             exactFrequency: 0,
             numChunks: 0,
             salt: bytes32(0),
