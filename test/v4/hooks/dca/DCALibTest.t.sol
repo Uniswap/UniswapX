@@ -3,16 +3,16 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 
-import { DCALib } from "src/v4/hooks/dca/DCALib.sol";
-import { DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData } from "src/v4/hooks/dca/DCAStructs.sol";
+import {DCALib} from "src/v4/hooks/dca/DCALib.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData} from "src/v4/hooks/dca/DCAStructs.sol";
 
 contract DCALibTest is Test {
     // deterministic test key
     uint256 private constant PK = 0xAAAAA;
     address private signer;
 
-    string  constant NAME    = "DCAHook";
-    string  constant VERSION = "1";
+    string constant NAME = "DCAHook";
+    string constant VERSION = "1";
     uint256 constant CHAINID = 1;
 
     function setUp() public {
@@ -30,35 +30,35 @@ contract DCALibTest is Test {
         // build PrivateIntent
         PrivateIntent memory priv = PrivateIntent({
             totalInputAmount: 1000,
-            exactFrequency:   3600, // 1h
-            numChunks:        10,
-            salt:             keccak256("test-salt"),
-            oracleFeeds:      _feedIds()
+            exactFrequency: 3600, // 1h
+            numChunks: 10,
+            salt: keccak256("test-salt"),
+            oracleFeeds: _feedIds()
         });
 
         // one or more output allocations
         OutputAllocation[] memory outs = new OutputAllocation[](2);
-        outs[0] = OutputAllocation({ recipient: address(0xAAAAA), basisPoints: 9975 });
-        outs[1] = OutputAllocation({ recipient: address(0xFFFFF), basisPoints: 25 });
+        outs[0] = OutputAllocation({recipient: address(0xAAAAA), basisPoints: 9975});
+        outs[1] = OutputAllocation({recipient: address(0xFFFFF), basisPoints: 25});
 
         // outer struct
         return DCAIntent({
-            swapper:        signer,
-            nonce:          42,
-            chainId:        CHAINID,
-            hookAddress:    verifying,
-            isExactIn:      true,
-            inputToken:     address(0x1111),
-            outputToken:    address(0x2222),
-            cosigner:       address(0x3333),
-            minPeriod:      300,
-            maxPeriod:      7200,
-            minChunkSize:   1,
-            maxChunkSize:   200,
-            minPrice:       0,
-            deadline:       deadline,
+            swapper: signer,
+            nonce: 42,
+            chainId: CHAINID,
+            hookAddress: verifying,
+            isExactIn: true,
+            inputToken: address(0x1111),
+            outputToken: address(0x2222),
+            cosigner: address(0x3333),
+            minPeriod: 300,
+            maxPeriod: 7200,
+            minChunkSize: 1,
+            maxChunkSize: 200,
+            minPrice: 0,
+            deadline: deadline,
             outputAllocations: outs,
-            privateIntent:  priv
+            privateIntent: priv
         });
     }
 
@@ -66,35 +66,35 @@ contract DCALibTest is Test {
         // build PrivateIntent with all 0s
         PrivateIntent memory priv = PrivateIntent({
             totalInputAmount: 0,
-            exactFrequency:   0,
-            numChunks:        0,
-            salt:             bytes32(0),
-            oracleFeeds:      new bytes32[](0)
+            exactFrequency: 0,
+            numChunks: 0,
+            salt: bytes32(0),
+            oracleFeeds: new bytes32[](0)
         });
 
         // one or more output allocations
         OutputAllocation[] memory outs = new OutputAllocation[](2);
-        outs[0] = OutputAllocation({ recipient: address(0xAAAAA), basisPoints: 9975 });
-        outs[1] = OutputAllocation({ recipient: address(0xFFFFF), basisPoints: 25 });
+        outs[0] = OutputAllocation({recipient: address(0xAAAAA), basisPoints: 9975});
+        outs[1] = OutputAllocation({recipient: address(0xFFFFF), basisPoints: 25});
 
         // outer struct
         return DCAIntent({
-            swapper:        signer,
-            nonce:          42,
-            chainId:        CHAINID,
-            hookAddress:    verifying,
-            isExactIn:      true,
-            inputToken:     address(0x1111),
-            outputToken:    address(0x2222),
-            cosigner:       address(0x3333),
-            minPeriod:      300,
-            maxPeriod:      7200,
-            minChunkSize:   1,
-            maxChunkSize:   200,
-            minPrice:       0,
-            deadline:       deadline,
+            swapper: signer,
+            nonce: 42,
+            chainId: CHAINID,
+            hookAddress: verifying,
+            isExactIn: true,
+            inputToken: address(0x1111),
+            outputToken: address(0x2222),
+            cosigner: address(0x3333),
+            minPeriod: 300,
+            maxPeriod: 7200,
+            minChunkSize: 1,
+            maxChunkSize: 200,
+            minPrice: 0,
+            deadline: deadline,
             outputAllocations: outs,
-            privateIntent:  priv
+            privateIntent: priv
         });
     }
 
@@ -118,7 +118,7 @@ contract DCALibTest is Test {
         bytes32 structFull = DCALib.hash(msgFull);
 
         // 2) struct hash via only inner struct hash
-        bytes32 innerHash  = DCALib.hashPrivateIntent(msgFull.privateIntent);
+        bytes32 innerHash = DCALib.hashPrivateIntent(msgFull.privateIntent);
         // This struct has the private part 0'd out
         bytes32 structFromInner = DCALib.hashWithInnerHash(msgPartial, innerHash);
 
@@ -139,7 +139,7 @@ contract DCALibTest is Test {
 
         // Hashes
         bytes32 structFull = DCALib.hash(msgFull);
-        bytes32 innerHash  = DCALib.hashPrivateIntent(msgFull.privateIntent);
+        bytes32 innerHash = DCALib.hashPrivateIntent(msgFull.privateIntent);
         bytes32 structFromInner = DCALib.hashWithInnerHash(msgPartial, innerHash);
         assertEq(structFromInner, structFull);
 
@@ -231,17 +231,17 @@ contract DCALibTest is Test {
     function test_CosignerData_HashAndRecover() public view {
         address verifying = address(this);
         bytes32 domainSeparator = _domainSeparator(verifying);
-        
+
         DCAOrderCosignerData memory cosignerData = _sampleCosignerData();
-        
+
         // Hash the cosigner data
         bytes32 structHash = DCALib.hashCosignerData(cosignerData);
         bytes32 digest = DCALib.digest(domainSeparator, structHash);
-        
+
         // Sign with cosigner private key
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
-        
+
         // Recover and verify
         address recovered = DCALib.recover(digest, sig);
         assertEq(recovered, signer, "Recovered cosigner must match");
@@ -250,31 +250,31 @@ contract DCALibTest is Test {
     function test_CosignerData_DifferentFieldsProduceDifferentHashes() public view {
         DCAOrderCosignerData memory data1 = _sampleCosignerData();
         DCAOrderCosignerData memory data2 = _sampleCosignerData();
-        
+
         bytes32 hash1 = DCALib.hashCosignerData(data1);
         bytes32 hashOriginal = DCALib.hashCosignerData(data2);
         assertEq(hash1, hashOriginal, "Same data should produce same hash");
-        
+
         // Test each field produces different hash
         data2.swapper = address(0xBEEF);
         bytes32 hash2 = DCALib.hashCosignerData(data2);
         assertTrue(hash2 != hash1, "Different swapper should produce different hash");
-        
+
         data2 = _sampleCosignerData();
         data2.nonce = 43;
         hash2 = DCALib.hashCosignerData(data2);
         assertTrue(hash2 != hash1, "Different nonce should produce different hash");
-        
+
         data2 = _sampleCosignerData();
         data2.execAmount = 101 ether;
         hash2 = DCALib.hashCosignerData(data2);
         assertTrue(hash2 != hash1, "Different execAmount should produce different hash");
-        
+
         data2 = _sampleCosignerData();
         data2.limitAmount = 96 ether;
         hash2 = DCALib.hashCosignerData(data2);
         assertTrue(hash2 != hash1, "Different limitAmount should produce different hash");
-        
+
         data2 = _sampleCosignerData();
         data2.orderNonce = 6;
         hash2 = DCALib.hashCosignerData(data2);
@@ -284,22 +284,22 @@ contract DCALibTest is Test {
     function test_CosignerData_WrongSignatureFails() public view {
         address verifying = address(this);
         bytes32 domainSeparator = _domainSeparator(verifying);
-        
+
         DCAOrderCosignerData memory cosignerData = _sampleCosignerData();
-        
+
         // Hash the correct data
         bytes32 structHash = DCALib.hashCosignerData(cosignerData);
         bytes32 digest = DCALib.digest(domainSeparator, structHash);
-        
+
         // Sign with cosigner private key
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
-        
+
         // Tamper with the data
         cosignerData.execAmount = 200 ether;
         bytes32 tamperedHash = DCALib.hashCosignerData(cosignerData);
         bytes32 tamperedDigest = DCALib.digest(domainSeparator, tamperedHash);
-        
+
         // Recovery with tampered digest should not match
         address recovered = DCALib.recover(tamperedDigest, sig);
         assertTrue(recovered != signer, "Tampered data should not verify");
@@ -307,33 +307,33 @@ contract DCALibTest is Test {
 
     function test_CosignerData_CrossChainReplay() public view {
         DCAOrderCosignerData memory cosignerData = _sampleCosignerData();
-        
+
         // Create domain separators for different chains/contracts
         address verifying1 = address(0x1111);
         address verifying2 = address(0x2222);
-        
+
         bytes32 domain1 = _domainSeparator(verifying1);
         bytes32 domain2 = _domainSeparator(verifying2);
-        
+
         assertTrue(domain1 != domain2, "Different verifying contracts should have different domains");
-        
+
         // Same struct hash
         bytes32 structHash = DCALib.hashCosignerData(cosignerData);
-        
+
         // Different digests due to different domains
         bytes32 digest1 = DCALib.digest(domain1, structHash);
         bytes32 digest2 = DCALib.digest(domain2, structHash);
-        
+
         assertTrue(digest1 != digest2, "Same data on different domains should produce different digests");
-        
+
         // Sign for domain1
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest1);
         bytes memory sig = abi.encodePacked(r, s, v);
-        
+
         // Verify signature is valid for domain1
         address recovered1 = DCALib.recover(digest1, sig);
         assertEq(recovered1, signer, "Signature should be valid for domain1");
-        
+
         // Verify signature is invalid for domain2 (replay protection)
         address recovered2 = DCALib.recover(digest2, sig);
         assertTrue(recovered2 != signer, "Signature should be invalid for domain2");
@@ -348,7 +348,7 @@ contract DCALibTest is Test {
     ) public view {
         address verifying = address(this);
         bytes32 domainSeparator = _domainSeparator(verifying);
-        
+
         DCAOrderCosignerData memory cosignerData = DCAOrderCosignerData({
             swapper: swapper,
             nonce: nonce,
@@ -356,20 +356,19 @@ contract DCALibTest is Test {
             limitAmount: limitAmount,
             orderNonce: orderNonce
         });
-        
+
         // Hash should be deterministic
         bytes32 hash1 = DCALib.hashCosignerData(cosignerData);
         bytes32 hash2 = DCALib.hashCosignerData(cosignerData);
         assertEq(hash1, hash2, "Hash should be deterministic");
-        
+
         // Create digest and sign
         bytes32 digest = DCALib.digest(domainSeparator, hash1);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
-        
+
         // Recovery should work
         address recovered = DCALib.recover(digest, sig);
         assertEq(recovered, signer, "Recovery should work for any valid data");
     }
-
 }

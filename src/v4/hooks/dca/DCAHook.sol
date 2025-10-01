@@ -15,27 +15,29 @@ import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @notice EIP-712 domain separator
     bytes32 public immutable domainSeparator;
-    
+
     /// @notice Mapping from intentId to execution state
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
     mapping(bytes32 => DCAExecutionState) internal executionStates;
-    
+
     constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {
         domainSeparator = DCALib.computeDomainSeparator(address(this));
     }
-    
+
     /// @notice Validates DCA intent and prepares for token transfer
     /// @dev Called by BasePreExecutionHook before token transfer
     /// @param resolvedOrder The resolved order to fill
     function _beforeTokenTransfer(address, ResolvedOrder calldata resolvedOrder) internal override {
         // 1) Decode pre-execution data
         (
-            DCAIntent memory intent,              // PrivateIntent is zeroed on-chain
+            DCAIntent memory intent, // PrivateIntent is zeroed on-chain
             bytes memory swapperSignature,
-            bytes32 privateIntentHash,            // EIP-712 replacement for zeroed PrivateIntent
+            bytes32 privateIntentHash, // EIP-712 replacement for zeroed PrivateIntent
             DCAOrderCosignerData memory cosignerData,
             bytes memory cosignerSignature
-        ) = abi.decode(resolvedOrder.info.preExecutionHookData, (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes));
+        ) = abi.decode(
+            resolvedOrder.info.preExecutionHookData, (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes)
+        );
 
         // 2) Compute intentId for state lookups
         bytes32 intentId = keccak256(abi.encodePacked(intent.swapper, intent.nonce));
@@ -144,22 +146,24 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         if (length == 0) {
             revert EmptyAllocations();
         }
-        
+
         uint256 totalBasisPoints;
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             uint256 basisPoints = outputAllocations[i].basisPoints;
             if (basisPoints == 0) {
                 revert ZeroAllocation();
             }
-            
+
             totalBasisPoints += basisPoints;
             if (totalBasisPoints > 10000) {
                 revert AllocationsExceed100Percent();
             }
-            
-            unchecked { ++i; }
+
+            unchecked {
+                ++i;
+            }
         }
-        
+
         if (totalBasisPoints != 10000) {
             revert AllocationsNot100Percent(totalBasisPoints);
         }
@@ -169,10 +173,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @dev Ensures the intent is bound to correct hook, chain, swapper, and tokens
     /// @param intent The DCA intent containing expected values
     /// @param resolvedOrder The resolved order to validate against
-    function _validateStaticFields(
-        DCAIntent memory intent,
-        ResolvedOrder memory resolvedOrder
-    ) internal view {
+    function _validateStaticFields(DCAIntent memory intent, ResolvedOrder memory resolvedOrder) internal view {
         if (intent.hookAddress != address(this)) {
             revert WrongHook(intent.hookAddress, address(this));
         }
@@ -185,7 +186,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         if (address(resolvedOrder.input.token) != intent.inputToken) {
             revert WrongInputToken(address(resolvedOrder.input.token), intent.inputToken);
         }
-        
+
         // Verify all outputs use the correct output token
         for (uint256 i = 0; i < resolvedOrder.outputs.length; i++) {
             if (resolvedOrder.outputs[i].token != intent.outputToken) {
@@ -199,11 +200,10 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @param intent The DCA intent containing chunk size constraints
     /// @param cosignerData The cosigner data containing execution amounts
     /// @param inputAmount The actual input amount from the resolved order
-    function _validateChunkSize(
-        DCAIntent memory intent,
-        DCAOrderCosignerData memory cosignerData,
-        uint256 inputAmount
-    ) internal pure {
+    function _validateChunkSize(DCAIntent memory intent, DCAOrderCosignerData memory cosignerData, uint256 inputAmount)
+        internal
+        pure
+    {
         if (intent.isExactIn) {
             if (cosignerData.execAmount < intent.minChunkSize) {
                 revert InputBelowMin(cosignerData.execAmount, intent.minChunkSize);
@@ -244,7 +244,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     ) internal view {
         // Load to memory to minimize SLOADs
         DCAExecutionState memory state = executionStates[intentId];
-        
+
         // State checks
         if (state.cancelled) {
             revert IntentIsCancelled(intentId);
@@ -255,7 +255,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         if (cosignerData.orderNonce != state.nextNonce) {
             revert WrongChunkNonce(cosignerData.orderNonce, state.nextNonce);
         }
-        
+
         // Period gating (enforce minPeriod/maxPeriod only after first execution)
         if (state.executedChunks > 0) {
             uint256 elapsed = block.timestamp - state.lastExecutionTime;
@@ -272,10 +272,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @dev Calculates price based on order type and ensures it meets the minimum
     /// @param intent The DCA intent containing the minimum price requirement
     /// @param cosignerData The cosigner data containing execution and limit amounts
-    function _validatePriceFloor(
-        DCAIntent memory intent,
-        DCAOrderCosignerData memory cosignerData
-    ) internal pure {
+    function _validatePriceFloor(DCAIntent memory intent, DCAOrderCosignerData memory cosignerData) internal pure {
         uint256 executionPrice;
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
@@ -309,7 +306,7 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             // token already checked equals intent.outputToken in _beforeTokenTransfer
             totalOutput += outputs[i].amount;
         }
-        
+
         for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
             uint256 expected = Math.mulDiv(totalOutput, intent.outputAllocations[i].basisPoints, 10000);
@@ -347,27 +344,23 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @param intentId The unique identifier for this DCA intent
     /// @param inputAmount The amount of input tokens being executed
     /// @param outputs The output tokens being distributed
-    function _updateExecutionState(
-        bytes32 intentId,
-        uint256 inputAmount,
-        OutputToken[] memory outputs
-    ) internal {
+    function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs) internal {
         // Use memory to reduce SSTOREs
         DCAExecutionState memory state = executionStates[intentId];
-        
+
         // Calculate total output amount
         uint256 totalOutput = 0;
         for (uint256 i = 0; i < outputs.length; i++) {
             totalOutput += outputs[i].amount;
         }
-        
+
         // Update state in memory
         state.executedChunks++;
         state.lastExecutionTime = block.timestamp;
         state.totalInputExecuted += inputAmount;
         state.totalOutput += totalOutput;
         state.nextNonce++;
-        
+
         // single SSTORE
         executionStates[intentId] = state;
     }
@@ -383,7 +376,12 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline) external view override returns (bool active) {
+    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline)
+        external
+        view
+        override
+        returns (bool active)
+    {
         DCAExecutionState storage s = executionStates[intentId];
         if (s.cancelled) return false;
         if (deadline != 0 && block.timestamp > deadline) return false;
@@ -397,14 +395,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         return executionStates[intentId].nextNonce;
     }
 
-
     /// @inheritdoc IDCAHook
-    function calculatePrice(uint256 inputAmount, uint256 outputAmount) 
-        external 
-        pure 
-        override 
-        returns (uint256 price) 
-    {
+    function calculatePrice(uint256 inputAmount, uint256 outputAmount) external pure override returns (uint256 price) {
         if (inputAmount == 0) {
             revert ZeroInputAmount();
         }
@@ -412,19 +404,18 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         return Math.mulDiv(outputAmount, 1e18, inputAmount);
     }
 
-
     /// @inheritdoc IDCAHook
-    function getIntentStatistics(bytes32 intentId) 
-        external 
-        view 
-        override 
+    function getIntentStatistics(bytes32 intentId)
+        external
+        view
+        override
         returns (
             uint256 totalChunks,
             uint256 totalInput,
             uint256 totalOutput,
             uint256 averagePrice,
             uint256 lastExecutionTime
-        ) 
+        )
     {
         DCAExecutionState memory s = executionStates[intentId];
         totalChunks = s.executedChunks;
