@@ -53,29 +53,19 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         // 6) Verify cosigner authorization
         _validateCosignerSignature(intent, cosignerData, cosignerSignature);
 
-        // 7) State checks (stateless intent; stateful execution)
-        DCAExecutionState storage s = executionStates[intentId];
-        require(!s.cancelled, "DCA: cancelled");
-        if (intent.deadline != 0) require(block.timestamp <= intent.deadline, "DCA: expired");
-        require(cosignerData.orderNonce == s.nextNonce, "DCA: wrong chunk nonce");
-        
-        // 8) Period gating (enforce minPeriod/maxPeriod only after first execution)
-        if (s.executedChunks > 0) {
-            uint256 elapsed = block.timestamp - s.lastExecutionTime;
-            require(elapsed >= intent.minPeriod, "DCA: too soon");
-            if (intent.maxPeriod != 0) require(elapsed <= intent.maxPeriod, "DCA: too late");
-        }
+        // 7) State checks and period gating
+        _validateStateAndTiming(intentId, intent, cosignerData);
 
-        // 9) Chunk size checks
+        // 8) Chunk size checks
         _validateChunkSize(intent, cosignerData, resolvedOrder.input.amount);
 
-        // 10) Price floor check (1e18 scaling)
+        // 9) Price floor check (1e18 scaling)
         _validatePriceFloor(intent, cosignerData);
 
-        // 11) Output validation and allocations
+        // 10) Output validation and allocations
         _validateOutputsAndAllocations(intent, cosignerData, resolvedOrder.outputs);
 
-        // 12) Update execution state
+        // 11) Update execution state
         _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
     }
     
@@ -211,6 +201,31 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             // CRITICAL: Ensure actual input doesn't exceed the cosigner's limit
             // This prevents over-withdrawal from the swapper via Permit2
             require(inputAmount <= cosignerData.limitAmount, "DCA: input>limit");
+        }
+    }
+
+    /// @notice Validates execution state and timing constraints
+    /// @dev Checks cancellation status, deadline, nonce, and period gating
+    /// @param intentId The unique identifier for this DCA intent
+    /// @param intent The DCA intent containing timing constraints
+    /// @param cosignerData The cosigner data containing the order nonce
+    function _validateStateAndTiming(
+        bytes32 intentId,
+        DCAIntent memory intent,
+        DCAOrderCosignerData memory cosignerData
+    ) internal view {
+        DCAExecutionState storage s = executionStates[intentId];
+        
+        // State checks
+        require(!s.cancelled, "DCA: cancelled");
+        if (intent.deadline != 0) require(block.timestamp <= intent.deadline, "DCA: expired");
+        require(cosignerData.orderNonce == s.nextNonce, "DCA: wrong chunk nonce");
+        
+        // Period gating (enforce minPeriod/maxPeriod only after first execution)
+        if (s.executedChunks > 0) {
+            uint256 elapsed = block.timestamp - s.lastExecutionTime;
+            require(elapsed >= intent.minPeriod, "DCA: too soon");
+            if (intent.maxPeriod != 0) require(elapsed <= intent.maxPeriod, "DCA: too late");
         }
     }
 
