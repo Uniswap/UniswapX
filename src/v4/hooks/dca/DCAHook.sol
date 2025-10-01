@@ -68,17 +68,6 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         // 11) Update execution state
         _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
     }
-    
-    /// @notice Hook for custom logic after token transfer
-    /// @dev Called by BasePreExecutionHook after token transfer
-    /// @param filler The filler of the order
-    /// @param resolvedOrder The resolved order to fill
-    function _afterTokenTransfer(address filler, ResolvedOrder calldata resolvedOrder) internal override {
-        // TODO: Implement any post-transfer state updates if needed
-        // Most DCA logic will be in _beforeTokenTransfer
-        // silence unused param warnings in placeholder stub
-        filler; resolvedOrder;
-    }
 
     /// @inheritdoc IDCAHook
     function cancelIntents(uint256[] calldata nonces) external override {
