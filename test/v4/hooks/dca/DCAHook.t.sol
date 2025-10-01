@@ -27,7 +27,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     // ============ computeIntentId Tests ============
 
-    function test_computeIntentId() public {
+    function test_computeIntentId() public view {
         // Test deterministic behavior - same inputs always produce same output
         bytes32 expectedId = keccak256(abi.encodePacked(SWAPPER, NONCE));
         bytes32 actualId1 = hook.computeIntentId(SWAPPER, NONCE);
@@ -48,7 +48,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     // ============ getExecutionState Tests ============
 
-    function test_getExecutionState_uninitialized() public {
+    function test_getExecutionState_uninitialized() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
@@ -310,7 +310,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Set input but no output
         hook.__setTotals(intentId, 1000e18, 0);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime)
+        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,)
         = hook.getIntentStatistics(intentId);
 
         assertEq(totalInput, 1000e18, "Should return totalInput even with zero output");
@@ -324,7 +324,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Both input and output are zero
         hook.__setTotals(intentId, 0, 0);
 
-        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) =
+        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice,) =
             hook.getIntentStatistics(intentId);
 
         assertEq(totalInput, 0, "Should return zero input");
@@ -430,7 +430,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(averagePrice, expectedPrice, "Fuzz: averagePrice should match formula");
     }
 
-    function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public {
+    function testFuzz_computeIntentId_determinism(address swapper, uint256 nonce) public view {
         // Fuzz test: verify abi.encodePacked equality for any inputs
         bytes32 expectedId = keccak256(abi.encodePacked(swapper, nonce));
         bytes32 actualId = hook.computeIntentId(swapper, nonce);
@@ -1228,7 +1228,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     // ========================================
     // Output Allocations Tests
     // ========================================
-    function test_validateOutputAllocations_validSingleRecipient() public {
+    function test_validateOutputAllocations_validSingleRecipient() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](1);
         allocations[0] = OutputAllocation({recipient: SWAPPER, basisPoints: 10000});
 
@@ -1236,7 +1236,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateOutputAllocations(allocations);
     }
 
-    function test_validateOutputAllocations_validMultipleRecipients() public {
+    function test_validateOutputAllocations_validMultipleRecipients() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](3);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
@@ -1255,7 +1255,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateOutputAllocations(allocations);
     }
 
-    function test_validateOutputAllocations_validWithFees() public {
+    function test_validateOutputAllocations_validWithFees() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](2);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
@@ -1324,7 +1324,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateOutputAllocations(allocations);
     }
 
-    function test_validateOutputAllocations_manyRecipients() public {
+    function test_validateOutputAllocations_manyRecipients() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](10);
 
         for (uint256 i = 0; i < 9; i++) {
@@ -1343,7 +1343,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateOutputAllocations(allocations);
     }
 
-    function testFuzz_validateOutputAllocations_validDistributions(uint8 numRecipients, uint256 seed) public {
+    function testFuzz_validateOutputAllocations_validDistributions(uint8 numRecipients, uint256 seed) public view {
         vm.assume(numRecipients > 0 && numRecipients <= 10);
 
         OutputAllocation[] memory allocations = new OutputAllocation[](numRecipients);
