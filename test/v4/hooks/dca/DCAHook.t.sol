@@ -1231,7 +1231,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         allocations[0] = OutputAllocation({recipient: SWAPPER, basisPoints: 10000});
 
         // Should not revert
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_validMultipleRecipients() public view {
@@ -1250,7 +1250,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         // Should not revert
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_validWithFees() public view {
@@ -1265,14 +1265,14 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         // Should not revert
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_revertsEmptyArray() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](0);
 
         vm.expectRevert(IDCAHook.EmptyAllocations.selector);
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_revertsZeroAllocation() public {
@@ -1284,7 +1284,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         vm.expectRevert(IDCAHook.ZeroAllocation.selector);
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_revertsBelow100Percent() public {
@@ -1299,7 +1299,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.AllocationsNot100Percent.selector, 9999));
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_revertsExceedsDuringSum() public {
@@ -1319,7 +1319,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         vm.expectRevert(IDCAHook.AllocationsExceed100Percent.selector);
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function test_validateOutputAllocations_manyRecipients() public view {
@@ -1338,7 +1338,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
 
         // Should not revert
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 
     function testFuzz_validateOutputAllocations_validDistributions(uint8 numRecipients, uint256 seed) public view {
@@ -1362,6 +1362,6 @@ contract DCAHookTest is Test, DeployPermit2 {
             OutputAllocation({recipient: address(uint160(numRecipients)), basisPoints: remainingBasisPoints});
 
         // Should not revert for any valid distribution
-        hook.validateOutputAllocations(allocations);
+        hook.validateAllocationStructure(allocations);
     }
 }

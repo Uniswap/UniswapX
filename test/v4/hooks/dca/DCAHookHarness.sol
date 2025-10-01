@@ -32,8 +32,8 @@ contract DCAHookHarness is DCAHook {
     }
 
     /// @notice Exposes the internal _validateAllocations function for testing
-    function validateOutputAllocations(OutputAllocation[] memory outputAllocations) external pure {
-        _validateAllocations(outputAllocations);
+    function validateAllocationStructure(OutputAllocation[] memory outputAllocations) external pure {
+        _validateAllocationStructure(outputAllocations);
     }
 
     /// @notice Exposes the internal _validatePriceFloor function for testing
