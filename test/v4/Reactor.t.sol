@@ -55,10 +55,11 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
-        preExecutionHook = new MockPreExecutionHook(permit2);
+
+        reactor = new Reactor(PROTOCOL_FEE_OWNER);
+        preExecutionHook = new MockPreExecutionHook(permit2, reactor);
         preExecutionHook.setValid(true);
         postExecutionHook = new MockPostExecutionHook();
-        reactor = new Reactor(PROTOCOL_FEE_OWNER);
         tokenTransferHook = new TokenTransferHook(permit2, reactor);
         feeRecipient = makeAddr("feeRecipient");
         feeController = new MockFeeController(feeRecipient);

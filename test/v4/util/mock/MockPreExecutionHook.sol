@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {BasePreExecutionHook} from "../../../../src/v4/base/BaseHook.sol";
+import {IPreExecutionHook} from "../../../../src/v4/interfaces/IHook.sol";
+import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IPreExecutionHook} from "../../../../src/v4/interfaces/IHook.sol";
+import {TokenTransferLib} from "../../../../src/v4/lib/TokenTransferLib.sol";
 
-contract MockPreExecutionHook is BasePreExecutionHook {
+contract MockPreExecutionHook is IPreExecutionHook {
+    IPermit2 public permit2;
+    IReactor public reactor;
+
     error MockPreExecutionError();
 
     bool public isValid = true;
@@ -16,7 +21,20 @@ contract MockPreExecutionHook is BasePreExecutionHook {
     uint256 public preExecutionCounter;
     mapping(address => uint256) public fillerExecutions;
 
-    constructor(IPermit2 _permit2) BasePreExecutionHook(_permit2) {}
+    modifier onlyReactor() {
+        require(msg.sender == address(reactor));
+        _;
+    }
+
+    constructor(IPermit2 _permit2, IReactor _reactor) {
+        permit2 = _permit2;
+        reactor = _reactor;
+    }
+
+    function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override onlyReactor {
+        _beforeTokenTransfer(filler, resolvedOrder);
+        TokenTransferLib.signatureTransferInputTokens(permit2, resolvedOrder, filler);
+    }
 
     function setValid(bool _valid) external {
         isValid = _valid;
@@ -27,7 +45,7 @@ contract MockPreExecutionHook is BasePreExecutionHook {
     }
 
     /// @notice Override the before hook to add custom validation
-    function _beforeTokenTransfer(address filler, ResolvedOrder calldata) internal override {
+    function _beforeTokenTransfer(address filler, ResolvedOrder calldata) internal {
         // First check global validity
         if (!isValid) {
             revert MockPreExecutionError();
