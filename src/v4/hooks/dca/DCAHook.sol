@@ -35,22 +35,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     /// @inheritdoc IPreExecutionHook
     function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override {
-        // First validate the DCA intent
-        _validateDCAIntent(filler, resolvedOrder);
-
-        // Then transfer input tokens
-        _transferInputTokens(resolvedOrder, filler);
-    }
-
-    /// @notice Validates DCA intent and prepares for token transfer
-    /// @dev Called before token transfer to validate the DCA order
-    /// @param resolvedOrder The resolved order to fill
-    function _validateDCAIntent(address, ResolvedOrder calldata resolvedOrder) internal {
         // 1) Decode pre-execution data
         (
-            DCAIntent memory intent, // PrivateIntent is zeroed on-chain
+            DCAIntent memory intent,
             bytes memory swapperSignature,
-            bytes32 privateIntentHash, // EIP-712 replacement for zeroed PrivateIntent
+            bytes32 privateIntentHash,
             DCAOrderCosignerData memory cosignerData,
             bytes memory cosignerSignature
         ) = abi.decode(
@@ -60,32 +49,59 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         // 2) Compute intentId for state lookups
         bytes32 intentId = keccak256(abi.encodePacked(intent.swapper, intent.nonce));
 
-        // 3) Verify swapper signature (EIP-712) over full intent with privateIntentHash
+        // 3) Validate the DCA intent
+        _validateDCAIntent(
+            intent, intentId, privateIntentHash, swapperSignature, cosignerData, cosignerSignature, resolvedOrder
+        );
+
+        // 4) Transfer input tokens
+        _transferInputTokens(resolvedOrder, filler);
+
+        // 5) Update execution state
+        _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
+    }
+
+    /// @notice Validates DCA intent parameters and execution conditions
+    /// @dev Performs all validation checks but does not modify state
+    /// @param intent The decoded DCA intent
+    /// @param intentId The computed intent identifier
+    /// @param privateIntentHash The hash of private intent data
+    /// @param swapperSignature The swapper's signature
+    /// @param cosignerData The cosigner authorization data
+    /// @param cosignerSignature The cosigner's signature
+    /// @param resolvedOrder The resolved order to validate against
+    function _validateDCAIntent(
+        DCAIntent memory intent,
+        bytes32 intentId,
+        bytes32 privateIntentHash,
+        bytes memory swapperSignature,
+        DCAOrderCosignerData memory cosignerData,
+        bytes memory cosignerSignature,
+        ResolvedOrder calldata resolvedOrder
+    ) internal view {
+        // 1) Verify swapper signature (EIP-712) over full intent with privateIntentHash
         _validateSwapperSignature(intent, privateIntentHash, swapperSignature);
 
-        // 4) Static field checks (binding correctness)
+        // 2) Static field checks (binding correctness)
         _validateStaticFields(intent, resolvedOrder);
 
-        // 5) Validate allocation structure (sum to 100%, no zeros)
+        // 3) Validate allocation structure (sum to 100%, no zeros)
         _validateAllocationStructure(intent.outputAllocations);
 
-        // 6) Verify cosigner authorization
+        // 4) Verify cosigner authorization
         _validateCosignerSignature(intent, cosignerData, cosignerSignature);
 
-        // 7) State checks and period gating
+        // 5) State checks and period gating
         _validateStateAndTiming(intentId, intent, cosignerData);
 
-        // 8) Chunk size checks
+        // 6) Chunk size checks
         _validateChunkSize(intent, cosignerData, resolvedOrder.input.amount);
 
-        // 9) Price floor check (1e18 scaling)
+        // 7) Price floor check (1e18 scaling)
         _validatePriceFloor(intent, cosignerData);
 
-        // 10) Validate outputs match allocations and meet requirements
+        // 8) Validate outputs match allocations and meet requirements
         _validateOutputDistribution(intent, cosignerData, resolvedOrder.outputs);
-
-        // 11) Update execution state
-        _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
     }
 
     function _transferInputTokens(ResolvedOrder calldata order, address to) private {
