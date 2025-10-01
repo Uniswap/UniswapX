@@ -583,7 +583,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertTrue(state1.cancelled, "Should be cancelled after first call");
         
         // Second cancel - should revert per the implementation
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, expectedIntentId));
         hook.cancelIntent(nonce);
         
         // State remains unchanged
@@ -664,7 +664,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         
         // Verify idempotent revert
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId));
         hook.cancelIntent(nonce);
     }
     
@@ -759,9 +759,9 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId2 = hook.computeIntentId(SWAPPER, 20);
         bytes32 intentId3 = hook.computeIntentId(SWAPPER, 30);
         
-        // Entire transaction reverts on duplicate
+        // Entire transaction reverts on duplicate (first duplicate is at index 2, which is nonce 10)
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId1));
         hook.cancelIntents(nonces);
         
         // Nothing was cancelled - transaction reverted
@@ -780,7 +780,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         
         // Transaction reverts on first duplicate
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId));
         hook.cancelIntents(nonces);
         
         // Nothing was cancelled - transaction reverted
@@ -804,7 +804,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         
         // Try to cancel all three (should fail on middle)
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId2));
         hook.cancelIntents(nonces);
         
         // First and third remain uncancelled due to revert
@@ -894,7 +894,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         
         // Should revert on first repeat - nothing gets cancelled
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId1));
         hook.cancelIntents(nonces);
         
         // Nothing cancelled due to revert
@@ -1043,12 +1043,13 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_cancelIntent_revertsWhenAlreadyCancelled() public {
         uint256 nonce = 8;
+        bytes32 intentId = hook.computeIntentId(SWAPPER, nonce);
 
         vm.prank(SWAPPER);
         hook.cancelIntent(nonce);
 
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId));
         hook.cancelIntent(nonce);
     }
 
@@ -1069,9 +1070,11 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Pre-state: nothing cancelled
         uint256[] memory nonces = new uint256[](3);
         nonces[0] = 11; nonces[1] = 11; nonces[2] = 12;
+        
+        bytes32 intentId = hook.computeIntentId(SWAPPER, 11);
 
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId));
         hook.cancelIntents(nonces);
 
         // Atomicity: no partial writes persisted
@@ -1085,12 +1088,14 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Pre-cancel one nonce in a separate tx
         vm.prank(SWAPPER);
         hook.cancelIntent(21);
+        
+        bytes32 intentId = hook.computeIntentId(SWAPPER, 21);
 
         uint256[] memory nonces = new uint256[](3);
         nonces[0] = 21; nonces[1] = 22; nonces[2] = 23;
 
         vm.prank(SWAPPER);
-        vm.expectRevert("Intent already cancelled");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentAlreadyCancelled.selector, intentId));
         hook.cancelIntents(nonces);
 
         // Pre-cancelled remains cancelled (from prior tx); others unchanged
@@ -1125,7 +1130,9 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertFalse(hook.getExecutionState(idSwapper).cancelled, "isolation across senders");
     }
 
-    // OutputAllocation Validation Tests
+    // ========================================
+    // Output Allocations Tests
+    // ========================================
     function test_validateOutputAllocations_validSingleRecipient() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](1);
         allocations[0] = OutputAllocation({
@@ -1175,7 +1182,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_validateOutputAllocations_revertsEmptyArray() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](0);
         
-        vm.expectRevert("Empty allocations");
+        vm.expectRevert(IDCAHook.EmptyAllocations.selector);
         hook.validateOutputAllocations(allocations);
     }
 
@@ -1190,7 +1197,7 @@ contract DCAHookTest is Test, DeployPermit2 {
             basisPoints: 0  // Invalid: zero allocation
         });
         
-        vm.expectRevert("Zero allocation");
+        vm.expectRevert(IDCAHook.ZeroAllocation.selector);
         hook.validateOutputAllocations(allocations);
     }
 
@@ -1205,22 +1212,27 @@ contract DCAHookTest is Test, DeployPermit2 {
             basisPoints: 5999  // 59.99% - total 99.99%
         });
         
-        vm.expectRevert("Allocations not 100%");
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.AllocationsNot100Percent.selector, 9999));
         hook.validateOutputAllocations(allocations);
     }
 
-    function test_validateOutputAllocations_revertsAbove100Percent() public {
-        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+    function test_validateOutputAllocations_revertsExceedsDuringSum() public {
+        // Test that we catch overflow during intermediate sum calculation
+        OutputAllocation[] memory allocations = new OutputAllocation[](3);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
             basisPoints: 5000  // 50%
         });
         allocations[1] = OutputAllocation({
             recipient: OTHER,
-            basisPoints: 5001  // 50.01% - total 100.01%
+            basisPoints: 4000  // 40%
+        });
+        allocations[2] = OutputAllocation({
+            recipient: address(0x3),
+            basisPoints: 1001  // 10.01% - exceeds during sum
         });
         
-        vm.expectRevert("Allocations exceed 100%");
+        vm.expectRevert(IDCAHook.AllocationsExceed100Percent.selector);
         hook.validateOutputAllocations(allocations);
     }
 

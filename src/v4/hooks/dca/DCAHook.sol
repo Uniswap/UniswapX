@@ -83,7 +83,9 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
 
     function _cancelIntent(address swapper, uint256 nonce) internal {
         bytes32 intentId = keccak256(abi.encodePacked(swapper, nonce));
-        require(!executionStates[intentId].cancelled, "Intent already cancelled");
+        if (executionStates[intentId].cancelled) {
+            revert IntentAlreadyCancelled(intentId);
+        }
         executionStates[intentId].cancelled = true;
         emit IntentCancelled(intentId, swapper);
     }
@@ -101,7 +103,9 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
         bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
         address recoveredSigner = DCALib.recover(digest, swapperSignature);
-        require(recoveredSigner == intent.swapper, "DCA: bad swapper sig");
+        if (recoveredSigner != intent.swapper) {
+            revert InvalidSwapperSignature(recoveredSigner, intent.swapper);
+        }
     }
 
     /// @notice Validates the cosigner's EIP-712 signature and authorization data
@@ -117,9 +121,15 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
         bytes32 cosignerDigest = DCALib.digest(domainSeparator, cosignerStructHash);
         address recoveredCosigner = DCALib.recover(cosignerDigest, cosignerSignature);
-        require(recoveredCosigner == intent.cosigner, "DCA: bad cosigner sig");
-        require(cosignerData.swapper == intent.swapper, "DCA: cosigner swapper mismatch");
-        require(cosignerData.nonce == intent.nonce, "DCA: cosigner nonce mismatch");
+        if (recoveredCosigner != intent.cosigner) {
+            revert InvalidCosignerSignature(recoveredCosigner, intent.cosigner);
+        }
+        if (cosignerData.swapper != intent.swapper) {
+            revert CosignerSwapperMismatch(cosignerData.swapper, intent.swapper);
+        }
+        if (cosignerData.nonce != intent.nonce) {
+            revert CosignerNonceMismatch(cosignerData.nonce, intent.nonce);
+        }
     }
 
     /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
@@ -132,20 +142,28 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
     /// @param outputAllocations The array of output allocations to validate
     function _validateAllocations(OutputAllocation[] memory outputAllocations) internal pure {
         uint256 length = outputAllocations.length;
-        require(length > 0, "Empty allocations");
+        if (length == 0) {
+            revert EmptyAllocations();
+        }
         
         uint256 totalBasisPoints;
         for (uint256 i = 0; i < length; ) {
             uint256 basisPoints = outputAllocations[i].basisPoints;
-            require(basisPoints > 0, "Zero allocation");
+            if (basisPoints == 0) {
+                revert ZeroAllocation();
+            }
             
             totalBasisPoints += basisPoints;
-            require(totalBasisPoints <= 10000, "Allocations exceed 100%");
+            if (totalBasisPoints > 10000) {
+                revert AllocationsExceed100Percent();
+            }
             
             unchecked { ++i; }
         }
         
-        require(totalBasisPoints == 10000, "Allocations not 100%");
+        if (totalBasisPoints != 10000) {
+            revert AllocationsNot100Percent(totalBasisPoints);
+        }
     }
 
     /// @notice Validates static fields match between intent and order
@@ -156,14 +174,24 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         DCAIntent memory intent,
         ResolvedOrder memory resolvedOrder
     ) internal view {
-        require(intent.hookAddress == address(this), "DCA: wrong hook");
-        require(intent.chainId == block.chainid, "DCA: wrong chain");
-        require(resolvedOrder.info.swapper == intent.swapper, "DCA: swapper mismatch");
-        require(address(resolvedOrder.input.token) == intent.inputToken, "DCA: wrong input token");
+        if (intent.hookAddress != address(this)) {
+            revert WrongHook(intent.hookAddress, address(this));
+        }
+        if (intent.chainId != block.chainid) {
+            revert WrongChain(intent.chainId, block.chainid);
+        }
+        if (resolvedOrder.info.swapper != intent.swapper) {
+            revert SwapperMismatch(resolvedOrder.info.swapper, intent.swapper);
+        }
+        if (address(resolvedOrder.input.token) != intent.inputToken) {
+            revert WrongInputToken(address(resolvedOrder.input.token), intent.inputToken);
+        }
         
         // Verify all outputs use the correct output token
         for (uint256 i = 0; i < resolvedOrder.outputs.length; i++) {
-            require(resolvedOrder.outputs[i].token == intent.outputToken, "DCA: wrong output token");
+            if (resolvedOrder.outputs[i].token != intent.outputToken) {
+                revert WrongOutputToken(resolvedOrder.outputs[i].token, intent.outputToken);
+            }
         }
     }
 

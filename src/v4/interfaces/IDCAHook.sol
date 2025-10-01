@@ -8,6 +8,68 @@ import {DCAExecutionState} from "../hooks/dca/DCAStructs.sol";
 /// @notice Interface for the DCA (Dollar-Cost Averaging) hook contract
 /// @dev Extends IPreExecutionHook to enable periodic execution of DCA intents
 interface IDCAHook is IPreExecutionHook {
+    /// @notice Thrown when attempting to cancel an already cancelled intent
+    /// @param intentId The identifier of the intent that was already cancelled
+    error IntentAlreadyCancelled(bytes32 intentId);
+    
+    /// @notice Thrown when the swapper signature is invalid
+    /// @param recoveredSigner The address recovered from the signature
+    /// @param expectedSwapper The expected swapper address
+    error InvalidSwapperSignature(address recoveredSigner, address expectedSwapper);
+    
+    /// @notice Thrown when the cosigner signature is invalid
+    /// @param recoveredCosigner The address recovered from the signature
+    /// @param expectedCosigner The expected cosigner address
+    error InvalidCosignerSignature(address recoveredCosigner, address expectedCosigner);
+    
+    /// @notice Thrown when the cosigner data swapper doesn't match the intent swapper
+    /// @param cosignerSwapper The swapper address in cosigner data
+    /// @param intentSwapper The swapper address in the intent
+    error CosignerSwapperMismatch(address cosignerSwapper, address intentSwapper);
+    
+    /// @notice Thrown when the cosigner data nonce doesn't match the intent nonce
+    /// @param cosignerNonce The nonce in cosigner data
+    /// @param intentNonce The nonce in the intent
+    error CosignerNonceMismatch(uint256 cosignerNonce, uint256 intentNonce);
+    
+    /// @notice Thrown when output allocations array is empty
+    error EmptyAllocations();
+    
+    /// @notice Thrown when an output allocation has zero basis points
+    error ZeroAllocation();
+    
+    /// @notice Thrown when allocations sum exceeds 100% (10000 basis points)
+    error AllocationsExceed100Percent();
+    
+    /// @notice Thrown when allocations don't sum to exactly 100% (10000 basis points)
+    /// @param totalBasisPoints The actual sum of basis points
+    error AllocationsNot100Percent(uint256 totalBasisPoints);
+    
+    /// @notice Thrown when the hook address doesn't match the expected hook
+    /// @param providedHook The hook address provided in the intent
+    /// @param expectedHook The expected hook address (this contract)
+    error WrongHook(address providedHook, address expectedHook);
+    
+    /// @notice Thrown when the chain ID doesn't match the current chain
+    /// @param providedChainId The chain ID provided in the intent
+    /// @param currentChainId The current blockchain's chain ID
+    error WrongChain(uint256 providedChainId, uint256 currentChainId);
+    
+    /// @notice Thrown when the swapper address doesn't match between intent and order
+    /// @param orderSwapper The swapper address in the resolved order
+    /// @param intentSwapper The swapper address in the intent
+    error SwapperMismatch(address orderSwapper, address intentSwapper);
+    
+    /// @notice Thrown when the input token doesn't match the intent
+    /// @param orderInputToken The input token in the resolved order
+    /// @param intentInputToken The input token in the intent
+    error WrongInputToken(address orderInputToken, address intentInputToken);
+    
+    /// @notice Thrown when an output token doesn't match the intent
+    /// @param outputToken The output token in the resolved order
+    /// @param expectedToken The expected output token from the intent
+    error WrongOutputToken(address outputToken, address expectedToken);
+    
     /// @notice Emitted when an intent is cancelled
     /// @param intentId The unique identifier of the intent
     /// @param swapper The address of the swapper who cancelled the intent
