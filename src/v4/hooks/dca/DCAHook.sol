@@ -427,6 +427,6 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         totalInput = s.totalInputExecuted;
         totalOutput = s.totalOutput;
         lastExecutionTime = s.lastExecutionTime;
-        averagePrice = totalInput == 0 ? 0 : (totalOutput * 1e18) / totalInput; // TODO: muldiv
+        averagePrice = totalInput == 0 ? 0 : Math.mulDiv(totalOutput, 1e18, totalInput);
     }
 }

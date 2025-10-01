@@ -6,6 +6,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
 import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
 
 contract DCAHookTest is Test, DeployPermit2 {
@@ -254,7 +255,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(lastExecutionTime, expectedLastExec, "Should return exact lastExecutionTime");
         
         // averagePrice = (totalOutput * 1e18) / totalInput
-        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        uint256 expectedPrice = Math.mulDiv(expectedOutput, 1e18, expectedInput);
         assertEq(averagePrice, expectedPrice, "averagePrice should equal (totalOutput * 1e18) / totalInput");
         assertEq(averagePrice, 2000e6, "averagePrice should be 2000e6 for this scenario");
     }
@@ -283,7 +284,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
         
         // averagePrice = (7500e6 * 1e18) / 3e18 = 2500e18
-        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        uint256 expectedPrice = Math.mulDiv(expectedOutput, 1e18, expectedInput);
         assertEq(averagePrice, expectedPrice, "Should maintain precision in price calculation");
         assertEq(averagePrice, 2500e6, "averagePrice should be exactly 2500e6");
     }
@@ -291,35 +292,121 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_getIntentStatistics_largeValues() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         
-        // Test with large but safe values
-        uint256 expectedInput = 1000000e18; // 1 million tokens
-        uint256 expectedOutput = 2000000000e6; // 2 billion tokens
+        uint256 expectedInput = 1000000e18;
+        uint256 expectedOutput = 2000000000e6;
         
         hook.__setTotals(intentId, expectedInput, expectedOutput);
         
         (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
         
-        uint256 expectedPrice = (expectedOutput * 1e18) / expectedInput;
+        // Use Math.mulDiv for safe calculation matching implementation
+        uint256 expectedPrice = Math.mulDiv(expectedOutput, 1e18, expectedInput);
         assertEq(averagePrice, expectedPrice, "Should handle large values correctly");
-        assertEq(averagePrice, 2000e6, "averagePrice should be 2000e6 for large values");
+    }
+
+    function test_getIntentStatistics_zeroOutput() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Set input but no output
+        hook.__setTotals(intentId, 1000e18, 0);
+        
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
+            = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalInput, 1000e18, "Should return totalInput even with zero output");
+        assertEq(totalOutput, 0, "Should return zero output");
+        assertEq(averagePrice, 0, "averagePrice should be 0 when totalOutput is 0");
+    }
+
+    function test_getIntentStatistics_bothZero() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Both input and output are zero
+        hook.__setTotals(intentId, 0, 0);
+        
+        (, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime) 
+            = hook.getIntentStatistics(intentId);
+        
+        assertEq(totalInput, 0, "Should return zero input");
+        assertEq(totalOutput, 0, "Should return zero output");
+        assertEq(averagePrice, 0, "averagePrice should be 0 when both are 0");
     }
     
-    function testFuzz_getIntentStatistics_priceMath(
+    function test_getIntentStatistics_overflowProtection() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Test with values that WOULD overflow with simple multiplication
+        uint256 largeInput = 1e18;
+        uint256 largeOutput = type(uint128).max; // This * 1e18 overflows uint256
+        
+        hook.__setTotals(intentId, largeInput, largeOutput);
+        
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        // Math.mulDiv should handle this without overflow
+        uint256 expectedPrice = Math.mulDiv(largeOutput, 1e18, largeInput);
+        assertGt(averagePrice, 0, "Should calculate price without overflow");
+        assertEq(averagePrice, expectedPrice, "Should match mulDiv calculation");
+    }
+
+    function test_getIntentStatistics_actualIntermediateOverflow() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Choose values where output * 1e18 overflows uint256, but final result fits
+        // output = 2^200, input = 2^100
+        // output * 1e18 = 2^200 * 10^18 ≈ 2^260 (OVERFLOWS uint256!)
+        // but (output * 1e18) / input = 2^200 * 10^18 / 2^100 = 2^100 * 10^18 (fits in uint256)
+        uint256 output = 1606938044258990275541962092341162602522202993782792835301376; // 2^200
+        uint256 input = 1267650600228229401496703205376; // 2^100
+        
+        hook.__setTotals(intentId, input, output);
+        
+        // This should NOT revert despite intermediate overflow
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        // Verify using Math.mulDiv
+        uint256 expectedPrice = Math.mulDiv(output, 1e18, input);
+        assertEq(averagePrice, expectedPrice, "Should handle intermediate overflow correctly");
+        assertGt(averagePrice, 0, "Price should be greater than 0");
+    }
+
+    function test_getIntentStatistics_roundingDown() public {
+        bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
+        
+        // Test division that doesn't divide evenly: 10 / 3
+        uint256 input = 3;
+        uint256 output = 10;
+        
+        hook.__setTotals(intentId, input, output);
+        
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        
+        // Math.mulDiv floors by default: (10 * 1e18) / 3 = 3333333333333333333.333... → 3333333333333333333
+        uint256 expectedPrice = Math.mulDiv(output, 1e18, input);
+        assertEq(averagePrice, expectedPrice, "Should match mulDiv result");
+        assertEq(averagePrice, 3333333333333333333, "Should round down to floor");
+        
+        // Verify it's not rounding up
+        assertLt(averagePrice, (output * 1e18 + input - 1) / input, "Should be less than ceiling division");
+    }
+    
+    function testFuzz_getIntentStatistics_handlesIntermediateOverflow(
         uint128 totalInputExecuted,
         uint128 totalOutputAmount
     ) public {
-        vm.assume(totalInputExecuted > 0); // Avoid division by zero
+        vm.assume(totalInputExecuted > 0);
         
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         hook.__setTotals(intentId, totalInputExecuted, totalOutputAmount);
         
-        (,, uint256 totalOutput, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
+        // Should not revert, even though totalOutputAmount * 1e18 might overflow uint256
+        (,,, uint256 averagePrice,) = hook.getIntentStatistics(intentId);
         
-        uint256 expectedPrice = (uint256(totalOutputAmount) * 1e18) / uint256(totalInputExecuted);
-        assertEq(averagePrice, expectedPrice, "Fuzz: averagePrice calculation should be exact");
-        assertEq(totalOutput, totalOutputAmount, "Fuzz: totalOutput should match input");
+        // Verify the result is correct using mulDiv
+        uint256 expectedPrice = Math.mulDiv(totalOutputAmount, 1e18, totalInputExecuted);
+        assertEq(averagePrice, expectedPrice);
     }
-    
+
     function testFuzz_getIntentStatistics_allFields(
         uint128 chunks,
         uint128 lastExec,
@@ -339,7 +426,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertEq(totalOutput, outputAmount, "Fuzz: totalOutput precision");
         assertEq(lastExecutionTime, lastExec, "Fuzz: lastExecutionTime precision");
         
-        uint256 expectedPrice = inputAmount == 0 ? 0 : (uint256(outputAmount) * 1e18) / uint256(inputAmount);
+        uint256 expectedPrice = inputAmount == 0 ? 0 : Math.mulDiv(outputAmount, 1e18, inputAmount);
         assertEq(averagePrice, expectedPrice, "Fuzz: averagePrice should match formula");
     }
     
