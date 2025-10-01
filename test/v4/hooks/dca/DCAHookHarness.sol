@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DCAHook} from "../../../../src/v4/hooks/dca/DCAHook.sol";
-import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {DCAExecutionState, OutputAllocation, DCAIntent, DCAOrderCosignerData} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 
 contract DCAHookHarness is DCAHook {
@@ -26,9 +26,20 @@ contract DCAHookHarness is DCAHook {
         s.totalOutput = totalOutput;
     }
 
-    /// @notice Exposes the internal _validateOutputAllocations function for testing
+    /// @notice Exposes the internal _validateAllocations function for testing
     function validateOutputAllocations(OutputAllocation[] memory outputAllocations) external pure {
-        _validateOutputAllocations(outputAllocations);
+        _validateAllocations(outputAllocations);
+    }
+
+    /// @notice Exposes the internal _validatePriceFloor function for testing
+    function validatePriceFloor(bool isExactIn, uint256 execAmount, uint256 limitAmount, uint256 minPrice) external pure {
+        DCAIntent memory intent;
+        DCAOrderCosignerData memory cd;
+        intent.isExactIn = isExactIn;
+        intent.minPrice = minPrice;
+        cd.execAmount = execAmount;
+        cd.limitAmount = limitAmount;
+        _validatePriceFloor(intent, cd);
     }
 }
 
