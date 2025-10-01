@@ -14,7 +14,7 @@ library TokenTransferLib {
     /// @param permit2 The Permit2 contract instance
     /// @param order The resolved order containing transfer details
     /// @param to The recipient address (typically the filler)
-    function transferInputTokens(IPermit2 permit2, ResolvedOrder calldata order, address to) internal {
+    function signatureTransferInputTokens(IPermit2 permit2, ResolvedOrder calldata order, address to) internal {
         // Get the order type from the resolver for permit2 witness
         string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
 

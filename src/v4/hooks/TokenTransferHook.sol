@@ -27,6 +27,6 @@ contract TokenTransferHook is IPreExecutionHook {
 
     /// @inheritdoc IPreExecutionHook
     function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override onlyReactor {
-        TokenTransferLib.transferInputTokens(PERMIT2, resolvedOrder, filler);
+        TokenTransferLib.signatureTransferInputTokens(PERMIT2, resolvedOrder, filler);
     }
 }
