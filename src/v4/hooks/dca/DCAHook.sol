@@ -242,22 +242,23 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         DCAIntent memory intent,
         DCAOrderCosignerData memory cosignerData
     ) internal view {
-        DCAExecutionState storage s = executionStates[intentId];
+        // Load to memory to minimize SLOADs
+        DCAExecutionState memory state = executionStates[intentId];
         
         // State checks
-        if (s.cancelled) {
+        if (state.cancelled) {
             revert IntentIsCancelled(intentId);
         }
         if (intent.deadline != 0 && block.timestamp > intent.deadline) {
             revert IntentExpired(block.timestamp, intent.deadline);
         }
-        if (cosignerData.orderNonce != s.nextNonce) {
-            revert WrongChunkNonce(cosignerData.orderNonce, s.nextNonce);
+        if (cosignerData.orderNonce != state.nextNonce) {
+            revert WrongChunkNonce(cosignerData.orderNonce, state.nextNonce);
         }
         
         // Period gating (enforce minPeriod/maxPeriod only after first execution)
-        if (s.executedChunks > 0) {
-            uint256 elapsed = block.timestamp - s.lastExecutionTime;
+        if (state.executedChunks > 0) {
+            uint256 elapsed = block.timestamp - state.lastExecutionTime;
             if (elapsed < intent.minPeriod) {
                 revert TooSoon(elapsed, intent.minPeriod);
             }
@@ -351,7 +352,8 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
         uint256 inputAmount,
         OutputToken[] memory outputs
     ) internal {
-        DCAExecutionState storage state = executionStates[intentId];
+        // Use memory to reduce SSTOREs
+        DCAExecutionState memory state = executionStates[intentId];
         
         // Calculate total output amount
         uint256 totalOutput = 0;
@@ -359,12 +361,15 @@ contract DCAHook is BasePreExecutionHook, IDCAHook {
             totalOutput += outputs[i].amount;
         }
         
-        // Update execution state
+        // Update state in memory
         state.executedChunks++;
         state.lastExecutionTime = block.timestamp;
         state.totalInputExecuted += inputAmount;
         state.totalOutput += totalOutput;
         state.nextNonce++;
+        
+        // single SSTORE
+        executionStates[intentId] = state;
     }
 
     /// @inheritdoc IDCAHook
