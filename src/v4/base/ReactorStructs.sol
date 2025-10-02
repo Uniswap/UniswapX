@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {IReactor} from "../../interfaces/IReactor.sol";
+import {IReactor} from "../interfaces/IReactor.sol";
 import {IPreExecutionHook, IPostExecutionHook} from "../interfaces/IHook.sol";
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
