@@ -162,7 +162,7 @@ interface IDCAHook is IPreExecutionHook {
     /// @param limitAmount The limit amount (min output for EXACT_IN, max input for EXACT_OUT)
     /// @param totalInputExecuted Cumulative input amount after this execution
     /// @param totalOutput Cumulative output amount after this execution
-    event ExecutingChunk(
+    event ChunkExecuted(
         bytes32 indexed intentId,
         uint256 execAmount,
         uint256 limitAmount,

@@ -68,8 +68,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         (uint256 totalInputExecuted, uint256 totalOutputExecuted) =
             _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
 
-        // 6) Emit executing chunk event
-        emit ExecutingChunk(
+        // 6) Emit execution event
+        emit ChunkExecuted(
             intentId, cosignerData.execAmount, cosignerData.limitAmount, totalInputExecuted, totalOutputExecuted
         );
     }
