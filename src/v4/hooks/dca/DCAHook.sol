@@ -17,8 +17,11 @@ import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 /// @dev Implements IPreExecutionHook for flexibility
 contract DCAHook is IPreExecutionHook, IDCAHook {
     using Permit2Lib for ResolvedOrder;
-    /// @notice Permit2 instance for signature verification and token transfers
 
+    /// @notice Basis points constant (100% = 10000)
+    uint256 private constant BPS = 10000;
+
+    /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
     /// @notice EIP-712 domain separator
@@ -199,7 +202,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             }
 
             totalBasisPoints += basisPoints;
-            if (totalBasisPoints > 10000) {
+            if (totalBasisPoints > BPS) {
                 revert AllocationsExceed100Percent();
             }
 
@@ -208,7 +211,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             }
         }
 
-        if (totalBasisPoints != 10000) {
+        if (totalBasisPoints != BPS) {
             revert AllocationsNot100Percent(totalBasisPoints);
         }
     }
@@ -353,7 +356,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
-            uint256 expected = Math.mulDiv(totalOutput, intent.outputAllocations[i].basisPoints, 10000);
+            uint256 expected = Math.mulDiv(totalOutput, intent.outputAllocations[i].basisPoints, BPS);
             uint256 actual = 0;
             for (uint256 j = 0; j < outputs.length; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
