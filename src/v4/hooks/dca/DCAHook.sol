@@ -4,13 +4,15 @@ pragma solidity ^0.8.0;
 import {IDCAHook} from "../../interfaces/IDCAHook.sol";
 import {IPreExecutionHook} from "../../interfaces/IHook.sol";
 import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
-import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation} from "./DCAStructs.sol";
+import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation, PermitData} from "./DCAStructs.sol";
 import {DCALib} from "./DCALib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {Permit2Lib} from "../../lib/Permit2Lib.sol";
 import {IAuctionResolver} from "../../interfaces/IAuctionResolver.sol";
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {TokenTransferLib} from "../../lib/TokenTransferLib.sol";
 
 /// @title DCAHook
 /// @notice DCA hook implementation for UniswapX that validates and executes DCA intents
@@ -44,9 +46,10 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             bytes memory swapperSignature,
             bytes32 privateIntentHash,
             DCAOrderCosignerData memory cosignerData,
-            bytes memory cosignerSignature
+            bytes memory cosignerSignature,
+            PermitData memory permitData
         ) = abi.decode(
-            resolvedOrder.info.preExecutionHookData, (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes)
+            resolvedOrder.info.preExecutionHookData, (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes, PermitData)
         );
 
         // 2) Compute intentId for state lookups
@@ -57,8 +60,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             intent, intentId, privateIntentHash, swapperSignature, cosignerData, cosignerSignature, resolvedOrder
         );
 
-        // 4) Transfer input tokens
-        _transferInputTokens(resolvedOrder, filler);
+        // 4) Transfer input tokens with optional permit
+        _transferInputTokens(resolvedOrder, filler, permitData);
 
         // 5) Update execution state and get cumulative totals
         (uint256 totalInputExecuted, uint256 totalOutputExecuted) =
@@ -113,8 +116,19 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         _validateOutputDistribution(intent, cosignerData, resolvedOrder.outputs);
     }
 
-    function _transferInputTokens(ResolvedOrder calldata order, address to) private {
-        // TODO: Implement token transfer logic with AllowanceTransfer
+    function _transferInputTokens(ResolvedOrder calldata order, address to, PermitData memory permitData) private {
+        // If a permit signature is provided, set the allowance first
+        if (permitData.hasPermit) {
+            // Call permit directly since it's memory not calldata
+            permit2.permit(
+                order.info.swapper,
+                permitData.permitSingle,
+                permitData.signature
+            );
+        }
+        
+        // Transfer tokens using existing allowance (either just set or previously set)
+        TokenTransferLib.allowanceTransferInputTokens(permit2, order, to);
     }
 
     /// @inheritdoc IDCAHook

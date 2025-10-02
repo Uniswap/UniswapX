@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+
 struct DCAIntent {
     address swapper;
     uint256 nonce;
@@ -48,4 +50,10 @@ struct DCAExecutionState {
     uint256 lastExecutionTime; // Last execution timestamp
     uint256 totalInputExecuted; // Cumulative input amount
     uint256 totalOutput; // Cumulative output amount
+}
+
+struct PermitData {
+    bool hasPermit; // Whether a permit signature is included
+    IAllowanceTransfer.PermitSingle permitSingle; // The permit data (if hasPermit is true)
+    bytes signature; // The permit signature (if hasPermit is true)
 }
