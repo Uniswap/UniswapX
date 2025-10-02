@@ -9,3 +9,7 @@ out/
 
 .idea/
 .env
+
+entrypoint.md
+design.md
+DCA.md
