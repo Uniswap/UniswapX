@@ -13,6 +13,8 @@ interface IReactor {
     error DeadlinePassed();
     /// @notice thrown when a pre-execution hook is not set
     error MissingPreExecutionHook();
+    /// @notice thrown when resolver addr encoded in SignedOrder doesn't match signed resolver in OrderInfo
+    error ResolverMismatch();
 
     /// @notice Execute a single order
     /// @param order The order definition and valid signature to execute

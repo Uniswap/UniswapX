@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
 import {IReactor} from "../../../src/interfaces/IReactor.sol";
 import {IPreExecutionHook, IPostExecutionHook} from "../../../src/v4/interfaces/IHook.sol";
+import {IAuctionResolver} from "../../../src/v4/interfaces/IAuctionResolver.sol";
 
 library OrderInfoBuilder {
     function init(address reactor) internal view returns (OrderInfo memory) {
@@ -15,7 +16,8 @@ library OrderInfoBuilder {
             preExecutionHook: IPreExecutionHook(address(0)),
             preExecutionHookData: bytes(""),
             postExecutionHook: IPostExecutionHook(address(0)),
-            postExecutionHookData: bytes("")
+            postExecutionHookData: bytes(""),
+            auctionResolver: IAuctionResolver(address(0))
         });
     }
 
@@ -67,6 +69,15 @@ library OrderInfoBuilder {
         returns (OrderInfo memory)
     {
         info.postExecutionHookData = _postExecutionHookData;
+        return info;
+    }
+
+    function withAuctionResolver(OrderInfo memory info, IAuctionResolver _auctionResolver)
+        internal
+        pure
+        returns (OrderInfo memory)
+    {
+        info.auctionResolver = _auctionResolver;
         return info;
     }
 }

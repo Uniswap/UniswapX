@@ -88,6 +88,10 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
 
         IAuctionResolver resolver = IAuctionResolver(auctionResolver);
         resolvedOrder = resolver.resolve(SignedOrder({order: orderData, sig: signedOrder.sig}));
+
+        if (address(resolvedOrder.info.auctionResolver) != auctionResolver) {
+            revert ResolverMismatch();
+        }
     }
 
     /// @notice Prepare orders for execution (validation and pre-execution hooks)

@@ -109,7 +109,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         return MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -214,7 +214,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
@@ -247,7 +247,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 preExecutionHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -293,7 +293,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 preExecutionHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -317,7 +317,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ).withPostExecutionHook(postExecutionHook),
+            ).withPostExecutionHook(postExecutionHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -362,7 +362,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ).withPostExecutionHook(postExecutionHook),
+            ).withPostExecutionHook(postExecutionHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -393,7 +393,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 preExecutionHook
-            ).withPostExecutionHook(postExecutionHook),
+            ).withPostExecutionHook(postExecutionHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -429,7 +429,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[0] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -437,7 +437,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[1] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), 2 * outputAmount, swapper)
         });
@@ -475,7 +475,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[0] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
@@ -483,7 +483,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[1] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, 2 * inputAmount, 2 * inputAmount),
             outputs: OutputsBuilder.single(NATIVE, 2 * outputAmount, swapper)
         });
@@ -515,7 +515,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
-                .withPreExecutionHook(tokenTransferHook),
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.multiple(address(tokenOut), outputAmounts, swapper)
         });
@@ -557,7 +557,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[0] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 0
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: outputs1
         });
@@ -565,7 +565,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         orders[1] = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
                 1
-            ).withPreExecutionHook(tokenTransferHook),
+            ).withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, ONE * 2, ONE * 2),
             outputs: outputs2
         });
@@ -599,7 +599,9 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
             orders[i] = MockOrder({
                 info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withNonce(i)
-                    .withPreExecutionHook(tokenTransferHook).withPostExecutionHook(postExecutionHook),
+                    .withPreExecutionHook(tokenTransferHook).withPostExecutionHook(postExecutionHook).withAuctionResolver(
+                    mockResolver
+                ),
                 input: InputToken(tokenIn, inputAmount, inputAmount),
                 outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
             });
@@ -629,8 +631,10 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         // Create order with wrong reactor address
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilder.init(address(0x1234)).withSwapper(swapper).withDeadline(deadline) // Wrong reactor
-                .withPreExecutionHook(tokenTransferHook),
+            info: OrderInfoBuilder.init(address(0x1234)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ) // Wrong reactor
+                .withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -653,7 +657,9 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
 
         // Create order without a pre-execution hook
         MockOrder memory order = MockOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withAuctionResolver(
+                mockResolver
+            ),
             // No preExecutionHook set
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
@@ -662,6 +668,37 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(IReactor.MissingPreExecutionHook.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test resolver substitution attack (ResolverMismatch error)
+    function test_executeResolverMismatch() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        // Create order with mockResolver properly set in OrderInfo
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
+                tokenTransferHook
+            ).withAuctionResolver(mockResolver),
+            input: InputToken(tokenIn, inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
+        });
+
+        bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
+        bytes memory orderData = abi.encode(order);
+
+        MockAuctionResolver maliciousResolver = new MockAuctionResolver();
+        bytes memory encodedOrder = abi.encode(address(maliciousResolver), orderData);
+
+        SignedOrder memory signedOrder = SignedOrder(encodedOrder, sig);
+
+        vm.expectRevert(IReactor.ResolverMismatch.selector);
         fillContract.execute(signedOrder);
     }
 
@@ -716,7 +753,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -759,7 +796,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -798,7 +835,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(NATIVE, outputAmount, swapper)
         });
@@ -832,7 +869,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 preExecutionHook
-            ),
+            ).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });
@@ -868,7 +905,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         MockOrder memory order = MockOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
                 tokenTransferHook
-            ).withPostExecutionHook(postExecutionHook),
+            ).withPostExecutionHook(postExecutionHook).withAuctionResolver(mockResolver),
             input: InputToken(tokenIn, inputAmount, inputAmount),
             outputs: OutputsBuilder.single(address(tokenOut), outputAmount, swapper)
         });

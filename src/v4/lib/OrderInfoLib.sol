@@ -6,7 +6,7 @@ import {OrderInfo} from "../base/ReactorStructs.sol";
 /// @notice helpers for handling OrderInfo objects
 library OrderInfoLib {
     bytes internal constant ORDER_INFO_TYPE =
-        "OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline,address preExecutionHook,bytes preExecutionHookData,address postExecutionHook,bytes postExecutionHookData)";
+        "OrderInfo(address reactor,address swapper,uint256 nonce,uint256 deadline,address preExecutionHook,bytes preExecutionHookData,address postExecutionHook,bytes postExecutionHookData,address auctionResolver)";
     bytes32 internal constant ORDER_INFO_TYPE_HASH = keccak256(ORDER_INFO_TYPE);
 
     /// @notice hash an OrderInfo object
@@ -22,7 +22,8 @@ library OrderInfoLib {
                 info.preExecutionHook,
                 keccak256(info.preExecutionHookData),
                 info.postExecutionHook,
-                keccak256(info.postExecutionHookData)
+                keccak256(info.postExecutionHookData),
+                info.auctionResolver
             )
         );
     }
