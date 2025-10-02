@@ -9,9 +9,10 @@ import {
     DCAOrderCosignerData
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 
 contract DCAHookHarness is DCAHook {
-    constructor(IPermit2 p) DCAHook(p) {}
+    constructor(IPermit2 p, IReactor r) DCAHook(p, r) {}
 
     function __setPacked(bytes32 intentId, uint96 nextNonce, bool cancelled) external {
         DCAExecutionState storage s = executionStates[intentId];

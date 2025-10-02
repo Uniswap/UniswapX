@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
+import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
@@ -12,7 +13,7 @@ import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
 contract DCAHookTest is Test, DeployPermit2 {
     DCAHookHarness hook;
     IPermit2 permit2;
-
+    IReactor constant REACTOR = IReactor(address(0x2345));
     address constant SWAPPER = address(0x1234);
     uint256 constant NONCE = 0;
 
@@ -21,7 +22,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function setUp() public {
         permit2 = IPermit2(deployPermit2());
-        hook = new DCAHookHarness(permit2);
+        hook = new DCAHookHarness(permit2, REACTOR);
         vm.warp(1 days);
     }
 

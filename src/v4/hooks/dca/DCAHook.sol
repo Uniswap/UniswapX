@@ -7,6 +7,7 @@ import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.
 import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation, PermitData} from "./DCAStructs.sol";
 import {DCALib} from "./DCALib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {IReactor} from "../../interfaces/IReactor.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {Permit2Lib} from "../../lib/Permit2Lib.sol";
@@ -26,6 +27,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
+    /// @notice UniswapX V4 Reactor
+    IReactor public immutable REACTOR;
+
     /// @notice EIP-712 domain separator
     bytes32 public immutable domainSeparator;
 
@@ -33,13 +37,19 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
     mapping(bytes32 => DCAExecutionState) internal executionStates;
 
-    constructor(IPermit2 _permit2) {
+    constructor(IPermit2 _permit2, IReactor _reactor) {
         permit2 = _permit2;
+        REACTOR = _reactor;
         domainSeparator = DCALib.computeDomainSeparator(address(this));
     }
 
+    modifier onlyReactor() {
+        require(msg.sender == address(REACTOR));
+        _;
+    }
+
     /// @inheritdoc IPreExecutionHook
-    function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override {
+    function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override onlyReactor {
         // 1) Decode pre-execution data
         (
             DCAIntent memory intent,
