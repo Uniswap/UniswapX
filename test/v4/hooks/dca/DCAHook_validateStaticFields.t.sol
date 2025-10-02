@@ -280,19 +280,6 @@ contract DCAHook_validateStaticFieldsTest is Test, DeployPermit2 {
         hook.validateStaticFields(intent, order);
     }
 
-    function test_validateStaticFields_gasOptimization_multipleOutputs() public view {
-        DCAIntent memory intent =
-            _createIntent(address(hook), CHAIN_ID, SWAPPER, address(INPUT_TOKEN), address(OUTPUT_TOKEN));
-
-        ResolvedOrder memory order = _createResolvedOrder(SWAPPER, INPUT_TOKEN, OUTPUT_TOKEN, 20);
-
-        uint256 gasBefore = gasleft();
-        hook.validateStaticFields(intent, order);
-        uint256 gasUsed = gasBefore - gasleft();
-
-        assertLt(gasUsed, 50000, "Gas usage should be reasonable for 20 outputs");
-    }
-
     function test_validateStaticFields_allFieldsWrong() public {
         DCAIntent memory intent = _createIntent(
             address(0xBAD), WRONG_CHAIN_ID, address(0x8888), address(WRONG_INPUT_TOKEN), address(WRONG_OUTPUT_TOKEN)

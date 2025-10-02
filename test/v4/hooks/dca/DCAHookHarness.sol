@@ -6,7 +6,8 @@ import {
     DCAExecutionState,
     OutputAllocation,
     DCAIntent,
-    DCAOrderCosignerData
+    DCAOrderCosignerData,
+    PrivateIntent
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
@@ -55,5 +56,72 @@ contract DCAHookHarness is DCAHook {
     /// @notice Exposes the internal _validateStaticFields function for testing
     function validateStaticFields(DCAIntent memory intent, ResolvedOrder memory resolvedOrder) external view {
         _validateStaticFields(intent, resolvedOrder);
+    }
+
+    /// @notice Exposes the internal _validateChunkSize function for testing
+    function validateChunkSize(DCAIntent memory intent, DCAOrderCosignerData memory cosignerData, uint256 inputAmount)
+        external
+        pure
+    {
+        _validateChunkSize(intent, cosignerData, inputAmount);
+    }
+
+    /// @notice Helper to create a basic DCA intent for testing
+    function createTestIntent(
+        address swapper,
+        uint256 nonce,
+        bool isExactIn,
+        uint256 minChunk,
+        uint256 maxChunk
+    ) external view returns (DCAIntent memory) {
+        OutputAllocation[] memory allocations = new OutputAllocation[](1);
+        allocations[0] = OutputAllocation({
+            recipient: address(0x9ABC),
+            basisPoints: 10000
+        });
+
+        PrivateIntent memory privateIntent = PrivateIntent({
+            totalAmount: 1000e18,
+            exactFrequency: 3600,
+            numChunks: 10,
+            salt: bytes32(0),
+            oracleFeeds: new bytes32[](0)
+        });
+
+        return DCAIntent({
+            swapper: swapper,
+            nonce: nonce,
+            chainId: block.chainid,
+            hookAddress: address(this),
+            isExactIn: isExactIn,
+            inputToken: address(0xAAAA),
+            outputToken: address(0xBBBB),
+            cosigner: address(0x5678),
+            minPeriod: 300,
+            maxPeriod: 7200,
+            minChunkSize: minChunk,
+            maxChunkSize: maxChunk,
+            minPrice: 0,
+            deadline: block.timestamp + 1 days,
+            outputAllocations: allocations,
+            privateIntent: privateIntent
+        });
+    }
+
+    /// @notice Helper to create cosigner data for testing
+    function createTestCosignerData(
+        address swapper,
+        uint256 nonce,
+        uint256 execAmount,
+        uint256 limitAmount,
+        uint96 orderNonce
+    ) external pure returns (DCAOrderCosignerData memory) {
+        return DCAOrderCosignerData({
+            swapper: swapper,
+            nonce: nonce,
+            execAmount: execAmount,
+            limitAmount: limitAmount,
+            orderNonce: orderNonce
+        });
     }
 }
