@@ -8,6 +8,7 @@ import {
     DCAIntent,
     DCAOrderCosignerData
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 
@@ -49,5 +50,10 @@ contract DCAHookHarness is DCAHook {
         cd.execAmount = execAmount;
         cd.limitAmount = limitAmount;
         _validatePriceFloor(intent, cd);
+    }
+
+    /// @notice Exposes the internal _validateStaticFields function for testing
+    function validateStaticFields(DCAIntent memory intent, ResolvedOrder memory resolvedOrder) external view {
+        _validateStaticFields(intent, resolvedOrder);
     }
 }
