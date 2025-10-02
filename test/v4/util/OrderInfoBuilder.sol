@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
-import {IReactor} from "../../../src/interfaces/IReactor.sol";
+import {IReactor} from "../../../src/v4/interfaces/IReactor.sol";
 import {IPreExecutionHook, IPostExecutionHook} from "../../../src/v4/interfaces/IHook.sol";
 import {IAuctionResolver} from "../../../src/v4/interfaces/IAuctionResolver.sol";
 
