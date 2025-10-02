@@ -49,7 +49,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             bytes memory cosignerSignature,
             PermitData memory permitData
         ) = abi.decode(
-            resolvedOrder.info.preExecutionHookData, (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes, PermitData)
+            resolvedOrder.info.preExecutionHookData,
+            (DCAIntent, bytes, bytes32, DCAOrderCosignerData, bytes, PermitData)
         );
 
         // 2) Compute intentId for state lookups
@@ -120,13 +121,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         // If a permit signature is provided, set the allowance first
         if (permitData.hasPermit) {
             // Call permit directly since it's memory not calldata
-            permit2.permit(
-                order.info.swapper,
-                permitData.permitSingle,
-                permitData.signature
-            );
+            permit2.permit(order.info.swapper, permitData.permitSingle, permitData.signature);
         }
-        
+
         // Transfer tokens using existing allowance (either just set or previously set)
         TokenTransferLib.allowanceTransferInputTokens(permit2, order, to);
     }

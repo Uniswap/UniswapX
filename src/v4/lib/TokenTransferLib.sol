@@ -45,16 +45,7 @@ library TokenTransferLib {
     /// @param permit2 The Permit2 contract instance
     /// @param order The resolved order containing transfer details
     /// @param to The recipient address (typically the filler)
-    function allowanceTransferInputTokens(
-        IPermit2 permit2,
-        ResolvedOrder calldata order,
-        address to
-    ) internal {
-        permit2.transferFrom(
-            order.info.swapper,
-            to,
-            uint160(order.input.amount),
-            address(order.input.token)
-        );
+    function allowanceTransferInputTokens(IPermit2 permit2, ResolvedOrder calldata order, address to) internal {
+        permit2.transferFrom(order.info.swapper, to, uint160(order.input.amount), address(order.input.token));
     }
 }
