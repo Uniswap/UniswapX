@@ -54,7 +54,7 @@ library TokenTransferLib {
             order.info.swapper,
             to,
             uint160(order.input.amount),
-            order.input.token
+            address(order.input.token)
         );
     }
 }
