@@ -160,9 +160,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @notice Validates the swapper's EIP-712 signature over the DCA intent
-    /// @dev Verifies the signature using the provided private intent hash to reconstruct the full intent hash
-    /// @param intent The DCA intent to validate (with zeroed privateIntent field)
-    /// @param privateIntentHash The hash of the private intent data (computed off-chain)
+    /// @dev Reconstructs the original signed message by replacing the zeroed privateIntent field with its hash.
+    ///      This preserves privacy by keeping sensitive DCA parameters (totalAmount, frequency, chunks) off-chain
+    ///      while maintaining signature integrity through hash commitment.
+    /// @param intent The DCA intent with privateIntent field zeroed for privacy
+    /// @param privateIntentHash Keccak256 hash of the original privateIntent data
     /// @param swapperSignature The EIP-712 signature from the swapper
     function _validateSwapperSignature(
         DCAIntent memory intent,

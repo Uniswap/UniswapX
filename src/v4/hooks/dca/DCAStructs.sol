@@ -19,7 +19,7 @@ struct DCAIntent {
     uint256 minPrice; // Minimum price (output/input * 1e18)
     uint256 deadline; // Intent expiration timestamp
     OutputAllocation[] outputAllocations; // Distribution of output tokens
-    PrivateIntent privateIntent; // Nested struct (zeroed on-chain)
+    PrivateIntent privateIntent; // Private execution parameters - included in EIP-712 signature but zeroed on-chain, only hash revealed
 }
 
 struct PrivateIntent {
