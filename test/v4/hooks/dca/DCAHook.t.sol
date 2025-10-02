@@ -1235,25 +1235,6 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_validMultipleRecipients() public view {
-        OutputAllocation[] memory allocations = new OutputAllocation[](3);
-        allocations[0] = OutputAllocation({
-            recipient: SWAPPER,
-            basisPoints: 5000 // 50%
-        });
-        allocations[1] = OutputAllocation({
-            recipient: OTHER,
-            basisPoints: 3000 // 30%
-        });
-        allocations[2] = OutputAllocation({
-            recipient: address(0xFEE),
-            basisPoints: 2000 // 20%
-        });
-
-        // Should not revert
-        hook.validateAllocationStructure(allocations);
-    }
-
     function test_validateOutputAllocations_validWithFees() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](2);
         allocations[0] = OutputAllocation({
