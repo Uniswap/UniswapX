@@ -31,8 +31,8 @@ struct PrivateIntent {
 }
 
 struct OutputAllocation {
-    address recipient;
-    uint256 basisPoints; // Out of 10000 (100% = 10000)
+    address recipient; // 20 bytes
+    uint16 basisPoints; // 2 bytes - Out of 10000 (100% = 10000), packed in same slot
 }
 
 struct DCAOrderCosignerData {

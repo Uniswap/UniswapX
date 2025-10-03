@@ -14,12 +14,12 @@ library DCALib {
         "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
     bytes32 constant PRIVATE_INTENT_TYPEHASH = keccak256(PRIVATE_INTENT_TYPE);
 
-    bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint256 basisPoints)";
+    bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint16 basisPoints)";
     bytes32 constant OUTPUT_ALLOCATION_TYPEHASH = keccak256(OUTPUT_ALLOCATION_TYPE);
 
     bytes constant DCA_INTENT_TYPE =
         "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
-        "OutputAllocation(address recipient,uint256 basisPoints)"
+        "OutputAllocation(address recipient,uint16 basisPoints)"
         "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
     bytes32 constant DCA_INTENT_TYPEHASH = keccak256(DCA_INTENT_TYPE);
 

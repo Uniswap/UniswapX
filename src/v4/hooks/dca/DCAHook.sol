@@ -219,7 +219,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         uint256 totalBasisPoints;
         for (uint256 i = 0; i < length;) {
-            uint256 basisPoints = outputAllocations[i].basisPoints;
+            uint16 basisPoints = outputAllocations[i].basisPoints;
             if (basisPoints == 0) {
                 revert ZeroAllocation();
             }
@@ -376,7 +376,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
-            uint256 expected = Math.mulDiv(totalOutput, intent.outputAllocations[i].basisPoints, BPS);
+            uint256 expected = Math.mulDiv(totalOutput, uint256(intent.outputAllocations[i].basisPoints), BPS);
             uint256 actual = 0;
             for (uint256 j = 0; j < outputs.length; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;

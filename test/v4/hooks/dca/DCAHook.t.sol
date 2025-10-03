@@ -1337,14 +1337,14 @@ contract DCAHookTest is Test, DeployPermit2 {
             uint256 maxAllocation = remainingBasisPoints / (numRecipients - i);
             uint256 allocation = (uint256(keccak256(abi.encode(seed, i))) % maxAllocation) + 1;
 
-            allocations[i] = OutputAllocation({recipient: address(uint160(i + 1)), basisPoints: allocation});
+            allocations[i] = OutputAllocation({recipient: address(uint160(i + 1)), basisPoints: uint16(allocation)});
 
             remainingBasisPoints -= allocation;
         }
 
         // Last recipient gets the remainder to ensure exactly 100%
         allocations[numRecipients - 1] =
-            OutputAllocation({recipient: address(uint160(numRecipients)), basisPoints: remainingBasisPoints});
+            OutputAllocation({recipient: address(uint160(numRecipients)), basisPoints: uint16(remainingBasisPoints)});
 
         // Should not revert for any valid distribution
         hook.validateAllocationStructure(allocations);
