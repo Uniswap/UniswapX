@@ -22,7 +22,7 @@ contract DCAHookHarness is DCAHook {
         s.cancelled = cancelled;
     }
 
-    function __setExecutedMeta(bytes32 intentId, uint256 lastExecutionTime) external {
+    function __setExecutedMeta(bytes32 intentId, uint120 lastExecutionTime) external {
         DCAExecutionState storage s = executionStates[intentId];
         s.lastExecutionTime = lastExecutionTime;
     }

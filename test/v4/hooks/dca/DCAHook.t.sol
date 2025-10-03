@@ -77,7 +77,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_getExecutionState_afterExecutedMetaWrite() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        uint256 expectedLastExecution = block.timestamp;
+        uint120 expectedLastExecution = uint120(block.timestamp);
 
         hook.__setExecutedMeta(intentId, expectedLastExecution);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
@@ -110,7 +110,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Write all fields
         uint96 expectedExecutedChunks = 100;
         bool expectedCancelled = true;
-        uint256 expectedLastExecution = block.timestamp - 3600;
+        uint120 expectedLastExecution = uint120(block.timestamp - 3600);
         uint256 expectedInputExecuted = 5e18;
         uint256 expectedOutput = 10000e6;
 
@@ -130,7 +130,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function testFuzz_getExecutionState_precision(
         uint96 executedChunks,
         bool cancelled,
-        uint128 lastExec,
+        uint120 lastExec,
         uint128 inputExecuted,
         uint128 output
     ) public {
@@ -194,7 +194,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // Set nonce with cancelled=true and set other fields
         hook.__setPacked(intentId, expectedExecutedChunks, true);
-        hook.__setExecutedMeta(intentId, block.timestamp);
+        hook.__setExecutedMeta(intentId, uint120(block.timestamp));
         hook.__setTotals(intentId, 1e18, 2000e6);
 
         uint96 nextNonce = hook.getNextNonce(intentId);
@@ -233,7 +233,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         uint128 expectedChunks = 10;
         bool expectedCancelled = true;
-        uint256 expectedLastExec = block.timestamp - 3600;
+        uint120 expectedLastExec = uint120(block.timestamp - 3600);
         uint256 expectedInput = 5e18; // 5 tokens with 18 decimals
         uint256 expectedOutput = 10000e6; // 10000 tokens with 6 decimals
 
@@ -403,7 +403,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function testFuzz_getIntentStatistics_allFields(
         uint128 chunks,
         bool cancelled,
-        uint128 lastExec,
+        uint120 lastExec,
         uint128 inputAmount,
         uint128 outputAmount
     ) public {
@@ -473,7 +473,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_isIntentActive_withExecutions_withinMaxPeriod() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
+        uint120 lastExecTime = uint120(block.timestamp - 3600); // 1 hour ago
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
         hook.__setExecutedMeta(intentId, lastExecTime);
 
@@ -485,7 +485,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_isIntentActive_withExecutions_overMaxPeriod() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
+        uint120 lastExecTime = uint120(block.timestamp - 3600); // 1 hour ago
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
         hook.__setExecutedMeta(intentId, lastExecTime);
 
@@ -498,7 +498,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_isIntentActive_withExecutions_exactMaxPeriod() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        uint256 lastExecTime = block.timestamp - 3600; // Exactly 1 hour ago
+        uint120 lastExecTime = uint120(block.timestamp - 3600); // Exactly 1 hour ago
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
         hook.__setExecutedMeta(intentId, lastExecTime);
 
@@ -509,11 +509,11 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_isIntentActive_deadlineDominance() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        uint256 lastExecTime = block.timestamp - 100; // Recent execution
+        uint120 lastExecTime = uint120(block.timestamp - 100); // Recent execution
         hook.__setExecutedMeta(intentId, lastExecTime);
 
         // Past deadline => false regardless of valid maxPeriod
-        uint256 pastDeadline = block.timestamp - 1;
+        uint120 pastDeadline = uint120(block.timestamp - 1);
         assertFalse(hook.isIntentActive(intentId, 7200, pastDeadline), "Deadline dominates: past deadline always false");
         assertFalse(hook.isIntentActive(intentId, 0, pastDeadline), "Past deadline with maxPeriod=0 still false");
     }
@@ -530,7 +530,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertFalse(hook.isIntentActive(intentId, type(uint256).max, type(uint256).max), "Cancelled with max values");
 
         // Even with executions and valid periods
-        hook.__setExecutedMeta(intentId, block.timestamp - 100);
+        hook.__setExecutedMeta(intentId, uint120(block.timestamp - 100));
         assertFalse(
             hook.isIntentActive(intentId, 7200, block.timestamp + 1000), "Cancelled dominates all valid conditions"
         );
@@ -540,7 +540,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         // Set execution far in the past
-        uint256 veryOldExecution = 1;
+        uint120 veryOldExecution = 1;
         vm.warp(1000000);
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
         hook.__setExecutedMeta(intentId, veryOldExecution);
@@ -558,7 +558,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // With executions
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
-        hook.__setExecutedMeta(intentId, block.timestamp - 100);
+        hook.__setExecutedMeta(intentId, uint120(block.timestamp - 100));
         assertTrue(hook.isIntentActive(intentId, 7200, 0), "deadline=0 with valid maxPeriod");
     }
 
@@ -580,7 +580,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // 4. With executions, maxPeriod is checked
         hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
-        hook.__setExecutedMeta(intentId, block.timestamp - 3600);
+        hook.__setExecutedMeta(intentId, uint120(block.timestamp - 3600));
         assertFalse(hook.isIntentActive(intentId, 1800, block.timestamp + 1000), "maxPeriod checked last");
     }
 
@@ -598,7 +598,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.__setPacked(intentId, 0, cancelled);
         if (hasExecutions) {
             hook.__setPacked(intentId, 1, cancelled); // Set executedChunks to 1
-            hook.__setExecutedMeta(intentId, block.timestamp - timeSinceLastExec);
+            hook.__setExecutedMeta(intentId, uint120(block.timestamp - timeSinceLastExec));
         }
 
         uint256 deadline = timeUntilDeadline == 0 ? 0 : block.timestamp + timeUntilDeadline;
@@ -708,7 +708,7 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // Setup existing state
         hook.__setPacked(intentId, 5, false);
-        hook.__setExecutedMeta(intentId, block.timestamp - 100);
+        hook.__setExecutedMeta(intentId, uint120(block.timestamp - 100));
         hook.__setTotals(intentId, 1e18, 2000e6);
 
         // Verify state before cancel
@@ -1021,7 +1021,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         // Set up state via harness
-        uint256 execTime = 1234567890;
+        uint120 execTime = 1234567890;
         hook.__setPacked(intentId, 5, false);
         hook.__setExecutedMeta(intentId, execTime);
         hook.__setTotals(intentId, 1000 ether, 2000 ether);

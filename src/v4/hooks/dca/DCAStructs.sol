@@ -45,11 +45,11 @@ struct DCAOrderCosignerData {
 }
 
 struct DCAExecutionState {
-    uint128 executedChunks; // Number of chunks executed (also serves as the next nonce)
-    bool cancelled; // Cancellation flag (packed with executedChunks)
-    uint256 lastExecutionTime; // Last execution timestamp
-    uint256 totalInputExecuted; // Cumulative input amount
-    uint256 totalOutput; // Cumulative output amount
+    uint128 executedChunks; // 16 bytes slot 1 (perfectly packed)
+    uint120 lastExecutionTime; // 15 bytes
+    bool cancelled; // 1 byte
+    uint256 totalInputExecuted; // 32 bytes   slot 2 - Cumulative input amount
+    uint256 totalOutput; // 32 bytes   slot 3 - Cumulative output amount
 }
 
 struct PermitData {

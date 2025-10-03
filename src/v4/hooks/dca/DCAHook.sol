@@ -428,7 +428,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         // Update state in memory
         state.executedChunks++;
-        state.lastExecutionTime = block.timestamp;
+        state.lastExecutionTime = uint120(block.timestamp);
         state.totalInputExecuted += inputAmount;
         state.totalOutput += totalOutput;
 
