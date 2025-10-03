@@ -53,7 +53,6 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
-        assertEq(state.nextNonce, 0, "Next nonce should be 0 for uninitialized state");
         assertEq(state.cancelled, false, "Cancelled should be false for uninitialized state");
         assertEq(state.executedChunks, 0, "Executed chunks should be 0 for uninitialized state");
         assertEq(state.lastExecutionTime, 0, "Last execution time should be 0 for uninitialized state");
@@ -63,15 +62,14 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_getExecutionState_afterPackedWrite() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        uint96 expectedNonce = 42;
+        uint96 expectedExecutedChunks = 42;
         bool expectedCancelled = true;
 
-        hook.__setPacked(intentId, expectedNonce, expectedCancelled);
+        hook.__setPacked(intentId, expectedExecutedChunks, expectedCancelled);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
-        assertEq(state.nextNonce, expectedNonce, "Should return exact nextNonce written");
+        assertEq(state.executedChunks, expectedExecutedChunks, "Should return exact executed chunks written");
         assertEq(state.cancelled, expectedCancelled, "Should return exact cancelled flag written");
-        assertEq(state.executedChunks, 0, "Unwritten fields remain zero");
         assertEq(state.lastExecutionTime, 0, "Unwritten fields remain zero");
         assertEq(state.totalInputExecuted, 0, "Unwritten fields remain zero");
         assertEq(state.totalOutput, 0, "Unwritten fields remain zero");
@@ -79,15 +77,13 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_getExecutionState_afterExecutedMetaWrite() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        uint256 expectedChunks = 5;
         uint256 expectedLastExecution = block.timestamp;
 
-        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExecution);
+        hook.__setExecutedMeta(intentId, expectedLastExecution);
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
-        assertEq(state.executedChunks, expectedChunks, "Should return exact executedChunks written");
         assertEq(state.lastExecutionTime, expectedLastExecution, "Should return exact lastExecutionTime written");
-        assertEq(state.nextNonce, 0, "Unwritten fields remain zero");
+        assertEq(state.executedChunks, 0, "Unwritten fields remain zero");
         assertEq(state.cancelled, false, "Unwritten fields remain false");
         assertEq(state.totalInputExecuted, 0, "Unwritten fields remain zero");
         assertEq(state.totalOutput, 0, "Unwritten fields remain zero");
@@ -103,7 +99,6 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         assertEq(state.totalInputExecuted, expectedInputExecuted, "Should return exact totalInputExecuted written");
         assertEq(state.totalOutput, expectedOutput, "Should return exact totalOutput written");
-        assertEq(state.nextNonce, 0, "Unwritten fields remain zero");
         assertEq(state.cancelled, false, "Unwritten fields remain false");
         assertEq(state.executedChunks, 0, "Unwritten fields remain zero");
         assertEq(state.lastExecutionTime, 0, "Unwritten fields remain zero");
@@ -113,46 +108,42 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         // Write all fields
-        uint96 expectedNonce = 100;
+        uint96 expectedExecutedChunks = 100;
         bool expectedCancelled = true;
-        uint256 expectedChunks = 10;
         uint256 expectedLastExecution = block.timestamp - 3600;
         uint256 expectedInputExecuted = 5e18;
         uint256 expectedOutput = 10000e6;
 
-        hook.__setPacked(intentId, expectedNonce, expectedCancelled);
-        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExecution);
+        hook.__setPacked(intentId, expectedExecutedChunks, expectedCancelled);
+        hook.__setExecutedMeta(intentId, expectedLastExecution);
         hook.__setTotals(intentId, expectedInputExecuted, expectedOutput);
 
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
-        assertEq(state.nextNonce, expectedNonce, "Should return exact nextNonce");
         assertEq(state.cancelled, expectedCancelled, "Should return exact cancelled flag");
-        assertEq(state.executedChunks, expectedChunks, "Should return exact executedChunks");
+        assertEq(state.executedChunks, expectedExecutedChunks, "Should return exact executedChunks");
         assertEq(state.lastExecutionTime, expectedLastExecution, "Should return exact lastExecutionTime");
         assertEq(state.totalInputExecuted, expectedInputExecuted, "Should return exact totalInputExecuted");
         assertEq(state.totalOutput, expectedOutput, "Should return exact totalOutput");
     }
 
     function testFuzz_getExecutionState_precision(
-        uint96 nonce,
+        uint96 executedChunks,
         bool cancelled,
-        uint128 chunks,
         uint128 lastExec,
         uint128 inputExecuted,
         uint128 output
     ) public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        hook.__setPacked(intentId, nonce, cancelled);
-        hook.__setExecutedMeta(intentId, chunks, lastExec);
+        hook.__setPacked(intentId, executedChunks, cancelled);
+        hook.__setExecutedMeta(intentId, lastExec);
         hook.__setTotals(intentId, inputExecuted, output);
 
         DCAExecutionState memory state = hook.getExecutionState(intentId);
 
-        assertEq(state.nextNonce, nonce, "Fuzz: nextNonce precision");
         assertEq(state.cancelled, cancelled, "Fuzz: cancelled precision");
-        assertEq(state.executedChunks, chunks, "Fuzz: executedChunks precision");
+        assertEq(state.executedChunks, executedChunks, "Fuzz: executedChunks precision");
         assertEq(state.lastExecutionTime, lastExec, "Fuzz: lastExecutionTime precision");
         assertEq(state.totalInputExecuted, inputExecuted, "Fuzz: totalInputExecuted precision");
         assertEq(state.totalOutput, output, "Fuzz: totalOutput precision");
@@ -163,17 +154,18 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_getNextNonce_default() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
         uint96 nextNonce = hook.getNextNonce(intentId);
+        // This should return the executed chunks, which is 0 for an uninitialized intent
         assertEq(nextNonce, 0, "Uninitialized intent should have nextNonce of 0");
     }
 
     function test_getNextNonce_afterSet() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        uint96 expectedNonce = 5;
+        uint96 expectedExecutedChunks = 5;
 
-        hook.__setPacked(intentId, expectedNonce, false);
+        hook.__setPacked(intentId, expectedExecutedChunks, false);
         uint96 nextNonce = hook.getNextNonce(intentId);
 
-        assertEq(nextNonce, expectedNonce, "Should return exact value set via harness");
+        assertEq(nextNonce, expectedExecutedChunks, "Should return the executed chunks");
     }
 
     function test_getNextNonce_nearMaxValue() public {
@@ -198,25 +190,25 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function test_getNextNonce_isolatedFromOtherFields() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
-        uint96 expectedNonce = 42;
+        uint96 expectedExecutedChunks = 42;
 
         // Set nonce with cancelled=true and set other fields
-        hook.__setPacked(intentId, expectedNonce, true);
-        hook.__setExecutedMeta(intentId, 999, block.timestamp);
+        hook.__setPacked(intentId, expectedExecutedChunks, true);
+        hook.__setExecutedMeta(intentId, block.timestamp);
         hook.__setTotals(intentId, 1e18, 2000e6);
 
         uint96 nextNonce = hook.getNextNonce(intentId);
 
-        assertEq(nextNonce, expectedNonce, "nextNonce should be isolated from other state modifications");
+        assertEq(nextNonce, expectedExecutedChunks, "nextNonce should be isolated from other state modifications");
     }
 
-    function testFuzz_getNextNonce_precision(uint96 nonce) public {
+    function testFuzz_getNextNonce_precision(uint96 expectedExecutedChunks) public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        hook.__setPacked(intentId, nonce, false);
+        hook.__setPacked(intentId, expectedExecutedChunks, false);
         uint96 retrievedNonce = hook.getNextNonce(intentId);
 
-        assertEq(retrievedNonce, nonce, "Should preserve exact uint96 value through storage");
+        assertEq(retrievedNonce, expectedExecutedChunks, "Should preserve exact uint96 value through storage");
     }
 
     // TODO: overflow nonce test when complete flow is implemented
@@ -239,12 +231,14 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_getIntentStatistics_populatedValues() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        uint256 expectedChunks = 10;
+        uint128 expectedChunks = 10;
+        bool expectedCancelled = true;
         uint256 expectedLastExec = block.timestamp - 3600;
         uint256 expectedInput = 5e18; // 5 tokens with 18 decimals
         uint256 expectedOutput = 10000e6; // 10000 tokens with 6 decimals
 
-        hook.__setExecutedMeta(intentId, expectedChunks, expectedLastExec);
+        hook.__setPacked(intentId, expectedChunks, expectedCancelled);
+        hook.__setExecutedMeta(intentId, expectedLastExec);
         hook.__setTotals(intentId, expectedInput, expectedOutput);
 
         (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime)
@@ -408,19 +402,22 @@ contract DCAHookTest is Test, DeployPermit2 {
 
     function testFuzz_getIntentStatistics_allFields(
         uint128 chunks,
+        bool cancelled,
         uint128 lastExec,
         uint128 inputAmount,
         uint128 outputAmount
     ) public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        hook.__setExecutedMeta(intentId, chunks, lastExec);
+        hook.__setPacked(intentId, chunks, cancelled);
+        hook.__setExecutedMeta(intentId, lastExec);
         hook.__setTotals(intentId, inputAmount, outputAmount);
 
         (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime)
         = hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, chunks, "Fuzz: totalChunks precision");
+        assertEq(cancelled, cancelled, "Fuzz: cancelled precision");
         assertEq(totalInput, inputAmount, "Fuzz: totalInput precision");
         assertEq(totalOutput, outputAmount, "Fuzz: totalOutput precision");
         assertEq(lastExecutionTime, lastExec, "Fuzz: lastExecutionTime precision");
@@ -477,7 +474,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
-        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, lastExecTime);
 
         // Within maxPeriod window => true
         assertTrue(hook.isIntentActive(intentId, 3601, 0), "Active when within maxPeriod by 1 second");
@@ -488,7 +486,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         uint256 lastExecTime = block.timestamp - 3600; // 1 hour ago
-        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, lastExecTime);
 
         // Over maxPeriod window => false
         assertFalse(hook.isIntentActive(intentId, 3599, 0), "Inactive when over maxPeriod by 1 second");
@@ -500,7 +499,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         uint256 lastExecTime = block.timestamp - 3600; // Exactly 1 hour ago
-        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, lastExecTime);
 
         // Exactly at maxPeriod boundary
         assertTrue(hook.isIntentActive(intentId, 3600, 0), "Active at exact maxPeriod boundary");
@@ -510,7 +510,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
         uint256 lastExecTime = block.timestamp - 100; // Recent execution
-        hook.__setExecutedMeta(intentId, 1, lastExecTime);
+        hook.__setExecutedMeta(intentId, lastExecTime);
 
         // Past deadline => false regardless of valid maxPeriod
         uint256 pastDeadline = block.timestamp - 1;
@@ -530,7 +530,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertFalse(hook.isIntentActive(intentId, type(uint256).max, type(uint256).max), "Cancelled with max values");
 
         // Even with executions and valid periods
-        hook.__setExecutedMeta(intentId, 1, block.timestamp - 100);
+        hook.__setExecutedMeta(intentId, block.timestamp - 100);
         assertFalse(
             hook.isIntentActive(intentId, 7200, block.timestamp + 1000), "Cancelled dominates all valid conditions"
         );
@@ -542,7 +542,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Set execution far in the past
         uint256 veryOldExecution = 1;
         vm.warp(1000000);
-        hook.__setExecutedMeta(intentId, 1, veryOldExecution);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, veryOldExecution);
 
         // maxPeriod = 0 => no upper bound check (sentinel value)
         assertTrue(hook.isIntentActive(intentId, 0, 0), "maxPeriod=0 disables period check");
@@ -556,7 +557,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertTrue(hook.isIntentActive(intentId, 0, 0), "deadline=0 disables deadline check");
 
         // With executions
-        hook.__setExecutedMeta(intentId, 1, block.timestamp - 100);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, block.timestamp - 100);
         assertTrue(hook.isIntentActive(intentId, 7200, 0), "deadline=0 with valid maxPeriod");
     }
 
@@ -577,7 +579,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         assertTrue(hook.isIntentActive(intentId, 1, block.timestamp + 1000), "No executions returns true");
 
         // 4. With executions, maxPeriod is checked
-        hook.__setExecutedMeta(intentId, 1, block.timestamp - 3600);
+        hook.__setPacked(intentId, 1, false); // Set executedChunks to 1 so that period checks are performed
+        hook.__setExecutedMeta(intentId, block.timestamp - 3600);
         assertFalse(hook.isIntentActive(intentId, 1800, block.timestamp + 1000), "maxPeriod checked last");
     }
 
@@ -594,7 +597,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Setup state
         hook.__setPacked(intentId, 0, cancelled);
         if (hasExecutions) {
-            hook.__setExecutedMeta(intentId, 1, block.timestamp - timeSinceLastExec);
+            hook.__setPacked(intentId, 1, cancelled); // Set executedChunks to 1
+            hook.__setExecutedMeta(intentId, block.timestamp - timeSinceLastExec);
         }
 
         uint256 deadline = timeUntilDeadline == 0 ? 0 : block.timestamp + timeUntilDeadline;
@@ -704,13 +708,12 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // Setup existing state
         hook.__setPacked(intentId, 5, false);
-        hook.__setExecutedMeta(intentId, 10, block.timestamp - 100);
+        hook.__setExecutedMeta(intentId, block.timestamp - 100);
         hook.__setTotals(intentId, 1e18, 2000e6);
 
         // Verify state before cancel
         DCAExecutionState memory stateBefore = hook.getExecutionState(intentId);
-        assertEq(stateBefore.nextNonce, 5, "nextNonce should be set");
-        assertEq(stateBefore.executedChunks, 10, "executedChunks should be set");
+        assertEq(stateBefore.executedChunks, 5, "executedChunks should be set");
         assertFalse(stateBefore.cancelled, "Should not be cancelled yet");
 
         // Cancel
@@ -720,8 +723,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Verify cancelled but other state preserved
         DCAExecutionState memory stateAfter = hook.getExecutionState(intentId);
         assertTrue(stateAfter.cancelled, "Should be cancelled");
-        assertEq(stateAfter.nextNonce, 5, "nextNonce should be preserved");
-        assertEq(stateAfter.executedChunks, 10, "executedChunks should be preserved");
+        assertEq(stateAfter.executedChunks, 5, "executedChunks should be preserved");
         assertEq(stateAfter.totalInputExecuted, 1e18, "totalInputExecuted should be preserved");
         assertEq(stateAfter.totalOutput, 2000e6, "totalOutput should be preserved");
     }
@@ -1020,7 +1022,8 @@ contract DCAHookTest is Test, DeployPermit2 {
 
         // Set up state via harness
         uint256 execTime = 1234567890;
-        hook.__setExecutedMeta(intentId, 5, execTime);
+        hook.__setPacked(intentId, 5, false);
+        hook.__setExecutedMeta(intentId, execTime);
         hook.__setTotals(intentId, 1000 ether, 2000 ether);
 
         (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 averagePrice, uint256 lastExecutionTime)

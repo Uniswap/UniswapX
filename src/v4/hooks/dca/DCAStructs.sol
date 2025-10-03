@@ -44,9 +44,8 @@ struct DCAOrderCosignerData {
 }
 
 struct DCAExecutionState {
-    uint96 nextNonce; // Next valid nonce (packs with cancelled)
-    bool cancelled; // Cancellation flag
-    uint256 executedChunks; // Number of chunks executed
+    uint128 executedChunks; // Number of chunks executed (also serves as the next nonce)
+    bool cancelled; // Cancellation flag (packed with executedChunks)
     uint256 lastExecutionTime; // Last execution timestamp
     uint256 totalInputExecuted; // Cumulative input amount
     uint256 totalOutput; // Cumulative output amount

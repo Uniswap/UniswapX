@@ -16,15 +16,14 @@ import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 contract DCAHookHarness is DCAHook {
     constructor(IPermit2 p, IReactor r) DCAHook(p, r) {}
 
-    function __setPacked(bytes32 intentId, uint96 nextNonce, bool cancelled) external {
+    function __setPacked(bytes32 intentId, uint128 executedChunks, bool cancelled) external {
         DCAExecutionState storage s = executionStates[intentId];
-        s.nextNonce = nextNonce;
+        s.executedChunks = executedChunks;
         s.cancelled = cancelled;
     }
 
-    function __setExecutedMeta(bytes32 intentId, uint256 executedChunks, uint256 lastExecutionTime) external {
+    function __setExecutedMeta(bytes32 intentId, uint256 lastExecutionTime) external {
         DCAExecutionState storage s = executionStates[intentId];
-        s.executedChunks = executedChunks;
         s.lastExecutionTime = lastExecutionTime;
     }
 

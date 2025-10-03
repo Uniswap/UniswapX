@@ -322,8 +322,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         if (intent.deadline != 0 && block.timestamp > intent.deadline) {
             revert IntentExpired(block.timestamp, intent.deadline);
         }
-        if (cosignerData.orderNonce != state.nextNonce) {
-            revert WrongChunkNonce(cosignerData.orderNonce, state.nextNonce);
+        if (cosignerData.orderNonce != state.executedChunks) {
+            revert WrongChunkNonce(cosignerData.orderNonce, uint96(state.executedChunks));
         }
 
         // Period gating (enforce minPeriod/maxPeriod only after first execution)
@@ -434,7 +434,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         state.lastExecutionTime = block.timestamp;
         state.totalInputExecuted += inputAmount;
         state.totalOutput += totalOutput;
-        state.nextNonce++;
 
         // single SSTORE
         executionStates[intentId] = state;
@@ -470,7 +469,10 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     /// @inheritdoc IDCAHook
     function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
-        return executionStates[intentId].nextNonce;
+        // The next valid nonce is always equal to the number of chunks already executed.
+        // This is because nonces start at 0 and increment by 1 with each execution.
+        // After N executions (executedChunks = N), the next valid nonce is N.
+        return uint96(executionStates[intentId].executedChunks);
     }
 
     /// @inheritdoc IDCAHook
