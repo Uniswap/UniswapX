@@ -470,15 +470,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function calculatePrice(uint256 inputAmount, uint256 outputAmount) external pure override returns (uint256 price) {
-        if (inputAmount == 0) {
-            revert ZeroInputAmount();
-        }
-        // Safely do (outputAmount * 1e18) / inputAmount
-        return Math.mulDiv(outputAmount, 1e18, inputAmount);
-    }
-
-    /// @inheritdoc IDCAHook
     function getIntentStatistics(bytes32 intentId)
         external
         view
@@ -487,7 +478,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             uint256 totalChunks,
             uint256 totalInput,
             uint256 totalOutput,
-            uint256 averagePrice,
             uint256 lastExecutionTime
         )
     {
@@ -496,6 +486,5 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         totalInput = s.totalInputExecuted;
         totalOutput = s.totalOutput;
         lastExecutionTime = s.lastExecutionTime;
-        averagePrice = totalInput == 0 ? 0 : Math.mulDiv(totalOutput, 1e18, totalInput);
     }
 }

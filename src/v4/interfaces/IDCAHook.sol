@@ -135,8 +135,6 @@ interface IDCAHook is IPreExecutionHook {
     /// @param execAmount The expected exact output amount
     error WrongTotalOutput(uint256 totalOutput, uint256 execAmount);
 
-    /// @notice Thrown when input amount is zero in price calculation
-    error ZeroInputAmount();
 
     /// @notice Emitted when an intent is cancelled
     /// @param intentId The unique identifier of the intent
@@ -197,18 +195,11 @@ interface IDCAHook is IPreExecutionHook {
     /// @return nextNonce The next nonce that should be used for this intent
     function getNextNonce(bytes32 intentId) external view returns (uint96 nextNonce);
 
-    /// @notice Calculate the price ratio with 1e18 scaling
-    /// @param inputAmount The input token amount
-    /// @param outputAmount The output token amount
-    /// @return price The scaled price (output/input * 1e18)
-    function calculatePrice(uint256 inputAmount, uint256 outputAmount) external pure returns (uint256 price);
-
     /// @notice Get comprehensive statistics for an intent
     /// @param intentId The unique identifier of the intent
     /// @return totalChunks Number of chunks executed
     /// @return totalInput Total input amount executed
     /// @return totalOutput Total output amount received
-    /// @return averagePrice Average execution price (scaled by 1e18)
     /// @return lastExecutionTime Timestamp of last execution
     function getIntentStatistics(bytes32 intentId)
         external
@@ -217,7 +208,6 @@ interface IDCAHook is IPreExecutionHook {
             uint256 totalChunks,
             uint256 totalInput,
             uint256 totalOutput,
-            uint256 averagePrice,
             uint256 lastExecutionTime
         );
 }
