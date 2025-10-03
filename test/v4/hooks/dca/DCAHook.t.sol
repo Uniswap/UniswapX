@@ -1288,7 +1288,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     }
 
     function test_validateOutputAllocations_revertsExceedsDuringSum() public {
-        // Test that we catch overflow during intermediate sum calculation
+        // Test that allocations exceeding 100% are caught at the end
         OutputAllocation[] memory allocations = new OutputAllocation[](3);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
@@ -1300,10 +1300,10 @@ contract DCAHookTest is Test, DeployPermit2 {
         });
         allocations[2] = OutputAllocation({
             recipient: address(0x3),
-            basisPoints: 1001 // 10.01% - exceeds during sum
+            basisPoints: 1001 // 10.01% - total 100.01%
         });
 
-        vm.expectRevert(IDCAHook.AllocationsExceed100Percent.selector);
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.AllocationsNot100Percent.selector, 10001));
         hook.validateAllocationStructure(allocations);
     }
 

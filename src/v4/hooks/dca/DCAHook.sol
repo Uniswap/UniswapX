@@ -225,9 +225,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             }
 
             totalBasisPoints += basisPoints;
-            if (totalBasisPoints > BPS) {
-                revert AllocationsExceed100Percent();
-            }
 
             unchecked {
                 ++i;

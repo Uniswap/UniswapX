@@ -38,9 +38,6 @@ interface IDCAHook is IPreExecutionHook {
     /// @notice Thrown when an output allocation has zero basis points
     error ZeroAllocation();
 
-    /// @notice Thrown when allocations sum exceeds 100% (10000 basis points)
-    error AllocationsExceed100Percent();
-
     /// @notice Thrown when allocations don't sum to exactly 100% (10000 basis points)
     /// @param totalBasisPoints The actual sum of basis points
     error AllocationsNot100Percent(uint256 totalBasisPoints);
