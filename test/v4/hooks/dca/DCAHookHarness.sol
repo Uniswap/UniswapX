@@ -66,18 +66,13 @@ contract DCAHookHarness is DCAHook {
     }
 
     /// @notice Helper to create a basic DCA intent for testing
-    function createTestIntent(
-        address swapper,
-        uint256 nonce,
-        bool isExactIn,
-        uint256 minChunk,
-        uint256 maxChunk
-    ) external view returns (DCAIntent memory) {
+    function createTestIntent(address swapper, uint256 nonce, bool isExactIn, uint256 minChunk, uint256 maxChunk)
+        external
+        view
+        returns (DCAIntent memory)
+    {
         OutputAllocation[] memory allocations = new OutputAllocation[](1);
-        allocations[0] = OutputAllocation({
-            recipient: address(0x9ABC),
-            basisPoints: 10000
-        });
+        allocations[0] = OutputAllocation({recipient: address(0x9ABC), basisPoints: 10000});
 
         PrivateIntent memory privateIntent = PrivateIntent({
             totalAmount: 1000e18,
