@@ -218,8 +218,8 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_getIntentStatistics_default() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
-        = hook.getIntentStatistics(intentId);
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime) =
+            hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, 0, "Default totalChunks should be 0");
         assertEq(totalInput, 0, "Default totalInput should be 0");
@@ -240,15 +240,14 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.__setExecutedMeta(intentId, expectedLastExec);
         hook.__setTotals(intentId, expectedInput, expectedOutput);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
-        = hook.getIntentStatistics(intentId);
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime) =
+            hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, expectedChunks, "Should return exact executedChunks");
         assertEq(totalInput, expectedInput, "Should return exact totalInputExecuted");
         assertEq(totalOutput, expectedOutput, "Should return exact totalOutput");
         assertEq(lastExecutionTime, expectedLastExec, "Should return exact lastExecutionTime");
     }
-
 
     function test_getIntentStatistics_zeroOutput() public {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
@@ -287,8 +286,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.__setExecutedMeta(intentId, lastExec);
         hook.__setTotals(intentId, inputAmount, outputAmount);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
-        = hook.getIntentStatistics(intentId);
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime) =
+            hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, chunks, "Fuzz: totalChunks precision");
         assertEq(cancelled, cancelled, "Fuzz: cancelled precision");
@@ -878,8 +877,8 @@ contract DCAHookTest is Test, DeployPermit2 {
     function test_getIntentStatistics_uninitialized() public view {
         bytes32 intentId = hook.computeIntentId(SWAPPER, NONCE);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
-        = hook.getIntentStatistics(intentId);
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime) =
+            hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, 0, "Uninitialized chunks should be 0");
         assertEq(totalInput, 0, "Uninitialized input should be 0");
@@ -896,8 +895,8 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.__setExecutedMeta(intentId, execTime);
         hook.__setTotals(intentId, 1000 ether, 2000 ether);
 
-        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
-        = hook.getIntentStatistics(intentId);
+        (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime) =
+            hook.getIntentStatistics(intentId);
 
         assertEq(totalChunks, 5, "Should return correct chunks");
         assertEq(totalInput, 1000 ether, "Should return correct input");

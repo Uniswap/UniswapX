@@ -474,12 +474,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         external
         view
         override
-        returns (
-            uint256 totalChunks,
-            uint256 totalInput,
-            uint256 totalOutput,
-            uint256 lastExecutionTime
-        )
+        returns (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime)
     {
         DCAExecutionState memory s = executionStates[intentId];
         totalChunks = s.executedChunks;

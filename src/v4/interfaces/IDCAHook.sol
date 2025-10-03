@@ -135,7 +135,6 @@ interface IDCAHook is IPreExecutionHook {
     /// @param execAmount The expected exact output amount
     error WrongTotalOutput(uint256 totalOutput, uint256 execAmount);
 
-
     /// @notice Emitted when an intent is cancelled
     /// @param intentId The unique identifier of the intent
     /// @param swapper The address of the swapper who cancelled the intent
@@ -204,10 +203,5 @@ interface IDCAHook is IPreExecutionHook {
     function getIntentStatistics(bytes32 intentId)
         external
         view
-        returns (
-            uint256 totalChunks,
-            uint256 totalInput,
-            uint256 totalOutput,
-            uint256 lastExecutionTime
-        );
+        returns (uint256 totalChunks, uint256 totalInput, uint256 totalOutput, uint256 lastExecutionTime);
 }
