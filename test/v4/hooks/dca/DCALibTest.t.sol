@@ -341,9 +341,9 @@ contract DCALibTest is Test {
 
     function testFuzz_CosignerData_AllFields(
         address swapper,
-        uint256 nonce,
-        uint256 execAmount,
-        uint256 limitAmount,
+        uint96 nonce,
+        uint160 execAmount,
+        uint160 limitAmount,
         uint96 orderNonce
     ) public view {
         address verifying = address(this);
@@ -353,8 +353,8 @@ contract DCALibTest is Test {
             swapper: swapper,
             nonce: nonce,
             execAmount: execAmount,
-            limitAmount: limitAmount,
-            orderNonce: orderNonce
+            orderNonce: orderNonce,
+            limitAmount: limitAmount
         });
 
         // Hash should be deterministic

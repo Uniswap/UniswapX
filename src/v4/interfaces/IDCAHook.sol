@@ -30,7 +30,7 @@ interface IDCAHook is IPreExecutionHook {
     /// @notice Thrown when the cosigner data nonce doesn't match the intent nonce
     /// @param cosignerNonce The nonce in cosigner data
     /// @param intentNonce The nonce in the intent
-    error CosignerNonceMismatch(uint256 cosignerNonce, uint256 intentNonce);
+    error CosignerNonceMismatch(uint96 cosignerNonce, uint256 intentNonce);
 
     /// @notice Thrown when output allocations array is empty
     error EmptyAllocations();

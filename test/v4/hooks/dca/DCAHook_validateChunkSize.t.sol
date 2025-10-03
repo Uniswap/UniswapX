@@ -16,10 +16,10 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     IReactor constant REACTOR = IReactor(REACTOR_ADDRESS);
 
     address constant SWAPPER = address(0x1234);
-    uint256 constant NONCE = 42;
+    uint96 constant NONCE = 42;
 
-    uint256 constant MIN_CHUNK_SIZE = 10e18;
-    uint256 constant MAX_CHUNK_SIZE = 100e18;
+    uint160 constant MIN_CHUNK_SIZE = 10e18;
+    uint160 constant MAX_CHUNK_SIZE = 100e18;
 
     function setUp() public {
         permit2 = IPermit2(deployPermit2());
@@ -56,7 +56,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactIn_revertWhenBelowMinimum() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 belowMin = MIN_CHUNK_SIZE - 1;
+        uint160 belowMin = MIN_CHUNK_SIZE - 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, belowMin, 8e18, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
@@ -65,7 +65,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactIn_revertWhenAboveMaximum() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 aboveMax = MAX_CHUNK_SIZE + 1;
+        uint160 aboveMax = MAX_CHUNK_SIZE + 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, aboveMax, 80e18, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
@@ -75,7 +75,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     function test_validateChunkSize_exactIn_revertWhenInputMismatch() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 50e18, 40e18, 1);
-        uint256 wrongInput = 60e18;
+        uint160 wrongInput = 60e18;
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAmountMismatch.selector, wrongInput, 50e18));
         hook.validateChunkSize(intent, cosignerData, wrongInput);
@@ -120,7 +120,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactOut_validInputAtLimit() public view {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 limit = 60e18;
+        uint160 limit = 60e18;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 50e18, limit, 1);
 
         // Should not revert - input exactly at limit
@@ -129,7 +129,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactOut_revertWhenBelowMinimum() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 belowMin = MIN_CHUNK_SIZE - 1;
+        uint160 belowMin = MIN_CHUNK_SIZE - 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, belowMin, 12e18, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
@@ -139,7 +139,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactOut_revertWhenAboveMaximum() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 aboveMax = MAX_CHUNK_SIZE + 1;
+        uint160 aboveMax = MAX_CHUNK_SIZE + 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, aboveMax, 120e18, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
@@ -156,8 +156,8 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function test_validateChunkSize_exactOut_revertWhenInputAboveLimit() public {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
-        uint256 limit = 60e18;
-        uint256 excessiveInput = limit + 1;
+        uint160 limit = 60e18;
+        uint160 excessiveInput = limit + 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 50e18, limit, 1);
 
         // Exceeds the maximum input the swapper is willing to give up for 50e18 of output
@@ -170,7 +170,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     // ============================================
 
     function test_validateChunkSize_exactIn_minMaxEqual() public view {
-        uint256 fixedChunkSize = 50e18;
+        uint160 fixedChunkSize = 50e18;
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, fixedChunkSize, fixedChunkSize);
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, fixedChunkSize, 40e18, 1);
 
@@ -179,7 +179,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     }
 
     function test_validateChunkSize_exactOut_minMaxEqual() public view {
-        uint256 fixedChunkSize = 50e18;
+        uint160 fixedChunkSize = 50e18;
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, fixedChunkSize, fixedChunkSize);
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, fixedChunkSize, 60e18, 1);
 
@@ -188,10 +188,10 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     }
 
     function test_validateChunkSize_exactIn_largeValues() public view {
-        uint256 minChunk = 1000000e18;
-        uint256 maxChunk = 10000000e18;
-        uint256 execAmount = 5000000e18;
-        uint256 desiredOutput = 9000000e18;
+        uint160 minChunk = 1000000e18;
+        uint160 maxChunk = 10000000e18;
+        uint160 execAmount = 5000000e18;
+        uint160 desiredOutput = 9000000e18;
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
@@ -202,11 +202,11 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
     }
 
     function test_validateChunkSize_exactOut_largeValues() public view {
-        uint256 minChunk = 1000000e18;
-        uint256 maxChunk = 10000000e18;
-        uint256 execAmount = 5000000e18;
-        uint256 inputAmount = 6000000e18;
-        uint256 limit = 7000000e18;
+        uint160 minChunk = 1000000e18;
+        uint160 maxChunk = 10000000e18;
+        uint160 execAmount = 5000000e18;
+        uint160 inputAmount = 6000000e18;
+        uint160 limit = 7000000e18;
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, execAmount, limit, 1);
@@ -224,13 +224,13 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         view
     {
         // Bound inputs to reasonable ranges
-        minChunk = bound(minChunk, 1, type(uint128).max);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max);
+        minChunk = bound(minChunk, 1, type(uint160).max);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max);
         execAmount = bound(execAmount, minChunk, maxChunk);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), uint160(execAmount / 2), 1);
 
         // Should not revert for any valid exec amount within bounds
         hook.validateChunkSize(intent, cosignerData, execAmount);
@@ -240,18 +240,20 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         uint256 minChunk,
         uint256 maxChunk,
         uint256 execAmount,
-        uint256 inputAmount
+        uint256 inputAmount,
+        uint256 limit
     ) public view {
-        minChunk = bound(minChunk, 1, type(uint128).max);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max);
+        minChunk = bound(minChunk, 1, type(uint160).max);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max);
         execAmount = bound(execAmount, minChunk, maxChunk);
 
         // For EXACT_OUT, input must be non-zero and <= limit
-        inputAmount = bound(inputAmount, 1, type(uint128).max);
-        uint256 limit = inputAmount + bound(inputAmount, 0, type(uint128).max);
+        inputAmount = bound(inputAmount, 1, type(uint160).max);
+        limit = bound(limit, inputAmount, type(uint160).max);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, minChunk, maxChunk);
-        DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, execAmount, limit, 1);
+        DCAOrderCosignerData memory cosignerData =
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), uint160(limit), 1);
 
         // Should not revert for valid combinations
         hook.validateChunkSize(intent, cosignerData, inputAmount);
@@ -261,13 +263,13 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         public
     {
         // Setup reasonable bounds ensuring minChunk > 0 for valid "below" range
-        minChunk = bound(minChunk, 1, type(uint128).max / 2);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max);
+        minChunk = bound(minChunk, 1, type(uint160).max / 2);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max);
         execAmount = bound(execAmount, 0, minChunk - 1);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), uint160(execAmount / 2), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, execAmount, minChunk));
         hook.validateChunkSize(intent, cosignerData, execAmount);
@@ -277,13 +279,13 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         public
     {
         // Setup reasonable bounds
-        minChunk = bound(minChunk, 1, type(uint128).max / 2);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max - 1); // Leave room for above max
-        execAmount = bound(execAmount, maxChunk + 1, type(uint256).max);
+        minChunk = bound(minChunk, 1, type(uint160).max / 2);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max - 1); // Leave room for above max
+        execAmount = bound(execAmount, maxChunk + 1, type(uint160).max);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), uint160(execAmount / 2), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, execAmount, maxChunk));
         hook.validateChunkSize(intent, cosignerData, execAmount);
@@ -293,13 +295,13 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         public
     {
         // Setup reasonable bounds ensuring minChunk > 0 for valid "below" range
-        minChunk = bound(minChunk, 1, type(uint128).max / 2);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max);
+        minChunk = bound(minChunk, 1, type(uint160).max / 2);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max);
         execAmount = bound(execAmount, 0, minChunk - 1);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, type(uint128).max, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), type(uint160).max, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, execAmount, minChunk));
         hook.validateChunkSize(intent, cosignerData, 100e18);
@@ -309,13 +311,13 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         public
     {
         // Setup reasonable bounds
-        minChunk = bound(minChunk, 1, type(uint128).max / 2);
-        maxChunk = bound(maxChunk, minChunk, type(uint128).max - 1); // Leave room for above max
-        execAmount = bound(execAmount, maxChunk + 1, type(uint256).max);
+        minChunk = bound(minChunk, 1, type(uint160).max / 2);
+        maxChunk = bound(maxChunk, minChunk, type(uint160).max - 1); // Leave room for above max
+        execAmount = bound(execAmount, maxChunk + 1, type(uint160).max);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, minChunk, maxChunk);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, type(uint128).max, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), type(uint160).max, 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, execAmount, maxChunk));
         hook.validateChunkSize(intent, cosignerData, 100e18);
@@ -323,23 +325,23 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
 
     function testFuzz_validateChunkSize_exactIn_inputMismatch(uint256 execAmount, uint256 inputAmount) public {
         vm.assume(execAmount != inputAmount);
-        vm.assume(execAmount > 0 && execAmount <= type(uint128).max);
-        vm.assume(inputAmount > 0 && inputAmount <= type(uint128).max);
+        vm.assume(execAmount > 0 && execAmount <= type(uint160).max);
+        vm.assume(inputAmount > 0 && inputAmount <= type(uint160).max);
 
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, 1, type(uint256).max);
         DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
+            hook.createTestCosignerData(SWAPPER, NONCE, uint160(execAmount), uint160(execAmount / 2), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAmountMismatch.selector, inputAmount, execAmount));
         hook.validateChunkSize(intent, cosignerData, inputAmount);
     }
 
     function testFuzz_validateChunkSize_exactOut_inputAboveLimit(uint256 limit, uint256 inputAmount) public {
-        limit = bound(limit, 1, type(uint128).max);
-        inputAmount = bound(inputAmount, limit + 1, type(uint256).max);
+        limit = bound(limit, 1, type(uint160).max - 1); // Leave room for above limit
+        inputAmount = bound(inputAmount, limit + 1, type(uint160).max);
 
-        DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, 1, type(uint128).max);
-        DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 50e18, limit, 1);
+        DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, false, 1, type(uint160).max);
+        DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 50e18, uint160(limit), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAboveLimit.selector, inputAmount, limit));
         hook.validateChunkSize(intent, cosignerData, inputAmount);

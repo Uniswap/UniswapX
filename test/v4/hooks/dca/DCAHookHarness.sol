@@ -39,7 +39,7 @@ contract DCAHookHarness is DCAHook {
     }
 
     /// @notice Exposes the internal _validatePriceFloor function for testing
-    function validatePriceFloor(bool isExactIn, uint256 execAmount, uint256 limitAmount, uint256 minPrice)
+    function validatePriceFloor(bool isExactIn, uint160 execAmount, uint160 limitAmount, uint256 minPrice)
         external
         pure
     {
@@ -66,7 +66,7 @@ contract DCAHookHarness is DCAHook {
     }
 
     /// @notice Helper to create a basic DCA intent for testing
-    function createTestIntent(address swapper, uint256 nonce, bool isExactIn, uint256 minChunk, uint256 maxChunk)
+    function createTestIntent(address swapper, uint96 nonce, bool isExactIn, uint256 minChunk, uint256 maxChunk)
         external
         view
         returns (DCAIntent memory)
@@ -105,17 +105,17 @@ contract DCAHookHarness is DCAHook {
     /// @notice Helper to create cosigner data for testing
     function createTestCosignerData(
         address swapper,
-        uint256 nonce,
-        uint256 execAmount,
-        uint256 limitAmount,
+        uint96 nonce,
+        uint160 execAmount,
+        uint160 limitAmount,
         uint96 orderNonce
     ) external pure returns (DCAOrderCosignerData memory) {
         return DCAOrderCosignerData({
             swapper: swapper,
             nonce: nonce,
             execAmount: execAmount,
-            limitAmount: limitAmount,
-            orderNonce: orderNonce
+            orderNonce: orderNonce,
+            limitAmount: limitAmount
         });
     }
 }

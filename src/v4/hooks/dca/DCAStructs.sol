@@ -36,11 +36,12 @@ struct OutputAllocation {
 }
 
 struct DCAOrderCosignerData {
-    address swapper;
-    uint256 nonce;
-    uint256 execAmount; // Amount being executed (input for EXACT_IN, output for EXACT_OUT)
-    uint256 limitAmount; // Limit/bound (min output for EXACT_IN, max input for EXACT_OUT)
-    uint96 orderNonce; // Unique execution chunk identifier (uint96)
+    address swapper; // 20 bytes, slot 1
+    uint96 nonce; // 12 bytes
+    uint160 execAmount; // 20 bytes, slot 2
+    uint96 orderNonce; // 12 bytes Unique execution chunk identifier
+    uint160 limitAmount; // 20 bytes, slot 3 (12 bytes padding)
+        // uint160 matches Permit2's transferFrom amount limit
 }
 
 struct DCAExecutionState {

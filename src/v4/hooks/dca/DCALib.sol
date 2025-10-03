@@ -24,7 +24,7 @@ library DCALib {
     bytes32 constant DCA_INTENT_TYPEHASH = keccak256(DCA_INTENT_TYPE);
 
     bytes constant DCA_COSIGNER_DATA_TYPE =
-        "DCAOrderCosignerData(address swapper,uint256 nonce,uint256 execAmount,uint256 limitAmount,uint96 orderNonce)";
+        "DCAOrderCosignerData(address swapper,uint96 nonce,uint160 execAmount,uint96 orderNonce,uint160 limitAmount)";
     bytes32 constant DCA_COSIGNER_DATA_TYPEHASH = keccak256(DCA_COSIGNER_DATA_TYPE);
 
     // ----- Hash helpers -----
@@ -119,8 +119,8 @@ library DCALib {
                 cosignerData.swapper,
                 cosignerData.nonce,
                 cosignerData.execAmount,
-                cosignerData.limitAmount,
-                cosignerData.orderNonce
+                cosignerData.orderNonce,
+                cosignerData.limitAmount
             )
         );
     }
