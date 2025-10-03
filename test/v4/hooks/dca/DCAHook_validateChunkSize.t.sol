@@ -59,7 +59,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         uint256 belowMin = MIN_CHUNK_SIZE - 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, belowMin, 8e18, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
         hook.validateChunkSize(intent, cosignerData, belowMin);
     }
 
@@ -68,7 +68,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         uint256 aboveMax = MAX_CHUNK_SIZE + 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, aboveMax, 80e18, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
         hook.validateChunkSize(intent, cosignerData, aboveMax);
     }
 
@@ -85,7 +85,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         DCAIntent memory intent = hook.createTestIntent(SWAPPER, NONCE, true, 1, MAX_CHUNK_SIZE);
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, 0, 0, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputBelowMin.selector, 0, 1));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, 0, 1));
         hook.validateChunkSize(intent, cosignerData, 0);
     }
 
@@ -132,7 +132,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         uint256 belowMin = MIN_CHUNK_SIZE - 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, belowMin, 12e18, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.OutputBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, belowMin, MIN_CHUNK_SIZE));
         // Even though the input didn't exceed the limit, the desired MAX_OUTPUT is not valid
         hook.validateChunkSize(intent, cosignerData, 10e18);
     }
@@ -142,7 +142,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         uint256 aboveMax = MAX_CHUNK_SIZE + 1;
         DCAOrderCosignerData memory cosignerData = hook.createTestCosignerData(SWAPPER, NONCE, aboveMax, 120e18, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.OutputAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, aboveMax, MAX_CHUNK_SIZE));
         hook.validateChunkSize(intent, cosignerData, 110e18);
     }
 
@@ -269,7 +269,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData =
             hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputBelowMin.selector, execAmount, minChunk));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, execAmount, minChunk));
         hook.validateChunkSize(intent, cosignerData, execAmount);
     }
 
@@ -285,7 +285,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData =
             hook.createTestCosignerData(SWAPPER, NONCE, execAmount, execAmount / 2, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAboveMax.selector, execAmount, maxChunk));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, execAmount, maxChunk));
         hook.validateChunkSize(intent, cosignerData, execAmount);
     }
 
@@ -301,7 +301,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData =
             hook.createTestCosignerData(SWAPPER, NONCE, execAmount, type(uint128).max, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.OutputBelowMin.selector, execAmount, minChunk));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, execAmount, minChunk));
         hook.validateChunkSize(intent, cosignerData, 100e18);
     }
 
@@ -317,7 +317,7 @@ contract DCAHook_validateChunkSizeTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData =
             hook.createTestCosignerData(SWAPPER, NONCE, execAmount, type(uint128).max, 1);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.OutputAboveMax.selector, execAmount, maxChunk));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, execAmount, maxChunk));
         hook.validateChunkSize(intent, cosignerData, 100e18);
     }
 

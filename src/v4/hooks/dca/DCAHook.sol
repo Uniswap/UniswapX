@@ -274,25 +274,22 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         internal
         pure
     {
+        // Validate chunk size bounds (same logic for both order types)
+        if (cosignerData.execAmount < intent.minChunkSize) {
+            revert ChunkSizeBelowMin(cosignerData.execAmount, intent.minChunkSize);
+        }
+        if (cosignerData.execAmount > intent.maxChunkSize) {
+            revert ChunkSizeAboveMax(cosignerData.execAmount, intent.maxChunkSize);
+        }
+
+        // Order-type specific validations
         if (intent.isExactIn) {
-            if (cosignerData.execAmount < intent.minChunkSize) {
-                revert InputBelowMin(cosignerData.execAmount, intent.minChunkSize);
-            }
-            if (cosignerData.execAmount > intent.maxChunkSize) {
-                revert InputAboveMax(cosignerData.execAmount, intent.maxChunkSize);
-            }
             // We will transfer order.input.amount; ensure it matches execAmount for EXACT_IN
             if (inputAmount != cosignerData.execAmount) {
                 revert InputAmountMismatch(inputAmount, cosignerData.execAmount);
             }
         } else {
-            // EXACT_OUT: execAmount is the exact output amount to deliver
-            if (cosignerData.execAmount < intent.minChunkSize) {
-                revert OutputBelowMin(cosignerData.execAmount, intent.minChunkSize);
-            }
-            if (cosignerData.execAmount > intent.maxChunkSize) {
-                revert OutputAboveMax(cosignerData.execAmount, intent.maxChunkSize);
-            }
+            // EXACT_OUT: validate input constraints
             if (inputAmount == 0) {
                 revert ZeroInput();
             }

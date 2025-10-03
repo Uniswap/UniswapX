@@ -70,25 +70,15 @@ interface IDCAHook is IPreExecutionHook {
     /// @param expectedToken The expected output token from the intent
     error WrongOutputToken(address outputToken, address expectedToken);
 
-    /// @notice Thrown when input amount is below minimum chunk size (EXACT_IN)
-    /// @param amount The actual input amount
+    /// @notice Thrown when chunk size is below minimum allowed
+    /// @param amount The actual chunk size (input for EXACT_IN, output for EXACT_OUT)
     /// @param minChunkSize The minimum allowed chunk size
-    error InputBelowMin(uint256 amount, uint256 minChunkSize);
+    error ChunkSizeBelowMin(uint256 amount, uint256 minChunkSize);
 
-    /// @notice Thrown when input amount exceeds maximum chunk size (EXACT_IN)
-    /// @param amount The actual input amount
+    /// @notice Thrown when chunk size exceeds maximum allowed
+    /// @param amount The actual chunk size (input for EXACT_IN, output for EXACT_OUT)
     /// @param maxChunkSize The maximum allowed chunk size
-    error InputAboveMax(uint256 amount, uint256 maxChunkSize);
-
-    /// @notice Thrown when output amount is below minimum chunk size (EXACT_OUT)
-    /// @param amount The actual output amount
-    /// @param minChunkSize The minimum allowed chunk size
-    error OutputBelowMin(uint256 amount, uint256 minChunkSize);
-
-    /// @notice Thrown when output amount exceeds maximum chunk size (EXACT_OUT)
-    /// @param amount The actual output amount
-    /// @param maxChunkSize The maximum allowed chunk size
-    error OutputAboveMax(uint256 amount, uint256 maxChunkSize);
+    error ChunkSizeAboveMax(uint256 amount, uint256 maxChunkSize);
 
     /// @notice Thrown when input amount doesn't match execAmount (EXACT_IN)
     /// @param inputAmount The input amount in the order
