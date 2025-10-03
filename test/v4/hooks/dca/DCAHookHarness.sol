@@ -7,7 +7,8 @@ import {
     OutputAllocation,
     DCAIntent,
     DCAOrderCosignerData,
-    PrivateIntent
+    PrivateIntent,
+    FeedInfo
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
@@ -79,7 +80,7 @@ contract DCAHookHarness is DCAHook {
             exactFrequency: 3600,
             numChunks: 10,
             salt: bytes32(0),
-            oracleFeeds: new bytes32[](0)
+            oracleFeeds: new FeedInfo[](0)
         });
 
         return DCAIntent({

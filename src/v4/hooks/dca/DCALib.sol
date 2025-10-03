@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData} from "./DCAStructs.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo} from "./DCAStructs.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 library DCALib {
@@ -10,8 +10,12 @@ library DCALib {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     // ----- Type strings -----
+    bytes constant FEED_INFO_TYPE = "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
+    bytes32 constant FEED_INFO_TYPEHASH = keccak256(FEED_INFO_TYPE);
+
     bytes constant PRIVATE_INTENT_TYPE =
-        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
+        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
+        "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
     bytes32 constant PRIVATE_INTENT_TYPEHASH = keccak256(PRIVATE_INTENT_TYPE);
 
     bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint16 basisPoints)";
@@ -19,8 +23,9 @@ library DCALib {
 
     bytes constant DCA_INTENT_TYPE =
         "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
+        "FeedInfo(bytes32 feedId,address feed_address,string feedType)"
         "OutputAllocation(address recipient,uint16 basisPoints)"
-        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,bytes32[] oracleFeeds)";
+        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)";
     bytes32 constant DCA_INTENT_TYPEHASH = keccak256(DCA_INTENT_TYPE);
 
     bytes constant DCA_COSIGNER_DATA_TYPE =
@@ -29,8 +34,17 @@ library DCALib {
 
     // ----- Hash helpers -----
 
-    function _hashBytes32Array(bytes32[] memory arr) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(arr));
+    function _hashFeedInfoArray(FeedInfo[] memory feeds) private pure returns (bytes32) {
+        uint256 len = feeds.length;
+        bytes32[] memory feedHashes = new bytes32[](len);
+        for (uint256 i = 0; i < len; i++) {
+            feedHashes[i] = keccak256(
+                abi.encode(
+                    FEED_INFO_TYPEHASH, feeds[i].feedId, feeds[i].feed_address, keccak256(bytes(feeds[i].feedType))
+                )
+            );
+        }
+        return keccak256(abi.encodePacked(feedHashes));
     }
 
     function _hashOutputAllocations(OutputAllocation[] memory a) private pure returns (bytes32) {
@@ -43,7 +57,7 @@ library DCALib {
     }
 
     function hashPrivateIntent(PrivateIntent memory p) internal pure returns (bytes32) {
-        bytes32 oracleFeedsHash = _hashBytes32Array(p.oracleFeeds);
+        bytes32 oracleFeedsHash = _hashFeedInfoArray(p.oracleFeeds);
         return keccak256(
             abi.encode(PRIVATE_INTENT_TYPEHASH, p.totalAmount, p.exactFrequency, p.numChunks, p.salt, oracleFeedsHash)
         );

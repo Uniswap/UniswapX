@@ -3,6 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
+struct FeedInfo {
+    bytes32 feedId;
+    address feed_address;
+    string feedType;
+}
+
 struct DCAIntent {
     address swapper;
     uint256 nonce;
@@ -27,7 +33,7 @@ struct PrivateIntent {
     uint256 exactFrequency;
     uint256 numChunks;
     bytes32 salt;
-    bytes32[] oracleFeeds; // Array of possible oracle feed IDs
+    FeedInfo[] oracleFeeds; // Array of possible oracle feeds
 }
 
 struct OutputAllocation {

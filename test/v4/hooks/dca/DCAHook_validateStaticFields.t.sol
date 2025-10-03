@@ -6,7 +6,7 @@ import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
 import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
-import {DCAIntent, OutputAllocation, PrivateIntent} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {DCAIntent, OutputAllocation, PrivateIntent, FeedInfo} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {InputToken, OutputToken} from "../../../../src/base/ReactorStructs.sol";
 import {ResolvedOrder, OrderInfo} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPreExecutionHook, IPostExecutionHook} from "../../../../src/v4/interfaces/IHook.sol";
@@ -55,7 +55,7 @@ contract DCAHook_validateStaticFieldsTest is Test, DeployPermit2 {
             exactFrequency: 3600,
             numChunks: 10,
             salt: bytes32(0),
-            oracleFeeds: new bytes32[](0)
+            oracleFeeds: new FeedInfo[](0)
         });
 
         return DCAIntent({

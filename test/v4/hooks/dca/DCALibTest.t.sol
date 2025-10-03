@@ -4,7 +4,9 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import {DCALib} from "src/v4/hooks/dca/DCALib.sol";
-import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData} from "src/v4/hooks/dca/DCAStructs.sol";
+import {
+    DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo
+} from "src/v4/hooks/dca/DCAStructs.sol";
 
 contract DCALibTest is Test {
     // deterministic test key
@@ -69,7 +71,7 @@ contract DCALibTest is Test {
             exactFrequency: 0,
             numChunks: 0,
             salt: bytes32(0),
-            oracleFeeds: new bytes32[](0)
+            oracleFeeds: new FeedInfo[](0)
         });
 
         // one or more output allocations
@@ -98,10 +100,18 @@ contract DCALibTest is Test {
         });
     }
 
-    function _feedIds() internal pure returns (bytes32[] memory a) {
-        a = new bytes32[](2);
-        a[0] = keccak256("feed-0");
-        a[1] = keccak256("feed-1");
+    function _feedIds() internal pure returns (FeedInfo[] memory a) {
+        a = new FeedInfo[](2);
+        a[0] = FeedInfo({
+            feedId: keccak256("feed-0"),
+            feed_address: address(0x1111111111111111111111111111111111111111),
+            feedType: "price"
+        });
+        a[1] = FeedInfo({
+            feedId: keccak256("feed-1"),
+            feed_address: address(0x2222222222222222222222222222222222222222),
+            feedType: "oracle"
+        });
     }
 
     // --- tests ---
