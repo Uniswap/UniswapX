@@ -127,7 +127,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         _validateOutputDistribution(intent, cosignerData, resolvedOrder.outputs);
     }
 
-    function _transferInputTokens(ResolvedOrder calldata order, address to, PermitData memory permitData) private {
+    function _transferInputTokens(ResolvedOrder calldata order, address to, PermitData memory permitData) internal {
         // If a permit signature is provided, set the allowance first
         if (permitData.hasPermit) {
             // Call permit directly since it's memory not calldata

@@ -8,7 +8,8 @@ import {
     DCAIntent,
     DCAOrderCosignerData,
     PrivateIntent,
-    FeedInfo
+    FeedInfo,
+    PermitData
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
@@ -101,6 +102,11 @@ contract DCAHookHarness is DCAHook {
             outputAllocations: allocations,
             privateIntent: privateIntent
         });
+    }
+
+    /// @notice Exposes the internal _transferInputTokens function for testing
+    function transferInputTokens(ResolvedOrder calldata order, address to, PermitData memory permitData) external {
+        _transferInputTokens(order, to, permitData);
     }
 
     /// @notice Helper to create cosigner data for testing
