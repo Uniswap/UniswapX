@@ -35,7 +35,7 @@ contract DCAHookHarness is DCAHook {
         s.totalOutput = totalOutput;
     }
 
-    /// @notice Exposes the internal _validateAllocations function for testing
+    /// @notice Exposes the internal _validateAllocationStructure function for testing
     function validateAllocationStructure(OutputAllocation[] memory outputAllocations) external pure {
         _validateAllocationStructure(outputAllocations);
     }

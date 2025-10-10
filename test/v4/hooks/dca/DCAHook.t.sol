@@ -1018,7 +1018,7 @@ contract DCAHookTest is Test, DeployPermit2 {
     // ========================================
     // Output Allocations Tests
     // ========================================
-    function test_validateOutputAllocations_validSingleRecipient() public view {
+    function test_validateAllocationStructure_validSingleRecipient() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](1);
         allocations[0] = OutputAllocation({recipient: SWAPPER, basisPoints: 10000});
 
@@ -1026,7 +1026,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_validWithFees() public view {
+    function test_validateAllocationStructure_validWithFees() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](2);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
@@ -1041,14 +1041,14 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_revertsEmptyArray() public {
+    function test_validateAllocationStructure_revertsEmptyArray() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](0);
 
         vm.expectRevert(IDCAHook.EmptyAllocations.selector);
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_revertsZeroAllocation() public {
+    function test_validateAllocationStructure_revertsZeroAllocation() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](2);
         allocations[0] = OutputAllocation({recipient: SWAPPER, basisPoints: 10000});
         allocations[1] = OutputAllocation({
@@ -1060,7 +1060,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_revertsBelow100Percent() public {
+    function test_validateAllocationStructure_revertsBelow100Percent() public {
         OutputAllocation[] memory allocations = new OutputAllocation[](2);
         allocations[0] = OutputAllocation({
             recipient: SWAPPER,
@@ -1075,7 +1075,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_revertsExceedsDuringSum() public {
+    function test_validateAllocationStructure_revertsExceedsDuringSum() public {
         // Test that allocations exceeding 100% are caught at the end
         OutputAllocation[] memory allocations = new OutputAllocation[](3);
         allocations[0] = OutputAllocation({
@@ -1095,7 +1095,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function test_validateOutputAllocations_manyRecipients() public view {
+    function test_validateAllocationStructure_manyRecipients() public view {
         OutputAllocation[] memory allocations = new OutputAllocation[](10);
 
         for (uint256 i = 0; i < 9; i++) {
@@ -1114,7 +1114,7 @@ contract DCAHookTest is Test, DeployPermit2 {
         hook.validateAllocationStructure(allocations);
     }
 
-    function testFuzz_validateOutputAllocations_validDistributions(uint8 numRecipients, uint256 seed) public view {
+    function testFuzz_validateAllocationStructure_validDistributions(uint8 numRecipients, uint256 seed) public view {
         vm.assume(numRecipients > 0 && numRecipients <= 10);
 
         OutputAllocation[] memory allocations = new OutputAllocation[](numRecipients);
