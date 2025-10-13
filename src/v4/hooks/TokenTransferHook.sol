@@ -10,23 +10,23 @@ import {TokenTransferLib} from "../lib/TokenTransferLib.sol";
 /// @notice Canonical token transfer hook contract that uses permit2's Signature transfer
 contract TokenTransferHook is IPreExecutionHook {
     /// @notice Permit2 instance for signature verification and token transfers
-    IPermit2 public immutable PERMIT2;
+    IPermit2 public immutable permit2;
 
     /// @notice v4 Reactor
-    IReactor public immutable REACTOR;
+    IReactor public immutable reactor;
 
     modifier onlyReactor() {
-        require(msg.sender == address(REACTOR));
+        require(msg.sender == address(reactor));
         _;
     }
 
     constructor(IPermit2 _permit2, IReactor _reactor) {
-        PERMIT2 = _permit2;
-        REACTOR = _reactor;
+        permit2 = _permit2;
+        reactor = _reactor;
     }
 
     /// @inheritdoc IPreExecutionHook
     function preExecutionHook(address filler, ResolvedOrder calldata resolvedOrder) external override onlyReactor {
-        TokenTransferLib.signatureTransferInputTokens(PERMIT2, resolvedOrder, filler);
+        TokenTransferLib.signatureTransferInputTokens(permit2, resolvedOrder, filler);
     }
 }

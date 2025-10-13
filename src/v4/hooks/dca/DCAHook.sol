@@ -25,7 +25,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     IPermit2 public immutable permit2;
 
     /// @notice UniswapX V4 Reactor
-    IReactor public immutable REACTOR;
+    IReactor public immutable reactor;
 
     /// @notice EIP-712 domain separator
     bytes32 public immutable domainSeparator;
@@ -36,12 +36,12 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     constructor(IPermit2 _permit2, IReactor _reactor) {
         permit2 = _permit2;
-        REACTOR = _reactor;
+        reactor = _reactor;
         domainSeparator = DCALib.computeDomainSeparator(address(this));
     }
 
     modifier onlyReactor() {
-        require(msg.sender == address(REACTOR));
+        require(msg.sender == address(reactor));
         _;
     }
 

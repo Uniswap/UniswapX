@@ -29,10 +29,10 @@ contract PriorityAuctionResolver is IAuctionResolver {
     error InvalidGasPrice();
 
     /// @notice Permit2 instance for nonce checking
-    IPermit2 public immutable PERMIT2;
+    IPermit2 public immutable permit2;
 
     constructor(IPermit2 _permit2) {
-        PERMIT2 = _permit2;
+        permit2 = _permit2;
     }
 
     /// @inheritdoc IAuctionResolver
@@ -128,7 +128,7 @@ contract PriorityAuctionResolver is IAuctionResolver {
     function _checkPermit2Nonce(address swapper, uint256 nonce) internal view {
         uint256 wordPos = uint248(nonce >> 8);
         uint256 bit = 1 << uint8(nonce); // bitPos
-        uint256 bitmap = PERMIT2.nonceBitmap(swapper, wordPos);
+        uint256 bitmap = permit2.nonceBitmap(swapper, wordPos);
         uint256 flipped = bitmap ^ bit;
 
         if (flipped & bit == 0) revert OrderAlreadyFilled();
