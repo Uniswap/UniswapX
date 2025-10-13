@@ -23,8 +23,11 @@ import {MockAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
+import {ERC20ETH} from "../../lib/calibur/lib/erc20-eth/src/ERC20Eth.sol";
+import {DelegationHandler} from "../native-input/DelegationHandler.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
-contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
+contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, DelegationHandler {
     using OrderInfoBuilder for OrderInfo;
     using MockOrderLib for MockOrder;
     using ArrayBuilder for uint256[];
@@ -47,6 +50,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
     MockAuctionResolver mockResolver;
     uint256 swapperPrivateKey;
     address swapper;
+    ERC20ETH erc20eth;
 
     function setUp() public {
         tokenIn = new MockERC20("Input", "IN", 18);
@@ -66,6 +70,9 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         mockResolver = new MockAuctionResolver();
         fillContract = new MockFillContract(address(reactor));
         vm.deal(address(fillContract), type(uint256).max);
+
+        setUpDelegation();
+        erc20eth = new ERC20ETH();
     }
 
     /// @dev Create a signed order for Reactor using MockOrder
@@ -201,7 +208,72 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         assertEq(tokenOut.balanceOf(address(feeRecipient)), feeAmount);
     }
 
-    /// @dev Basic execute test for native currency output
+    /// @dev execute test for native currency input
+    function test_executeNativeInput() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+
+        // Reset fillContract ETH balance to avoid overflow (it's set to type(uint256).max in setUp)
+        vm.deal(address(fillContract), 0);
+
+        // Fund the signerAccount (smart contract account) with native ETH
+        vm.deal(address(signerAccount), inputAmount);
+
+        // Approve ERC20ETH to use signerAccount's native ETH
+        vm.prank(address(signerAccount));
+        signerAccount.approveNative(address(erc20eth), type(uint256).max);
+
+        // Mint output tokens for the filler
+        tokenOut.mint(address(fillContract), outputAmount);
+
+        // Create order with native ETH input
+        MockOrder memory order = MockOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(address(signerAccount)).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(mockResolver),
+            input: InputToken(MockERC20(address(erc20eth)), inputAmount, inputAmount),
+            outputs: OutputsBuilder.single(address(tokenOut), outputAmount, address(signerAccount))
+        });
+
+        // Sign with the signerAccount's private key from DelegationHandler
+        bytes32 orderHash = order.hash();
+        bytes memory sig = signOrder(signerPrivateKey, address(permit2), order);
+        bytes memory orderData = abi.encode(order);
+        bytes memory encodedOrder = abi.encode(address(mockResolver), orderData);
+        SignedOrder memory signedOrder = SignedOrder(encodedOrder, sig);
+
+        // Check balances before
+        uint256 signerAccountEthBalanceStart = address(signerAccount).balance;
+        uint256 fillContractEthBalanceStart = address(fillContract).balance;
+        uint256 signerAccountTokenOutBalanceStart = tokenOut.balanceOf(address(signerAccount));
+        uint256 fillContractTokenOutBalanceStart = tokenOut.balanceOf(address(fillContract));
+
+        // Execute the order
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), address(signerAccount), order.info.nonce);
+        fillContract.execute(signedOrder);
+        vm.snapshotGasLastCall("ReactorExecuteSingleNativeInput");
+
+        // Verify balances after execution
+        assertEq(
+            address(signerAccount).balance, signerAccountEthBalanceStart - inputAmount, "Swapper ETH balance incorrect"
+        );
+        assertEq(
+            address(fillContract).balance, fillContractEthBalanceStart + inputAmount, "Filler ETH balance incorrect"
+        );
+        assertEq(
+            tokenOut.balanceOf(address(signerAccount)),
+            signerAccountTokenOutBalanceStart + outputAmount,
+            "Swapper tokenOut balance incorrect"
+        );
+        assertEq(
+            tokenOut.balanceOf(address(fillContract)),
+            fillContractTokenOutBalanceStart - outputAmount,
+            "Filler tokenOut balance incorrect"
+        );
+    }
+
+    /// @dev execute test for native currency output
     function test_executeNativeOutput() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;
@@ -265,7 +337,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2 {
         uint256 fillerExecutionsBefore = preExecutionHook.fillerExecutions(address(fillContract));
 
         fillContract.execute(signedOrder);
-        vm.snapshotGasLastCall("ReactorExecuteSingleWithHook");
 
         // Verify hook was called and state was modified
         assertEq(preExecutionHook.preExecutionCounter(), counterBefore + 1);

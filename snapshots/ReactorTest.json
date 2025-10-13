@@ -4,6 +4,6 @@
   "ReactorExecuteBatchMultipleOutputsDifferentTokens": "288348",
   "ReactorExecuteBatchNativeOutput": "219978",
   "ReactorExecuteSingle": "163140",
-  "ReactorExecuteSingleNativeOutput": "151083",
-  "ReactorExecuteSingleWithHook": "207701"
+  "ReactorExecuteSingleNativeInput": "161272",
+  "ReactorExecuteSingleNativeOutput": "151083"
 }
