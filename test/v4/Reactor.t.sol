@@ -10,7 +10,7 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 import {Reactor} from "../../src/v4/Reactor.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
-import {OrderInfo, ResolvedOrder} from "../../src/v4/base/ReactorStructs.sol";
+import {OrderInfo} from "../../src/v4/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../v4/util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";

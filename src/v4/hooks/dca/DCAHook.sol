@@ -3,15 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IDCAHook} from "../../interfaces/IDCAHook.sol";
 import {IPreExecutionHook} from "../../interfaces/IHook.sol";
-import {ResolvedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
+import {ResolvedOrder, OutputToken} from "../../base/ReactorStructs.sol";
 import {DCAIntent, DCAExecutionState, DCAOrderCosignerData, OutputAllocation, PermitData} from "./DCAStructs.sol";
 import {DCALib} from "./DCALib.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactor} from "../../interfaces/IReactor.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {Permit2Lib} from "../../lib/Permit2Lib.sol";
-import {IAuctionResolver} from "../../interfaces/IAuctionResolver.sol";
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {TokenTransferLib} from "../../lib/TokenTransferLib.sol";
 

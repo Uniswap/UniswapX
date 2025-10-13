@@ -5,9 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
 import {PermitSignature} from "../../util/PermitSignature.sol";
-import {ResolvedOrder} from "../../../src/v4/base/ReactorStructs.sol";
 import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
-import {SignedOrder, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
+import {SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {Reactor} from "../../../src/v4/Reactor.sol";
 import {PriorityAuctionResolver} from "../../../src/v4/resolvers/PriorityAuctionResolver.sol";
@@ -16,7 +15,6 @@ import {PriorityInput, PriorityOutput, PriorityCosignerData} from "../../../src/
 import {PriorityFeeLib} from "../../../src/lib/PriorityFeeLib.sol";
 import {CosignerLib} from "../../../src/lib/CosignerLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
-import {OutputsBuilder} from "../../util/OutputsBuilder.sol";
 import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
 import {MockFeeController} from "../../util/mock/MockFeeController.sol";
@@ -30,7 +28,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
     using PriorityFeeLib for PriorityOutput[];
 
     uint256 constant ONE = 10 ** 18;
-    uint256 constant cosignerPrivateKey = 0x99999999;
+    uint256 constant COSIGNER_PRIVATE_KEY = 0x99999999;
     address internal constant PROTOCOL_FEE_OWNER = address(1);
 
     MockERC20 tokenIn;
@@ -53,7 +51,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         tokenOut2 = new MockERC20("Output2", "OUT2", 18);
         swapperPrivateKey = 0x12341234;
         swapper = vm.addr(swapperPrivateKey);
-        cosigner = vm.addr(cosignerPrivateKey);
+        cosigner = vm.addr(COSIGNER_PRIVATE_KEY);
         permit2 = IPermit2(deployPermit2());
         feeRecipient = makeAddr("feeRecipient");
 
@@ -99,7 +97,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         returns (bytes memory cosignature)
     {
         bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(COSIGNER_PRIVATE_KEY, msgHash);
         cosignature = bytes.concat(r, s, bytes1(v));
     }
 
@@ -601,7 +599,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
 
         // Sign with invalid chain ID
         bytes32 msgHash = keccak256(abi.encodePacked(order.hash(), invalidChainId, abi.encode(cosignerData)));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(COSIGNER_PRIVATE_KEY, msgHash);
         order.cosignature = bytes.concat(r, s, bytes1(v));
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);

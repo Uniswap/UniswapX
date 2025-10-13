@@ -7,7 +7,6 @@ import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
 import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 import {DCAExecutionState, OutputAllocation} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
-import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
 
 contract DCAHookTest is Test, DeployPermit2 {
