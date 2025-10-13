@@ -14,7 +14,6 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/Reentrancy
 import {ProtocolFees} from "./base/ProtocolFees.sol";
 
 /// @notice modular UniswapX Reactor that supports pre-and-post fill hooks and auction resolver plugins
-/// @dev Does not inherit from BaseReactor
 contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
     using CurrencyLibrary for address;
 
@@ -94,7 +93,7 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
         }
     }
 
-    /// @notice Prepare orders for execution (validation and pre-execution hooks)
+    /// @notice Prepare orders for execution by calling pre-execution hooks and injecting fees
     function _prepare(ResolvedOrder[] memory orders) internal {
         uint256 ordersLength = orders.length;
         unchecked {
