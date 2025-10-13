@@ -11,7 +11,13 @@ import {ExclusiveDutchOrder, ExclusiveDutchOrderLib} from "../../src/lib/Exclusi
 import {V2DutchOrder, V2DutchOrderLib} from "../../src/lib/V2DutchOrderLib.sol";
 import {V3DutchOrder, V3DutchOrderLib} from "../../src/lib/V3DutchOrderLib.sol";
 import {PriorityOrder, PriorityOrderLib} from "../../src/lib/PriorityOrderLib.sol";
+import {
+    PriorityOrder as PriorityOrderV2,
+    PriorityOrderLib as PriorityOrderLibV2
+} from "../../src/v4/lib/PriorityOrderLib.sol";
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
+import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
+import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -19,7 +25,9 @@ contract PermitSignature is Test {
     using ExclusiveDutchOrderLib for ExclusiveDutchOrder;
     using V2DutchOrderLib for V2DutchOrder;
     using PriorityOrderLib for PriorityOrder;
+    using PriorityOrderLibV2 for PriorityOrderV2;
     using V3DutchOrderLib for V3DutchOrder;
+    using MockOrderLib for MockOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -43,8 +51,13 @@ contract PermitSignature is Test {
     bytes32 constant PRIORITY_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, PriorityOrderLib.PERMIT2_ORDER_TYPE));
 
+    bytes32 constant PRIORITY_ORDER_V2_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, PriorityOrderLibV2.PERMIT2_ORDER_TYPE));
+
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
+
+    bytes32 constant MOCK_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
 
     function getPermitSignature(
         uint256 privateKey,
@@ -165,6 +178,23 @@ contract PermitSignature is Test {
         );
     }
 
+    function signOrder(uint256 privateKey, address permit2, PriorityOrderV2 memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        return signOrder(
+            privateKey,
+            permit2,
+            order.info,
+            address(order.input.token),
+            // amount is max amount for priority orders
+            order.input.amount,
+            PRIORITY_ORDER_V2_TYPE_HASH,
+            order.hash()
+        );
+    }
+
     function signOrder(uint256 privateKey, address permit2, V3DutchOrder memory order)
         internal
         view
@@ -178,6 +208,41 @@ contract PermitSignature is Test {
             order.baseInput.maxAmount,
             V3_DUTCH_ORDER_TYPE_HASH,
             order.hash()
+        );
+    }
+
+    function signOrder(
+        uint256 privateKey,
+        address permit2,
+        OrderInfoV2 memory info,
+        address inputToken,
+        uint256 inputAmount,
+        bytes32 typeHash,
+        bytes32 orderHash
+    ) internal view returns (bytes memory sig) {
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({token: inputToken, amount: inputAmount}),
+            nonce: info.nonce,
+            deadline: info.deadline
+        });
+        return getPermitSignature(privateKey, permit2, permit, address(info.preExecutionHook), typeHash, orderHash);
+    }
+
+    function signOrder(uint256 privateKey, address permit2, MockOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token),
+                amount: order.input.maxAmount
+            }),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+        return getPermitSignature(
+            privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash()
         );
     }
 

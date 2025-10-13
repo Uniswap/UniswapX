@@ -1,0 +1,9 @@
+{
+  "BaseExecuteSingleWithFee": "197697",
+  "ReactorExecuteBatch": "224190",
+  "ReactorExecuteBatchMultipleOutputsDifferentTokens": "288348",
+  "ReactorExecuteBatchNativeOutput": "219978",
+  "ReactorExecuteSingle": "163140",
+  "ReactorExecuteSingleNativeInput": "161272",
+  "ReactorExecuteSingleNativeOutput": "151083"
+}
