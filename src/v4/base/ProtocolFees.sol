@@ -6,10 +6,10 @@ import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IProtocolFeeController} from "../interfaces/IProtocolFeeController.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
-import {ResolvedOrder, OutputToken} from "../base/ReactorStructs.sol";
+import {CurrencyLibrary} from "../../lib/CurrencyLibrary.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {OutputToken} from "../../base/ReactorStructs.sol";
 
-/// @notice Handling for protocol fees
 abstract contract ProtocolFees is Owned {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
