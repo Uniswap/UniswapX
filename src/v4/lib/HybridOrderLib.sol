@@ -80,7 +80,10 @@ library HybridOrderLib {
         "uint256 nonce,",
         "uint256 deadline,",
         "address preExecutionHook,",
-        "bytes preExecutionHookData)"
+        "bytes preExecutionHookData,",
+        "address postExecutionHook,",
+        "bytes postExecutionHookData,",
+        "address auctionResolver)"
     );
 
     bytes internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";

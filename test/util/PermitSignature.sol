@@ -18,6 +18,7 @@ import {
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
 import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
+import {HybridOrder, HybridOrderLib} from "../../src/v4/lib/HybridOrderLib.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -60,12 +61,8 @@ contract PermitSignature is Test {
 
     bytes32 constant MOCK_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
 
-<<<<<<< Updated upstream
     bytes32 constant HYBRID_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, HybridOrderLib.PERMIT2_ORDER_TYPE));
-=======
-    bytes32 constant HYBRID_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, HybridOrderLib.PERMIT2_ORDER_TYPE));
->>>>>>> Stashed changes
 
     function getPermitSignature(
         uint256 privateKey,
@@ -267,27 +264,6 @@ contract PermitSignature is Test {
         // Sign for the maximum possible transfer amount (maxAmount)
         uint256 permitAmount = order.input.maxAmount;
 
-        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: permitAmount}),
-            nonce: order.info.nonce,
-            deadline: order.info.deadline
-        });
-        return getPermitSignature(privateKey, permit2, permit, spender, HYBRID_ORDER_TYPE_HASH, order.hash());
-    }
-
-    function signOrder(uint256 privateKey, address permit2, HybridOrder memory order)
-        internal
-        view
-        returns (bytes memory sig)
-    {
-        // Use the pre-execution hook as the spender if it's set, otherwise use reactor
-        address spender = address(order.info.preExecutionHook) != address(0) 
-            ? address(order.info.preExecutionHook) 
-            : address(order.info.reactor);
-            
-        // Sign for the maximum possible transfer amount (maxAmount)
-        uint256 permitAmount = order.input.maxAmount;
-            
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: permitAmount}),
             nonce: order.info.nonce,

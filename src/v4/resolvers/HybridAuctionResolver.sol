@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
-import {SignedOrder, ResolvedOrderV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
+import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {HybridOrder, HybridOrderLib, HybridInput, HybridOutput} from "../lib/HybridOrderLib.sol";
-import {CosignerLib} from "../lib/CosignerLib.sol";
+import {CosignerLib} from "../../lib/CosignerLib.sol";
 
 /// @notice Resolver for hybrid Dutch + priority gas auctions following Tribunal's model
 contract HybridAuctionResolver is IAuctionResolver {
@@ -20,7 +21,7 @@ contract HybridAuctionResolver is IAuctionResolver {
         external
         view
         override
-        returns (ResolvedOrderV2 memory resolvedOrder)
+        returns (ResolvedOrder memory resolvedOrder)
     {
         HybridOrder memory order = abi.decode(signedOrder.order, (HybridOrder));
 
@@ -56,7 +57,7 @@ contract HybridAuctionResolver is IAuctionResolver {
         uint256 priorityFeeAboveBaseline = _getPriorityFee(order.baselinePriorityFee);
         if (useExactIn) {
             scalingMultiplier = currentScalingFactor + ((order.scalingFactor - 1e18) * priorityFeeAboveBaseline);
-            resolvedOrder = ResolvedOrderV2({
+            resolvedOrder = ResolvedOrder({
                 info: order.info,
                 input: InputToken({
                     token: order.input.token,
@@ -78,7 +79,7 @@ contract HybridAuctionResolver is IAuctionResolver {
                     recipient: order.outputs[i].recipient
                 });
             }
-            resolvedOrder = ResolvedOrderV2({
+            resolvedOrder = ResolvedOrder({
                 info: order.info,
                 input: order.input.scale(scalingMultiplier),
                 outputs: outputs,
