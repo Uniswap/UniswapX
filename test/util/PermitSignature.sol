@@ -28,6 +28,7 @@ contract PermitSignature is Test {
     using PriorityOrderLibV2 for PriorityOrderV2;
     using V3DutchOrderLib for V3DutchOrder;
     using MockOrderLib for MockOrder;
+    using HybridOrderLib for HybridOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -58,6 +59,13 @@ contract PermitSignature is Test {
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant MOCK_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
+
+<<<<<<< Updated upstream
+    bytes32 constant HYBRID_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, HybridOrderLib.PERMIT2_ORDER_TYPE));
+=======
+    bytes32 constant HYBRID_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, HybridOrderLib.PERMIT2_ORDER_TYPE));
+>>>>>>> Stashed changes
 
     function getPermitSignature(
         uint256 privateKey,
@@ -244,6 +252,48 @@ contract PermitSignature is Test {
         return getPermitSignature(
             privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash()
         );
+    }
+
+    function signOrder(uint256 privateKey, address permit2, HybridOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        // Use the pre-execution hook as the spender if it's set, otherwise use reactor
+        address spender = address(order.info.preExecutionHook) != address(0)
+            ? address(order.info.preExecutionHook)
+            : address(order.info.reactor);
+
+        // Sign for the maximum possible transfer amount (maxAmount)
+        uint256 permitAmount = order.input.maxAmount;
+
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: permitAmount}),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+        return getPermitSignature(privateKey, permit2, permit, spender, HYBRID_ORDER_TYPE_HASH, order.hash());
+    }
+
+    function signOrder(uint256 privateKey, address permit2, HybridOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        // Use the pre-execution hook as the spender if it's set, otherwise use reactor
+        address spender = address(order.info.preExecutionHook) != address(0) 
+            ? address(order.info.preExecutionHook) 
+            : address(order.info.reactor);
+            
+        // Sign for the maximum possible transfer amount (maxAmount)
+        uint256 permitAmount = order.input.maxAmount;
+            
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: permitAmount}),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+        return getPermitSignature(privateKey, permit2, permit, spender, HYBRID_ORDER_TYPE_HASH, order.hash());
     }
 
     function _domainSeparatorV4(address permit2) internal view returns (bytes32) {

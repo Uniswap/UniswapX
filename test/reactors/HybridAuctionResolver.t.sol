@@ -30,6 +30,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     using OrderInfoBuilderV2 for OrderInfoV2;
     using HybridOrderLib for HybridOrder;
     using PriceCurveLib for uint256;
+    using PriceCurveLib for uint256[];
     using ArrayBuilder for uint256[];
 
     uint256 constant ONE = 10 ** 18;
@@ -141,16 +142,14 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     }
 
     function test_dutchAuction_exactOut() public {
-        uint256 inputStartAmount = 0.9 ether;
-        uint256 inputEndAmount = 1.1 ether;
+        uint256 inputMaxAmount = 1 ether;
         uint256 outputAmount = 1 ether;
         uint256 deadline = block.timestamp + 1000;
         uint256 auctionStartBlock = block.number;
 
-        // Create Dutch curve: decays to 80% over 100 blocks
-        // Pack as (duration << 240) | scalingFactor
-        uint256[] memory dutchCurve = new uint256[](1);
+        uint256[] memory dutchCurve = new uint256[](2);
         dutchCurve[0] = (uint256(100) << 240) | uint256(0.8e18);
+        dutchCurve[1] = (uint256(0) << 240) | uint256(1e18);
 
         HybridOutput[] memory outputs = new HybridOutput[](1);
         outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputAmount, recipient: swapper});
@@ -164,7 +163,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             outputs: outputs,
             auctionStartBlock: auctionStartBlock,
             baselinePriorityFee: 0,
-            scalingFactor: 0.9e18, // Exact-out mode (< 1e18)
+            scalingFactor: 1e18,
             priceCurve: dutchCurve,
             cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
             cosignature: ""
@@ -175,18 +174,13 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         tokenOut.mint(address(fillContract), outputAmount);
         tokenIn.forceApprove(swapper, address(permit2), inputEndAmount);
 
-        // Fast forward 50 blocks - scaling goes from 0.9 to interpolated value
-        // At 50 blocks (halfway), currentScalingFactor = 0.8 - (0.8 * 50/100) = 0.4
-        // Input scaling = 0.4 (no priority adjustment)
-        // Input amount interpolates: 0.9 + (1.1 - 0.9) * (0.9 - 0.4) / 0.9 = 0.9 + 0.2 * 0.556 = 1.011 ether
         vm.roll(block.number + 50);
 
         (SignedOrder memory signedOrder,) = signAndEncodeOrder(order);
         fillContract.execute(signedOrder);
 
-        // Calculate expected input based on interpolation
-        // scaling went from 0.9 to 0.4, so (0.9 - 0.4) / 0.9 = 55.6% of the way
-        uint256 expectedInput = inputStartAmount + ((inputEndAmount - inputStartAmount) * 556 / 1000);
+        // interpolating from 0.8 to 1
+        uint256 expectedInput = inputStartAmount + ((inputEndAmount - inputStartAmount) * 50 / 100);
         assertApproxEqAbs(tokenIn.balanceOf(address(fillContract)), expectedInput, 0.01 ether);
         assertEq(tokenOut.balanceOf(swapper), outputAmount); // Fixed output
     }
