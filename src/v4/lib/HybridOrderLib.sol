@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {OrderInfoV2, InputToken, OutputToken} from "../base/ReactorStructs.sol";
-import {OrderInfoLibV2} from "./OrderInfoLibV2.sol";
+import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
+import {OrderInfo} from "../base/ReactorStructs.sol";
+import {OrderInfoLib} from "./OrderInfoLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {PriceCurveLib} from "lib/tribunal/src/lib/PriceCurveLib.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
@@ -32,7 +33,7 @@ struct HybridOutput {
 
 /// @notice Hybrid auction order combining Dutch decay and priority gas auctions
 struct HybridOrder {
-    OrderInfoV2 info;
+    OrderInfo info;
     address cosigner;
     HybridInput input;
     HybridOutput[] outputs;
@@ -46,7 +47,7 @@ struct HybridOrder {
 
 /// @notice Library for handling hybrid auction orders
 library HybridOrderLib {
-    using OrderInfoLibV2 for OrderInfoV2;
+    using OrderInfoLib for OrderInfo;
     using FixedPointMathLib for uint256;
     using PriceCurveLib for uint256[];
     using PriceCurveLib for uint256;
@@ -56,7 +57,7 @@ library HybridOrderLib {
 
     bytes internal constant HYBRID_ORDER_TYPE = abi.encodePacked(
         "HybridOrder(",
-        "OrderInfoV2 info,",
+        "OrderInfo info,",
         "address cosigner,",
         "HybridInput input,",
         "HybridOutput[] outputs,",
@@ -73,7 +74,7 @@ library HybridOrderLib {
         abi.encodePacked("HybridOutput(", "address token,", "uint256 minAmount,", "address recipient)");
 
     bytes internal constant ORDER_INFO_TYPE = abi.encodePacked(
-        "OrderInfoV2(",
+        "OrderInfo(",
         "address reactor,",
         "address swapper,",
         "uint256 nonce,",
