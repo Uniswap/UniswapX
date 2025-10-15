@@ -42,7 +42,11 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
     // Events from IDCAHook
     event ChunkExecuted(
-        bytes32 indexed intentId, uint256 execAmount, uint256 limitAmount, uint256 totalInputExecuted, uint256 totalOutput
+        bytes32 indexed intentId,
+        uint256 execAmount,
+        uint256 limitAmount,
+        uint256 totalInputExecuted,
+        uint256 totalOutput
     );
 
     function setUp() public {
@@ -115,9 +119,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Build the resolved order and encode hook data
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, execAmount, minOutput);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Execute the hook (filler calls this)
         vm.expectEmit(true, false, false, true);
@@ -174,9 +177,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Build the resolved order and encode hook data
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, execAmount, minOutput);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Get expected cumulative values
         DCAExecutionState memory stateBefore = hook.getExecutionState(intentId);
@@ -231,9 +233,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Build resolved order: actualInput=105e18, exactOutput=200e18
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 105e18, 200e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Execute
         vm.expectEmit(true, false, false, true);
@@ -280,10 +281,10 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Build resolved order with multiple recipients (90% to swapper, 10% to fee)
         address feeRecipient = address(0xFEE);
-        ResolvedOrder memory resolvedOrder = _createResolvedOrderMultipleRecipients(intent, 100e18, 180e18, feeRecipient);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        ResolvedOrder memory resolvedOrder =
+            _createResolvedOrderMultipleRecipients(intent, 100e18, 180e18, feeRecipient);
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Execute
         vm.expectEmit(true, false, false, true);
@@ -335,9 +336,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Should revert with IntentIsCancelled
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.IntentIsCancelled.selector, intentId));
@@ -380,9 +380,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Build resolved order with invalid signature
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, invalidSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, invalidSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Should revert with InvalidSwapperSignature
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidSwapperSignature.selector, wrongSigner, swapper));
@@ -398,9 +397,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         intent.hookAddress = wrongHook; // Intentionally wrong
 
         _testStaticFieldValidationError(
-            intent,
-            nonce,
-            abi.encodeWithSelector(IDCAHook.WrongHook.selector, wrongHook, address(hook))
+            intent, nonce, abi.encodeWithSelector(IDCAHook.WrongHook.selector, wrongHook, address(hook))
         );
     }
 
@@ -413,9 +410,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         intent.chainId = wrongChainId; // Intentionally wrong
 
         _testStaticFieldValidationError(
-            intent,
-            nonce,
-            abi.encodeWithSelector(IDCAHook.WrongChain.selector, wrongChainId, block.chainid)
+            intent, nonce, abi.encodeWithSelector(IDCAHook.WrongChain.selector, wrongChainId, block.chainid)
         );
     }
 
@@ -450,9 +445,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Should revert with SwapperMismatch
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.SwapperMismatch.selector, differentSwapper, swapper));
@@ -504,11 +498,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         intent.outputAllocations = new OutputAllocation[](0); // Intentionally empty
 
-        _testStaticFieldValidationError(
-            intent,
-            nonce,
-            abi.encodeWithSelector(IDCAHook.EmptyAllocations.selector)
-        );
+        _testStaticFieldValidationError(intent, nonce, abi.encodeWithSelector(IDCAHook.EmptyAllocations.selector));
     }
 
     /// @notice Test ZeroAllocation error when an allocation has 0 basis points
@@ -520,11 +510,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         allocations[0] = OutputAllocation({recipient: swapper, basisPoints: 0}); // Intentionally zero
         intent.outputAllocations = allocations;
 
-        _testStaticFieldValidationError(
-            intent,
-            nonce,
-            abi.encodeWithSelector(IDCAHook.ZeroAllocation.selector)
-        );
+        _testStaticFieldValidationError(intent, nonce, abi.encodeWithSelector(IDCAHook.ZeroAllocation.selector));
     }
 
     /// @notice Test AllocationsNot100Percent error when allocations don't sum to 10000 bps
@@ -539,9 +525,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         intent.outputAllocations = allocations;
 
         _testStaticFieldValidationError(
-            intent,
-            nonce,
-            abi.encodeWithSelector(IDCAHook.AllocationsNot100Percent.selector, 8000)
+            intent, nonce, abi.encodeWithSelector(IDCAHook.AllocationsNot100Percent.selector, 8000)
         );
     }
 
@@ -576,9 +560,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory invalidCosignerSignature = _sign(wrongPrivateKey, cosignerDigest);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, invalidCosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, invalidCosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidCosignerSignature.selector, wrongCosigner, cosigner));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -617,9 +600,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.CosignerSwapperMismatch.selector, wrongSwapper, swapper));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -658,9 +640,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.CosignerNonceMismatch.selector, wrongNonce, nonce));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -694,9 +675,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
         resolvedOrder.info.deadline = block.timestamp + 1 days;
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Fast forward past deadline
         vm.warp(block.timestamp + 1 days + 1);
@@ -733,9 +713,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         hook.preExecutionHook(filler, resolvedOrder);
 
@@ -760,9 +739,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature2 = _signCosignerData(cosignerData2);
 
         ResolvedOrder memory resolvedOrder2 = _createResolvedOrder(intent2, 100e18, 185e18);
-        resolvedOrder2.info.preExecutionHookData = _encodeHookData(
-            intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2
-        );
+        resolvedOrder2.info.preExecutionHookData =
+            _encodeHookData(intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.WrongChunkNonce.selector, wrongOrderNonce, uint96(1)));
         hook.preExecutionHook(filler, resolvedOrder2);
@@ -794,9 +772,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         hook.preExecutionHook(filler, resolvedOrder);
 
@@ -819,9 +796,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature2 = _signCosignerData(cosignerData2);
 
         ResolvedOrder memory resolvedOrder2 = _createResolvedOrder(intent2, 100e18, 185e18);
-        resolvedOrder2.info.preExecutionHookData = _encodeHookData(
-            intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2
-        );
+        resolvedOrder2.info.preExecutionHookData =
+            _encodeHookData(intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.TooSoon.selector, 100, 300));
         hook.preExecutionHook(filler, resolvedOrder2);
@@ -853,9 +829,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         hook.preExecutionHook(filler, resolvedOrder);
 
@@ -878,9 +853,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature2 = _signCosignerData(cosignerData2);
 
         ResolvedOrder memory resolvedOrder2 = _createResolvedOrder(intent2, 100e18, 185e18);
-        resolvedOrder2.info.preExecutionHookData = _encodeHookData(
-            intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2
-        );
+        resolvedOrder2.info.preExecutionHookData =
+            _encodeHookData(intent2, swapperSignature2, privateIntentHash2, cosignerData2, cosignerSignature2);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.TooLate.selector, 10000, 7200));
         hook.preExecutionHook(filler, resolvedOrder2);
@@ -913,9 +887,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, tooSmallAmount, 80e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeBelowMin.selector, tooSmallAmount, 50e18));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -948,9 +921,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, tooLargeAmount, 500e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ChunkSizeAboveMax.selector, tooLargeAmount, 200e18));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -983,9 +955,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         uint256 wrongInputAmount = 95e18;
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, wrongInputAmount, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAmountMismatch.selector, wrongInputAmount, 100e18));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1018,9 +989,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Resolved order has inputAmount = 0 (intentionally wrong)
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 0, 200e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.ZeroInput.selector));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1055,9 +1025,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Resolved order has inputAmount = 120e18, which exceeds limit of 110e18
         uint256 excessiveInput = 120e18;
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, excessiveInput, 200e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InputAboveLimit.selector, excessiveInput, limitAmount));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1093,9 +1062,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, execAmount, limitAmount);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         uint256 executionPrice = 1.4e18;
         uint256 minPrice = 1.5e18;
@@ -1134,9 +1102,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Use actual input of 135e18 (below limit but still bad price)
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 135e18, execAmount);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Price calculation: 200e18 * 1e18 / 140e18 = 1428571428571428571 (approximately 1.428e18)
         uint256 executionPrice = 1428571428571428571;
@@ -1178,9 +1145,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         outputs[1] = OutputToken({token: address(outputToken), amount: 27e18, recipient: feeRecipient}); // 15%
         resolvedOrder.outputs = outputs;
 
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Expected for swapper: 180e18 * 9000 / 10000 = 162e18
         // Actual for swapper: 153e18
@@ -1250,9 +1216,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         outputs[1] = OutputToken({token: address(outputToken), amount: 25e18, recipient: address(0xFEE)});
         resolvedOrder.outputs = outputs;
 
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Expected for swapper: 200e18 * 9000 / 10000 = 180e18
         // Actual for swapper: 175e18
@@ -1288,9 +1253,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Resolved order only produces 175e18 output (below limit of 180e18)
         uint256 insufficientOutput = 175e18;
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, insufficientOutput);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.InsufficientOutput.selector, insufficientOutput, 180e18));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1324,9 +1288,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Resolved order produces 195e18 output (doesn't match expected 200e18)
         uint256 wrongOutput = 195e18;
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 105e18, wrongOutput);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.WrongTotalOutput.selector, wrongOutput, 200e18));
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1335,11 +1298,9 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
     // ============ Helper Functions ============
 
     /// @notice Helper to test static field validation errors (for errors caught before signature verification)
-    function _testStaticFieldValidationError(
-        DCAIntent memory intent,
-        uint256 nonce,
-        bytes memory expectedError
-    ) internal {
+    function _testStaticFieldValidationError(DCAIntent memory intent, uint256 nonce, bytes memory expectedError)
+        internal
+    {
         vm.prank(swapper);
         IAllowanceTransfer(address(permit2)).approve(
             address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
@@ -1360,9 +1321,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(expectedError);
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1394,9 +1354,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
         bytes memory cosignerSignature = _signCosignerData(cosignerData);
 
-        resolvedOrder.info.preExecutionHookData = _encodeHookData(
-            intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature
-        );
+        resolvedOrder.info.preExecutionHookData =
+            _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         vm.expectRevert(expectedError);
         hook.preExecutionHook(filler, resolvedOrder);
@@ -1541,8 +1500,10 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
     ) internal view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](2);
         // 90% to swapper, 10% to fee recipient
-        outputs[0] = OutputToken({token: address(outputToken), amount: (totalOutput * 9000) / 10000, recipient: intent.swapper});
-        outputs[1] = OutputToken({token: address(outputToken), amount: (totalOutput * 1000) / 10000, recipient: feeRecipient});
+        outputs[0] =
+            OutputToken({token: address(outputToken), amount: (totalOutput * 9000) / 10000, recipient: intent.swapper});
+        outputs[1] =
+            OutputToken({token: address(outputToken), amount: (totalOutput * 1000) / 10000, recipient: feeRecipient});
 
         return ResolvedOrder({
             info: OrderInfo({
@@ -1565,11 +1526,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
     }
 
     /// @notice Helper: Swapper signs the DCA intent (with full private data)
-    function _signIntent(DCAIntent memory intent)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function _signIntent(DCAIntent memory intent) internal view returns (bytes memory) {
         bytes32 intentHash = DCALib.hash(intent);
         bytes32 swapperDigest = DCALib.digest(hook.domainSeparator(), intentHash);
         return _sign(swapperPrivateKey, swapperDigest);
@@ -1591,11 +1548,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
     }
 
     /// @notice Helper: Cosigner signs the execution authorization
-    function _signCosignerData(DCAOrderCosignerData memory cosignerData)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function _signCosignerData(DCAOrderCosignerData memory cosignerData) internal view returns (bytes memory) {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
         bytes32 cosignerDigest = DCALib.digest(hook.domainSeparator(), cosignerStructHash);
         return _sign(cosignerPrivateKey, cosignerDigest);
@@ -1613,12 +1566,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         PermitData memory permitData = PermitData({
             hasPermit: false,
             permitSingle: IAllowanceTransfer.PermitSingle({
-                details: IAllowanceTransfer.PermitDetails({
-                    token: address(0),
-                    amount: 0,
-                    expiration: 0,
-                    nonce: 0
-                }),
+                details: IAllowanceTransfer.PermitDetails({token: address(0), amount: 0, expiration: 0, nonce: 0}),
                 spender: address(0),
                 sigDeadline: 0
             }),
