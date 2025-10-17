@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import {PriceCurveLib} from "lib/tribunal/src/lib/PriceCurveLib.sol";
+
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
@@ -12,6 +14,8 @@ contract HybridAuctionResolver is IAuctionResolver {
     using HybridOrderLib for HybridOrder;
     using HybridOrderLib for HybridOutput[];
     using HybridOrderLib for HybridInput;
+    using PriceCurveLib for uint256[];
+    using PriceCurveLib for uint256;
 
     error InvalidAuctionBlock();
     error InvalidGasPrice();
@@ -39,7 +43,8 @@ contract HybridAuctionResolver is IAuctionResolver {
             }
 
             if (order.cosignerData.supplementalPriceCurve.length > 0) {
-                effectivePriceCurve = order.cosignerData.supplementalPriceCurve;
+                effectivePriceCurve =
+                    order.priceCurve.applyMemorySupplementalPriceCurve(order.cosignerData.supplementalPriceCurve);
             }
         }
 

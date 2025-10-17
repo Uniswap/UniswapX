@@ -5,7 +5,7 @@ import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {OrderInfo} from "../base/ReactorStructs.sol";
 import {OrderInfoLib} from "./OrderInfoLib.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {PriceCurveLib} from "lib/tribunal/src/lib/PriceCurveLib.sol";
+import {PriceCurveLib, PriceCurveElement} from "lib/tribunal/src/lib/PriceCurveLib.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
 /// @notice Cosigner data for hybrid auction orders
