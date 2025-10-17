@@ -17,6 +17,9 @@ contract HybridAuctionResolver is IAuctionResolver {
     using PriceCurveLib for uint256[];
     using PriceCurveLib for uint256;
 
+    /// @notice Base scaling factor (1e18).
+    uint256 public constant BASE_SCALING_FACTOR = 1e18;
+
     error InvalidAuctionBlock();
     error InvalidGasPrice();
 
@@ -57,11 +60,13 @@ contract HybridAuctionResolver is IAuctionResolver {
 
         uint256 scalingMultiplier;
         // When neutral (scalingFactor == 1e18), determine mode from currentScalingFactor
-        bool useExactIn = (order.scalingFactor > 1e18) || (order.scalingFactor == 1e18 && currentScalingFactor >= 1e18);
+        bool useExactIn = (order.scalingFactor > BASE_SCALING_FACTOR)
+            || (order.scalingFactor == BASE_SCALING_FACTOR && currentScalingFactor >= BASE_SCALING_FACTOR);
 
         uint256 priorityFeeAboveBaseline = _getPriorityFee(order.baselinePriorityFee);
         if (useExactIn) {
-            scalingMultiplier = currentScalingFactor + ((order.scalingFactor - 1e18) * priorityFeeAboveBaseline);
+            scalingMultiplier = currentScalingFactor
+                + ((order.scalingFactor - BASE_SCALING_FACTOR) * priorityFeeAboveBaseline);
             resolvedOrder = ResolvedOrder({
                 info: order.info,
                 input: InputToken({
@@ -75,7 +80,8 @@ contract HybridAuctionResolver is IAuctionResolver {
                 auctionResolver: address(this)
             });
         } else {
-            scalingMultiplier = currentScalingFactor - ((1e18 - order.scalingFactor) * priorityFeeAboveBaseline);
+            scalingMultiplier = currentScalingFactor
+                - ((BASE_SCALING_FACTOR - order.scalingFactor) * priorityFeeAboveBaseline);
             OutputToken[] memory outputs = new OutputToken[](order.outputs.length);
             for (uint256 i = 0; i < order.outputs.length; i++) {
                 outputs[i] = OutputToken({
