@@ -18,4 +18,4 @@
 	url = https://github.com/Uniswap/calibur
 [submodule "lib/Tribunal"]
 	path = lib/Tribunal
-	url = https://github.com/ConjunctiveNormalForm/Tribunal
+	url = https://github.com/Uniswap/Tribunal
