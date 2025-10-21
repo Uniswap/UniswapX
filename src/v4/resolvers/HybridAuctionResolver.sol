@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {PriceCurveLib} from "lib/tribunal/src/lib/PriceCurveLib.sol";
+import {PriceCurveLib} from "tribunal/src/lib/PriceCurveLib.sol";
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
@@ -65,8 +65,8 @@ contract HybridAuctionResolver is IAuctionResolver {
 
         uint256 priorityFeeAboveBaseline = _getPriorityFee(order.baselinePriorityFee);
         if (useExactIn) {
-            scalingMultiplier = currentScalingFactor
-                + ((order.scalingFactor - BASE_SCALING_FACTOR) * priorityFeeAboveBaseline);
+            scalingMultiplier =
+                currentScalingFactor + ((order.scalingFactor - BASE_SCALING_FACTOR) * priorityFeeAboveBaseline);
             resolvedOrder = ResolvedOrder({
                 info: order.info,
                 input: InputToken({
@@ -80,8 +80,8 @@ contract HybridAuctionResolver is IAuctionResolver {
                 auctionResolver: address(this)
             });
         } else {
-            scalingMultiplier = currentScalingFactor
-                - ((BASE_SCALING_FACTOR - order.scalingFactor) * priorityFeeAboveBaseline);
+            scalingMultiplier =
+                currentScalingFactor - ((BASE_SCALING_FACTOR - order.scalingFactor) * priorityFeeAboveBaseline);
             OutputToken[] memory outputs = new OutputToken[](order.outputs.length);
             for (uint256 i = 0; i < order.outputs.length; i++) {
                 outputs[i] = OutputToken({
