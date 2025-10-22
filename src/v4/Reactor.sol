@@ -152,11 +152,7 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
         unchecked {
             for (uint256 i = 0; i < outputsLength; i++) {
                 OutputToken memory output = order.outputs[i];
-                if (output.token.isNative()) {
-                    CurrencyLibrary.transferNative(output.recipient, output.amount);
-                } else {
-                    ERC20(output.token).transferFrom(msg.sender, output.recipient, output.amount);
-                }
+                output.token.transferFill(output.recipient, output.amount);
             }
         }
     }
