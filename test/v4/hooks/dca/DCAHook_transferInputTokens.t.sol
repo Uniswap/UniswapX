@@ -87,7 +87,8 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
             outputs: outputs,
             sig: "",
             hash: bytes32(0),
-            auctionResolver: address(0)
+            auctionResolver: address(0),
+            witnessTypeString: ""
         });
     }
 

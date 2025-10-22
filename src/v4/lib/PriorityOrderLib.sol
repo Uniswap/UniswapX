@@ -41,17 +41,32 @@ library PriorityOrderLib {
 
     string internal constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
 
-    // EIP712 notes that nested structs should be ordered alphabetically.
-    // With our added PriorityOrder witness, the top level type becomes
-    // "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,PriorityOrder witness)"
-    // Meaning we order the nested structs as follows:
-    // OrderInfo, PriorityInput, PriorityOrder, PriorityOutput
-    string internal constant PERMIT2_ORDER_TYPE = string(
+    // Witness wrapper that includes the resolver address for security
+    bytes internal constant PRIORITY_ORDER_WITNESS_TYPE =
+        abi.encodePacked("PriorityOrderWitness(", "address resolver,", "PriorityOrder order)");
+
+    bytes32 internal constant PRIORITY_ORDER_WITNESS_TYPE_HASH = keccak256(
         abi.encodePacked(
-            "PriorityOrder witness)",
+            PRIORITY_ORDER_WITNESS_TYPE,
             OrderInfoLib.ORDER_INFO_TYPE,
             PRIORITY_INPUT_TOKEN_TYPE,
             TOPLEVEL_PRIORITY_ORDER_TYPE,
+            PRIORITY_OUTPUT_TOKEN_TYPE
+        )
+    );
+
+    // EIP712 notes that nested structs should be ordered alphabetically.
+    // With our added PriorityOrderWitness witness, the top level type becomes
+    // "PermitWitnessTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline,PriorityOrderWitness witness)"
+    // Meaning we order the nested structs as follows:
+    // OrderInfo, PriorityInput, PriorityOrder, PriorityOrderWitness, PriorityOutput
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked(
+            "PriorityOrderWitness witness)",
+            OrderInfoLib.ORDER_INFO_TYPE,
+            PRIORITY_INPUT_TOKEN_TYPE,
+            TOPLEVEL_PRIORITY_ORDER_TYPE,
+            PRIORITY_ORDER_WITNESS_TYPE,
             PRIORITY_OUTPUT_TOKEN_TYPE,
             TOKEN_PERMISSIONS_TYPE
         )
@@ -127,6 +142,14 @@ library PriorityOrderLib {
                 hash(order.outputs)
             )
         );
+    }
+
+    /// @notice Compute the witness hash that includes the resolver address
+    /// @param order the priorityOrder
+    /// @param resolver the auction resolver address
+    /// @return witness hash that binds the order to the resolver
+    function witnessHash(PriorityOrder memory order, address resolver) internal pure returns (bytes32) {
+        return keccak256(abi.encode(PRIORITY_ORDER_WITNESS_TYPE_HASH, resolver, hash(order)));
     }
 
     /// @notice get the digest of the cosigner data

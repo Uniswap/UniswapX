@@ -19,13 +19,15 @@ import {MockFeeController} from "../v4/util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../v4/util/mock/MockPreExecutionHook.sol";
 import {MockPostExecutionHook} from "../v4/util/mock/MockPostExecutionHook.sol";
 import {TokenTransferHook} from "../../src/v4/hooks/TokenTransferHook.sol";
-import {MockAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
+import {MockAuctionResolver, MaliciousAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
+import {GENERIC_ORDER_TYPE_HASH} from "../../src/v4/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ERC20ETH} from "../../lib/calibur/lib/erc20-eth/src/ERC20Eth.sol";
 import {DelegationHandler} from "../native-input/DelegationHandler.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import "forge-std/console2.sol";
 
 contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, DelegationHandler {
     using OrderInfoBuilder for OrderInfo;
@@ -60,7 +62,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         swapper = vm.addr(swapperPrivateKey);
         permit2 = IPermit2(deployPermit2());
 
-        reactor = new Reactor(PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(PROTOCOL_FEE_OWNER, permit2);
         preExecutionHook = new MockPreExecutionHook(permit2, reactor);
         preExecutionHook.setValid(true);
         postExecutionHook = new MockPostExecutionHook();
@@ -81,7 +83,8 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
-        orderHash = mockOrder.hash();
+        // Use the new witness hash that includes resolver and full order
+        orderHash = mockOrder.witnessHash(address(mockOrder.info.auctionResolver));
 
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), mockOrder);
 
@@ -136,6 +139,17 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         fillContractInputBalance = tokenIn.balanceOf(address(fillContract));
         swapperOutputBalance = tokenOut.balanceOf(swapper);
         fillContractOutputBalance = tokenOut.balanceOf(address(fillContract));
+    }
+
+    function exploitSignedOrder(SignedOrder memory signedOrder, address maliciousResolver)
+        public
+        view
+        returns (SignedOrder memory modifiedOrder)
+    {
+        modifiedOrder.sig = signedOrder.sig;
+        (address auctResolver, bytes memory orderData) = abi.decode(signedOrder.order, (address, bytes));
+        console2.log("exploitSignedOrder - Original auction resolver:", auctResolver);
+        modifiedOrder.order = abi.encode(maliciousResolver, orderData);
     }
 
     /// @dev Test of a simple execute
@@ -235,7 +249,7 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         });
 
         // Sign with the signerAccount's private key from DelegationHandler
-        bytes32 orderHash = order.hash();
+        bytes32 orderHash = order.witnessHash(address(order.info.auctionResolver));
         bytes memory sig = signOrder(signerPrivateKey, address(permit2), order);
         bytes memory orderData = abi.encode(order);
         bytes memory encodedOrder = abi.encode(address(mockResolver), orderData);
@@ -794,6 +808,37 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         // Try to replay - should fail with InvalidNonce since permit2 tracks nonce usage
         vm.expectRevert(INVALID_NONCE_SELECTOR);
         fillContract.execute(signedOrder);
+    }
+
+    /// @dev Test that resolver substitution attack is prevented by GenericOrder witness binding
+    function test_exploitMaliciousFillerResolver() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+        address attacker = address(0xA11A);
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Attacker attempts exploit: use malicious resolver instead of expected one
+        assertEq(tokenOut.balanceOf(address(attacker)), 0);
+        vm.startPrank(attacker);
+        MaliciousAuctionResolver maliciousResolver = new MaliciousAuctionResolver();
+        (SignedOrder memory modifiedOrder) = exploitSignedOrder(signedOrder, address(maliciousResolver));
+        vm.stopPrank();
+
+        bytes4 invalidSignerSelector = 0x815e1d64; // InvalidSigner()
+        vm.expectRevert(invalidSignerSelector);
+        fillContract.execute(modifiedOrder);
+
+        assertEq(tokenOut.balanceOf(address(attacker)), 0, "Attacker should not receive any tokens");
+        assertEq(tokenIn.balanceOf(address(swapper)), inputAmount, "Swapper input should not be transferred");
+        assertEq(tokenOut.balanceOf(address(swapper)), 0, "Swapper should not receive output yet");
     }
 
     /// @dev Basic execute fuzz test, checks balance before and after

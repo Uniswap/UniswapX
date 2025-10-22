@@ -30,8 +30,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice UniswapX V4 Reactor
     IReactor public immutable reactor;
 
-    /// @notice EIP-712 domain separator
-    bytes32 public immutable domainSeparator;
+    /// @notice Cached EIP-712 domain separator for gas optimization
+    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
+
+    /// @notice Cached chain ID to detect forks
+    uint256 private immutable _CACHED_CHAIN_ID;
 
     /// @notice Mapping from intentId to execution state
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
@@ -40,7 +43,16 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     constructor(IPermit2 _permit2, IReactor _reactor) {
         permit2 = _permit2;
         reactor = _reactor;
-        domainSeparator = DCALib.computeDomainSeparator(address(this));
+        _CACHED_CHAIN_ID = block.chainid;
+        _CACHED_DOMAIN_SEPARATOR = DCALib.computeDomainSeparator(address(this));
+    }
+
+    /// @notice Returns the domain separator for the current chain
+    /// @dev Uses cached version if chainid is unchanged from construction
+    /// @return The domain separator for EIP-712 signatures
+    function DOMAIN_SEPARATOR() public view returns (bytes32) {
+        return
+            block.chainid == _CACHED_CHAIN_ID ? _CACHED_DOMAIN_SEPARATOR : DCALib.computeDomainSeparator(address(this));
     }
 
     modifier onlyReactor() {
@@ -140,7 +152,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     /// @inheritdoc IDCAHook
     function cancelIntents(uint256[] calldata nonces) external override {
-        for (uint256 i = 0; i < nonces.length; i++) {
+        uint256 length = nonces.length;
+        for (uint256 i = 0; i < length; i++) {
             _cancelIntent(msg.sender, nonces[i]);
         }
     }
@@ -172,7 +185,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         bytes memory swapperSignature
     ) internal view {
         bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
-        bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
+        bytes32 digest = DCALib.digest(DOMAIN_SEPARATOR(), fullIntentHash);
         address recoveredSigner = DCALib.recover(digest, swapperSignature);
         if (recoveredSigner != intent.swapper) {
             revert InvalidSwapperSignature(recoveredSigner, intent.swapper);
@@ -190,7 +203,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         bytes memory cosignerSignature
     ) internal view {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
-        bytes32 cosignerDigest = DCALib.digest(domainSeparator, cosignerStructHash);
+        bytes32 cosignerDigest = DCALib.digest(DOMAIN_SEPARATOR(), cosignerStructHash);
         address recoveredCosigner = DCALib.recover(cosignerDigest, cosignerSignature);
         if (recoveredCosigner != intent.cosigner) {
             revert InvalidCosignerSignature(recoveredCosigner, intent.cosigner);
@@ -255,7 +268,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
 
         // Verify all outputs use the correct output token
-        for (uint256 i = 0; i < resolvedOrder.outputs.length; i++) {
+        uint256 outputsLength = resolvedOrder.outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             if (resolvedOrder.outputs[i].token != intent.outputToken) {
                 revert WrongOutputToken(resolvedOrder.outputs[i].token, intent.outputToken);
             }
@@ -366,16 +380,18 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         uint256 totalOutput = 0;
         // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
         // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             // token already checked equals intent.outputToken in _beforeTokenTransfer
             totalOutput += outputs[i].amount;
         }
 
-        for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
+        uint256 allocationsLength = intent.outputAllocations.length;
+        for (uint256 i = 0; i < allocationsLength; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
             uint256 expected = Math.mulDiv(totalOutput, uint256(intent.outputAllocations[i].basisPoints), BPS);
             uint256 actual = 0;
-            for (uint256 j = 0; j < outputs.length; j++) {
+            for (uint256 j = 0; j < outputsLength; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
             }
             if (intent.isExactIn) {
@@ -419,7 +435,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
         // Calculate total output amount
         uint256 totalOutput = 0;
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             totalOutput += outputs[i].amount;
         }
 
