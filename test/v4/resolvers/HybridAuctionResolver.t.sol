@@ -1405,4 +1405,149 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(tokenOut.balanceOf(swapper), output1MinAmount.mulWadUp(1.2e18));
         assertEq(tokenOut2.balanceOf(swapper), output2MinAmount.mulWadUp(1.2e18));
     }
+
+    // ============================================================================
+    // Fuzz Tests for Min/Max Amount Invariants
+    // ============================================================================
+
+    /// @dev Fuzz test to verify output amounts never violate minAmount in exact-in mode
+    function testFuzz_ExactIn_OutputsNeverBelowMin(
+        uint128 inputAmount,
+        uint128 outputMinAmount,
+        uint256 priceCurveScaling,
+        uint64 priorityFeeWei,
+        uint8 blocksPassed
+    ) public {
+        // Bound parameters to reasonable ranges
+        vm.assume(inputAmount > 0 && inputAmount < type(uint128).max / 2);
+        vm.assume(outputMinAmount > 0 && outputMinAmount < type(uint128).max / 2);
+        // Exact-in mode: scalingFactor >= 1e18
+        uint256 scalingFactor = bound(priceCurveScaling, 1e18 + 1e13, 1e18 + 1e14);
+        vm.assume(blocksPassed < 100);
+
+        priorityFeeWei = uint64(bound(priorityFeeWei, 0, 100 wei));
+
+        vm.fee(1 gwei);
+        vm.txGasPrice(1 gwei + priorityFeeWei);
+
+        // Create price curve that scales from priceCurveScaling up to 1e18 or neutral
+        uint256[] memory priceCurve = new uint256[](1);
+        priceCurve[0] = (100 << 240) | 1.2e18;
+
+        uint256 auctionStartBlock = block.number;
+        vm.roll(auctionStartBlock + blocksPassed);
+
+        // Setup and execute order
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), type(uint256).max / 2);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        HybridOrder memory order = createBasicOrder(
+            inputAmount,
+            outputMinAmount,
+            scalingFactor,
+            priceCurve,
+            auctionStartBlock,
+            uint256(keccak256(abi.encodePacked(inputAmount, outputMinAmount, blocksPassed)))
+        );
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        fillContract.execute(signedOrder);
+
+        uint256 actualOutput = tokenOut.balanceOf(swapper);
+        assertGe(actualOutput, outputMinAmount, "Output below minAmount");
+
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputAmount, "Input should be exact in exact-in mode");
+    }
+
+    /// @dev Fuzz test to verify input amounts never violate maxAmount in exact-out mode
+    function testFuzz_ExactOut_InputNeverExceedsMax(
+        uint128 inputMaxAmount,
+        uint128 outputAmount,
+        uint256 priceCurveScaling,
+        uint64 priorityFeeWei,
+        uint8 blocksPassed
+    ) public {
+        // Bound parameters to reasonable ranges
+        vm.assume(inputMaxAmount > 0 && inputMaxAmount < type(uint128).max / 2);
+        vm.assume(outputAmount > 0 && outputAmount < type(uint128).max / 2);
+
+        uint256 scalingFactor = bound(priceCurveScaling, 1e18 - 1e14, 1e18 - 1e13);
+        vm.assume(blocksPassed < 100);
+        priorityFeeWei = uint64(bound(priorityFeeWei, 0, 100 wei));
+
+        vm.fee(1 gwei);
+        vm.txGasPrice(1 gwei + priorityFeeWei);
+
+        // Create price curve
+        uint256[] memory priceCurve = new uint256[](1);
+        priceCurve[0] = (100 << 240) | uint256(0.8e18);
+
+        uint256 auctionStartBlock = block.number;
+        vm.roll(auctionStartBlock + blocksPassed);
+
+        // Setup and execute order
+        tokenIn.mint(address(swapper), inputMaxAmount);
+        tokenOut.mint(address(fillContract), type(uint256).max / 2);
+        tokenIn.forceApprove(swapper, address(permit2), inputMaxAmount);
+
+        HybridOrder memory order = createBasicOrder(
+            inputMaxAmount,
+            outputAmount,
+            scalingFactor,
+            priceCurve,
+            auctionStartBlock,
+            uint256(keccak256(abi.encodePacked(inputMaxAmount, outputAmount, blocksPassed)))
+        );
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        fillContract.execute(signedOrder);
+
+        uint256 actualInput = tokenIn.balanceOf(address(fillContract));
+        assertLe(actualInput, inputMaxAmount, "Input exceeds maxAmount");
+
+        assertEq(tokenOut.balanceOf(swapper), outputAmount, "Output should be exact in exact-out mode");
+    }
+
+    /// @dev Fuzz test at edge case: scaling factor exactly at 1e18 (neutral)
+    function testFuzz_NeutralScaling_RespectsConstraints(
+        uint128 inputAmount,
+        uint128 outputAmount,
+        uint64 priorityFeeWei,
+        uint8 blocksPassed
+    ) public {
+        vm.assume(inputAmount > 0 && inputAmount < type(uint128).max / 2);
+        vm.assume(outputAmount > 0 && outputAmount < type(uint128).max / 2);
+        vm.assume(blocksPassed < 100);
+        priorityFeeWei = uint64(bound(priorityFeeWei, 0, 1 gwei));
+
+        uint256 scalingFactor = 1e18; // Neutral scaling
+        uint256[] memory priceCurve = new uint256[](1);
+        priceCurve[0] = (100 << 240) | uint256(1e18);
+
+        uint256 auctionStartBlock = block.number;
+        vm.roll(auctionStartBlock + blocksPassed);
+
+        // Setup tokens
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), type(uint128).max);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        HybridOrder memory order = createBasicOrder(
+            inputAmount,
+            outputAmount,
+            scalingFactor,
+            priceCurve,
+            auctionStartBlock,
+            uint256(keccak256(abi.encodePacked(inputAmount, outputAmount, blocksPassed)))
+        );
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenOut.balanceOf(swapper), outputAmount, "Output should equal minAmount with neutral scaling");
+        assertEq(
+            tokenIn.balanceOf(address(fillContract)), inputAmount, "Input should equal amount with neutral scaling"
+        );
+    }
 }

@@ -15,8 +15,8 @@ struct HybridCosignerData {
 }
 
 /// @notice Input tokens for hybrid auction
-/// @dev if exact-in, scale down from maxAmount
-/// @dev if exact-out, input amount is fixed at maxAmount
+/// @dev if exact-in, input amount is fixed at maxAmount
+/// @dev if exact-out, scale down from maxAmount
 struct HybridInput {
     ERC20 token;
     uint256 maxAmount;
