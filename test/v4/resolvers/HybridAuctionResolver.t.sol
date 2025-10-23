@@ -1421,6 +1421,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Bound parameters to reasonable ranges
         vm.assume(inputAmount > 0 && inputAmount < type(uint128).max / 2);
         vm.assume(outputMinAmount > 0 && outputMinAmount < type(uint128).max / 2);
+        vm.assume(blocksPassed < 100);
 
         // IMPORTANT: scalingFactor must be very close to 1e18 to avoid overflow
         // To match PriorityOrder behavior where 1 wei of priority fee above baseline = 0.001% improvement:
@@ -1428,9 +1429,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // - For 1 wei = 0.001%: (scalingFactor - 1e18) = 1e13
         // - Therefore: scalingFactor = 1e18 + 1e13 for standard sensitivity
         uint256 scalingFactor = bound(priorityScalingFactor, 1e18 + 1e12, 1e18 + 1e13);
-        vm.assume(blocksPassed < 100);
-
-        priorityFeeWei = uint64(bound(priorityFeeWei, 0, 50000 wei));
+        priorityFeeWei = uint64(bound(priorityFeeWei, 0, 100000 wei));
 
         vm.fee(1 gwei);
         vm.txGasPrice(1 gwei + priorityFeeWei);
@@ -1485,6 +1484,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // - adjustment = currentScalingFactor - (1e18 - scalingFactor) * priorityFee
         // - For 1 wei = 0.001%: (1e18 - scalingFactor) = 1e13
         // - Therefore: scalingFactor = 1e18 - 1e13 for standard sensitivity
+        // upper bound of improvement is cutting the maxInput in half
         priorityFeeWei = uint64(bound(priorityFeeWei, 0, 50000 wei));
 
         vm.fee(1 gwei);
