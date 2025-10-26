@@ -187,15 +187,23 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        return signOrder(
-            privateKey,
-            permit2,
-            order.info,
-            address(order.input.token),
-            // amount is max amount for priority orders
-            order.input.amount,
-            PRIORITY_ORDER_V2_TYPE_HASH,
-            order.hash()
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token),
+                amount: order.input.amount
+            }),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+
+        // Compute GenericOrder witness hash: keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, resolver, orderHash))
+        bytes32 orderHash = order.hash();
+        bytes32 genericOrderWitness = keccak256(
+            abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash)
+        );
+
+        return getPermitSignature(
+            privateKey, permit2, permit, address(order.info.preExecutionHook), GENERIC_ORDER_WITNESS_TYPE_HASH, genericOrderWitness
         );
     }
 

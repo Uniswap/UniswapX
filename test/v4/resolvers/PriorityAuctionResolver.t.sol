@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
 import {PermitSignature} from "../../util/PermitSignature.sol";
-import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
+import {OrderInfo, GENERIC_ORDER_TYPE_HASH} from "../../../src/v4/base/ReactorStructs.sol";
 import {SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {Reactor} from "../../../src/v4/Reactor.sol";
@@ -76,7 +76,11 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
-        orderHash = order.hash();
+        // Compute the PriorityOrder hash
+        bytes32 priorityOrderHash = order.hash();
+
+        // Wrap in GenericOrder witness hash (for Reactor validation)
+        orderHash = keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, address(resolver), priorityOrderHash));
 
         // Sign the order with swapper's key
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
