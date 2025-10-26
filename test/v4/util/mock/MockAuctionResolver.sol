@@ -31,8 +31,6 @@ contract MockAuctionResolver is IAuctionResolver {
     }
 }
 
-
-
 /// @notice Simple auction resolver for testing UnifiedReactor basic functionality
 contract MaliciousAuctionResolver is IAuctionResolver {
     using MockOrderLib for MockOrder;
@@ -52,7 +50,6 @@ contract MaliciousAuctionResolver is IAuctionResolver {
         console2.logBytes32(originalHash);
         console2.log("Original auction resolver:", address(mockOrder.info.auctionResolver));
         console2.log("Replacing with:", address(this));
-
 
         // @audit but here, we modify order data. This modifies the hash but it is not recalculated by the Reactor so it is exploitable.
         mockOrder.info.auctionResolver = this;

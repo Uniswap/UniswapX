@@ -188,22 +188,23 @@ contract PermitSignature is Test {
         returns (bytes memory sig)
     {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({
-                token: address(order.input.token),
-                amount: order.input.amount
-            }),
+            permitted: ISignatureTransfer.TokenPermissions({token: address(order.input.token), amount: order.input.amount}),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
 
         // Compute GenericOrder witness hash: keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, resolver, orderHash))
         bytes32 orderHash = order.hash();
-        bytes32 genericOrderWitness = keccak256(
-            abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash)
-        );
+        bytes32 genericOrderWitness =
+            keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash));
 
         return getPermitSignature(
-            privateKey, permit2, permit, address(order.info.preExecutionHook), GENERIC_ORDER_WITNESS_TYPE_HASH, genericOrderWitness
+            privateKey,
+            permit2,
+            permit,
+            address(order.info.preExecutionHook),
+            GENERIC_ORDER_WITNESS_TYPE_HASH,
+            genericOrderWitness
         );
     }
 
@@ -256,12 +257,16 @@ contract PermitSignature is Test {
 
         // Compute GenericOrder witness hash: keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, resolver, orderHash))
         bytes32 orderHash = order.hash();
-        bytes32 genericOrderWitness = keccak256(
-            abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash)
-        );
+        bytes32 genericOrderWitness =
+            keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash));
 
         return getPermitSignature(
-            privateKey, permit2, permit, address(order.info.preExecutionHook), GENERIC_ORDER_WITNESS_TYPE_HASH, genericOrderWitness
+            privateKey,
+            permit2,
+            permit,
+            address(order.info.preExecutionHook),
+            GENERIC_ORDER_WITNESS_TYPE_HASH,
+            genericOrderWitness
         );
     }
 

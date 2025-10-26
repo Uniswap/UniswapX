@@ -94,8 +94,7 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
 
         // Compute GenericOrder witness hash to bind resolver address to order hash
         // This prevents malicious resolvers from manipulating order data
-        bytes32 finalOrderHash =
-            keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, auctionResolver, resolvedOrder.hash));
+        bytes32 finalOrderHash = keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, auctionResolver, resolvedOrder.hash));
         resolvedOrder.hash = finalOrderHash;
     }
 
