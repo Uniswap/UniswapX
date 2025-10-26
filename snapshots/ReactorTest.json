@@ -3,7 +3,7 @@
   "ReactorExecuteBatch": "223986",
   "ReactorExecuteBatchMultipleOutputsDifferentTokens": "287940",
   "ReactorExecuteBatchNativeOutput": "220026",
-  "ReactorExecuteSingle": "163038",
+  "ReactorExecuteSingle": "162991",
   "ReactorExecuteSingleNativeInput": "161170",
   "ReactorExecuteSingleNativeOutput": "151107"
 }

