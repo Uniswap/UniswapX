@@ -5,7 +5,7 @@ import {IReactor} from "./interfaces/IReactor.sol";
 import {IReactorCallback} from "./interfaces/IReactorCallback.sol";
 
 import {SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
-import {ResolvedOrder} from "./base/ReactorStructs.sol";
+import {ResolvedOrder, GenericOrder, GENERIC_ORDER_TYPE_HASH} from "./base/ReactorStructs.sol";
 import {IAuctionResolver} from "./interfaces/IAuctionResolver.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
@@ -91,6 +91,12 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
         if (address(resolvedOrder.info.auctionResolver) != auctionResolver) {
             revert ResolverMismatch();
         }
+
+        // Compute GenericOrder witness hash to bind resolver address to order hash
+        // This prevents malicious resolvers from manipulating order data
+        bytes32 finalOrderHash =
+            keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, auctionResolver, resolvedOrder.hash));
+        resolvedOrder.hash = finalOrderHash;
     }
 
     /// @notice Prepare orders for execution by calling pre-execution hooks and injecting fees

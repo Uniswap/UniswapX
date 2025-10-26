@@ -6,6 +6,21 @@ import {IPreExecutionHook, IPostExecutionHook} from "../interfaces/IHook.sol";
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 import {InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 
+/// @notice GenericOrder wraps resolver-specific orders with resolver address
+/// @dev This struct is used as the Permit2 witness to bind the resolver address to the order hash
+struct GenericOrder {
+    address resolver;
+    bytes32 orderHash;
+}
+
+// Type hash for GenericOrder struct used in EIP-712 signatures
+bytes32 constant GENERIC_ORDER_TYPE_HASH = keccak256("GenericOrder(address resolver,bytes32 orderHash)");
+
+// Witness type string for GenericOrder used in Permit2's permitWitnessTransferFrom
+// Format: "WitnessType witness)WitnessTypeDefinition...TokenPermissions(...)"
+// This gets concatenated with Permit2's stub to form the complete witness type string
+string constant GENERIC_ORDER_WITNESS_TYPE = "GenericOrder witness)GenericOrder(address resolver,bytes32 orderHash)TokenPermissions(address token,uint256 amount)";
+
 /// @dev generic order information
 ///  should be included as the first field in any concrete order types
 struct OrderInfo {

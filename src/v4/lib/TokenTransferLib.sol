@@ -3,9 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {ResolvedOrder} from "../base/ReactorStructs.sol";
+import {ResolvedOrder, GENERIC_ORDER_WITNESS_TYPE} from "../base/ReactorStructs.sol";
 import {Permit2Lib} from "./Permit2Lib.sol";
-import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
 
 /// @notice Library for transferring input tokens using Permit2
 library TokenTransferLib {
@@ -16,12 +15,15 @@ library TokenTransferLib {
     /// @param order The resolved order containing transfer details
     /// @param to The recipient address (typically the filler)
     function signatureTransferInputTokens(IPermit2 permit2, ResolvedOrder calldata order, address to) internal {
-        // Get the order type from the resolver for permit2 witness
-        string memory orderType = IAuctionResolver(order.auctionResolver).getPermit2OrderType();
-
-        // Execute the token transfer via Permit2
+        // Execute the token transfer via Permit2 with GenericOrder witness
+        // The order.hash has been set to the GenericOrder witness hash by the Reactor
         permit2.permitWitnessTransferFrom(
-            order.toPermit(), order.transferDetails(to), order.info.swapper, order.hash, orderType, order.sig
+            order.toPermit(),
+            order.transferDetails(to),
+            order.info.swapper,
+            order.hash,
+            GENERIC_ORDER_WITNESS_TYPE,
+            order.sig
         );
     }
 
