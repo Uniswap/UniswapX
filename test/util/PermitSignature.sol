@@ -193,7 +193,6 @@ contract PermitSignature is Test {
             deadline: order.info.deadline
         });
 
-        // Compute GenericOrder witness hash: keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, resolver, orderHash))
         bytes32 orderHash = order.hash();
         bytes32 genericOrderWitness =
             keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash));
@@ -255,7 +254,6 @@ contract PermitSignature is Test {
             deadline: order.info.deadline
         });
 
-        // Compute GenericOrder witness hash: keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, resolver, orderHash))
         bytes32 orderHash = order.hash();
         bytes32 genericOrderWitness =
             keccak256(abi.encode(GENERIC_ORDER_TYPE_HASH, address(order.info.auctionResolver), orderHash));
