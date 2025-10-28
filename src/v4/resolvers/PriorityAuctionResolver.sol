@@ -71,7 +71,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     }
 
     /// @notice validate the priority order fields
-    /// - deadline must be in the future
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid

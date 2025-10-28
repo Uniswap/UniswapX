@@ -7,7 +7,6 @@ import {IReactorCallback} from "./interfaces/IReactorCallback.sol";
 import {SignedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
 import {ResolvedOrder, GenericOrder, GENERIC_ORDER_TYPE_HASH} from "./base/ReactorStructs.sol";
 import {IAuctionResolver} from "./interfaces/IAuctionResolver.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {CurrencyLibrary} from "../../src/lib/CurrencyLibrary.sol";
 import {ReactorEvents} from "../../src/base/ReactorEvents.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
