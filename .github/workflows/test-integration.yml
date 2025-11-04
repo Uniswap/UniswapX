@@ -28,6 +28,7 @@ jobs:
 
       - name: Run Forge build
         run: |
+          svm install 0.8.30
           forge --version
           forge build --sizes
         id: build
