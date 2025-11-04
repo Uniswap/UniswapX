@@ -24,15 +24,10 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
-
-      - name: Install svm
-        run: |
-          cargo install --locked --git https://github.com/alloy-rs/svm-rs/
+          version: v1.4.4
 
       - name: Run Forge build
         run: |
-          svm install 0.8.30
           forge --version
           forge build --sizes
         id: build
