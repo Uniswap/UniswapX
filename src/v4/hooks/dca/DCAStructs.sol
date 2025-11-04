@@ -47,7 +47,7 @@ struct DCAOrderCosignerData {
     uint160 execAmount; // 20 bytes, slot 2
     uint96 orderNonce; // 12 bytes Unique execution chunk identifier
     uint160 limitAmount; // 20 bytes, slot 3 (12 bytes padding)
-        // uint160 matches Permit2's transferFrom amount limit
+    // uint160 matches Permit2's transferFrom amount limit
 }
 
 struct DCAExecutionState {

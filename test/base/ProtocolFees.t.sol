@@ -465,11 +465,7 @@ contract ProtocolFeesTest is Test {
         });
     }
 
-    function createOrderWithInterfaceFee(uint256 amount, bool isEthOutput)
-        private
-        view
-        returns (ResolvedOrder memory)
-    {
+    function createOrderWithInterfaceFee(uint256 amount, bool isEthOutput) private view returns (ResolvedOrder memory) {
         OutputToken[] memory outputs = new OutputToken[](2);
         address outputToken = isEthOutput ? NATIVE : address(tokenOut);
         outputs[0] = OutputToken(outputToken, amount, RECIPIENT);

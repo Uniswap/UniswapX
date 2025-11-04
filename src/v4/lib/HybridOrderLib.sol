@@ -68,7 +68,8 @@ library HybridOrderLib {
     );
     // Note: cosignerData and cosignature are not included in EIP-712 type hash
 
-    bytes internal constant HYBRID_INPUT_TYPE = abi.encodePacked("HybridInput(", "address token,", "uint256 maxAmount)");
+    bytes internal constant HYBRID_INPUT_TYPE =
+        abi.encodePacked("HybridInput(", "address token,", "uint256 maxAmount)");
 
     bytes internal constant HYBRID_OUTPUT_TYPE =
         abi.encodePacked("HybridOutput(", "address token,", "uint256 minAmount,", "address recipient)");

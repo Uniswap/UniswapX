@@ -184,10 +184,7 @@ interface IDCAHook is IPreExecutionHook {
     /// @param maxPeriod The maximum allowed seconds since last execution (0 = no upper bound)
     /// @param deadline The intent expiration timestamp (0 = no deadline)
     /// @return active True if the intent is active, false otherwise
-    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline)
-        external
-        view
-        returns (bool active);
+    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline) external view returns (bool active);
 
     /// @notice Get the next expected nonce for an intent
     /// @param intentId The unique identifier of the intent

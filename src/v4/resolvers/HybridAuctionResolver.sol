@@ -70,9 +70,7 @@ contract HybridAuctionResolver is IAuctionResolver {
             resolvedOrder = ResolvedOrder({
                 info: order.info,
                 input: InputToken({
-                    token: order.input.token,
-                    amount: order.input.maxAmount,
-                    maxAmount: order.input.maxAmount
+                    token: order.input.token, amount: order.input.maxAmount, maxAmount: order.input.maxAmount
                 }),
                 outputs: order.outputs.scale(scalingMultiplier),
                 sig: signedOrder.sig,

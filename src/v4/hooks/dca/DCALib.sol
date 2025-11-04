@@ -13,16 +13,14 @@ library DCALib {
     bytes constant FEED_INFO_TYPE = "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
     bytes32 constant FEED_INFO_TYPEHASH = keccak256(FEED_INFO_TYPE);
 
-    bytes constant PRIVATE_INTENT_TYPE =
-        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
+    bytes constant PRIVATE_INTENT_TYPE = "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
         "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
     bytes32 constant PRIVATE_INTENT_TYPEHASH = keccak256(PRIVATE_INTENT_TYPE);
 
     bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint16 basisPoints)";
     bytes32 constant OUTPUT_ALLOCATION_TYPEHASH = keccak256(OUTPUT_ALLOCATION_TYPE);
 
-    bytes constant DCA_INTENT_TYPE =
-        "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
+    bytes constant DCA_INTENT_TYPE = "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
         "FeedInfo(bytes32 feedId,address feed_address,string feedType)"
         "OutputAllocation(address recipient,uint16 basisPoints)"
         "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)";

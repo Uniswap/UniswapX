@@ -1613,8 +1613,9 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 auctionStartBlock,
         uint256 nonce
     ) internal {
-        HybridOrder memory order =
-            createBasicOrder(inputAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, nonce);
+        HybridOrder memory order = createBasicOrder(
+            inputAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, nonce
+        );
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
     }

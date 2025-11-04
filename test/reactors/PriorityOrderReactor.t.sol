@@ -101,8 +101,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(
+            address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper)
+        );
         uint256 scaledOutputAmount = outputs[0].scale(priorityFee).amount;
 
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
@@ -112,7 +113,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -152,8 +155,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(
+            address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper)
+        );
         // Because of the basePriorityFee, we should only scale the output by the difference between the priorityFee and the baselinePriorityFeeWei
         uint256 scaledOutputAmount = outputs[0].scale(priorityFee - baselinePriorityFeeWei).amount;
 
@@ -164,7 +168,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: baselinePriorityFeeWei,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -205,8 +211,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         tokenOut.mint(address(fillContract), uint256(outputAmount) * 100);
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(
+            address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper)
+        );
         // Because of the basePriorityFee, we should only scale the output by the difference between the priorityFee and the baselinePriorityFeeWei
 
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
@@ -216,7 +223,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
             cosigner: vm.addr(cosignerPrivateKey),
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: baselinePriorityFeeWei,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -256,8 +265,9 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
 
         PriorityInput memory input =
             PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei});
-        PriorityOutput[] memory outputs =
-            OutputsBuilder.singlePriority(address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper));
+        PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(
+            address(tokenOut), outputAmount, outputMpsPerPriorityFeeWei, address(swapper)
+        );
         uint256 scaledInputAmount = input.scale(priorityFee).amount;
 
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
