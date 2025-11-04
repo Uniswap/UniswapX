@@ -17,14 +17,18 @@ jobs:
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: v1.4.4
+          version: nightly
+
+      - name: Install svm
+        run: |
+          cargo install --locked --git https://github.com/alloy-rs/svm-rs/
 
       - name: Run Forge build
         run: |
