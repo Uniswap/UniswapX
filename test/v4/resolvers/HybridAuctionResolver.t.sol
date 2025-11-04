@@ -39,6 +39,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
     uint256 constant ONE = 10 ** 18;
     uint256 constant COSIGNER_PRIVATE_KEY = 0x99999999;
+    uint256 constant NEUTRAL_SCALING_FACTOR = 1e18;
     address internal constant PROTOCOL_FEE_OWNER = address(1);
 
     MockERC20 tokenIn;
@@ -209,7 +210,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 25: interpolating from 1.5x to 1.2x
         vm.roll(auctionStartBlock + 25);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         // Expected: 1.5 - (1.5 - 1.2) * (25/50) = 1.35
         uint256 balance1 = tokenOut.balanceOf(swapper);
@@ -217,32 +218,17 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 50: exactly at zero-duration element
         vm.roll(auctionStartBlock + 50);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 2);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
 
         uint256 balance2 = tokenOut.balanceOf(swapper);
         assertEq(balance2, balance1 + outputMinAmount.mulWadUp(1.2e18));
 
         // At block 75: on plateau
         vm.roll(auctionStartBlock + 75);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 3);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
 
         uint256 balance3 = tokenOut.balanceOf(swapper);
         assertEq(balance3, balance2 + outputMinAmount.mulWadUp(1.2e18));
-    }
-
-    /// @dev Helper to execute an order
-    function _executeOrder(
-        uint256 inputAmount,
-        uint256 outputAmount,
-        uint256 scalingFactor,
-        uint256[] memory priceCurve,
-        uint256 auctionStartBlock,
-        uint256 nonce
-    ) internal {
-        HybridOrder memory order =
-            createBasicOrder(inputAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, nonce);
-        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
-        fillContract.execute(signedOrder);
     }
 
     function test_Doc_AggressiveInitialDiscount() public {
@@ -254,11 +240,11 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 outputAmount = 1 ether;
         uint256 auctionStartBlock = block.number;
 
-        tokenIn.forceApprove(swapper, address(permit2), inputMaxAmount * 3);
+        tokenIn.forceApprove(swapper, address(permit2), inputMaxAmount * 5);
 
         // At block 0: 0.5x
         HybridOrder memory order1 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.6e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -267,14 +253,35 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 5: midway through first segment
         vm.roll(auctionStartBlock + 5);
         HybridOrder memory order2 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.6e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
         // Expected: 0.5 + (0.9 - 0.5) * (5/10) = 0.7
-        assertEq(
-            tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(0.5e18) + inputMaxAmount.mulWad(0.7e18)
-        );
+        // Total input: 0.5 + 0.7 = 1.2
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(1.2e18));
+
+        // At block 10: start of second segment
+        vm.roll(auctionStartBlock + 10);
+        HybridOrder memory order3 =
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
+        (SignedOrder memory signedOrder3,) = createAndSignOrder(order3);
+        fillContract.execute(signedOrder3);
+
+        // Expected: start of second segment at 0.9x
+        // Total: 1.2 + 0.9 = 2.1
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(2.1e18));
+
+        // At block 55: midway through second segment
+        vm.roll(auctionStartBlock + 55);
+        HybridOrder memory order4 =
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 4);
+        (SignedOrder memory signedOrder4,) = createAndSignOrder(order4);
+        fillContract.execute(signedOrder4);
+
+        // Expected: 0.9 + (1.0 - 0.9) * (45/90) = 0.95
+        // Total: 2.1 + 0.95 = 3.05
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(3.05e18));
     }
 
     function test_Doc_AggressiveInitialDiscount_ExceedsDuration() public {
@@ -310,7 +317,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 0: 2x
         HybridOrder memory order1 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.5e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -319,11 +326,23 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 100: midway, should be 1.5x
         vm.roll(auctionStartBlock + 100);
         HybridOrder memory order2 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.5e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
         assertEq(tokenOut.balanceOf(swapper), outputMinAmount.mulWadUp(2e18) + outputMinAmount.mulWadUp(1.5e18));
+
+        // At block 199: last valid block, should be close to 1x
+        vm.roll(auctionStartBlock + 199);
+        HybridOrder memory order3 =
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
+        (SignedOrder memory signedOrder3,) = createAndSignOrder(order3);
+        fillContract.execute(signedOrder3);
+
+        // Expected: 2.0 - (2.0 - 1.0) * (199/200) = 1.005
+        assertApproxEqRel(
+            tokenOut.balanceOf(swapper), outputMinAmount.mulWadUp(3.5e18) + outputMinAmount.mulWadUp(1.005e18), 0.001e18
+        );
     }
 
     function test_Doc_ReverseDutchAuction_ExceedsDuration() public {
@@ -339,7 +358,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Try to execute at block 200 (exceeds curve duration of 0-199)
         vm.roll(auctionStartBlock + 200);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1.5e18, priceCurve, auctionStartBlock, 1);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(PriceCurveLib.PriceCurveBlocksExceeded.selector);
@@ -361,7 +381,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Block 15: interpolating from 0.5 to 0.7
         vm.roll(auctionStartBlock + 15);
         HybridOrder memory order1 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.75e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -371,14 +391,35 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Block 50: interpolating from 0.7 to 0.8
         vm.roll(auctionStartBlock + 50);
         HybridOrder memory order2 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.75e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
         // Expected: 0.7 + (0.8 - 0.7) * (20/40) = 0.75
-        assertEq(
-            tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(0.6e18) + inputMaxAmount.mulWad(0.75e18)
-        );
+        // Total: 0.6 + 0.75 = 1.35
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(1.35e18));
+
+        // Block 85: interpolating from 0.8 to 1.0
+        vm.roll(auctionStartBlock + 85);
+        HybridOrder memory order3 =
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
+        (SignedOrder memory signedOrder3,) = createAndSignOrder(order3);
+        fillContract.execute(signedOrder3);
+
+        // Expected: 0.8 + (1.0 - 0.8) * (15/30) = 0.9
+        // Total: 1.35 + 0.9 = 2.25
+        assertEq(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(2.25e18));
+
+        // Block 99: last valid block
+        vm.roll(auctionStartBlock + 99);
+        HybridOrder memory order4 =
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 4);
+        (SignedOrder memory signedOrder4,) = createAndSignOrder(order4);
+        fillContract.execute(signedOrder4);
+
+        // Expected: 0.8 + (1.0 - 0.8) * (29/30) ≈ 0.9933
+        // Total: 2.25 + 0.9933 = 3.2433
+        assertApproxEqRel(tokenIn.balanceOf(address(fillContract)), inputMaxAmount.mulWad(3.2433e18), 0.001e18);
     }
 
     // ============================================================================
@@ -391,7 +432,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1e18, new uint256[](0), 0, 0);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, new uint256[](0), 0, 0);
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
@@ -416,7 +458,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 5: interpolating from 1.2x towards 1.5x
         vm.roll(auctionStartBlock + 5);
         HybridOrder memory order1 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -426,7 +468,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 10: exactly at zero-duration element
         vm.roll(auctionStartBlock + 10);
         HybridOrder memory order2 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
@@ -447,7 +489,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At targetBlock, scaling is 0
         HybridOrder memory order =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.5e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
 
@@ -469,7 +511,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Try to execute at block 10 (exceeds curve duration of 0-9)
         vm.roll(auctionStartBlock + 10);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1e18, priceCurve, auctionStartBlock, 1);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(PriceCurveLib.PriceCurveBlocksExceeded.selector);
@@ -489,7 +532,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         vm.roll(auctionStartBlock + 5);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1e18, priceCurve, auctionStartBlock, 1);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(PriceCurveLib.InvalidPriceCurveParameters.selector);
@@ -504,7 +548,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
         HybridOrder memory order =
-            createBasicOrder(inputAmount, outputAmount, 1e18, new uint256[](0), auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, new uint256[](0), auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(HybridAuctionResolver.InvalidAuctionBlock.selector);
@@ -524,7 +568,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 100: should revert (exceeds total duration)
         vm.roll(auctionStartBlock + 100);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 0.9e18, priceCurve, auctionStartBlock, 1);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(PriceCurveLib.PriceCurveBlocksExceeded.selector);
@@ -546,7 +591,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // During first segment (block 25)
         vm.roll(auctionStartBlock + 25);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         // Should interpolate from 1.5 towards 1.2
         // Expected: 1.5 - (1.5 - 1.2) * (25/50) = 1.35
@@ -555,7 +600,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 50 (start of second segment)
         vm.roll(auctionStartBlock + 50);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 2);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
 
         // Should interpolate from 1.2 towards 1.0
         // Expected: 1.2 - (1.2 - 1.0) * (0/50) = 1.2
@@ -564,7 +609,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 75 (halfway through second segment)
         vm.roll(auctionStartBlock + 75);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 3);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
 
         // Block 75 is 25 blocks into segment 1 (blocks 50-100)
         // Expected: 1.2 - (1.2 - 1.0) * (25/50) = 1.1
@@ -573,7 +618,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // At block 100 (start of third segment)
         vm.roll(auctionStartBlock + 100);
-        _executeOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 4);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 4);
 
         // Expected: 1.0 - (1.0 - 1.0) * (0/50) = 1.0
         uint256 balance4 = tokenOut.balanceOf(swapper);
@@ -596,7 +641,8 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 150: should revert (exceeds total duration)
         vm.roll(auctionStartBlock + 150);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(PriceCurveLib.PriceCurveBlocksExceeded.selector);
@@ -616,7 +662,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Price should increase from 0.5x to 1x over 100 blocks
         // At block 0: 0.5x
         HybridOrder memory order1 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.6e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -625,7 +671,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 50: midpoint, should be 0.75x
         vm.roll(auctionStartBlock + 50);
         HybridOrder memory order2 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.6e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
@@ -636,7 +682,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 99: close to 1.0x
         vm.roll(auctionStartBlock + 99);
         HybridOrder memory order3 =
-            createBasicOrder(inputMaxAmount, outputAmount, 0.6e18, priceCurve, auctionStartBlock, 3);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
         (SignedOrder memory signedOrder3,) = createAndSignOrder(order3);
         fillContract.execute(signedOrder3);
 
@@ -662,7 +708,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // Block 15: interpolating from 1.5 to 1.3
         vm.roll(auctionStartBlock + 15);
-        _executeOrder(inputAmount, outputMinAmount, 1.4e18, priceCurve, auctionStartBlock, 1);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         // Expected: 1.5 - (1.5 - 1.3) * (15/30) = 1.4
         uint256 balance1 = tokenOut.balanceOf(swapper);
@@ -670,7 +716,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // Block 50: interpolating from 1.3 to 1.1
         vm.roll(auctionStartBlock + 50);
-        _executeOrder(inputAmount, outputMinAmount, 1.4e18, priceCurve, auctionStartBlock, 2);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
 
         // Expected: 1.3 - (1.3 - 1.1) * (20/40) = 1.2
         uint256 balance2 = tokenOut.balanceOf(swapper);
@@ -678,7 +724,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // Block 85: interpolating from 1.1 to 1.0
         vm.roll(auctionStartBlock + 85);
-        _executeOrder(inputAmount, outputMinAmount, 1.4e18, priceCurve, auctionStartBlock, 3);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
 
         // Expected: 1.1 - (1.1 - 1.0) * (15/30) = 1.05
         uint256 balance3 = tokenOut.balanceOf(swapper);
@@ -686,7 +732,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         // Block 99: last valid block
         vm.roll(auctionStartBlock + 99);
-        _executeOrder(inputAmount, outputMinAmount, 1.4e18, priceCurve, auctionStartBlock, 4);
+        _executeOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 4);
 
         // Expected: 1.1 - (1.1 - 1.0) * (29/30) ≈ 1.0033
         uint256 balance4 = tokenOut.balanceOf(swapper);
@@ -713,7 +759,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 5: interpolating from 1.2x towards 1.5x
         vm.roll(auctionStartBlock + 5);
         HybridOrder memory order1 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -724,7 +770,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 10: returns FIRST zero-duration element (1.5x)
         vm.roll(auctionStartBlock + 10);
         HybridOrder memory order2 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
@@ -734,7 +780,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 11: interpolates from LAST zero-duration element (1.3x)
         vm.roll(auctionStartBlock + 11);
         HybridOrder memory order3 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 3);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 3);
         (SignedOrder memory signedOrder3,) = createAndSignOrder(order3);
         fillContract.execute(signedOrder3);
 
@@ -760,7 +806,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 10: returns FIRST zero-duration (1.6x)
         vm.roll(auctionStartBlock + 10);
         HybridOrder memory order1 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -769,7 +815,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // At block 11: interpolates from LAST (third) zero-duration (1.2x)
         vm.roll(auctionStartBlock + 11);
         HybridOrder memory order2 =
-            createBasicOrder(inputAmount, outputMinAmount, 1.3e18, priceCurve, auctionStartBlock, 2);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 2);
         (SignedOrder memory signedOrder2,) = createAndSignOrder(order2);
         fillContract.execute(signedOrder2);
 
@@ -883,14 +929,14 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 inputAmount = 100 ether;
         uint256 outputAmount = 95 ether;
         uint256 baselinePriorityFee = 100 gwei;
-        uint256 scalingFactor = 1e18;
 
         vm.fee(baselinePriorityFee);
         vm.txGasPrice(baselinePriorityFee + 1 wei);
 
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, scalingFactor, new uint256[](0), 0, 0);
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, new uint256[](0), 0, 0);
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
@@ -1117,7 +1163,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         uint256 inputMaxAmount = 1 ether;
         uint256 outputAmount = 0.95 ether;
-        uint256 scalingFactor = 1e18;
         uint256 auctionStartBlock = block.number;
 
         tokenIn.forceApprove(swapper, address(permit2), inputMaxAmount);
@@ -1126,7 +1171,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         vm.roll(auctionStartBlock + 5);
 
         HybridOrder memory order =
-            createBasicOrder(inputMaxAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
@@ -1150,7 +1195,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         uint256 inputAmount = 1 ether;
         uint256 outputMinAmount = 0.95 ether;
-        uint256 scalingFactor = 1e18;
         uint256 auctionStartBlock = block.number;
 
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -1158,7 +1202,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         vm.roll(auctionStartBlock + 5);
 
         HybridOrder memory order =
-            createBasicOrder(inputAmount, outputMinAmount, scalingFactor, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
@@ -1179,7 +1223,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         uint256 inputAmount = 1 ether;
         uint256 outputMinAmount = 0.95 ether;
-        uint256 scalingFactor = 1e18;
         uint256 auctionStartBlock = block.number;
 
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
@@ -1187,7 +1230,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         vm.roll(auctionStartBlock + 5);
 
         HybridOrder memory order =
-            createBasicOrder(inputAmount, outputMinAmount, scalingFactor, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputAmount, outputMinAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
 
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
@@ -1208,7 +1251,6 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         uint256 inputMaxAmount = 1 ether;
         uint256 outputAmount = 0.95 ether;
-        uint256 scalingFactor = 1e18;
         uint256 auctionStartBlock = block.number;
 
         tokenIn.forceApprove(swapper, address(permit2), inputMaxAmount * 2);
@@ -1216,7 +1258,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         // Test at block 5
         vm.roll(auctionStartBlock + 5);
         HybridOrder memory order1 =
-            createBasicOrder(inputMaxAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, 1);
+            createBasicOrder(inputMaxAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, auctionStartBlock, 1);
         (SignedOrder memory signedOrder1,) = createAndSignOrder(order1);
         fillContract.execute(signedOrder1);
 
@@ -1241,7 +1283,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         tokenIn.forceApprove(swapper, address(permit2), inputAmount);
 
-        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, 1e18, priceCurve, 0, 1);
+        HybridOrder memory order = createBasicOrder(inputAmount, outputAmount, NEUTRAL_SCALING_FACTOR, priceCurve, 0, 1);
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
 
         vm.expectRevert(HybridOrderLib.InvalidTargetBlockDesignation.selector);
@@ -1350,7 +1392,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             outputs: outputs,
             auctionStartBlock: block.number,
             baselinePriorityFee: 0,
-            scalingFactor: 1e18,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
             priceCurve: new uint256[](0),
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -1560,5 +1602,20 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(
             tokenIn.balanceOf(address(fillContract)), inputAmount, "Input should equal amount with neutral scaling"
         );
+    }
+
+    /// @dev Helper to execute an order
+    function _executeOrder(
+        uint256 inputAmount,
+        uint256 outputAmount,
+        uint256 scalingFactor,
+        uint256[] memory priceCurve,
+        uint256 auctionStartBlock,
+        uint256 nonce
+    ) internal {
+        HybridOrder memory order =
+            createBasicOrder(inputAmount, outputAmount, scalingFactor, priceCurve, auctionStartBlock, nonce);
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+        fillContract.execute(signedOrder);
     }
 }
