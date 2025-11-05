@@ -409,7 +409,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @return totalOutputExecuted The cumulative output amount after this execution
     function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs)
         internal
-        returns (uint256 totalInputExecuted, uint256 totalOutputExecuted)
+        returns (uint256, uint256)
     {
         // Use memory to reduce SSTOREs
         DCAExecutionState memory state = executionStates[intentId];
@@ -439,7 +439,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory state) {
+    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory) {
         return executionStates[intentId];
     }
 
@@ -448,7 +448,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         external
         view
         override
-        returns (bool active)
+        returns (bool)
     {
         DCAExecutionState storage s = executionStates[intentId];
         if (s.cancelled) return false;
@@ -459,7 +459,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
+    function getNextNonce(bytes32 intentId) external view override returns (uint96) {
         // The next valid nonce is always equal to the number of chunks already executed.
         // This is because nonces start at 0 and increment by 1 with each execution.
         // After N executions (executedChunks = N), the next valid nonce is N.
