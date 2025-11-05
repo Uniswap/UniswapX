@@ -21,7 +21,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice Basis points constant (100% = 10000)
     uint256 private constant BPS = 10000;
 
-    /// @notice Common denominator in Wad Math
+    /// @notice Common denominator in Wad math
     uint256 private constant DENOMINATOR = 1e18;
 
     /// @notice Permit2 instance for signature verification and token transfers
