@@ -341,11 +341,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.limitAmount, DIVISOR, cosignerData.execAmount);
+            executionPrice = Math.mulDiv(cosignerData.limitAmount, DENOMINATOR, cosignerData.execAmount);
         } else {
             // execAmount = exact output; limitAmount = max acceptable input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.execAmount, DIVISOR, cosignerData.limitAmount);
+            executionPrice = Math.mulDiv(cosignerData.execAmount, DENOMINATOR, cosignerData.limitAmount);
         }
         if (executionPrice < intent.minPrice) {
             revert PriceBelowMin(executionPrice, intent.minPrice);
