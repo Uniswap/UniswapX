@@ -42,6 +42,10 @@ interface IDCAHook is IPreExecutionHook {
     /// @param totalBasisPoints The actual sum of basis points
     error AllocationsNot100Percent(uint256 totalBasisPoints);
 
+    /// @notice Thrown when multiple allocations have the same recipient
+    /// @param recipient The duplicate recipient address
+    error DuplicateRecipient(address recipient);
+
     /// @notice Thrown when the hook address doesn't match the expected hook
     /// @param providedHook The hook address provided in the intent
     /// @param expectedHook The expected hook address (this contract)

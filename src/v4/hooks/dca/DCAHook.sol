@@ -216,12 +216,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
     }
 
-    /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
-    /// @dev Reverts if allocations don't sum to 10000 or if array is empty
+    /// @notice Validates that output allocations sum to exactly 100% (10000 basis points) and have no duplicate recipients
+    /// @dev Reverts if allocations don't sum to 10000, if array is empty, or if there are duplicate recipients
     /// @dev NOTE: This function intentionally allows:
-    ///      - Duplicate recipients (same address multiple times) - checked off-chain
     ///      - Zero address as recipient - validated off-chain for user safety
-    ///      These are permitted at the contract level to support advanced use cases
+    ///      This is permitted at the contract level to support advanced use cases
     ///      but should be prevented in the UI/frontend for typical users
     /// @param outputAllocations The array of output allocations to validate
     function _validateAllocationStructure(OutputAllocation[] memory outputAllocations) internal pure {
@@ -235,6 +234,17 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             uint16 basisPoints = outputAllocations[i].basisPoints;
             if (basisPoints == 0) {
                 revert ZeroAllocation();
+            }
+
+            // Check for duplicate recipients
+            address recipient = outputAllocations[i].recipient;
+            for (uint256 j = i + 1; j < length;) {
+                if (outputAllocations[j].recipient == recipient) {
+                    revert DuplicateRecipient(recipient);
+                }
+                unchecked {
+                    ++j;
+                }
             }
 
             totalBasisPoints += basisPoints;
