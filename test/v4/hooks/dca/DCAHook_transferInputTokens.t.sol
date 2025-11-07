@@ -324,6 +324,47 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
         hook.transferInputTokens(order, FILLER, permitData);
     }
 
+    function test_transferInputTokens_withPermit_frontRunProtection() public {
+        // Get the current nonce for the swapper
+        (,, uint48 currentNonce) = permit2.allowance(SWAPPER, address(inputToken), address(hook));
+
+        // Create permit with proper signature
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: address(inputToken),
+                amount: uint160(AMOUNT),
+                expiration: uint48(block.timestamp + 1000),
+                nonce: currentNonce
+            }),
+            spender: address(hook),
+            sigDeadline: block.timestamp + 1000
+        });
+
+        bytes memory signature = _generatePermitSignature(permitSingle);
+        PermitData memory permitData = PermitData({hasPermit: true, permitSingle: permitSingle, signature: signature});
+        ResolvedOrder memory order = _createResolvedOrder(SWAPPER, address(inputToken), AMOUNT);
+
+        // ATTACK: Front-runner extracts the permit from mempool and calls permit2.permit() directly
+        // This consumes the nonce but sets the allowance for the hook (as specified in the permit)
+        permit2.permit(SWAPPER, permitSingle, signature);
+
+        // Verify the nonce was consumed
+        (,, uint48 nonceAfterFrontRun) = permit2.allowance(SWAPPER, address(inputToken), address(hook));
+        assertEq(nonceAfterFrontRun, currentNonce + 1);
+
+        // PROTECTED: User's transaction should still succeed because our fix checks allowance first
+        // Before fix: would revert with "invalid nonce"
+        // After fix: detects sufficient allowance and skips permit call, transfer succeeds
+        uint256 swapperBalanceBefore = inputToken.balanceOf(SWAPPER);
+        uint256 fillerBalanceBefore = inputToken.balanceOf(FILLER);
+
+        hook.transferInputTokens(order, FILLER, permitData);
+
+        // Verify the transfer succeeded despite the front-run
+        assertEq(inputToken.balanceOf(SWAPPER), swapperBalanceBefore - AMOUNT);
+        assertEq(inputToken.balanceOf(FILLER), fillerBalanceBefore + AMOUNT);
+    }
+
     // ============ Edge cases ============
 
     function test_transferInputTokens_differentRecipient() public {
