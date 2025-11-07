@@ -353,8 +353,6 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
         assertEq(nonceAfterFrontRun, currentNonce + 1);
 
         // PROTECTED: User's transaction should still succeed despite front-run
-        // Before fix: would revert with "invalid nonce"
-        // After fix: try-catch catches the permit failure, transfer succeeds with existing allowance
         uint256 swapperBalanceBefore = inputToken.balanceOf(SWAPPER);
         uint256 fillerBalanceBefore = inputToken.balanceOf(FILLER);
 
