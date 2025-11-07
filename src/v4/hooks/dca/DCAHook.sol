@@ -160,6 +160,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @dev Reconstructs the original signed message by replacing the zeroed privateIntent field with its hash.
     ///      This preserves privacy by keeping sensitive DCA parameters (totalAmount, frequency, chunks) off-chain
     ///      while maintaining signature integrity through hash commitment.
+    ///      Supports both EOA signatures (ECDSA) and smart contract wallet signatures (EIP-1271).
     /// @param intent The DCA intent with privateIntent field zeroed for privacy
     /// @param privateIntentHash Keccak256 hash of the original privateIntent data
     /// @param swapperSignature The EIP-712 signature from the swapper
@@ -170,14 +171,14 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     ) internal view {
         bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
         bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
-        address recoveredSigner = DCALib.recover(digest, swapperSignature);
-        if (recoveredSigner != intent.swapper) {
-            revert InvalidSwapperSignature(recoveredSigner, intent.swapper);
+        if (!DCALib.isValidSignature(intent.swapper, digest, swapperSignature)) {
+            revert InvalidSwapperSignature(address(0), intent.swapper);
         }
     }
 
     /// @notice Validates the cosigner's EIP-712 signature and authorization data
-    /// @dev Verifies both the signature and that cosigner data matches the intent
+    /// @dev Verifies both the signature and that cosigner data matches the intent.
+    ///      Supports both EOA signatures (ECDSA) and smart contract wallet signatures (EIP-1271).
     /// @param intent The DCA intent containing expected cosigner and swapper/nonce info
     /// @param cosignerData The cosigner authorization data containing execution parameters
     /// @param cosignerSignature The EIP-712 signature from the cosigner
@@ -188,9 +189,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     ) internal view {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
         bytes32 cosignerDigest = DCALib.digest(domainSeparator, cosignerStructHash);
-        address recoveredCosigner = DCALib.recover(cosignerDigest, cosignerSignature);
-        if (recoveredCosigner != intent.cosigner) {
-            revert InvalidCosignerSignature(recoveredCosigner, intent.cosigner);
+        if (!DCALib.isValidSignature(intent.cosigner, cosignerDigest, cosignerSignature)) {
+            revert InvalidCosignerSignature(address(0), intent.cosigner);
         }
         if (cosignerData.swapper != intent.swapper) {
             revert CosignerSwapperMismatch(cosignerData.swapper, intent.swapper);
