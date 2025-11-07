@@ -349,13 +349,13 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
         // This consumes the nonce but sets the allowance for the hook (as specified in the permit)
         permit2.permit(SWAPPER, permitSingle, signature);
 
-        // Verify the nonce was consumed
+        // Verify the nonce was consumed by the front-runner
         (,, uint48 nonceAfterFrontRun) = permit2.allowance(SWAPPER, address(inputToken), address(hook));
         assertEq(nonceAfterFrontRun, currentNonce + 1);
 
-        // PROTECTED: User's transaction should still succeed because our fix checks allowance first
+        // PROTECTED: User's transaction should still succeed despite front-run
         // Before fix: would revert with "invalid nonce"
-        // After fix: detects sufficient allowance and skips permit call, transfer succeeds
+        // After fix: try-catch catches the permit failure, transfer succeeds with existing allowance
         uint256 swapperBalanceBefore = inputToken.balanceOf(SWAPPER);
         uint256 fillerBalanceBefore = inputToken.balanceOf(FILLER);
 
