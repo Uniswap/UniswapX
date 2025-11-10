@@ -30,7 +30,8 @@ contract PermitSignature is Test {
     using MockOrderLib for MockOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
-    bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+    bytes32 public constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     bytes32 internal constant TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
 
@@ -235,8 +236,7 @@ contract PermitSignature is Test {
     {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({
-                token: address(order.input.token),
-                amount: order.input.maxAmount
+                token: address(order.input.token), amount: order.input.maxAmount
             }),
             nonce: order.info.nonce,
             deadline: order.info.deadline

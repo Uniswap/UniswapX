@@ -10,6 +10,8 @@ import {CurrencyLibrary} from "../../lib/CurrencyLibrary.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {OutputToken} from "../../base/ReactorStructs.sol";
 
+/// @notice Handling for protocol fees
+/// @dev depends on chosen FeeController to get fee outputs from resolved orders
 abstract contract ProtocolFees is Owned {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;

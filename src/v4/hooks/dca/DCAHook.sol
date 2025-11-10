@@ -21,6 +21,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice Basis points constant (100% = 10000)
     uint256 private constant BPS = 10000;
 
+    /// @notice Common denominator in Wad math
+    uint256 private constant DENOMINATOR = 1e18;
+
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
@@ -338,11 +341,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.limitAmount, 1e18, cosignerData.execAmount);
+            executionPrice = Math.mulDiv(cosignerData.limitAmount, DENOMINATOR, cosignerData.execAmount);
         } else {
             // execAmount = exact output; limitAmount = max acceptable input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.execAmount, 1e18, cosignerData.limitAmount);
+            executionPrice = Math.mulDiv(cosignerData.execAmount, DENOMINATOR, cosignerData.limitAmount);
         }
         if (executionPrice < intent.minPrice) {
             revert PriceBelowMin(executionPrice, intent.minPrice);
@@ -409,7 +412,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @return totalOutputExecuted The cumulative output amount after this execution
     function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs)
         internal
-        returns (uint256 totalInputExecuted, uint256 totalOutputExecuted)
+        returns (uint256, uint256)
     {
         // Use memory to reduce SSTOREs
         DCAExecutionState memory state = executionStates[intentId];
@@ -439,7 +442,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory state) {
+    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory) {
         return executionStates[intentId];
     }
 
@@ -448,7 +451,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         external
         view
         override
-        returns (bool active)
+        returns (bool)
     {
         DCAExecutionState storage s = executionStates[intentId];
         if (s.cancelled) return false;
@@ -459,7 +462,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
+    function getNextNonce(bytes32 intentId) external view override returns (uint96) {
         // The next valid nonce is always equal to the number of chunks already executed.
         // This is because nonces start at 0 and increment by 1 with each execution.
         // After N executions (executedChunks = N), the next valid nonce is N.
