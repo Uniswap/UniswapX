@@ -66,6 +66,7 @@ contract PriorityFeeLibTest is Test {
     }
 
     function testScaleInputPriorityFee_fuzz(uint256 priorityFee) public {
+        priorityFee = bound(priorityFee, 0, type(uint64).max);
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
 
@@ -127,6 +128,8 @@ contract PriorityFeeLibTest is Test {
 
     /// forge-config: default.allow_internal_expect_revert = true
     function testScaleOutputPriorityFee_fuzz(uint256 priorityFee, uint256 mpsPerPriorityFeeWei) public {
+        priorityFee = bound(priorityFee, 0, type(uint64).max);
+        
         // the amount of MPS to scale the output by
         uint256 scalingFactor = MPS;
         // overflows can happen when the priority fee is too high, or when the mpsPerPriorityFeeWei is too high
@@ -172,6 +175,7 @@ contract PriorityFeeLibTest is Test {
 
     /// @notice no scaling should be done when the mpsPerPriorityFeeWei is 0
     function testScaleInputWithZeroMpsPerPriorityFeeWei_fuzz(uint256 priorityFee) public {
+        priorityFee = bound(priorityFee, 0, type(uint64).max);
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
         PriorityInput memory input = PriorityInput({token: ERC20(address(0)), amount: amount, mpsPerPriorityFeeWei: 0});
@@ -183,6 +187,7 @@ contract PriorityFeeLibTest is Test {
 
     /// @notice no scaling should be done when the mpsPerPriorityFeeWei is 0
     function testScaleOutputWithZeroMpsPerPriorityFeeWei_fuzz(uint256 priorityFee) public {
+        priorityFee = bound(priorityFee, 0, type(uint64).max);
         vm.txGasPrice(priorityFee);
         assertEq(tx.gasprice, priorityFee);
         PriorityOutput memory output =
