@@ -21,6 +21,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice Basis points constant (100% = 10000)
     uint256 private constant BPS = 10000;
 
+    /// @notice Common denominator in Wad math
+    uint256 private constant DENOMINATOR = 1e18;
+
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
@@ -338,11 +341,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.limitAmount, 1e18, cosignerData.execAmount);
+            executionPrice = Math.mulDiv(cosignerData.limitAmount, DENOMINATOR, cosignerData.execAmount);
         } else {
             // execAmount = exact output; limitAmount = max acceptable input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.execAmount, 1e18, cosignerData.limitAmount);
+            executionPrice = Math.mulDiv(cosignerData.execAmount, DENOMINATOR, cosignerData.limitAmount);
         }
         if (executionPrice < intent.minPrice) {
             revert PriceBelowMin(executionPrice, intent.minPrice);
