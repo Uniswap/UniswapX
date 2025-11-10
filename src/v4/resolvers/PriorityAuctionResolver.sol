@@ -17,8 +17,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     using PriorityFeeLib for PriorityOutput;
     using PriorityFeeLib for PriorityOutput[];
 
-    /// @notice thrown when an order's deadline is in the past
-    error InvalidDeadline();
     /// @notice thrown when an order's auctionStartBlock is in the future
     error OrderNotFillable();
     /// @notice thrown when an order's nonce has already been used
