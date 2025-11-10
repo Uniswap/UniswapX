@@ -51,11 +51,7 @@ contract DCAHook_validateStaticFieldsTest is Test, DeployPermit2 {
         allocations[0] = OutputAllocation({recipient: RECIPIENT_1, basisPoints: 10000});
 
         PrivateIntent memory privateIntent = PrivateIntent({
-            totalAmount: 1000e18,
-            exactFrequency: 3600,
-            numChunks: 10,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 1000e18, exactFrequency: 3600, numChunks: 10, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         return DCAIntent({

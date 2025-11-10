@@ -146,10 +146,7 @@ contract PriorityFeeLibTest is Test {
         assertEq(tx.gasprice, priorityFee);
 
         PriorityOutput memory output = PriorityOutput({
-            token: address(0),
-            amount: amount,
-            mpsPerPriorityFeeWei: mpsPerPriorityFeeWei,
-            recipient: address(0)
+            token: address(0), amount: amount, mpsPerPriorityFeeWei: mpsPerPriorityFeeWei, recipient: address(0)
         });
 
         OutputToken memory scaledOutput;
