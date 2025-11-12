@@ -5,7 +5,7 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 
 struct FeedInfo {
     bytes32 feedId;
-    address feed_address;
+    address feedAddress;
     string feedType;
 }
 

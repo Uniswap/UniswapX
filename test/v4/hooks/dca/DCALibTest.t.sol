@@ -104,12 +104,12 @@ contract DCALibTest is Test {
         a = new FeedInfo[](2);
         a[0] = FeedInfo({
             feedId: keccak256("feed-0"),
-            feed_address: address(0x1111111111111111111111111111111111111111),
+            feedAddress: address(0x1111111111111111111111111111111111111111),
             feedType: "price"
         });
         a[1] = FeedInfo({
             feedId: keccak256("feed-1"),
-            feed_address: address(0x2222222222222222222222222222222222222222),
+            feedAddress: address(0x2222222222222222222222222222222222222222),
             feedType: "oracle"
         });
     }
