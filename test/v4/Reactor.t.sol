@@ -22,7 +22,6 @@ import {TokenTransferHook} from "../../src/v4/hooks/TokenTransferHook.sol";
 import {MockAuctionResolver, MaliciousAuctionResolver} from "./util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "./util/mock/MockOrderLib.sol";
 import {ArrayBuilder} from "../util/ArrayBuilder.sol";
-import {GENERIC_ORDER_TYPE_HASH} from "../../src/v4/base/ReactorStructs.sol";
 import {NATIVE} from "../../src/lib/CurrencyLibrary.sol";
 import {ERC20ETH} from "../../lib/calibur/lib/erc20-eth/src/ERC20Eth.sol";
 import {DelegationHandler} from "../native-input/DelegationHandler.sol";
@@ -810,7 +809,6 @@ contract ReactorTest is ReactorEvents, Test, PermitSignature, DeployPermit2, Del
         fillContract.execute(signedOrder);
     }
 
-    /// @dev Test that resolver substitution attack is prevented by GenericOrder witness binding
     function test_exploitMaliciousFillerResolver() public {
         uint256 inputAmount = 1 ether;
         uint256 outputAmount = 1 ether;

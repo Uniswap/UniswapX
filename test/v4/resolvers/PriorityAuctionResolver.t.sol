@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
 import {PermitSignature} from "../../util/PermitSignature.sol";
-import {OrderInfo, GENERIC_ORDER_TYPE_HASH} from "../../../src/v4/base/ReactorStructs.sol";
+import {OrderInfo} from "../../../src/v4/base/ReactorStructs.sol";
 import {SignedOrder} from "../../../src/base/ReactorStructs.sol";
 import {ReactorEvents} from "../../../src/base/ReactorEvents.sol";
 import {Reactor} from "../../../src/v4/Reactor.sol";

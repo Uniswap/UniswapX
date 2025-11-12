@@ -18,7 +18,6 @@ import {
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
 import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
-import {GENERIC_ORDER_TYPE_HASH, GENERIC_ORDER_WITNESS_TYPE} from "../../src/v4/base/ReactorStructs.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -63,9 +62,6 @@ contract PermitSignature is Test {
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant MOCK_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
-
-    bytes32 constant GENERIC_ORDER_WITNESS_TYPE_HASH =
-        keccak256(abi.encodePacked(TYPEHASH_STUB, GENERIC_ORDER_WITNESS_TYPE));
 
     function getPermitSignature(
         uint256 privateKey,

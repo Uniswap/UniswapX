@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {ResolvedOrder, GENERIC_ORDER_WITNESS_TYPE} from "../base/ReactorStructs.sol";
+import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {Permit2Lib} from "./Permit2Lib.sol";
 
 /// @notice Library for transferring input tokens using Permit2
