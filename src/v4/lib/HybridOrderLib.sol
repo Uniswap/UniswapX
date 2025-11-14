@@ -201,7 +201,7 @@ library HybridOrderLib {
         return result;
     }
 
-    /// @notice scale the input of a hybrid order for exact-in orders
+    /// @notice scale the input of a hybrid order for exact-out orders
     /// @param input the input to scale
     /// @param scalingFactor the scaling factor to use
     /// @return input scaled down from maxAmount
