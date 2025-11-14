@@ -108,7 +108,7 @@ contract HybridAuctionResolver is IAuctionResolver {
     /// @notice tx.gasprice must be greater than or equal to block.basefee
     /// @param baselinePriorityFeeWei the baseline priority fee to be subtracted from calculated priority fee
     /// @return priorityFee the resolved priority fee
-    function _getPriorityFee(uint256 baselinePriorityFeeWei) internal view returns (uint256 priorityFee) {
+    function _getPriorityFee(uint256 baselinePriorityFeeWei) private view returns (uint256 priorityFee) {
         if (tx.gasprice < block.basefee) revert InvalidGasPrice();
         unchecked {
             priorityFee = tx.gasprice - block.basefee;
