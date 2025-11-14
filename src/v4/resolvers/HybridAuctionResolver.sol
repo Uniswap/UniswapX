@@ -8,9 +8,10 @@ import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.so
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {HybridOrder, HybridOrderLib, HybridInput, HybridOutput} from "../lib/HybridOrderLib.sol";
 import {CosignerLib} from "../../lib/CosignerLib.sol";
+import {BlockNumberish} from "../../base/BlockNumberish.sol";
 
 /// @notice Resolver for hybrid Dutch + priority gas auctions following Tribunal's model
-contract HybridAuctionResolver is IAuctionResolver {
+contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
     using HybridOrderLib for HybridOrder;
     using HybridOrderLib for HybridOutput[];
     using HybridOrderLib for HybridInput;
@@ -22,6 +23,8 @@ contract HybridAuctionResolver is IAuctionResolver {
 
     error InvalidAuctionBlock();
     error InvalidGasPrice();
+
+    constructor() BlockNumberish() {}
 
     /// @inheritdoc IAuctionResolver
     function resolve(SignedOrder calldata signedOrder)
@@ -51,12 +54,13 @@ contract HybridAuctionResolver is IAuctionResolver {
             }
         }
 
-        if (auctionTargetBlock != 0 && block.number < auctionTargetBlock) {
+        uint256 blockNumberish = _getBlockNumberish();
+        if (auctionTargetBlock != 0 && blockNumberish < auctionTargetBlock) {
             revert InvalidAuctionBlock();
         }
 
         uint256 currentScalingFactor =
-            HybridOrderLib.deriveCurrentScalingFactor(order, effectivePriceCurve, auctionTargetBlock, block.number);
+            HybridOrderLib.deriveCurrentScalingFactor(order, effectivePriceCurve, auctionTargetBlock, blockNumberish);
 
         uint256 scalingMultiplier;
         // When neutral (scalingFactor == 1e18), determine mode from currentScalingFactor
