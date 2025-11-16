@@ -61,7 +61,7 @@ library HybridOrderLib {
         "address cosigner,",
         "HybridInput input,",
         "HybridOutput[] outputs,",
-        "uint256 auctionTargetBlock,",
+        "uint256 auctionStartBlock,",
         "uint256 baselinePriorityFee,",
         "uint256 scalingFactor,",
         "uint256[] priceCurve)"
