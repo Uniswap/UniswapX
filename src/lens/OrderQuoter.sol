@@ -65,4 +65,8 @@ contract OrderQuoter is IReactorCallback {
             revert(add(32, order), mload(order))
         }
     }
+
+    /// @notice Fallback function to receive ETH
+    /// @dev Required for ERC20ETH transfers which send ETH to this contract
+    receive() external payable {}
 }

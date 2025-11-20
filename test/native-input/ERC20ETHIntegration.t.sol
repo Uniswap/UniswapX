@@ -47,6 +47,8 @@ import {Constants} from "../../lib/calibur/test/utils/Constants.sol";
 import {EntryPoint} from "../../lib/calibur/lib/account-abstraction/contracts/core/EntryPoint.sol";
 import {TestKeyManager, TestKey} from "../../lib/calibur/test/utils/TestKeyManager.sol";
 import {KeyType} from "../../lib/calibur/src/libraries/KeyLib.sol";
+import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
+import {ResolvedOrder} from "../../src/base/ReactorStructs.sol";
 
 // Tests each reactor with native ETH input.
 contract ERC20ETHIntegrationTest is Test, DeployPermit2, PermitSignature, DelegationHandler {
@@ -63,6 +65,7 @@ contract ERC20ETHIntegrationTest is Test, DeployPermit2, PermitSignature, Delega
     address internal constant PROTOCOL_FEE_OWNER = address(1);
     MockFillContract fillContract;
     IPermit2 permit2;
+    OrderQuoter quoter;
 
     function setUp() public {
         permit2 = IPermit2(deployPermit2());
@@ -74,6 +77,9 @@ contract ERC20ETHIntegrationTest is Test, DeployPermit2, PermitSignature, Delega
 
         // Deploy ERC20ETH
         erc20eth = new ERC20ETH();
+
+        // Deploy OrderQuoter
+        quoter = new OrderQuoter();
     }
 
     function test_V2DutchOrderWithNativeInput() public {
@@ -303,5 +309,61 @@ contract ERC20ETHIntegrationTest is Test, DeployPermit2, PermitSignature, Delega
         bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cosignerData)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPrivateKey, msgHash);
         sig = bytes.concat(r, s, bytes1(v));
+    }
+
+    function test_V3DutchOrderWithNativeInputPassesOrderQuoterValidation() public {
+        // Deploy reactor
+        V3DutchOrderReactor v3DutchOrderReactor = new V3DutchOrderReactor(permit2, PROTOCOL_FEE_OWNER);
+
+        // Fund the swapper with ETH
+        uint256 totalAmount = 1 ether;
+        uint256 swapAmount = 0.5 ether;
+        vm.deal(address(signerAccount), totalAmount);
+
+        // Approve ERC20ETH to use signerAccount's native ETH
+        vm.prank(address(signerAccount));
+        signerAccount.approveNative(address(erc20eth), type(uint256).max);
+
+        // Create the order
+        uint256 outputAmount = 0.5 ether;
+        V3DutchOrder memory order = V3DutchOrder({
+            info: OrderInfoBuilder.init(address(v3DutchOrderReactor)).withSwapper(address(signerAccount)),
+            cosigner: vm.addr(cosignerPrivateKey),
+            baseInput: V3DutchInput(
+                ERC20(address(erc20eth)), // Input is native ETH
+                swapAmount,
+                CurveBuilder.emptyCurve(),
+                swapAmount,
+                0
+            ),
+            baseOutputs: OutputsBuilder.singleV3Dutch(
+                address(tokenOut), outputAmount, outputAmount, CurveBuilder.emptyCurve(), address(signerAccount)
+            ),
+            cosignerData: CosignerData({
+                decayStartBlock: block.number,
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0,
+                inputAmount: swapAmount,
+                outputAmounts: ArrayBuilder.fill(1, outputAmount)
+            }),
+            cosignature: bytes(""),
+            startingBaseFee: block.basefee
+        });
+
+        // Sign the order
+        bytes32 orderHash = order.hash();
+        order.cosignature = cosignOrder(orderHash, order.cosignerData);
+        bytes memory sig = signOrder(signerPrivateKey, address(permit2), order);
+
+        // Quote the order through OrderQuoter
+        ResolvedOrder memory quote = quoter.quote(abi.encode(order), sig);
+
+        // Verify the quote matches the order
+        assertEq(address(quote.input.token), address(erc20eth));
+        assertEq(quote.input.amount, swapAmount);
+        assertEq(quote.outputs.length, 1);
+        assertEq(quote.outputs[0].token, address(tokenOut));
+        assertEq(quote.outputs[0].amount, outputAmount);
+        assertEq(quote.info.swapper, address(signerAccount));
     }
 }
