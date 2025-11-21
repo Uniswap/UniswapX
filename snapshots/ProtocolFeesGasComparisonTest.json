@@ -1,8 +1,8 @@
 {
-  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee": "163802",
-  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFeeEthOutput": "152315",
-  "ProtocolFeesGasComparisonTest-InterfaceFee": "153086",
-  "ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput": "136427",
-  "ProtocolFeesGasComparisonTest-NoFees": "136759",
-  "ProtocolFeesGasComparisonTest-NoFeesEthOutput": "114928"
+  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFee": "200685",
+  "ProtocolFeesGasComparisonTest-InterfaceAndProtocolFeeEthOutput": "189197",
+  "ProtocolFeesGasComparisonTest-InterfaceFee": "189977",
+  "ProtocolFeesGasComparisonTest-InterfaceFeeEthOutput": "173317",
+  "ProtocolFeesGasComparisonTest-NoFees": "173026",
+  "ProtocolFeesGasComparisonTest-NoFeesEthOutput": "151194"
 }

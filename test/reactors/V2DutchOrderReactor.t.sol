@@ -52,10 +52,7 @@ contract V2DutchOrderTest is PermitSignature, DeployPermit2, BaseDutchOrderReact
         for (uint256 i = 0; i < request.outputs.length; i++) {
             OutputToken memory output = request.outputs[i];
             outputs[i] = DutchOutput({
-                token: output.token,
-                startAmount: output.amount,
-                endAmount: output.amount,
-                recipient: output.recipient
+                token: output.token, startAmount: output.amount, endAmount: output.amount, recipient: output.recipient
             });
         }
 

@@ -8,8 +8,7 @@ import {NonlinearDutchDecay} from "../../src/lib/V3DutchOrderLib.sol";
 library CurveBuilder {
     function emptyCurve() internal pure returns (NonlinearDutchDecay memory) {
         return NonlinearDutchDecay({
-            relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)),
-            relativeAmounts: ArrayBuilder.fillInt(0, 0)
+            relativeBlocks: toUint256(ArrayBuilder.fillUint16(0, 0)), relativeAmounts: ArrayBuilder.fillInt(0, 0)
         });
     }
 

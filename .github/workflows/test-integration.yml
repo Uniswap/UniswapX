@@ -39,7 +39,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1
         with:
-          version: nightly
+          version: v1.4.4
 
       - name: Run Forge build
         run: |
@@ -51,6 +51,6 @@ jobs:
         run: |
           forge test -vvv
         env:
-          FOUNDRY_RPC_URL: '${{ secrets.RPC_URL }}'
+          FOUNDRY_RPC_URL: "${{ secrets.RPC_URL }}"
           FOUNDRY_PROFILE: integration
         id: integration

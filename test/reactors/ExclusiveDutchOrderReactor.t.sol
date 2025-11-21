@@ -51,10 +51,7 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         for (uint256 i = 0; i < request.outputs.length; i++) {
             OutputToken memory output = request.outputs[i];
             outputs[i] = DutchOutput({
-                token: output.token,
-                startAmount: output.amount,
-                endAmount: output.amount,
-                recipient: output.recipient
+                token: output.token, startAmount: output.amount, endAmount: output.amount, recipient: output.recipient
             });
         }
 
@@ -211,9 +208,8 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
         });
 
         orders[1] = ExclusiveDutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
-                1
-            ),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -279,9 +275,8 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
-                1
-            ),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -316,9 +311,8 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
             outputs: OutputsBuilder.singleDutch(address(tokenOut), outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
-                1
-            ),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),
@@ -354,9 +348,8 @@ contract ExclusiveDutchOrderReactorTest is PermitSignature, DeployPermit2, BaseD
             outputs: OutputsBuilder.singleDutch(NATIVE, outputAmount, outputAmount, swapper)
         });
         orders[1] = ExclusiveDutchOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100).withNonce(
-                1
-            ),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 100)
+                .withNonce(1),
             decayStartTime: block.timestamp,
             decayEndTime: block.timestamp + 100,
             exclusiveFiller: address(0),

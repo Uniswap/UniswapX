@@ -31,7 +31,9 @@ contract DeployPriorityOrderReactor is Script, DeployPermit2 {
         // - BASE: 0x000000001Ec5656dcdB24D90DFa42742738De729 (salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18)
         PriorityOrderReactor reactor = new PriorityOrderReactor{
             salt: 0xb0059e9187daac70f2c765cfc99a03f9bf4321c11b7ab784ee3e310292724c18
-        }(IPermit2(PERMIT2), owner);
+        }(
+            IPermit2(PERMIT2), owner
+        );
         console2.log("Reactor", address(reactor));
 
         OrderQuoter quoter = new OrderQuoter{salt: 0x00}();

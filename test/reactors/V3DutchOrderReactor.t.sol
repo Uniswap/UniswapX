@@ -420,8 +420,8 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             cosigner: wrongCosigner,
             baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether, 0),
             baseOutputs: OutputsBuilder.singleV3Dutch(
-                address(tokenOut), 1 ether, 1 ether, CurveBuilder.singlePointCurve(1, 0 ether), swapper
-            ),
+                    address(tokenOut), 1 ether, 1 ether, CurveBuilder.singlePointCurve(1, 0 ether), swapper
+                ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
             startingBaseFee: block.basefee
@@ -448,8 +448,8 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
             cosigner: wrongCosigner,
             baseInput: V3DutchInput(tokenIn, 1 ether, CurveBuilder.emptyCurve(), 1 ether, 0),
             baseOutputs: OutputsBuilder.singleV3Dutch(
-                address(tokenOut), 1 ether, 1 ether, CurveBuilder.singlePointCurve(1, 0 ether), swapper
-            ),
+                    address(tokenOut), 1 ether, 1 ether, CurveBuilder.singlePointCurve(1, 0 ether), swapper
+                ),
             cosignerData: cosignerData,
             cosignature: bytes(""),
             startingBaseFee: block.basefee
@@ -960,7 +960,9 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
                 startBlock: decayStartBlock,
                 deadline: currentBlock + 400,
                 input: V3DutchInput(tokenIn, 1 ether, curve, 2 ether, 0),
-                outputs: OutputsBuilder.singleV3Dutch(address(tokenOut), 1000, 1000, CurveBuilder.emptyCurve(), address(0))
+                outputs: OutputsBuilder.singleV3Dutch(
+                    address(tokenOut), 1000, 1000, CurveBuilder.emptyCurve(), address(0)
+                )
             })
         );
         ResolvedOrder memory resolvedOrder = quoter.quote(order.order, order.sig);
@@ -1377,7 +1379,9 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
                 deadline: currentBlock + 500,
                 input: V3DutchInput(tokenIn, 1 ether, curve, 1 ether, 0),
                 outputs: OutputsBuilder.singleV3Dutch(
-                    V3DutchOutput(address(tokenOut), 1 ether, CurveBuilder.emptyCurve(), address(0), 0.5 ether, adjustment)
+                    V3DutchOutput(
+                        address(tokenOut), 1 ether, CurveBuilder.emptyCurve(), address(0), 0.5 ether, adjustment
+                    )
                 )
             })
         );
@@ -1433,7 +1437,12 @@ contract V3DutchOrderTest is PermitSignature, DeployPermit2, BaseReactorTest {
                 ),
                 outputs: OutputsBuilder.singleV3Dutch(
                     V3DutchOutput(
-                        address(tokenOut), type(uint128).max, CurveBuilder.emptyCurve(), address(0), 0, type(uint128).max
+                        address(tokenOut),
+                        type(uint128).max,
+                        CurveBuilder.emptyCurve(),
+                        address(0),
+                        0,
+                        type(uint128).max
                     )
                 )
             })
