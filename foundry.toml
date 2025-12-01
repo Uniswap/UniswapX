@@ -16,7 +16,6 @@ optimizer_runs = 1000000
 # Cannot use --isolate due to Foundry bug: https://github.com/foundry-rs/foundry/issues/7277
 # vm.txGasPrice() and vm.fee() reset to 0 in nested external contract calls when using --isolate.
 # Affects: PriorityOrderReactorTest, V3DutchOrderTest, ERC20ETHIntegrationTest
-# These tests fail because the reactor reads tx.gasprice=0 even though tests set vm.txGasPrice(100).
 
 [profile.integration]
 match_path = "*/integration/*"
