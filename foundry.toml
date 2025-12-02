@@ -12,6 +12,11 @@ fs_permissions = [
 optimizer = true
 optimizer_runs = 1000000
 
+# isolate = true
+# Cannot use --isolate due to Foundry bug: https://github.com/foundry-rs/foundry/issues/7277
+# vm.txGasPrice() and vm.fee() reset to 0 in nested external contract calls when using --isolate.
+# Affects: PriorityOrderReactorTest, V3DutchOrderTest, ERC20ETHIntegrationTest
+
 [profile.integration]
 match_path = "*/integration/*"
 no_match_path = "override/default/*"
