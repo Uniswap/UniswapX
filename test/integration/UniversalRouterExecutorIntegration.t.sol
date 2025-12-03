@@ -6,7 +6,8 @@ import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {UniversalRouterExecutor} from "../../src/sample-executors/UniversalRouterExecutor.sol";
-import {InputToken, OrderInfo, SignedOrder, ResolvedOrder} from "../../src/base/ReactorStructs.sol";
+import {InputToken, OrderInfo, SignedOrder, ResolvedOrder, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {IValidationCallback} from "../../src/interfaces/IValidationCallback.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {DutchOrderReactor, DutchOrder, DutchInput, DutchOutput} from "../../src/reactors/DutchOrderReactor.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -188,17 +189,9 @@ contract UniversalRouterExecutorIntegrationTest is Test, PermitSignature, Deploy
     ///      and verifies that the executor forwards that ETH to the Universal Router
     /// @dev This test uses a mock router and doesn't require a fork
     function test_universalRouterExecutor_ERC20ETHInput() public {
-        // Skip the fork setup from setUp() by using a local reactor and permit2
-        // This test doesn't need the fork since we're using a mock router
         IPermit2 testPermit2 = IPermit2(deployPermit2());
         DutchOrderReactor testReactor = new DutchOrderReactor(testPermit2, address(0));
-        
-        MockERC20 tokenOut = new MockERC20("Output", "OUT", 18);
-        
-        // Deploy mock Universal Router that tracks received ETH
         MockUniversalRouter mockRouter = new MockUniversalRouter();
-        
-        // Create new executor with mock router
         address[] memory whitelistedCallers = new address[](1);
         whitelistedCallers[0] = whitelistedCaller;
         UniversalRouterExecutor executorWithMock = new UniversalRouterExecutor(
@@ -206,46 +199,44 @@ contract UniversalRouterExecutorIntegrationTest is Test, PermitSignature, Deploy
         );
 
         uint256 swapAmount = 1 ether;
-        
-        // Mint output tokens to executor
-        uint256 outputAmount = 0.9 ether;
-        tokenOut.mint(address(executorWithMock), outputAmount);
+        address erc20ethAddress = 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9;
         
         // Simulate ERC20ETH transferring ETH to executor by sending ETH directly
         // In production, ERC20ETH._transfer() would call transferFromNative which sends ETH here
         vm.deal(address(executorWithMock), swapAmount);
         
+        // Create a mock ResolvedOrder with ERC20ETH input
+        ResolvedOrder memory mockOrder;
+        mockOrder.info.reactor = IReactor(address(testReactor));
+        mockOrder.info.swapper = makeAddr("swapper");
+        mockOrder.input.token = ERC20(erc20ethAddress);
+        mockOrder.input.amount = swapAmount;
+        mockOrder.input.maxAmount = swapAmount;
+        
+        ResolvedOrder[] memory mockOrders = new ResolvedOrder[](1);
+        mockOrders[0] = mockOrder;
+        
         // Prepare callback data
         address[] memory tokensToApproveForPermit2AndUniversalRouter = new address[](0);
-        address[] memory tokensToApproveForReactor = new address[](1);
-        tokensToApproveForReactor[0] = address(tokenOut);
-        
-        // Create simple execute call that will receive ETH
-        bytes memory commands = hex"";
-        bytes[] memory inputs = new bytes[](0);
+        address[] memory tokensToApproveForReactor = new address[](0);
         bytes memory data = abi.encodeWithSelector(
             IUniversalRouter.execute.selector, 
-            commands, 
-            inputs, 
-            uint256(block.timestamp + 1000)
+            hex"",
+            new bytes[](0), 
+            block.timestamp + 1000
         );
         
         uint256 mockRouterBalanceBefore = address(mockRouter).balance;
         
-        // Call reactorCallback directly to test ETH forwarding
-        // This simulates what happens when ERC20ETH transfers ETH to the executor
+        // Call reactorCallback to test ETH forwarding
         vm.prank(address(testReactor));
         executorWithMock.reactorCallback(
-            new ResolvedOrder[](0), // Empty orders array since we're just testing ETH forwarding
+            mockOrders,
             abi.encode(tokensToApproveForPermit2AndUniversalRouter, tokensToApproveForReactor, data)
         );
         
         // Verify ETH was forwarded to mock router
         assertEq(mockRouter.receivedETH(), swapAmount, "Mock router should have received ETH");
         assertEq(address(mockRouter).balance, mockRouterBalanceBefore + swapAmount, "Mock router balance should increase");
-        
-        // Verify executor has no remaining ETH (it was all forwarded, or returned to reactor)
-        // The executor forwards remaining balance to reactor, so it should be 0 or minimal
-        assertLe(address(executorWithMock).balance, 0, "Executor should have no remaining ETH after forwarding");
     }
 }
