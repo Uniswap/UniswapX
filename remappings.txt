@@ -6,3 +6,5 @@ openzeppelin-contracts/security=lib/openzeppelin-contracts/contracts/security
 openzeppelin-contracts/contracts/utils=lib/calibur/lib/openzeppelin-contracts/contracts/utils
 permit2/=lib/permit2/
 solmate/=lib/solmate/
+tribunal/=lib/Tribunal
+
