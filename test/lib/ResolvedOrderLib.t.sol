@@ -51,9 +51,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerValidationInvalidFiller() public {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            exclusiveFillerValidation
-        ).withValidationData(abi.encode(address(0x123), 1000));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib))
+            .withValidationContract(exclusiveFillerValidation).withValidationData(abi.encode(address(0x123), 1000));
         vm.expectRevert(abi.encodeWithSelector(ExclusiveFillerValidation.NotExclusiveFiller.selector, address(0x234)));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
@@ -63,9 +62,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerValidationInvalidFillerPastTimestamp() public {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            exclusiveFillerValidation
-        ).withValidationData(abi.encode(address(0x123), 888));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib))
+            .withValidationContract(exclusiveFillerValidation).withValidationData(abi.encode(address(0x123), 888));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x234));
     }
 
@@ -73,9 +71,8 @@ contract ResolvedOrderLibTest is Test {
     function testExclusiveFillerValidationValidFillerPastTimestamp() public {
         vm.warp(900);
         ExclusiveFillerValidation exclusiveFillerValidation = new ExclusiveFillerValidation();
-        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib)).withValidationContract(
-            exclusiveFillerValidation
-        ).withValidationData(abi.encode(address(0x123), 1000));
+        mockResolvedOrder.info = OrderInfoBuilder.init(address(resolvedOrderLib))
+            .withValidationContract(exclusiveFillerValidation).withValidationData(abi.encode(address(0x123), 1000));
         resolvedOrderLib.validate(mockResolvedOrder, address(0x123));
     }
 }

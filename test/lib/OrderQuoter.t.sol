@@ -132,7 +132,8 @@ contract OrderQuoterTest is Test, PermitSignature, ReactorEvents, DeployPermit2 
         tokenIn.forceApprove(swapper, address(permit2), ONE);
         uint256 deadline = block.timestamp - 1;
         LimitOrder memory order = LimitOrder({
-            info: OrderInfoBuilder.init(address(limitOrderReactor)).withSwapper(address(swapper)).withDeadline(deadline),
+            info: OrderInfoBuilder.init(address(limitOrderReactor)).withSwapper(address(swapper))
+                .withDeadline(deadline),
             input: InputToken(tokenIn, ONE, ONE),
             outputs: OutputsBuilder.single(address(tokenOut), ONE, address(swapper))
         });
