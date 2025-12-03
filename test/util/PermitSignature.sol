@@ -274,8 +274,7 @@ contract PermitSignature is Test {
     {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({
-                token: address(order.input.token),
-                amount: order.input.maxAmount
+                token: address(order.input.token), amount: order.input.maxAmount
             }),
             nonce: order.info.nonce,
             deadline: order.info.deadline
@@ -284,12 +283,7 @@ contract PermitSignature is Test {
         bytes32 witness = order.hash();
 
         return getPermitSignature(
-            privateKey,
-            permit2,
-            permit,
-            address(order.info.preExecutionHook),
-            HYBRID_ORDER_TYPE_HASH,
-            witness
+            privateKey, permit2, permit, address(order.info.preExecutionHook), HYBRID_ORDER_TYPE_HASH, witness
         );
     }
 

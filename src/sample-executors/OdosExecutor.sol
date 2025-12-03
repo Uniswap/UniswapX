@@ -66,7 +66,7 @@ contract OdosExecutor is IReactorCallback, Owned {
     /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForOdos: Max approve these tokens to Odos contract
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
-    /// bytes memory odosAssembly: low level call to Odos contract using transaction.data 
+    /// bytes memory odosAssembly: low level call to Odos contract using transaction.data
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
         (
             address[] memory tokensToApproveForOdos,
@@ -84,15 +84,11 @@ contract OdosExecutor is IReactorCallback, Owned {
             }
         }
 
-        
         // perform low level call to odos with transaction.data set as odosAssembly using transaction.data
-        (bool success, ) = odos.call(odosAssembly);
+        (bool success,) = odos.call(odosAssembly);
         if (!success) {
             revert OdosCallFailed();
         }
-
-
-
 
         // transfer any native balance to the reactor
         // it will refund any excess
