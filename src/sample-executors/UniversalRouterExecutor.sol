@@ -91,7 +91,10 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
             }
         }
 
-        (bool success, bytes memory returnData) = universalRouter.call(data);
+        // Forward any ETH balance to Universal Router (e.g., from ERC20ETH transfers)
+        // The Universal Router will use what it needs and return any excess
+        uint256 ethBalance = address(this).balance;
+        (bool success, bytes memory returnData) = universalRouter.call{value: ethBalance}(data);
         if (!success) {
             assembly {
                 revert(add(returnData, 32), mload(returnData))
