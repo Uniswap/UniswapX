@@ -298,8 +298,9 @@ contract SwapRouter02IntegrationTest is Test, PermitSignature {
         address[] memory path = new address[](2);
         path[0] = address(DAI);
         path[1] = address(WETH);
-        multicallData[0] =
-            abi.encodeWithSelector(ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02);
+        multicallData[0] = abi.encodeWithSelector(
+            ISwapRouter02.swapExactTokensForTokens.selector, 2000 * ONE, ONE, path, SWAPROUTER02
+        );
         multicallData[1] = abi.encodeWithSelector(ISwapRouter02.unwrapWETH9.selector, 0, address(swapRouter02Executor));
 
         // Swapper max approves permit post
