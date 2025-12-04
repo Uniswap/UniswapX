@@ -186,7 +186,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         bytes memory swapperSignature
     ) internal view {
         bytes32 fullIntentHash = DCALib.hashWithInnerHash(intent, privateIntentHash);
-        bytes32 digest = DCALib.digest(domainSeparator, fullIntentHash);
+        bytes32 digest = DCALib.digest(DOMAIN_SEPARATOR(), fullIntentHash);
         if (!DCALib.isValidSignature(intent.swapper, digest, swapperSignature)) {
             revert InvalidSwapperSignature(address(0), intent.swapper);
         }
@@ -204,7 +204,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         bytes memory cosignerSignature
     ) internal view {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
-        bytes32 cosignerDigest = DCALib.digest(domainSeparator, cosignerStructHash);
+        bytes32 cosignerDigest = DCALib.digest(DOMAIN_SEPARATOR(), cosignerStructHash);
         if (!DCALib.isValidSignature(intent.cosigner, cosignerDigest, cosignerSignature)) {
             revert InvalidCosignerSignature(address(0), intent.cosigner);
         }

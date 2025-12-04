@@ -62,15 +62,14 @@ contract DCALibEIP712ComplianceTest is Test, FFISignDCAIntent {
         bytes32 structHash = DCALib.hash(intent);
         bytes32 digest = DCALib.digest(domainSeparator, structHash);
 
-        // Recover the signer from the JavaScript signature
-        address recovered = DCALib.recover(digest, jsResult.signature);
+        // Validate the signature from JavaScript
+        bool isValid = DCALib.isValidSignature(SIGNER, digest, jsResult.signature);
 
-        // Should recover the correct signer address
-        assertEq(recovered, SIGNER, "Failed to recover correct signer from JavaScript signature!");
+        // Should validate correctly
+        assertTrue(isValid, "Failed to validate JavaScript signature!");
 
-        console2.log("SUCCESS: Recovered correct signer from standard wallet signature");
+        console2.log("SUCCESS: Validated correct signer from standard wallet signature");
         console2.log("Expected:", SIGNER);
-        console2.log("Recovered:", recovered);
     }
 
     /**
