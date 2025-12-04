@@ -45,13 +45,10 @@ contract DCALibGasTest is Test {
     }
 
     function _createCosignerData() internal view returns (DCAOrderCosignerData memory) {
-        return DCAOrderCosignerData({
-            swapper: signer,
-            nonce: 42,
-            execAmount: 100 ether,
-            limitAmount: 95 ether,
-            orderNonce: 5
-        });
+        return
+            DCAOrderCosignerData({
+                swapper: signer, nonce: 42, execAmount: 100 ether, limitAmount: 95 ether, orderNonce: 5
+            });
     }
 
     /// forge-config: default.isolate = true
