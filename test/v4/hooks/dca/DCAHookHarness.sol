@@ -77,11 +77,7 @@ contract DCAHookHarness is DCAHook {
         allocations[0] = OutputAllocation({recipient: address(0x9ABC), basisPoints: 10000});
 
         PrivateIntent memory privateIntent = PrivateIntent({
-            totalAmount: 1000e18,
-            exactFrequency: 3600,
-            numChunks: 10,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 1000e18, exactFrequency: 3600, numChunks: 10, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         return DCAIntent({
@@ -118,11 +114,7 @@ contract DCAHookHarness is DCAHook {
         uint96 orderNonce
     ) external pure returns (DCAOrderCosignerData memory) {
         return DCAOrderCosignerData({
-            swapper: swapper,
-            nonce: nonce,
-            execAmount: execAmount,
-            orderNonce: orderNonce,
-            limitAmount: limitAmount
+            swapper: swapper, nonce: nonce, execAmount: execAmount, orderNonce: orderNonce, limitAmount: limitAmount
         });
     }
 }

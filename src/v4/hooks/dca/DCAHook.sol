@@ -21,14 +21,20 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @notice Basis points constant (100% = 10000)
     uint256 private constant BPS = 10000;
 
+    /// @notice Common denominator in Wad math
+    uint256 private constant DENOMINATOR = 1e18;
+
     /// @notice Permit2 instance for signature verification and token transfers
     IPermit2 public immutable permit2;
 
     /// @notice UniswapX V4 Reactor
     IReactor public immutable reactor;
 
-    /// @notice EIP-712 domain separator
-    bytes32 public immutable domainSeparator;
+    /// @notice Cached EIP-712 domain separator for gas optimization
+    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
+
+    /// @notice Cached chain ID to detect forks
+    uint256 private immutable _CACHED_CHAIN_ID;
 
     /// @notice Mapping from intentId to execution state
     /// @dev intentId is computed as keccak256(abi.encodePacked(swapper, nonce))
@@ -37,7 +43,16 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     constructor(IPermit2 _permit2, IReactor _reactor) {
         permit2 = _permit2;
         reactor = _reactor;
-        domainSeparator = DCALib.computeDomainSeparator(address(this));
+        _CACHED_CHAIN_ID = block.chainid;
+        _CACHED_DOMAIN_SEPARATOR = DCALib.computeDomainSeparator(address(this));
+    }
+
+    /// @notice Returns the domain separator for the current chain
+    /// @dev Uses cached version if chainid is unchanged from construction
+    /// @return The domain separator for EIP-712 signatures
+    function DOMAIN_SEPARATOR() public view returns (bytes32) {
+        return
+            block.chainid == _CACHED_CHAIN_ID ? _CACHED_DOMAIN_SEPARATOR : DCALib.computeDomainSeparator(address(this));
     }
 
     modifier onlyReactor() {
@@ -137,7 +152,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     /// @inheritdoc IDCAHook
     function cancelIntents(uint256[] calldata nonces) external override {
-        for (uint256 i = 0; i < nonces.length; i++) {
+        uint256 length = nonces.length;
+        for (uint256 i = 0; i < length; i++) {
             _cancelIntent(msg.sender, nonces[i]);
         }
     }
@@ -200,12 +216,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
     }
 
-    /// @notice Validates that output allocations sum to exactly 100% (10000 basis points)
-    /// @dev Reverts if allocations don't sum to 10000 or if array is empty
+    /// @notice Validates that output allocations sum to exactly 100% (10000 basis points) and have no duplicate recipients
+    /// @dev Reverts if allocations don't sum to 10000, if array is empty, or if there are duplicate recipients
     /// @dev NOTE: This function intentionally allows:
-    ///      - Duplicate recipients (same address multiple times) - checked off-chain
     ///      - Zero address as recipient - validated off-chain for user safety
-    ///      These are permitted at the contract level to support advanced use cases
+    ///      This is permitted at the contract level to support advanced use cases
     ///      but should be prevented in the UI/frontend for typical users
     /// @param outputAllocations The array of output allocations to validate
     function _validateAllocationStructure(OutputAllocation[] memory outputAllocations) internal pure {
@@ -219,6 +234,17 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             uint16 basisPoints = outputAllocations[i].basisPoints;
             if (basisPoints == 0) {
                 revert ZeroAllocation();
+            }
+
+            // Check for duplicate recipients
+            address recipient = outputAllocations[i].recipient;
+            for (uint256 j = i + 1; j < length;) {
+                if (outputAllocations[j].recipient == recipient) {
+                    revert DuplicateRecipient(recipient);
+                }
+                unchecked {
+                    ++j;
+                }
             }
 
             totalBasisPoints += basisPoints;
@@ -252,7 +278,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
 
         // Verify all outputs use the correct output token
-        for (uint256 i = 0; i < resolvedOrder.outputs.length; i++) {
+        uint256 outputsLength = resolvedOrder.outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             if (resolvedOrder.outputs[i].token != intent.outputToken) {
                 revert WrongOutputToken(resolvedOrder.outputs[i].token, intent.outputToken);
             }
@@ -338,11 +365,11 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         if (intent.isExactIn) {
             // limitAmount = min acceptable output; execAmount = exact input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.limitAmount, 1e18, cosignerData.execAmount);
+            executionPrice = Math.mulDiv(cosignerData.limitAmount, DENOMINATOR, cosignerData.execAmount);
         } else {
             // execAmount = exact output; limitAmount = max acceptable input
             // Price = output/input * 1e18
-            executionPrice = Math.mulDiv(cosignerData.execAmount, 1e18, cosignerData.limitAmount);
+            executionPrice = Math.mulDiv(cosignerData.execAmount, DENOMINATOR, cosignerData.limitAmount);
         }
         if (executionPrice < intent.minPrice) {
             revert PriceBelowMin(executionPrice, intent.minPrice);
@@ -363,16 +390,18 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         uint256 totalOutput = 0;
         // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
         // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             // token already checked equals intent.outputToken in _beforeTokenTransfer
             totalOutput += outputs[i].amount;
         }
 
-        for (uint256 i = 0; i < intent.outputAllocations.length; i++) {
+        uint256 allocationsLength = intent.outputAllocations.length;
+        for (uint256 i = 0; i < allocationsLength; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
             uint256 expected = Math.mulDiv(totalOutput, uint256(intent.outputAllocations[i].basisPoints), BPS);
             uint256 actual = 0;
-            for (uint256 j = 0; j < outputs.length; j++) {
+            for (uint256 j = 0; j < outputsLength; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
             }
             if (intent.isExactIn) {
@@ -409,14 +438,15 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     /// @return totalOutputExecuted The cumulative output amount after this execution
     function _updateExecutionState(bytes32 intentId, uint256 inputAmount, OutputToken[] memory outputs)
         internal
-        returns (uint256 totalInputExecuted, uint256 totalOutputExecuted)
+        returns (uint256, uint256)
     {
         // Use memory to reduce SSTOREs
         DCAExecutionState memory state = executionStates[intentId];
 
         // Calculate total output amount
         uint256 totalOutput = 0;
-        for (uint256 i = 0; i < outputs.length; i++) {
+        uint256 outputsLength = outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
             totalOutput += outputs[i].amount;
         }
 
@@ -439,7 +469,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory state) {
+    function getExecutionState(bytes32 intentId) external view override returns (DCAExecutionState memory) {
         return executionStates[intentId];
     }
 
@@ -448,7 +478,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         external
         view
         override
-        returns (bool active)
+        returns (bool)
     {
         DCAExecutionState storage s = executionStates[intentId];
         if (s.cancelled) return false;
@@ -459,7 +489,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @inheritdoc IDCAHook
-    function getNextNonce(bytes32 intentId) external view override returns (uint96 nextNonce) {
+    function getNextNonce(bytes32 intentId) external view override returns (uint96) {
         // The next valid nonce is always equal to the number of chunks already executed.
         // This is because nonces start at 0 and increment by 1 with each execution.
         // After N executions (executedChunks = N), the next valid nonce is N.

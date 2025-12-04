@@ -30,7 +30,8 @@ contract PermitSignature is Test {
     using MockOrderLib for MockOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
-    bytes32 public constant TYPE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+    bytes32 public constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     bytes32 internal constant TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
 
@@ -53,6 +54,9 @@ contract PermitSignature is Test {
 
     bytes32 constant PRIORITY_ORDER_V2_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, PriorityOrderLibV2.PERMIT2_ORDER_TYPE));
+
+    // Alias for the new witness-based type hash
+    bytes32 constant PRIORITY_ORDER_V2_WITNESS_TYPE_HASH = PRIORITY_ORDER_V2_TYPE_HASH;
 
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
@@ -183,15 +187,24 @@ contract PermitSignature is Test {
         view
         returns (bytes memory sig)
     {
-        return signOrder(
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token), amount: order.input.amount
+            }),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+
+        // Use the new witness hash that includes resolver address and full order
+        bytes32 witness = order.witnessHash(address(order.info.auctionResolver));
+
+        return getPermitSignature(
             privateKey,
             permit2,
-            order.info,
-            address(order.input.token),
-            // amount is max amount for priority orders
-            order.input.amount,
-            PRIORITY_ORDER_V2_TYPE_HASH,
-            order.hash()
+            permit,
+            address(order.info.preExecutionHook),
+            PRIORITY_ORDER_V2_WITNESS_TYPE_HASH,
+            witness
         );
     }
 
@@ -235,14 +248,17 @@ contract PermitSignature is Test {
     {
         ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
             permitted: ISignatureTransfer.TokenPermissions({
-                token: address(order.input.token),
-                amount: order.input.maxAmount
+                token: address(order.input.token), amount: order.input.maxAmount
             }),
             nonce: order.info.nonce,
             deadline: order.info.deadline
         });
+
+        // Use the new witness hash that includes resolver address and full order
+        bytes32 witness = order.witnessHash(address(order.info.auctionResolver));
+
         return getPermitSignature(
-            privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, order.hash()
+            privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, witness
         );
     }
 

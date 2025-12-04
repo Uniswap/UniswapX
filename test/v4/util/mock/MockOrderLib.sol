@@ -33,9 +33,17 @@ library MockOrderLib {
     );
     bytes32 internal constant ORDER_TYPE_HASH = keccak256(ORDER_TYPE);
 
+    // Witness wrapper that includes the resolver address for security
+    bytes internal constant MOCK_ORDER_WITNESS_TYPE =
+        abi.encodePacked("MockOrderWitness(", "address resolver,", "MockOrder order)");
+
+    bytes32 internal constant MOCK_ORDER_WITNESS_TYPE_HASH =
+        keccak256(abi.encodePacked(MOCK_ORDER_WITNESS_TYPE, ORDER_TYPE));
+
     string private constant TOKEN_PERMISSIONS_TYPE = "TokenPermissions(address token,uint256 amount)";
-    string internal constant PERMIT2_ORDER_TYPE =
-        string(abi.encodePacked("MockOrder witness)", ORDER_TYPE, TOKEN_PERMISSIONS_TYPE));
+    string internal constant PERMIT2_ORDER_TYPE = string(
+        abi.encodePacked("MockOrderWitness witness)", MOCK_ORDER_WITNESS_TYPE, ORDER_TYPE, TOKEN_PERMISSIONS_TYPE)
+    );
 
     /// @notice returns the hash of an output token struct
     function hash(OutputToken memory output) private pure returns (bytes32) {
@@ -65,5 +73,13 @@ library MockOrderLib {
         return keccak256(
             abi.encode(ORDER_TYPE_HASH, order.info.hash(), order.input.token, order.input.amount, hash(order.outputs))
         );
+    }
+
+    /// @notice Compute the witness hash that includes the resolver address
+    /// @param order the MockOrder
+    /// @param resolver the auction resolver address
+    /// @return witness hash that binds the order to the resolver
+    function witnessHash(MockOrder memory order, address resolver) internal pure returns (bytes32) {
+        return keccak256(abi.encode(MOCK_ORDER_WITNESS_TYPE_HASH, resolver, hash(order)));
     }
 }

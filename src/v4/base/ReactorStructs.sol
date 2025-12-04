@@ -38,6 +38,8 @@ struct ResolvedOrder {
     InputToken input;
     OutputToken[] outputs;
     bytes sig;
-    bytes32 hash;
+    bytes32 hash; // The witness hash that includes resolver address and full order (what was signed)
     address auctionResolver;
+    // Witness type string provided by resolver for Permit2 verification
+    string witnessTypeString;
 }

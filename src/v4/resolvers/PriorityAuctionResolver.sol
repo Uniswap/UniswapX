@@ -17,8 +17,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     using PriorityFeeLib for PriorityOutput;
     using PriorityFeeLib for PriorityOutput[];
 
-    /// @notice thrown when an order's deadline is in the past
-    error InvalidDeadline();
     /// @notice thrown when an order's auctionStartBlock is in the future
     error OrderNotFillable();
     /// @notice thrown when an order's nonce has already been used
@@ -60,8 +58,9 @@ contract PriorityAuctionResolver is IAuctionResolver {
             input: scaledInput,
             outputs: scaledOutputs,
             sig: signedOrder.sig,
-            hash: orderHash,
-            auctionResolver: address(this)
+            hash: order.witnessHash(address(this)), // Witness hash that includes resolver and full order
+            auctionResolver: address(this),
+            witnessTypeString: PriorityOrderLib.PERMIT2_ORDER_TYPE
         });
     }
 
@@ -71,7 +70,6 @@ contract PriorityAuctionResolver is IAuctionResolver {
     }
 
     /// @notice validate the priority order fields
-    /// - deadline must be in the future
     /// - resolved auctionStartBlock must not be in the future
     /// - if input scales with priority fee, outputs must not scale
     /// @dev Throws if the order is invalid

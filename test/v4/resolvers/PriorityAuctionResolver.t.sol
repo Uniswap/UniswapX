@@ -56,7 +56,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         feeRecipient = makeAddr("feeRecipient");
 
         feeController = new MockFeeController(feeRecipient);
-        reactor = new Reactor(PROTOCOL_FEE_OWNER);
+        reactor = new Reactor(PROTOCOL_FEE_OWNER, permit2);
         resolver = new PriorityAuctionResolver(permit2);
         tokenTransferHook = new TokenTransferHook(permit2, reactor);
 
@@ -76,7 +76,8 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         view
         returns (SignedOrder memory signedOrder, bytes32 orderHash)
     {
-        orderHash = order.hash();
+        // Use the new witness hash that includes resolver and full order
+        orderHash = order.witnessHash(address(resolver));
 
         // Sign the order with swapper's key
         bytes memory sig = signOrder(swapperPrivateKey, address(permit2), order);
@@ -127,13 +128,14 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -183,13 +185,14 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: baselinePriorityFeeWei,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -236,13 +239,14 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: baselinePriorityFeeWei,
-            input: PriorityInput({token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei}),
+            input: PriorityInput({
+                token: tokenIn, amount: inputAmount, mpsPerPriorityFeeWei: inputMpsPerPriorityFeeWei
+            }),
             outputs: outputs,
             cosignerData: cosignerData,
             cosignature: bytes("")
@@ -290,9 +294,8 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,
@@ -444,10 +447,7 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
 
         PriorityOutput[] memory outputs = new PriorityOutput[](1);
         outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: 0,
-            mpsPerPriorityFeeWei: mpsPerPriorityFeeWei,
-            recipient: swapper
+            token: address(tokenOut), amount: 0, mpsPerPriorityFeeWei: mpsPerPriorityFeeWei, recipient: swapper
         });
 
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
@@ -688,16 +688,10 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
 
         PriorityOutput[] memory outputs = new PriorityOutput[](2);
         outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount1,
-            mpsPerPriorityFeeWei: 1,
-            recipient: swapper
+            token: address(tokenOut), amount: outputAmount1, mpsPerPriorityFeeWei: 1, recipient: swapper
         });
         outputs[1] = PriorityOutput({
-            token: address(tokenOut2),
-            amount: outputAmount2,
-            mpsPerPriorityFeeWei: 2,
-            recipient: swapper
+            token: address(tokenOut2), amount: outputAmount2, mpsPerPriorityFeeWei: 2, recipient: swapper
         });
 
         uint256 scaledOutputAmount1 = outputs[0].scale(priorityFee).amount;
@@ -706,9 +700,8 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,
@@ -745,18 +738,14 @@ contract PriorityAuctionResolverTest is ReactorEvents, Test, PermitSignature, De
 
         PriorityOutput[] memory outputs = new PriorityOutput[](1);
         outputs[0] = PriorityOutput({
-            token: address(tokenOut),
-            amount: outputAmount,
-            mpsPerPriorityFeeWei: 0,
-            recipient: swapper
+            token: address(tokenOut), amount: outputAmount, mpsPerPriorityFeeWei: 0, recipient: swapper
         });
 
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
 
         PriorityOrder memory order = PriorityOrder({
-            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline).withPreExecutionHook(
-                tokenTransferHook
-            ).withAuctionResolver(resolver),
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(deadline)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
             auctionStartBlock: block.number,
             baselinePriorityFeeWei: 0,

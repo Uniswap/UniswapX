@@ -5,6 +5,7 @@ import {OutputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice Interface for getting fee outputs for resolved orders
+/// @dev feeController can only take fees on input or output tokens of the order
 interface IProtocolFeeController {
     /// @notice Get fee outputs for the given orders
     /// @param order The orders to get fee outputs for

@@ -87,7 +87,8 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
             outputs: outputs,
             sig: "",
             hash: bytes32(0),
-            auctionResolver: address(0)
+            auctionResolver: address(0),
+            witnessTypeString: ""
         });
     }
 
@@ -267,9 +268,7 @@ contract DCAHook_transferInputTokensTest is Test, DeployPermit2 {
 
         // Use invalid signature (all zeros)
         PermitData memory permitData = PermitData({
-            hasPermit: true,
-            permitSingle: permitSingle,
-            signature: abi.encodePacked(bytes32(0), bytes32(0), uint8(0))
+            hasPermit: true, permitSingle: permitSingle, signature: abi.encodePacked(bytes32(0), bytes32(0), uint8(0))
         });
 
         // Should revert due to invalid permit signature

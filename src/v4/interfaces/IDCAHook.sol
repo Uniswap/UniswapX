@@ -42,6 +42,10 @@ interface IDCAHook is IPreExecutionHook {
     /// @param totalBasisPoints The actual sum of basis points
     error AllocationsNot100Percent(uint256 totalBasisPoints);
 
+    /// @notice Thrown when multiple allocations have the same recipient
+    /// @param recipient The duplicate recipient address
+    error DuplicateRecipient(address recipient);
+
     /// @notice Thrown when the hook address doesn't match the expected hook
     /// @param providedHook The hook address provided in the intent
     /// @param expectedHook The expected hook address (this contract)
@@ -184,10 +188,7 @@ interface IDCAHook is IPreExecutionHook {
     /// @param maxPeriod The maximum allowed seconds since last execution (0 = no upper bound)
     /// @param deadline The intent expiration timestamp (0 = no deadline)
     /// @return active True if the intent is active, false otherwise
-    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline)
-        external
-        view
-        returns (bool active);
+    function isIntentActive(bytes32 intentId, uint256 maxPeriod, uint256 deadline) external view returns (bool active);
 
     /// @notice Get the next expected nonce for an intent
     /// @param intentId The unique identifier of the intent

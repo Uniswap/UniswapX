@@ -10,6 +10,8 @@ import {CurrencyLibrary} from "../../lib/CurrencyLibrary.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {OutputToken} from "../../base/ReactorStructs.sol";
 
+/// @notice Handling for protocol fees
+/// @dev depends on chosen FeeController to get fee outputs from resolved orders
 abstract contract ProtocolFees is Owned {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
@@ -23,6 +25,8 @@ abstract contract ProtocolFees is Owned {
     error InvalidFeeToken(address feeToken);
     /// @notice thrown if fees are taken on both inputs and outputs
     error InputAndOutputFees();
+    /// @notice thrown if input token is one of the output tokens
+    error InputTokenInOutputs(address token);
 
     event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
 
@@ -39,12 +43,23 @@ abstract contract ProtocolFees is Owned {
     /// @dev modifies the orders to include protocol fee outputs
     /// @param order The encoded order to inject fees into
     function _injectFees(ResolvedOrder memory order) internal view {
+        // Validate that input token is not one of the output tokens
+        // This prevents change of behavior depending on fee configuration:
+        //  - fee on input token => revert InputAndOutputFees()
+        //  - fee on output token => no revert
+        address inputToken = address(order.input.token);
+        uint256 outputsLength = order.outputs.length;
+        for (uint256 i = 0; i < outputsLength; i++) {
+            if (order.outputs[i].token == inputToken) {
+                revert InputTokenInOutputs(inputToken);
+            }
+        }
+
         if (address(feeController) == address(0)) {
             return;
         }
 
         OutputToken[] memory feeOutputs = feeController.getFeeOutputs(order);
-        uint256 outputsLength = order.outputs.length;
         uint256 feeOutputsLength = feeOutputs.length;
 
         // apply fee outputs

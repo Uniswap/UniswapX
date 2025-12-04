@@ -5,7 +5,11 @@ import {Test} from "forge-std/Test.sol";
 
 import {DCALib} from "src/v4/hooks/dca/DCALib.sol";
 import {
-    DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo
+    DCAIntent,
+    PrivateIntent,
+    OutputAllocation,
+    DCAOrderCosignerData,
+    FeedInfo
 } from "src/v4/hooks/dca/DCAStructs.sol";
 
 contract DCALibTest is Test {
@@ -67,11 +71,7 @@ contract DCALibTest is Test {
     function _sampleIntentOnChain(address verifying, uint256 deadline) internal view returns (DCAIntent memory) {
         // build PrivateIntent with all 0s
         PrivateIntent memory priv = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // one or more output allocations
@@ -226,13 +226,10 @@ contract DCALibTest is Test {
     // --- Cosigner Data Tests ---
 
     function _sampleCosignerData() internal view returns (DCAOrderCosignerData memory) {
-        return DCAOrderCosignerData({
-            swapper: signer,
-            nonce: 42,
-            execAmount: 100 ether,
-            limitAmount: 95 ether,
-            orderNonce: 5
-        });
+        return
+            DCAOrderCosignerData({
+                swapper: signer, nonce: 42, execAmount: 100 ether, limitAmount: 95 ether, orderNonce: 5
+            });
     }
 
     function test_CosignerData_HashAndValidate() public view {
@@ -353,11 +350,7 @@ contract DCALibTest is Test {
         bytes32 domainSeparator = _domainSeparator(verifying);
 
         DCAOrderCosignerData memory cosignerData = DCAOrderCosignerData({
-            swapper: swapper,
-            nonce: nonce,
-            execAmount: execAmount,
-            orderNonce: orderNonce,
-            limitAmount: limitAmount
+            swapper: swapper, nonce: nonce, execAmount: execAmount, orderNonce: orderNonce, limitAmount: limitAmount
         });
 
         // Hash should be deterministic

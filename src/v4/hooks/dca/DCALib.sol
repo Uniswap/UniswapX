@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo} from "./DCAStructs.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
+/// @notice helpers for handling DCA intent specs
 library DCALib {
     // ----- EIP-712 Domain -----
     bytes32 constant EIP712_DOMAIN_TYPEHASH =
@@ -13,16 +14,14 @@ library DCALib {
     bytes constant FEED_INFO_TYPE = "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
     bytes32 constant FEED_INFO_TYPEHASH = keccak256(FEED_INFO_TYPE);
 
-    bytes constant PRIVATE_INTENT_TYPE =
-        "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
+    bytes constant PRIVATE_INTENT_TYPE = "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
         "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
     bytes32 constant PRIVATE_INTENT_TYPEHASH = keccak256(PRIVATE_INTENT_TYPE);
 
     bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint16 basisPoints)";
     bytes32 constant OUTPUT_ALLOCATION_TYPEHASH = keccak256(OUTPUT_ALLOCATION_TYPE);
 
-    bytes constant DCA_INTENT_TYPE =
-        "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
+    bytes constant DCA_INTENT_TYPE = "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
         "FeedInfo(bytes32 feedId,address feed_address,string feedType)"
         "OutputAllocation(address recipient,uint16 basisPoints)"
         "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)";
@@ -67,63 +66,79 @@ library DCALib {
         bytes32 outputAllocHash = _hashOutputAllocations(intent.outputAllocations);
         bytes32 privateHash = hashPrivateIntent(intent.privateIntent);
 
-        // Doing in 2 pieces to avoid stack too deep
-        bytes32 paramsHash1 = keccak256(
-            abi.encode(
-                intent.swapper,
-                intent.nonce,
-                intent.chainId,
-                intent.hookAddress,
-                intent.isExactIn,
-                intent.inputToken,
-                intent.outputToken
-            )
-        );
+        // Use inline assembly to avoid stack-too-deep while maintaining EIP-712 compliance
+        // We encode: keccak256(abi.encode(TYPEHASH, swapper, nonce, chainId, hookAddress,
+        //                                  isExactIn, inputToken, outputToken, cosigner,
+        //                                  minPeriod, maxPeriod, minChunkSize, maxChunkSize,
+        //                                  minPrice, deadline, outputAllocHash, privateHash))
+        // Total: 17 fields * 32 bytes = 544 bytes (0x220)
+        bytes32 typeHash = DCA_INTENT_TYPEHASH;
+        bytes32 structHash;
+        assembly ("memory-safe") {
+            let ptr := mload(0x40) // Get free memory pointer
 
-        bytes32 paramsHash2 = keccak256(
-            abi.encode(
-                intent.cosigner,
-                intent.minPeriod,
-                intent.maxPeriod,
-                intent.minChunkSize,
-                intent.maxChunkSize,
-                intent.minPrice,
-                intent.deadline
-            )
-        );
+            // Store all fields in memory
+            mstore(ptr, typeHash) // offset 0x00
+            mstore(add(ptr, 0x20), mload(intent)) // swapper (offset 0x00 in struct)
+            mstore(add(ptr, 0x40), mload(add(intent, 0x20))) // nonce
+            mstore(add(ptr, 0x60), mload(add(intent, 0x40))) // chainId
+            mstore(add(ptr, 0x80), mload(add(intent, 0x60))) // hookAddress
+            mstore(add(ptr, 0xa0), mload(add(intent, 0x80))) // isExactIn
+            mstore(add(ptr, 0xc0), mload(add(intent, 0xa0))) // inputToken
+            mstore(add(ptr, 0xe0), mload(add(intent, 0xc0))) // outputToken
+            mstore(add(ptr, 0x100), mload(add(intent, 0xe0))) // cosigner
+            mstore(add(ptr, 0x120), mload(add(intent, 0x100))) // minPeriod
+            mstore(add(ptr, 0x140), mload(add(intent, 0x120))) // maxPeriod
+            mstore(add(ptr, 0x160), mload(add(intent, 0x140))) // minChunkSize
+            mstore(add(ptr, 0x180), mload(add(intent, 0x160))) // maxChunkSize
+            mstore(add(ptr, 0x1a0), mload(add(intent, 0x180))) // minPrice
+            mstore(add(ptr, 0x1c0), mload(add(intent, 0x1a0))) // deadline
+            mstore(add(ptr, 0x1e0), outputAllocHash) // outputAllocations hash
+            mstore(add(ptr, 0x200), privateHash) // privateIntent hash
 
-        return keccak256(abi.encode(DCA_INTENT_TYPEHASH, paramsHash1, paramsHash2, outputAllocHash, privateHash));
+            // Hash the entire 544 bytes (17 * 32)
+            structHash := keccak256(ptr, 0x220)
+            mstore(0x40, add(ptr, 0x220)) // Update free memory pointer
+        }
+
+        return structHash;
     }
 
     function hashWithInnerHash(DCAIntent memory intent, bytes32 privateIntentHash) internal pure returns (bytes32) {
         bytes32 outputAllocHash = _hashOutputAllocations(intent.outputAllocations);
 
-        // Doing in 2 pieces to avoid stack too deep
-        bytes32 paramsHash1 = keccak256(
-            abi.encode(
-                intent.swapper,
-                intent.nonce,
-                intent.chainId,
-                intent.hookAddress,
-                intent.isExactIn,
-                intent.inputToken,
-                intent.outputToken
-            )
-        );
+        // Use inline assembly to avoid stack-too-deep while maintaining EIP-712 compliance
+        // Same as hash() but uses the precomputed privateIntentHash instead of computing it
+        bytes32 typeHash = DCA_INTENT_TYPEHASH;
+        bytes32 structHash;
+        assembly ("memory-safe") {
+            let ptr := mload(0x40) // Get free memory pointer
 
-        bytes32 paramsHash2 = keccak256(
-            abi.encode(
-                intent.cosigner,
-                intent.minPeriod,
-                intent.maxPeriod,
-                intent.minChunkSize,
-                intent.maxChunkSize,
-                intent.minPrice,
-                intent.deadline
-            )
-        );
+            // Store all fields in memory
+            mstore(ptr, typeHash) // offset 0x00
+            mstore(add(ptr, 0x20), mload(intent)) // swapper
+            mstore(add(ptr, 0x40), mload(add(intent, 0x20))) // nonce
+            mstore(add(ptr, 0x60), mload(add(intent, 0x40))) // chainId
+            mstore(add(ptr, 0x80), mload(add(intent, 0x60))) // hookAddress
+            mstore(add(ptr, 0xa0), mload(add(intent, 0x80))) // isExactIn
+            mstore(add(ptr, 0xc0), mload(add(intent, 0xa0))) // inputToken
+            mstore(add(ptr, 0xe0), mload(add(intent, 0xc0))) // outputToken
+            mstore(add(ptr, 0x100), mload(add(intent, 0xe0))) // cosigner
+            mstore(add(ptr, 0x120), mload(add(intent, 0x100))) // minPeriod
+            mstore(add(ptr, 0x140), mload(add(intent, 0x120))) // maxPeriod
+            mstore(add(ptr, 0x160), mload(add(intent, 0x140))) // minChunkSize
+            mstore(add(ptr, 0x180), mload(add(intent, 0x160))) // maxChunkSize
+            mstore(add(ptr, 0x1a0), mload(add(intent, 0x180))) // minPrice
+            mstore(add(ptr, 0x1c0), mload(add(intent, 0x1a0))) // deadline
+            mstore(add(ptr, 0x1e0), outputAllocHash) // outputAllocations hash
+            mstore(add(ptr, 0x200), privateIntentHash) // privateIntent hash (precomputed)
 
-        return keccak256(abi.encode(DCA_INTENT_TYPEHASH, paramsHash1, paramsHash2, outputAllocHash, privateIntentHash));
+            // Hash the entire 544 bytes (17 * 32)
+            structHash := keccak256(ptr, 0x220)
+            mstore(0x40, add(ptr, 0x220)) // Update free memory pointer
+        }
+
+        return structHash;
     }
 
     function hashCosignerData(DCAOrderCosignerData memory cosignerData) internal pure returns (bytes32) {
@@ -148,7 +163,9 @@ library DCALib {
         return SignatureChecker.isValidSignatureNow(signer, digest_, signature);
     }
 
-    // Compute domain separator
+    /// @notice Computes the domain separator using the current chainId and contract address
+    /// @param verifyingContract The address of the contract that will verify signatures
+    /// @return The EIP-712 domain separator
     function computeDomainSeparator(address verifyingContract) internal view returns (bytes32) {
         return keccak256(
             abi.encode(

@@ -1136,4 +1136,37 @@ contract DCAHookTest is Test, DeployPermit2 {
         // Should not revert for any valid distribution
         hook.validateAllocationStructure(allocations);
     }
+
+    function test_validateAllocationStructure_revertsDuplicateRecipient_sameBasisPoints() public {
+        // Test the scenario of duplicate recipients
+        // with the same basis points could lead to output theft
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 5000 // 50%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: SWAPPER, // Duplicate recipient
+            basisPoints: 5000 // 50%
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.DuplicateRecipient.selector, SWAPPER));
+        hook.validateAllocationStructure(allocations);
+    }
+
+    function test_validateAllocationStructure_revertsDuplicateRecipient_differentBasisPoints() public {
+        // Test duplicate recipients with different basis points configuration
+        OutputAllocation[] memory allocations = new OutputAllocation[](2);
+        allocations[0] = OutputAllocation({
+            recipient: SWAPPER,
+            basisPoints: 7000 // 70%
+        });
+        allocations[1] = OutputAllocation({
+            recipient: SWAPPER, // Duplicate recipient
+            basisPoints: 3000 // 30%
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.DuplicateRecipient.selector, SWAPPER));
+        hook.validateAllocationStructure(allocations);
+    }
 }
