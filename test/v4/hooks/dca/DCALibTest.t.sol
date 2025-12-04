@@ -218,7 +218,9 @@ contract DCALibTest is Test {
 
         // 5) The digest must differ and validation must fail
         assertTrue(digestWrong != digest, "tampered outer digest should differ");
-        assertFalse(DCALib.isValidSignature(signer, digestWrong, sig), "validation should fail on tampered outer digest");
+        assertFalse(
+            DCALib.isValidSignature(signer, digestWrong, sig), "validation should fail on tampered outer digest"
+        );
     }
 
     // --- Cosigner Data Tests ---
