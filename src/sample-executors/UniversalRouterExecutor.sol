@@ -7,7 +7,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactorCallback} from "../interfaces/IReactorCallback.sol";
 import {IReactor} from "../interfaces/IReactor.sol";
-import {CurrencyLibrary} from "../lib/CurrencyLibrary.sol";
+import {CurrencyLibrary, NATIVE} from "../lib/CurrencyLibrary.sol";
 import {ResolvedOrder, SignedOrder} from "../base/ReactorStructs.sol";
 
 /// @notice A fill contract that uses UniversalRouter to execute trades
@@ -65,11 +65,12 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
     }
 
     /// @notice fill UniswapX orders using UniversalRouter
+    /// @param resolvedOrders The resolved orders with inputs and outputs
     /// @param callbackData It has the below encoded:
     /// address[] memory tokensToApproveForUniversalRouter: Max approve these tokens to permit2 and universalRouter
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes memory data: execution data
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata callbackData) external onlyReactor {
         (
             address[] memory tokensToApproveForUniversalRouter,
             address[] memory tokensToApproveForReactor,
@@ -91,7 +92,23 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
             }
         }
 
-        (bool success, bytes memory returnData) = universalRouter.call(data);
+        // Sum up ETH amounts from ERC20ETH input tokens
+        // ERC20ETH transfers send native ETH to this contract, which needs to be forwarded to Universal Router
+        uint256 ethAmount = 0;
+        uint256 ordersLength = resolvedOrders.length;
+        for (uint256 i = 0; i < ordersLength; i++) {
+            // ERC20ETH is at 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9
+            // When ERC20ETH is the input token, it transfers native ETH to this contract
+            // Also check for NATIVE address (0x0) as a defensive measure, though native ETH cannot be an input token
+            if (address(resolvedOrders[i].input.token) == 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9 ||
+                address(resolvedOrders[i].input.token) == NATIVE) {
+                ethAmount += resolvedOrders[i].input.amount;
+            }
+        }
+
+        // Forward ETH to Universal Router (e.g., from ERC20ETH transfers)
+        // The Universal Router will use what it needs and return any excess
+        (bool success, bytes memory returnData) = universalRouter.call{value: ethAmount}(data);
         if (!success) {
             assembly {
                 revert(add(returnData, 32), mload(returnData))
