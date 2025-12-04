@@ -18,6 +18,7 @@ import {
 import {OrderInfo, InputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfo as OrderInfoV2} from "../../src/v4/base/ReactorStructs.sol";
 import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
+import {HybridOrder, HybridOrderLib} from "../../src/v4/lib/HybridOrderLib.sol";
 
 contract PermitSignature is Test {
     using LimitOrderLib for LimitOrder;
@@ -28,6 +29,7 @@ contract PermitSignature is Test {
     using PriorityOrderLibV2 for PriorityOrderV2;
     using V3DutchOrderLib for V3DutchOrder;
     using MockOrderLib for MockOrder;
+    using HybridOrderLib for HybridOrder;
 
     bytes32 public constant NAME_HASH = keccak256("Permit2");
     bytes32 public constant TYPE_HASH =
@@ -60,6 +62,9 @@ contract PermitSignature is Test {
 
     bytes32 constant V3_DUTCH_ORDER_TYPE_HASH =
         keccak256(abi.encodePacked(TYPEHASH_STUB, V3DutchOrderLib.PERMIT2_ORDER_TYPE));
+
+    bytes32 constant HYBRID_ORDER_TYPE_HASH =
+        keccak256(abi.encodePacked(TYPEHASH_STUB, HybridOrderLib.PERMIT2_ORDER_TYPE));
 
     bytes32 constant MOCK_ORDER_TYPE_HASH = keccak256(abi.encodePacked(TYPEHASH_STUB, MockOrderLib.PERMIT2_ORDER_TYPE));
 
@@ -259,6 +264,26 @@ contract PermitSignature is Test {
 
         return getPermitSignature(
             privateKey, permit2, permit, address(order.info.preExecutionHook), MOCK_ORDER_TYPE_HASH, witness
+        );
+    }
+
+    function signOrder(uint256 privateKey, address permit2, HybridOrder memory order)
+        internal
+        view
+        returns (bytes memory sig)
+    {
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: address(order.input.token), amount: order.input.maxAmount
+            }),
+            nonce: order.info.nonce,
+            deadline: order.info.deadline
+        });
+
+        bytes32 witness = order.hash();
+
+        return getPermitSignature(
+            privateKey, permit2, permit, address(order.info.preExecutionHook), HYBRID_ORDER_TYPE_HASH, witness
         );
     }
 
