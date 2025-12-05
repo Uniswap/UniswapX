@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo} from "./DCAStructs.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @notice helpers for handling DCA intent specs
 library DCALib {
@@ -158,9 +158,9 @@ library DCALib {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
     }
 
-    // Recover signer
-    function recover(bytes32 digest_, bytes memory signature) internal pure returns (address) {
-        return ECDSA.recover(digest_, signature);
+    // Validate signature (supports both EOA and EIP-1271 smart contract wallets)
+    function isValidSignature(address signer, bytes32 digest_, bytes memory signature) internal view returns (bool) {
+        return SignatureChecker.isValidSignatureNow(signer, digest_, signature);
     }
 
     /// @notice Computes the domain separator using the current chainId and contract address

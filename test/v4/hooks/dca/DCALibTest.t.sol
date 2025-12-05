@@ -139,7 +139,7 @@ contract DCALibTest is Test {
         assertEq(digest1, digest2, "digests must match");
     }
 
-    function test_SignAndRecover() public view {
+    function test_SignAndValidate() public view {
         address verifying = address(this);
         bytes32 domainSeparator = _domainSeparator(verifying);
 
@@ -158,15 +158,12 @@ contract DCALibTest is Test {
         bytes32 digest2 = DCALib.digest(domainSeparator, structFromInner);
         assertEq(digest2, digest);
 
-        // Sign and recover
+        // Sign and validate
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
-        address rec1 = DCALib.recover(digest, sig);
-        assertEq(rec1, signer, "recover(full) must equal signer");
-
-        address rec2 = DCALib.recover(digest2, sig);
-        assertEq(rec2, signer, "recover(from inner hash) must equal signer");
+        assertTrue(DCALib.isValidSignature(signer, digest, sig), "signature validation (full) must succeed");
+        assertTrue(DCALib.isValidSignature(signer, digest2, sig), "signature validation (from inner hash) must succeed");
     }
 
     function test_Negative_WrongInnerHashBreaksVerification() public view {
@@ -192,8 +189,7 @@ contract DCALibTest is Test {
         bytes32 digestWrong = DCALib.digest(domainSeparator, structWrong);
         assertTrue(digestWrong != digest, "tampered digest should differ");
 
-        address rec = DCALib.recover(digestWrong, sig);
-        assertTrue(rec != signer, "recover should not match signer on wrong digest");
+        assertFalse(DCALib.isValidSignature(signer, digestWrong, sig), "validation should fail on wrong digest");
     }
 
     function test_Negative_WrongOuterField_EvenWithCorrectInnerHash() public view {
@@ -220,10 +216,11 @@ contract DCALibTest is Test {
         bytes32 structWrong = DCALib.hashWithInnerHash(tamperedOuter, innerHash);
         bytes32 digestWrong = DCALib.digest(domainSeparator, structWrong);
 
-        // 5) The digest must differ and recovery must fail
+        // 5) The digest must differ and validation must fail
         assertTrue(digestWrong != digest, "tampered outer digest should differ");
-        address rec = DCALib.recover(digestWrong, sig);
-        assertTrue(rec != signer, "recover should not match signer on tampered outer digest");
+        assertFalse(
+            DCALib.isValidSignature(signer, digestWrong, sig), "validation should fail on tampered outer digest"
+        );
     }
 
     // --- Cosigner Data Tests ---
@@ -235,7 +232,7 @@ contract DCALibTest is Test {
             });
     }
 
-    function test_CosignerData_HashAndRecover() public view {
+    function test_CosignerData_HashAndValidate() public view {
         address verifying = address(this);
         bytes32 domainSeparator = _domainSeparator(verifying);
 
@@ -249,9 +246,8 @@ contract DCALibTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
-        // Recover and verify
-        address recovered = DCALib.recover(digest, sig);
-        assertEq(recovered, signer, "Recovered cosigner must match");
+        // Validate signature
+        assertTrue(DCALib.isValidSignature(signer, digest, sig), "Cosigner signature validation must succeed");
     }
 
     function test_CosignerData_DifferentFieldsProduceDifferentHashes() public view {
@@ -307,9 +303,8 @@ contract DCALibTest is Test {
         bytes32 tamperedHash = DCALib.hashCosignerData(cosignerData);
         bytes32 tamperedDigest = DCALib.digest(domainSeparator, tamperedHash);
 
-        // Recovery with tampered digest should not match
-        address recovered = DCALib.recover(tamperedDigest, sig);
-        assertTrue(recovered != signer, "Tampered data should not verify");
+        // Validation with tampered digest should fail
+        assertFalse(DCALib.isValidSignature(signer, tamperedDigest, sig), "Tampered data should not verify");
     }
 
     function test_CosignerData_CrossChainReplay() public view {
@@ -338,12 +333,10 @@ contract DCALibTest is Test {
         bytes memory sig = abi.encodePacked(r, s, v);
 
         // Verify signature is valid for domain1
-        address recovered1 = DCALib.recover(digest1, sig);
-        assertEq(recovered1, signer, "Signature should be valid for domain1");
+        assertTrue(DCALib.isValidSignature(signer, digest1, sig), "Signature should be valid for domain1");
 
         // Verify signature is invalid for domain2 (replay protection)
-        address recovered2 = DCALib.recover(digest2, sig);
-        assertTrue(recovered2 != signer, "Signature should be invalid for domain2");
+        assertFalse(DCALib.isValidSignature(signer, digest2, sig), "Signature should be invalid for domain2");
     }
 
     function testFuzz_CosignerData_AllFields(
@@ -370,8 +363,7 @@ contract DCALibTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
-        // Recovery should work
-        address recovered = DCALib.recover(digest, sig);
-        assertEq(recovered, signer, "Recovery should work for any valid data");
+        // Signature validation should work
+        assertTrue(DCALib.isValidSignature(signer, digest, sig), "Signature validation should work for any valid data");
     }
 }
