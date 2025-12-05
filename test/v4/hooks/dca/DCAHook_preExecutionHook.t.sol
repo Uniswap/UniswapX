@@ -93,9 +93,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // This approval covers all future chunks
         uint256 totalDCAAmount = 1000e18; // Total amount for all 10 chunks
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), uint160(totalDCAAmount), uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), uint160(totalDCAAmount), uint48(block.timestamp + 30 days));
 
         // Compute hash of private intent data (this is what gets stored on-chain)
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
@@ -106,11 +105,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Zero out private intent to maintain privacy when this gets on-chain
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes this specific execution
@@ -164,11 +159,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Zero out private intent to maintain privacy on-chain
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes this second execution (different orderNonce)
@@ -210,9 +201,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Swapper approves Permit2 allowance for max possible input (1100e18 for all chunks)
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         // Compute hash and sign
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
@@ -220,11 +210,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Zero out private intent
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes: execAmount=200e18 (output), limitAmount=110e18 (max input)
@@ -258,9 +244,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Swapper approves full DCA amount
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         // Compute hash and sign
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
@@ -268,11 +253,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Zero out private intent
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes execution
@@ -308,9 +289,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Swapper creates and approves the DCA intent
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         // Swapper cancels the intent
         vm.prank(swapper);
@@ -325,11 +305,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -351,9 +327,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Swapper creates intent and approves
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         // Compute hash
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
@@ -367,11 +342,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Zero out private intent
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes
@@ -427,19 +398,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         // Setup signatures and hook data
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -535,19 +501,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -574,19 +535,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Create cosigner data with WRONG swapper
@@ -614,19 +570,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Create cosigner data with WRONG nonce
@@ -655,19 +606,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         intent.deadline = block.timestamp + 1 days;
 
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -694,19 +640,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Execute first chunk successfully
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -726,11 +667,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory swapperSignature2 = _signIntent(intent2);
 
         intent2.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Use orderNonce = 5 instead of 1
@@ -753,19 +690,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Execute first chunk successfully
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -785,11 +717,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory swapperSignature2 = _signIntent(intent2);
 
         intent2.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData2 = _createCosignerData(nonce, 100e18, 185e18, 1);
@@ -810,19 +738,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Execute first chunk successfully
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -842,11 +765,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory swapperSignature2 = _signIntent(intent2);
 
         intent2.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData2 = _createCosignerData(nonce, 100e18, 185e18, 1);
@@ -866,19 +785,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner sets execAmount = 40e18, which is below minChunkSize of 50e18
@@ -900,19 +814,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner sets execAmount = 250e18, which exceeds maxChunkSize of 200e18
@@ -934,19 +843,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner says execAmount = 100e18, but resolved order has inputAmount = 95e18
@@ -968,19 +872,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactOutIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes EXACT_OUT with execAmount=200e18 (output), limitAmount=110e18 (max input)
@@ -1002,19 +901,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactOutIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes EXACT_OUT with execAmount=200e18 (output), limitAmount=110e18 (max input)
@@ -1038,19 +932,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // minPrice is 1.5e18 (1.5 output per 1 input)
@@ -1077,19 +966,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactOutIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // minPrice is 1.5e18 (1.5 output per 1 input)
@@ -1119,19 +1003,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         // Intent with 90% to swapper, 10% to fee recipient
         DCAIntent memory intent = _createExactInIntentMultipleRecipients(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -1164,11 +1043,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         allocations[1] = OutputAllocation({recipient: address(0xFEE), basisPoints: 1000});
 
         PrivateIntent memory privateIntent = PrivateIntent({
-            totalAmount: 2000e18,
-            exactFrequency: 3600,
-            numChunks: 10,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 2000e18, exactFrequency: 3600, numChunks: 10, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAIntent memory intent = DCAIntent({
@@ -1191,19 +1066,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         });
 
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 200e18, 110e18, 0);
@@ -1231,19 +1101,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactInIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner sets limitAmount = 180e18 (minimum output required)
@@ -1266,19 +1131,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
 
         DCAIntent memory intent = _createExactOutIntent(swapper, nonce);
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1100e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         // Cosigner authorizes execAmount = 200e18 (exact output expected)
@@ -1302,19 +1162,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         internal
     {
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -1336,19 +1191,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         bytes memory expectedError
     ) internal {
         vm.prank(swapper);
-        IAllowanceTransfer(address(permit2)).approve(
-            address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days)
-        );
+        IAllowanceTransfer(address(permit2))
+            .approve(address(inputToken), address(hook), 1000e18, uint48(block.timestamp + 30 days));
 
         bytes32 privateIntentHash = DCALib.hashPrivateIntent(intent.privateIntent);
         bytes memory swapperSignature = _signIntent(intent);
 
         intent.privateIntent = PrivateIntent({
-            totalAmount: 0,
-            exactFrequency: 0,
-            numChunks: 0,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 0, exactFrequency: 0, numChunks: 0, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         DCAOrderCosignerData memory cosignerData = _createCosignerData(nonce, 100e18, 180e18, 0);
@@ -1437,11 +1287,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         allocations[1] = OutputAllocation({recipient: address(0xFEE), basisPoints: 1000}); // 10% fee
 
         PrivateIntent memory privateIntent = PrivateIntent({
-            totalAmount: 1000e18,
-            exactFrequency: 3600,
-            numChunks: 10,
-            salt: bytes32(0),
-            oracleFeeds: new FeedInfo[](0)
+            totalAmount: 1000e18, exactFrequency: 3600, numChunks: 10, salt: bytes32(0), oracleFeeds: new FeedInfo[](0)
         });
 
         return DCAIntent({
