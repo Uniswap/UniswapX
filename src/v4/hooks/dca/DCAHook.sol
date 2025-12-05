@@ -83,12 +83,12 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             intent, intentId, privateIntentHash, swapperSignature, cosignerData, cosignerSignature, resolvedOrder
         );
 
-        // 4) Transfer input tokens with optional permit
-        _transferInputTokens(resolvedOrder, filler, permitData);
-
-        // 5) Update execution state and get cumulative totals
+        // 4) Update execution state
         (uint256 totalInputExecuted, uint256 totalOutputExecuted) =
             _updateExecutionState(intentId, resolvedOrder.input.amount, resolvedOrder.outputs);
+
+        // 5) Transfer input tokens with optional permit
+        _transferInputTokens(resolvedOrder, filler, permitData);
 
         // 6) Emit execution event
         emit ChunkExecuted(
