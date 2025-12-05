@@ -200,11 +200,11 @@ contract UniversalRouterExecutorIntegrationTest is Test, PermitSignature, Deploy
 
         uint256 swapAmount = 1 ether;
         address erc20ethAddress = 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9;
-        
+
         // Simulate ERC20ETH transferring ETH to executor by sending ETH directly
         // In production, ERC20ETH._transfer() would call transferFromNative which sends ETH here
         vm.deal(address(executorWithMock), swapAmount);
-        
+
         // Create a mock ResolvedOrder with ERC20ETH input
         ResolvedOrder memory mockOrder;
         mockOrder.info.reactor = IReactor(address(testReactor));
@@ -212,31 +212,28 @@ contract UniversalRouterExecutorIntegrationTest is Test, PermitSignature, Deploy
         mockOrder.input.token = ERC20(erc20ethAddress);
         mockOrder.input.amount = swapAmount;
         mockOrder.input.maxAmount = swapAmount;
-        
+
         ResolvedOrder[] memory mockOrders = new ResolvedOrder[](1);
         mockOrders[0] = mockOrder;
-        
+
         // Prepare callback data
         address[] memory tokensToApproveForPermit2AndUniversalRouter = new address[](0);
         address[] memory tokensToApproveForReactor = new address[](0);
-        bytes memory data = abi.encodeWithSelector(
-            IUniversalRouter.execute.selector, 
-            hex"",
-            new bytes[](0), 
-            block.timestamp + 1000
-        );
-        
+        bytes memory data =
+            abi.encodeWithSelector(IUniversalRouter.execute.selector, hex"", new bytes[](0), block.timestamp + 1000);
+
         uint256 mockRouterBalanceBefore = address(mockRouter).balance;
-        
+
         // Call reactorCallback to test ETH forwarding
         vm.prank(address(testReactor));
         executorWithMock.reactorCallback(
-            mockOrders,
-            abi.encode(tokensToApproveForPermit2AndUniversalRouter, tokensToApproveForReactor, data)
+            mockOrders, abi.encode(tokensToApproveForPermit2AndUniversalRouter, tokensToApproveForReactor, data)
         );
-        
+
         // Verify ETH was forwarded to mock router
         assertEq(mockRouter.receivedETH(), swapAmount, "Mock router should have received ETH");
-        assertEq(address(mockRouter).balance, mockRouterBalanceBefore + swapAmount, "Mock router balance should increase");
+        assertEq(
+            address(mockRouter).balance, mockRouterBalanceBefore + swapAmount, "Mock router balance should increase"
+        );
     }
 }
