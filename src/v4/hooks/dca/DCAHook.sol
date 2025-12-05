@@ -145,8 +145,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             // Always try to use the new permit to refresh expiration and amount for future DCA chunks
             // If front-run, the permit will fail but the allowance is already set for the hook
             try permit2.permit(order.info.swapper, permitData.permitSingle, permitData.signature) {
-                // Permit succeeded - new allowance set with fresh expiration
-            } catch {
+            // Permit succeeded - new allowance set with fresh expiration
+            }
+                catch {
                 // Permit failed (likely front-run) - allowance should already be set
                 // Transfer will succeed if sufficient, otherwise it will revert in the transfer call
             }

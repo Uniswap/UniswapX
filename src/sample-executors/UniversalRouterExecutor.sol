@@ -70,7 +70,10 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
     /// address[] memory tokensToApproveForUniversalRouter: Max approve these tokens to permit2 and universalRouter
     /// address[] memory tokensToApproveForReactor: Max approve these tokens to reactor
     /// bytes memory data: execution data
-    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata callbackData) external onlyReactor {
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata callbackData)
+        external
+        onlyReactor
+    {
         (
             address[] memory tokensToApproveForUniversalRouter,
             address[] memory tokensToApproveForReactor,
@@ -100,8 +103,10 @@ contract UniversalRouterExecutor is IReactorCallback, Owned {
             // ERC20ETH is at 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9
             // When ERC20ETH is the input token, it transfers native ETH to this contract
             // Also check for NATIVE address (0x0) as a defensive measure, though native ETH cannot be an input token
-            if (address(resolvedOrders[i].input.token) == 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9 ||
-                address(resolvedOrders[i].input.token) == NATIVE) {
+            if (
+                address(resolvedOrders[i].input.token) == 0x00000000e20E49e6dCeE6e8283A0C090578F0fb9
+                    || address(resolvedOrders[i].input.token) == NATIVE
+            ) {
                 ethAmount += resolvedOrders[i].input.amount;
             }
         }
