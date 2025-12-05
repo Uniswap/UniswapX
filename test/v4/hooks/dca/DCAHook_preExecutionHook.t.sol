@@ -362,7 +362,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         uint256 wrongPrivateKey = 0x9999;
         address wrongSigner = vm.addr(wrongPrivateKey);
         bytes32 intentHash = DCALib.hash(intent);
-        bytes32 digest = DCALib.digest(hook.domainSeparator(), intentHash);
+        bytes32 digest = DCALib.digest(hook.DOMAIN_SEPARATOR(), intentHash);
         bytes memory invalidSignature = _sign(wrongPrivateKey, digest);
 
         // Zero out private intent
@@ -384,7 +384,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
             _encodeHookData(intent, invalidSignature, privateIntentHash, cosignerData, cosignerSignature);
 
         // Should revert with InvalidSwapperSignature
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidSwapperSignature.selector, wrongSigner, swapper));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidSwapperSignature.selector, address(0), swapper));
         hook.preExecutionHook(filler, resolvedOrder);
     }
 
@@ -556,14 +556,14 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
         uint256 wrongPrivateKey = 0x8888;
         address wrongCosigner = vm.addr(wrongPrivateKey);
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
-        bytes32 cosignerDigest = DCALib.digest(hook.domainSeparator(), cosignerStructHash);
+        bytes32 cosignerDigest = DCALib.digest(hook.DOMAIN_SEPARATOR(), cosignerStructHash);
         bytes memory invalidCosignerSignature = _sign(wrongPrivateKey, cosignerDigest);
 
         ResolvedOrder memory resolvedOrder = _createResolvedOrder(intent, 100e18, 180e18);
         resolvedOrder.info.preExecutionHookData =
             _encodeHookData(intent, swapperSignature, privateIntentHash, cosignerData, invalidCosignerSignature);
 
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidCosignerSignature.selector, wrongCosigner, cosigner));
+        vm.expectRevert(abi.encodeWithSelector(IDCAHook.InvalidCosignerSignature.selector, address(0), cosigner));
         hook.preExecutionHook(filler, resolvedOrder);
     }
 
@@ -1488,7 +1488,8 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
             outputs: outputs,
             sig: "",
             hash: bytes32(0),
-            auctionResolver: address(0)
+            auctionResolver: address(0),
+            witnessTypeString: ""
         });
     }
 
@@ -1521,14 +1522,15 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
             outputs: outputs,
             sig: "",
             hash: bytes32(0),
-            auctionResolver: address(0)
+            auctionResolver: address(0),
+            witnessTypeString: ""
         });
     }
 
     /// @notice Helper: Swapper signs the DCA intent (with full private data)
     function _signIntent(DCAIntent memory intent) internal view returns (bytes memory) {
         bytes32 intentHash = DCALib.hash(intent);
-        bytes32 swapperDigest = DCALib.digest(hook.domainSeparator(), intentHash);
+        bytes32 swapperDigest = DCALib.digest(hook.DOMAIN_SEPARATOR(), intentHash);
         return _sign(swapperPrivateKey, swapperDigest);
     }
 
@@ -1550,7 +1552,7 @@ contract DCAHook_preExecutionHookTest is Test, DeployPermit2 {
     /// @notice Helper: Cosigner signs the execution authorization
     function _signCosignerData(DCAOrderCosignerData memory cosignerData) internal view returns (bytes memory) {
         bytes32 cosignerStructHash = DCALib.hashCosignerData(cosignerData);
-        bytes32 cosignerDigest = DCALib.digest(hook.domainSeparator(), cosignerStructHash);
+        bytes32 cosignerDigest = DCALib.digest(hook.DOMAIN_SEPARATOR(), cosignerStructHash);
         return _sign(cosignerPrivateKey, cosignerDigest);
     }
 
