@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo, FeedTemplate} from "./DCAStructs.sol";
+import {
+    DCAIntent,
+    PrivateIntent,
+    OutputAllocation,
+    DCAOrderCosignerData,
+    FeedInfo,
+    FeedTemplate
+} from "./DCAStructs.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @notice helpers for handling DCA intent specs
@@ -11,7 +18,8 @@ library DCALib {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     // ----- Type strings -----
-    bytes constant FEED_TEMPLATE_TYPE = "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)";
+    bytes constant FEED_TEMPLATE_TYPE =
+        "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)";
     bytes32 constant FEED_TEMPLATE_TYPEHASH = keccak256(FEED_TEMPLATE_TYPE);
 
     bytes constant FEED_INFO_TYPE = "FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)"
@@ -67,12 +75,7 @@ library DCALib {
         for (uint256 i = 0; i < len; i++) {
             bytes32 templateHash = _hashFeedTemplate(feeds[i].feedTemplate);
             feedHashes[i] = keccak256(
-                abi.encode(
-                    FEED_INFO_TYPEHASH,
-                    templateHash,
-                    feeds[i].feedAddress,
-                    keccak256(bytes(feeds[i].feedType))
-                )
+                abi.encode(FEED_INFO_TYPEHASH, templateHash, feeds[i].feedAddress, keccak256(bytes(feeds[i].feedType)))
             );
         }
         return keccak256(abi.encodePacked(feedHashes));

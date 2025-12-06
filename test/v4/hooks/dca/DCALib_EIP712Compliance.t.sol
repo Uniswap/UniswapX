@@ -185,11 +185,7 @@ contract DCALibEIP712ComplianceTest is Test, FFISignDCAIntent {
         string[] memory secrets0 = new string[](0);
         feeds[0] = FeedInfo({
             feedTemplate: FeedTemplate({
-                name: "feed-1",
-                expression: "$average(prices)",
-                parameters: params0,
-                secrets: secrets0,
-                retryCount: 3
+                name: "feed-1", expression: "$average(prices)", parameters: params0, secrets: secrets0, retryCount: 3
             }),
             feedAddress: address(0xFEED1),
             feedType: "asdf"
@@ -199,11 +195,7 @@ contract DCALibEIP712ComplianceTest is Test, FFISignDCAIntent {
         string[] memory secrets1 = new string[](0);
         feeds[1] = FeedInfo({
             feedTemplate: FeedTemplate({
-                name: "feed-2",
-                expression: "$median(prices)",
-                parameters: params1,
-                secrets: secrets1,
-                retryCount: 5
+                name: "feed-2", expression: "$median(prices)", parameters: params1, secrets: secrets1, retryCount: 5
             }),
             feedAddress: address(0xFEED2),
             feedType: "qwer"
