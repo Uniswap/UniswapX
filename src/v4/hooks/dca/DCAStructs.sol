@@ -3,9 +3,17 @@ pragma solidity ^0.8.0;
 
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
+struct FeedTemplate {
+    string name;
+    string expression;
+    string[] parameters;
+    string[] secrets;
+    uint256 retryCount;
+}
+
 struct FeedInfo {
-    bytes32 feedId;
-    address feed_address;
+    FeedTemplate feedTemplate;
+    address feedAddress;
     string feedType;
 }
 

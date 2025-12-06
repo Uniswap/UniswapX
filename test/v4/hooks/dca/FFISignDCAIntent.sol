@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {CommonBase} from "forge-std/Base.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {console2} from "forge-std/console2.sol";
-import {DCAIntent, PrivateIntent, OutputAllocation, FeedInfo} from "src/v4/hooks/dca/DCAStructs.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, FeedInfo, FeedTemplate} from "src/v4/hooks/dca/DCAStructs.sol";
 
 contract FFISignDCAIntent is CommonBase {
     using stdJson for string;
@@ -83,16 +83,41 @@ contract FFISignDCAIntent is CommonBase {
         return string.concat(result, "]");
     }
 
+    function _buildStringArray(string[] memory arr) private pure returns (string memory) {
+        string memory result = "[";
+        for (uint256 i = 0; i < arr.length; i++) {
+            if (i > 0) result = string.concat(result, ",");
+            result = string.concat(result, '"', arr[i], '"');
+        }
+        return string.concat(result, "]");
+    }
+
+    function _buildFeedTemplate(FeedTemplate memory template) private pure returns (string memory) {
+        return string.concat(
+            '{"name":"',
+            template.name,
+            '","expression":"',
+            template.expression,
+            '","parameters":',
+            _buildStringArray(template.parameters),
+            ',"secrets":',
+            _buildStringArray(template.secrets),
+            ',"retryCount":',
+            vm.toString(template.retryCount),
+            "}"
+        );
+    }
+
     function _buildFeedsArray(FeedInfo[] memory feeds) private pure returns (string memory) {
         string memory result = "[";
         for (uint256 i = 0; i < feeds.length; i++) {
             if (i > 0) result = string.concat(result, ",");
             result = string.concat(
                 result,
-                '{"feedId":"',
-                vm.toString(feeds[i].feedId),
-                '","feed_address":"',
-                vm.toString(feeds[i].feed_address),
+                '{"feedTemplate":',
+                _buildFeedTemplate(feeds[i].feedTemplate),
+                ',"feedAddress":"',
+                vm.toString(feeds[i].feedAddress),
                 '","feedType":"',
                 feeds[i].feedType,
                 '"}'

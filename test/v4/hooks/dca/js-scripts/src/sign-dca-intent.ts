@@ -20,9 +20,17 @@ if (args.length < 1) {
 }
 
 // Parse the JSON input
+interface FeedTemplate {
+  name: string;
+  expression: string;
+  parameters: string[];
+  secrets: string[];
+  retryCount: number;
+}
+
 interface FeedInfo {
-  feedId: `0x${string}`;
-  feed_address: Address;
+  feedTemplate: FeedTemplate;
+  feedAddress: Address;
   feedType: string;
 }
 
@@ -97,9 +105,16 @@ const DCAIntentTypes = {
     { name: 'oracleFeeds', type: 'FeedInfo[]' },
   ],
   FeedInfo: [
-    { name: 'feedId', type: 'bytes32' },
-    { name: 'feed_address', type: 'address' },
+    { name: 'feedTemplate', type: 'FeedTemplate' },
+    { name: 'feedAddress', type: 'address' },
     { name: 'feedType', type: 'string' },
+  ],
+  FeedTemplate: [
+    { name: 'name', type: 'string' },
+    { name: 'expression', type: 'string' },
+    { name: 'parameters', type: 'string[]' },
+    { name: 'secrets', type: 'string[]' },
+    { name: 'retryCount', type: 'uint256' },
   ],
 } as const;
 
@@ -153,7 +168,7 @@ async function signDCAIntent(): Promise<void> {
           { type: 'bytes32' }, // privateIntent hash
         ],
         [
-          keccak256(toHex('DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)FeedInfo(bytes32 feedId,address feed_address,string feedType)OutputAllocation(address recipient,uint16 basisPoints)PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)')),
+          keccak256(toHex('DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)OutputAllocation(address recipient,uint16 basisPoints)PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)')),
           intent.swapper,
           intent.nonce,
           intent.chainId,
@@ -212,9 +227,41 @@ function hashOutputAllocations(allocations: OutputAllocation[]): `0x${string}` {
   ));
 }
 
+function hashStringArray(arr: string[]): `0x${string}` {
+  const hashes = arr.map(str => keccak256(toHex(str)));
+  return keccak256(encodeAbiParameters(
+    hashes.map(() => ({ type: 'bytes32' })),
+    hashes
+  ));
+}
+
+function hashFeedTemplate(template: FeedTemplate): `0x${string}` {
+  return keccak256(
+    encodeAbiParameters(
+      [
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'uint256' },
+      ],
+      [
+        keccak256(toHex('FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)')),
+        keccak256(toHex(template.name)),
+        keccak256(toHex(template.expression)),
+        hashStringArray(template.parameters),
+        hashStringArray(template.secrets),
+        BigInt(template.retryCount),
+      ]
+    )
+  );
+}
+
 function hashPrivateIntent(privateIntent: PrivateIntent): `0x${string}` {
-  const feedHashes = privateIntent.oracleFeeds.map(feed =>
-    keccak256(
+  const feedHashes = privateIntent.oracleFeeds.map(feed => {
+    const templateHash = hashFeedTemplate(feed.feedTemplate);
+    return keccak256(
       encodeAbiParameters(
         [
           { type: 'bytes32' },
@@ -223,14 +270,14 @@ function hashPrivateIntent(privateIntent: PrivateIntent): `0x${string}` {
           { type: 'bytes32' },
         ],
         [
-          keccak256(toHex('FeedInfo(bytes32 feedId,address feed_address,string feedType)')),
-          feed.feedId,
-          feed.feed_address,
+          keccak256(toHex('FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)')),
+          templateHash,
+          feed.feedAddress,
           keccak256(toHex(feed.feedType)),
         ]
       )
-    )
-  );
+    );
+  });
 
   const feedsHash = keccak256(encodeAbiParameters(
     feedHashes.map(() => ({ type: 'bytes32' })),
@@ -248,7 +295,7 @@ function hashPrivateIntent(privateIntent: PrivateIntent): `0x${string}` {
         { type: 'bytes32' },
       ],
       [
-        keccak256(toHex('PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)FeedInfo(bytes32 feedId,address feed_address,string feedType)')),
+        keccak256(toHex('PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)')),
         privateIntent.totalAmount,
         privateIntent.exactFrequency,
         privateIntent.numChunks,
