@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo} from "./DCAStructs.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, DCAOrderCosignerData, FeedInfo, FeedTemplate} from "./DCAStructs.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @notice helpers for handling DCA intent specs
@@ -11,18 +11,24 @@ library DCALib {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     // ----- Type strings -----
-    bytes constant FEED_INFO_TYPE = "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
+    bytes constant FEED_TEMPLATE_TYPE = "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)";
+    bytes32 constant FEED_TEMPLATE_TYPEHASH = keccak256(FEED_TEMPLATE_TYPE);
+
+    bytes constant FEED_INFO_TYPE = "FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)"
+        "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)";
     bytes32 constant FEED_INFO_TYPEHASH = keccak256(FEED_INFO_TYPE);
 
     bytes constant PRIVATE_INTENT_TYPE = "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)"
-        "FeedInfo(bytes32 feedId,address feed_address,string feedType)";
+        "FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)"
+        "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)";
     bytes32 constant PRIVATE_INTENT_TYPEHASH = keccak256(PRIVATE_INTENT_TYPE);
 
     bytes constant OUTPUT_ALLOCATION_TYPE = "OutputAllocation(address recipient,uint16 basisPoints)";
     bytes32 constant OUTPUT_ALLOCATION_TYPEHASH = keccak256(OUTPUT_ALLOCATION_TYPE);
 
     bytes constant DCA_INTENT_TYPE = "DCAIntent(address swapper,uint256 nonce,uint256 chainId,address hookAddress,bool isExactIn,address inputToken,address outputToken,address cosigner,uint256 minPeriod,uint256 maxPeriod,uint256 minChunkSize,uint256 maxChunkSize,uint256 minPrice,uint256 deadline,OutputAllocation[] outputAllocations,PrivateIntent privateIntent)"
-        "FeedInfo(bytes32 feedId,address feed_address,string feedType)"
+        "FeedInfo(FeedTemplate feedTemplate,address feedAddress,string feedType)"
+        "FeedTemplate(string name,string expression,string[] parameters,string[] secrets,uint256 retryCount)"
         "OutputAllocation(address recipient,uint16 basisPoints)"
         "PrivateIntent(uint256 totalAmount,uint256 exactFrequency,uint256 numChunks,bytes32 salt,FeedInfo[] oracleFeeds)";
     bytes32 constant DCA_INTENT_TYPEHASH = keccak256(DCA_INTENT_TYPE);
@@ -33,13 +39,39 @@ library DCALib {
 
     // ----- Hash helpers -----
 
+    function _hashStringArray(string[] memory arr) private pure returns (bytes32) {
+        uint256 len = arr.length;
+        bytes32[] memory hashes = new bytes32[](len);
+        for (uint256 i = 0; i < len; i++) {
+            hashes[i] = keccak256(bytes(arr[i]));
+        }
+        return keccak256(abi.encodePacked(hashes));
+    }
+
+    function _hashFeedTemplate(FeedTemplate memory template) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                FEED_TEMPLATE_TYPEHASH,
+                keccak256(bytes(template.name)),
+                keccak256(bytes(template.expression)),
+                _hashStringArray(template.parameters),
+                _hashStringArray(template.secrets),
+                template.retryCount
+            )
+        );
+    }
+
     function _hashFeedInfoArray(FeedInfo[] memory feeds) private pure returns (bytes32) {
         uint256 len = feeds.length;
         bytes32[] memory feedHashes = new bytes32[](len);
         for (uint256 i = 0; i < len; i++) {
+            bytes32 templateHash = _hashFeedTemplate(feeds[i].feedTemplate);
             feedHashes[i] = keccak256(
                 abi.encode(
-                    FEED_INFO_TYPEHASH, feeds[i].feedId, feeds[i].feed_address, keccak256(bytes(feeds[i].feedType))
+                    FEED_INFO_TYPEHASH,
+                    templateHash,
+                    feeds[i].feedAddress,
+                    keccak256(bytes(feeds[i].feedType))
                 )
             );
         }

@@ -1,6 +1,6 @@
 {
   "isValidSignature_EOA": "3000",
   "isValidSignature_EOA_Invalid": "3000",
-  "isValidSignature_ERC1271": "4315",
-  "isValidSignature_ERC1271_Invalid": "4301"
+  "isValidSignature_ERC1271": "6315",
+  "isValidSignature_ERC1271_Invalid": "6301"
 }
