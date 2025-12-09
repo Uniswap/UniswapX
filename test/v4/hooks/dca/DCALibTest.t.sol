@@ -9,7 +9,8 @@ import {
     PrivateIntent,
     OutputAllocation,
     DCAOrderCosignerData,
-    FeedInfo
+    FeedInfo,
+    FeedTemplate
 } from "src/v4/hooks/dca/DCAStructs.sol";
 
 contract DCALibTest is Test {
@@ -102,15 +103,35 @@ contract DCALibTest is Test {
 
     function _feedIds() internal pure returns (FeedInfo[] memory a) {
         a = new FeedInfo[](2);
+
+        string[] memory params0 = new string[](0);
+        string[] memory secrets0 = new string[](0);
+
         a[0] = FeedInfo({
-            feedId: keccak256("feed-0"),
-            feed_address: address(0x1111111111111111111111111111111111111111),
+            feedTemplate: FeedTemplate({
+                name: "feed-0",
+                expression: "$average(data.prices)",
+                parameters: params0,
+                secrets: secrets0,
+                retryCount: 3
+            }),
+            feedAddress: address(0x1111111111111111111111111111111111111111),
             feedType: "price"
         });
+
+        string[] memory params1 = new string[](0);
+        string[] memory secrets1 = new string[](0);
+
         a[1] = FeedInfo({
-            feedId: keccak256("feed-1"),
-            feed_address: address(0x2222222222222222222222222222222222222222),
-            feedType: "oracle"
+            feedTemplate: FeedTemplate({
+                name: "feed-1",
+                expression: "$average(data.prices)",
+                parameters: params1,
+                secrets: secrets1,
+                retryCount: 5
+            }),
+            feedAddress: address(0x2222222222222222222222222222222222222222),
+            feedType: "price"
         });
     }
 

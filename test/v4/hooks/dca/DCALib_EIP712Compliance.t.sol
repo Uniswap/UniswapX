@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import {DCALib} from "src/v4/hooks/dca/DCALib.sol";
-import {DCAIntent, PrivateIntent, OutputAllocation, FeedInfo} from "src/v4/hooks/dca/DCAStructs.sol";
+import {DCAIntent, PrivateIntent, OutputAllocation, FeedInfo, FeedTemplate} from "src/v4/hooks/dca/DCAStructs.sol";
 import {FFISignDCAIntent} from "./FFISignDCAIntent.sol";
 
 /**
@@ -180,8 +180,26 @@ contract DCALibEIP712ComplianceTest is Test, FFISignDCAIntent {
         allocations[2] = OutputAllocation({recipient: address(0xCCCC), basisPoints: 2000});
 
         FeedInfo[] memory feeds = new FeedInfo[](2);
-        feeds[0] = FeedInfo({feedId: bytes32(uint256(1)), feed_address: address(0xFEED1), feedType: "asdf"});
-        feeds[1] = FeedInfo({feedId: bytes32(uint256(2)), feed_address: address(0xFEED2), feedType: "qwer"});
+
+        string[] memory params0 = new string[](0);
+        string[] memory secrets0 = new string[](0);
+        feeds[0] = FeedInfo({
+            feedTemplate: FeedTemplate({
+                name: "feed-1", expression: "$average(prices)", parameters: params0, secrets: secrets0, retryCount: 3
+            }),
+            feedAddress: address(0xFEED1),
+            feedType: "asdf"
+        });
+
+        string[] memory params1 = new string[](0);
+        string[] memory secrets1 = new string[](0);
+        feeds[1] = FeedInfo({
+            feedTemplate: FeedTemplate({
+                name: "feed-2", expression: "$median(prices)", parameters: params1, secrets: secrets1, retryCount: 5
+            }),
+            feedAddress: address(0xFEED2),
+            feedType: "qwer"
+        });
 
         PrivateIntent memory privateIntent = PrivateIntent({
             totalAmount: 100e18, exactFrequency: 3600, numChunks: 10, salt: keccak256("test-salt"), oracleFeeds: feeds
@@ -215,7 +233,20 @@ contract DCALibEIP712ComplianceTest is Test, FFISignDCAIntent {
 
     function _createSimplePrivateIntent() internal pure returns (PrivateIntent memory) {
         FeedInfo[] memory feeds = new FeedInfo[](1);
-        feeds[0] = FeedInfo({feedId: bytes32(uint256(123)), feed_address: address(0xFEED), feedType: "asdf"});
+
+        string[] memory params = new string[](0);
+        string[] memory secrets = new string[](0);
+        feeds[0] = FeedInfo({
+            feedTemplate: FeedTemplate({
+                name: "simple-feed",
+                expression: "$number(data.value)",
+                parameters: params,
+                secrets: secrets,
+                retryCount: 3
+            }),
+            feedAddress: address(0xFEED),
+            feedType: "asdf"
+        });
 
         return PrivateIntent({
             totalAmount: 100e18, exactFrequency: 3600, numChunks: 10, salt: bytes32(uint256(0x42)), oracleFeeds: feeds
