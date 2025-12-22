@@ -21,19 +21,17 @@ library ExclusivityLib {
     /// @notice Applies exclusivity override to the resolved order if necessary
     /// @param order The order to apply exclusivity override to
     /// @param exclusive The exclusive address
-    /// @param exclusivityEnd The exclusivity end timestamp
+    /// @param exclusivityEnd The exclusivity end time
     /// @param exclusivityOverrideBps The exclusivity override BPS
-    /// @param timestamp The current timestamp
     /// @param filler The address of the filler
     function handleExclusiveOverrideTimestamp(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
         uint256 exclusivityOverrideBps,
-        uint256 timestamp,
         address filler
-    ) internal pure {
-        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, timestamp, filler);
+    ) internal view {
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, block.timestamp, filler);
     }
 
     /// @notice Applies exclusivity override to the resolved order if necessary
@@ -41,6 +39,7 @@ library ExclusivityLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEnd The exclusivity end block number
     /// @param exclusivityOverrideBps The exclusivity override BPS
+    /// @param blockNumberish The current block number
     /// @param filler The address of the filler
     function handleExclusiveOverrideBlock(
         ResolvedOrder memory order,
@@ -49,7 +48,7 @@ library ExclusivityLib {
         uint256 exclusivityOverrideBps,
         uint256 blockNumberish,
         address filler
-    ) internal pure {
+    ) internal view {
         _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumberish, filler);
     }
 
@@ -67,7 +66,7 @@ library ExclusivityLib {
         uint256 exclusivityOverrideBps,
         uint256 currentPosition,
         address filler
-    ) internal pure {
+    ) internal view {
         // if the filler has fill right, we proceed with the order as-is
         if (hasFillingRights(exclusive, exclusivityEnd, currentPosition, filler)) {
             return;
@@ -100,7 +99,7 @@ library ExclusivityLib {
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false
     function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition, address filler)
         internal
-        pure
+        view
         returns (bool)
     {
         return exclusive == address(0) || currentPosition > exclusivityEnd || exclusive == filler;
