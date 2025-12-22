@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {PriceCurveLib} from "tribunal/src/lib/PriceCurveLib.sol";
 
 import {IAuctionResolver} from "../interfaces/IAuctionResolver.sol";
+import {ExclusivityLib} from "../lib/ExclusivityLib.sol";
 import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.sol";
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {HybridOrder, HybridOrderLib, HybridInput, HybridOutput} from "../lib/HybridOrderLib.sol";
@@ -102,6 +103,17 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
                 auctionResolver: address(this),
                 witnessTypeString: HybridOrderLib.PERMIT2_ORDER_TYPE
             });
+        }
+
+        // Handle exclusivity if cosigner provided exclusivity parameters
+        if (order.cosigner != address(0)) {
+            ExclusivityLib.handleExclusiveOverrideBlock(
+                resolvedOrder,
+                order.cosignerData.exclusiveFiller,
+                auctionTargetBlock,
+                order.cosignerData.exclusivityOverrideBps,
+                blockNumberish
+            );
         }
     }
 
