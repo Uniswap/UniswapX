@@ -19,6 +19,7 @@ import {
     HybridOrderLib
 } from "../../../src/v4/lib/HybridOrderLib.sol";
 import {CosignerLib} from "../../../src/lib/CosignerLib.sol";
+import {ExclusivityLib} from "../../../src/v4/lib/ExclusivityLib.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {MockFillContract} from "../util/mock/MockFillContract.sol";
@@ -41,6 +42,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     uint256 constant COSIGNER_PRIVATE_KEY = 0x99999999;
     uint256 constant NEUTRAL_SCALING_FACTOR = 1e18;
     address internal constant PROTOCOL_FEE_OWNER = address(1);
+    address internal constant EXCLUSIVE_FILLER = address(0x1111111111111111111111111111111111111111);
 
     MockERC20 tokenIn;
     MockERC20 tokenOut;
@@ -131,7 +133,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: 0,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
     }
@@ -858,7 +865,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -904,7 +916,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -972,7 +989,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1014,7 +1036,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1057,7 +1084,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1099,7 +1131,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1140,7 +1177,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: baselinePriorityFee,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1308,8 +1350,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         HybridOutput[] memory outputs = new HybridOutput[](1);
         outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
 
-        HybridCosignerData memory cosignerData =
-            HybridCosignerData({auctionTargetBlock: cosignerOverrideBlock, supplementalPriceCurve: new uint256[](0)});
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: cosignerOverrideBlock,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0
+        });
 
         HybridOrder memory order = HybridOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
@@ -1350,8 +1396,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         HybridOutput[] memory outputs = new HybridOutput[](1);
         outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
 
-        HybridCosignerData memory cosignerData =
-            HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: supplementalCurve});
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: 0,
+            supplementalPriceCurve: supplementalCurve,
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0
+        });
 
         HybridOrder memory order = HybridOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
@@ -1381,8 +1431,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         HybridOutput[] memory outputs = new HybridOutput[](1);
         outputs[0] = HybridOutput({token: address(tokenOut), minAmount: 0, recipient: swapper});
 
-        HybridCosignerData memory cosignerData =
-            HybridCosignerData({auctionTargetBlock: block.number, supplementalPriceCurve: new uint256[](0)});
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: address(0),
+            exclusivityOverrideBps: 0
+        });
 
         HybridOrder memory order = HybridOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
@@ -1435,7 +1489,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             baselinePriorityFee: 0,
             scalingFactor: scalingFactor,
             priceCurve: priceCurve,
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -1618,5 +1677,244 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         );
         (SignedOrder memory signedOrder,) = createAndSignOrder(order);
         fillContract.execute(signedOrder);
+    }
+
+    /* ================================================
+     *                 EXCLUSIVITY TESTS
+     * ================================================ */
+
+    /// @notice Test that strict exclusivity (0 bps) reverts for non-exclusive filler
+    function test_StrictExclusivity_InvalidCaller_Reverts() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        address exclusiveFiller = EXCLUSIVE_FILLER;
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: exclusiveFiller,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // fillContract is not the exclusive filler, should revert
+        vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
+        fillContract.execute(signedOrder);
+    }
+
+    /// @notice Test that non-exclusive filler pays override amount
+    function test_ExclusivityOverride_AppliesCorrectly() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+        uint256 exclusivityOverrideBps = 100; // 1%
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        address exclusiveFiller = EXCLUSIVE_FILLER;
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: exclusiveFiller,
+            exclusivityOverrideBps: exclusivityOverrideBps
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        // Swapper should receive output + 1% override
+        uint256 expectedOutput = outputMinAmount * (10000 + exclusivityOverrideBps) / 10000;
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + expectedOutput);
+    }
+
+    /// @notice Test that exclusivity expires after auction target block
+    function test_ExclusivityExpired_AnyoneCanFill() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        address exclusiveFiller = EXCLUSIVE_FILLER;
+        uint256 exclusivityEndBlock = block.number + 10;
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: exclusivityEndBlock,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: exclusiveFiller,
+            exclusivityOverrideBps: 0 // Strict during period
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: exclusivityEndBlock,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Advance past exclusivity period
+        vm.roll(exclusivityEndBlock + 1);
+
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        // Should fill without override since exclusivity expired
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test that address(0) exclusiveFiller allows anyone to fill
+    function test_NoExclusivity_AnyoneCanFill() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: address(0), // No exclusivity
+            exclusivityOverrideBps: 0
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test exclusivity with multiple outputs
+    function test_ExclusivityOverride_MultipleOutputs() public {
+        uint256 inputAmount = 100e18;
+        uint256 output1MinAmount = 50e18;
+        uint256 output2MinAmount = 45e18;
+        uint256 exclusivityOverrideBps = 200; // 2%
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](2);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: output1MinAmount, recipient: swapper});
+        outputs[1] = HybridOutput({token: address(tokenOut2), minAmount: output2MinAmount, recipient: swapper});
+
+        address exclusiveFiller = EXCLUSIVE_FILLER;
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: exclusiveFiller,
+            exclusivityOverrideBps: exclusivityOverrideBps
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0),
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 swapperBalance1Before = tokenOut.balanceOf(swapper);
+        uint256 swapperBalance2Before = tokenOut2.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        // Both outputs should have override applied
+        uint256 expectedOutput1 = output1MinAmount * (10000 + exclusivityOverrideBps) / 10000;
+        uint256 expectedOutput2 = output2MinAmount * (10000 + exclusivityOverrideBps) / 10000;
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalance1Before + expectedOutput1);
+        assertEq(tokenOut2.balanceOf(swapper), swapperBalance2Before + expectedOutput2);
     }
 }

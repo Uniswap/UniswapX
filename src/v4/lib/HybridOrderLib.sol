@@ -12,6 +12,8 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 struct HybridCosignerData {
     uint256 auctionTargetBlock;
     uint256[] supplementalPriceCurve;
+    address exclusiveFiller;
+    uint256 exclusivityOverrideBps;
 }
 
 /// @notice Input tokens for hybrid auction
