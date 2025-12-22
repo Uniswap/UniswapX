@@ -23,13 +23,17 @@ library ExclusivityLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEnd The exclusivity end timestamp
     /// @param exclusivityOverrideBps The exclusivity override BPS
+    /// @param timestamp The current timestamp
+    /// @param filler The address of the filler
     function handleExclusiveOverrideTimestamp(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
-        uint256 exclusivityOverrideBps
-    ) internal view {
-        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, block.timestamp);
+        uint256 exclusivityOverrideBps,
+        uint256 timestamp,
+        address filler
+    ) internal pure {
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, timestamp, filler);
     }
 
     /// @notice Applies exclusivity override to the resolved order if necessary
@@ -37,14 +41,16 @@ library ExclusivityLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEnd The exclusivity end block number
     /// @param exclusivityOverrideBps The exclusivity override BPS
+    /// @param filler The address of the filler
     function handleExclusiveOverrideBlock(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
         uint256 exclusivityOverrideBps,
-        uint256 blockNumberish
-    ) internal view {
-        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumberish);
+        uint256 blockNumberish,
+        address filler
+    ) internal pure {
+        _handleExclusiveOverride(order, exclusive, exclusivityEnd, exclusivityOverrideBps, blockNumberish, filler);
     }
 
     /// @notice Applies exclusivity override to the resolved order if necessary
@@ -53,15 +59,17 @@ library ExclusivityLib {
     /// @param exclusivityEnd The exclusivity end timestamp or block number
     /// @param exclusivityOverrideBps The exclusivity override BPS
     /// @param currentPosition The block timestamp or number to determine exclusivity
+    /// @param filler The address of the filler
     function _handleExclusiveOverride(
         ResolvedOrder memory order,
         address exclusive,
         uint256 exclusivityEnd,
         uint256 exclusivityOverrideBps,
-        uint256 currentPosition
-    ) internal view {
+        uint256 currentPosition,
+        address filler
+    ) internal pure {
         // if the filler has fill right, we proceed with the order as-is
-        if (hasFillingRights(exclusive, exclusivityEnd, currentPosition)) {
+        if (hasFillingRights(exclusive, exclusivityEnd, currentPosition, filler)) {
             return;
         }
 
@@ -86,14 +94,15 @@ library ExclusivityLib {
     /// @param exclusive The exclusive address
     /// @param exclusivityEnd The exclusivity end timestamp or block number
     /// @param currentPosition The timestamp or block number to determine exclusivity
+    /// @param filler The address of the filler
     /// @dev if the order has no exclusivity, always returns true
     /// @dev if the order has active exclusivity and the current filler is the exclusive address, returns true
     /// @dev if the order has active exclusivity and the current filler is not the exclusive address, returns false
-    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition)
+    function hasFillingRights(address exclusive, uint256 exclusivityEnd, uint256 currentPosition, address filler)
         internal
-        view
+        pure
         returns (bool)
     {
-        return exclusive == address(0) || currentPosition > exclusivityEnd || exclusive == msg.sender;
+        return exclusive == address(0) || currentPosition > exclusivityEnd || exclusive == filler;
     }
 }

@@ -106,13 +106,16 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
         }
 
         // Handle exclusivity if cosigner provided exclusivity parameters
+        // Note: Uses tx.origin to identify filler since resolver is called via staticcall
+        // Note: fillers should use EOA to call a deployed executor contract, instead of using a contract wallet directly
         if (order.cosigner != address(0)) {
             ExclusivityLib.handleExclusiveOverrideBlock(
                 resolvedOrder,
                 order.cosignerData.exclusiveFiller,
                 auctionTargetBlock,
                 order.cosignerData.exclusivityOverrideBps,
-                blockNumberish
+                blockNumberish,
+                tx.origin
             );
         }
     }
