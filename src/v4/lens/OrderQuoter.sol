@@ -12,6 +12,8 @@ contract OrderQuoter is IReactorCallback {
     /// @notice thrown if reactorCallback receives more than one order
     error OrdersLengthIncorrect();
 
+    uint256 private constant RESOLVED_ORDER_MIN_LENGTH = 768;
+
     /// @notice Quote the given order, returning the ResolvedOrder object which defines
     /// the current input and output token amounts required to satisfy it
     /// Also bubbles up any reverts that would occur during the processing of the order
@@ -47,13 +49,6 @@ contract OrderQuoter is IReactorCallback {
     /// @param reason The revert reason bytes
     /// @return The decoded ResolvedOrder
     function parseRevertReason(bytes memory reason) private pure returns (ResolvedOrder memory) {
-        // V4 ResolvedOrder has additional fields (auctionResolver, witnessTypeString)
-        // so minimum length is larger than v1-v3
-        // Minimum: OrderInfo (dynamic) + InputToken (3 * 32) + OutputToken[] (dynamic) + sig (dynamic) 
-        //          + hash (32) + auctionResolver (32) + witnessTypeString (dynamic)
-        // Use a reasonable minimum that accounts for the struct overhead
-        uint256 RESOLVED_ORDER_MIN_LENGTH = 256;
-        
         if (reason.length < RESOLVED_ORDER_MIN_LENGTH) {
             assembly {
                 revert(add(32, reason), mload(reason))
