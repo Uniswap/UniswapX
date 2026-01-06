@@ -31,8 +31,6 @@ contract OrderQuoter is IReactorCallback {
         }
     }
 
-
-
     /// @notice Return the auction resolver address from a given order (abi-encoded bytes)
     /// @param order abi-encoded order with auctionResolver as the first field
     /// @return auctionResolver The auction resolver address
