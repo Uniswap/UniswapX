@@ -8,7 +8,7 @@ import {SignedOrder} from "../../base/ReactorStructs.sol";
 
 /// @notice Quoter contract for v4 orders
 /// @dev Note this is meant to be used as an off-chain lens contract to pre-validate generic orders
-contract OrderQuoter is IReactorCallback {
+contract OrderQuoterV4 is IReactorCallback {
     /// @notice thrown if reactorCallback receives more than one order
     error OrdersLengthIncorrect();
 

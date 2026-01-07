@@ -18,10 +18,10 @@ import {
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {TokenTransferHook} from "../../../src/v4/hooks/TokenTransferHook.sol";
-import {OrderQuoter} from "../../../src/v4/lens/OrderQuoter.sol";
+import {OrderQuoterV4} from "../../../src/v4/lens/OrderQuoterV4.sol";
 import {IReactor} from "../../../src/v4/interfaces/IReactor.sol";
 
-contract OrderQuoterTest is Test, PermitSignature, DeployPermit2 {
+contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using HybridOrderLib for HybridOrder;
 
@@ -35,7 +35,7 @@ contract OrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     TokenTransferHook tokenTransferHook;
     Reactor reactor;
     HybridAuctionResolver resolver;
-    OrderQuoter quoter;
+    OrderQuoterV4 quoter;
     uint256 swapperPrivateKey;
     address swapper;
 
@@ -49,7 +49,7 @@ contract OrderQuoterTest is Test, PermitSignature, DeployPermit2 {
         reactor = new Reactor(PROTOCOL_FEE_OWNER, permit2);
         resolver = new HybridAuctionResolver();
         tokenTransferHook = new TokenTransferHook(permit2, reactor);
-        quoter = new OrderQuoter();
+        quoter = new OrderQuoterV4();
 
         // Provide tokens for tests
         tokenIn.mint(address(swapper), ONE * 1000);
@@ -256,14 +256,14 @@ contract OrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     function test_reactorCallback_tooManyOrders() public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](2);
 
-        vm.expectRevert(OrderQuoter.OrdersLengthIncorrect.selector);
+        vm.expectRevert(OrderQuoterV4.OrdersLengthIncorrect.selector);
         quoter.reactorCallback(orders, bytes(""));
     }
 
     function test_reactorCallback_zeroOrders() public {
         ResolvedOrder[] memory orders = new ResolvedOrder[](0);
 
-        vm.expectRevert(OrderQuoter.OrdersLengthIncorrect.selector);
+        vm.expectRevert(OrderQuoterV4.OrdersLengthIncorrect.selector);
         quoter.reactorCallback(orders, bytes(""));
     }
 
