@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "../../util/DeployPermit2.sol";
 import {PermitSignature} from "../../util/PermitSignature.sol";
 import {OrderInfo, ResolvedOrder} from "../../../src/v4/base/ReactorStructs.sol";
-import {SignedOrder, InputToken, OutputToken} from "../../../src/base/ReactorStructs.sol";
 import {Reactor} from "../../../src/v4/Reactor.sol";
 import {HybridAuctionResolver} from "../../../src/v4/resolvers/HybridAuctionResolver.sol";
 import {
@@ -21,8 +20,6 @@ import {MockERC20} from "../../util/mock/MockERC20.sol";
 import {TokenTransferHook} from "../../../src/v4/hooks/TokenTransferHook.sol";
 import {OrderQuoter} from "../../../src/v4/lens/OrderQuoter.sol";
 import {IReactor} from "../../../src/v4/interfaces/IReactor.sol";
-import {IPreExecutionHook, IPostExecutionHook} from "../../../src/v4/interfaces/IHook.sol";
-import {IAuctionResolver} from "../../../src/v4/interfaces/IAuctionResolver.sol";
 
 contract OrderQuoterTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
