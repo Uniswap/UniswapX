@@ -209,7 +209,9 @@ contract V4UniversalRouterExecutorTest is Test, PermitSignature, DeployPermit2, 
         executor.executeBatch(signedOrders, callbackData);
 
         assertEq(tokenIn.balanceOf(swapper), swapperInputBefore - inputAmount * 2, "Swapper input balance incorrect");
-        assertEq(tokenOut.balanceOf(swapper), swapperOutputBefore + outputAmount * 2, "Swapper output balance incorrect");
+        assertEq(
+            tokenOut.balanceOf(swapper), swapperOutputBefore + outputAmount * 2, "Swapper output balance incorrect"
+        );
     }
 
     /// @notice Test native output (ETH) fills
@@ -265,8 +267,7 @@ contract V4UniversalRouterExecutorTest is Test, PermitSignature, DeployPermit2, 
         address[] memory tokensToApproveForUniversalRouter = new address[](0);
         address[] memory tokensToApproveForReactor = new address[](1);
         tokensToApproveForReactor[0] = address(tokenOut);
-        bytes memory callbackData =
-            abi.encode(tokensToApproveForUniversalRouter, tokensToApproveForReactor, bytes("")); // empty router data
+        bytes memory callbackData = abi.encode(tokensToApproveForUniversalRouter, tokensToApproveForReactor, bytes("")); // empty router data
 
         vm.prank(whitelistedCaller);
         executor.execute(signedOrder, callbackData);
