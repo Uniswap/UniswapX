@@ -14,7 +14,7 @@ import {OutputsBuilder} from "../util/OutputsBuilder.sol";
 import {Reactor} from "../../src/v4/Reactor.sol";
 import {IReactor} from "../../src/v4/interfaces/IReactor.sol";
 import {OrderInfo, ResolvedOrder} from "../../src/v4/base/ReactorStructs.sol";
-import {SignedOrder, InputToken, OutputToken} from "../../src/base/ReactorStructs.sol";
+import {SignedOrder, InputToken} from "../../src/base/ReactorStructs.sol";
 import {OrderInfoBuilder} from "../v4/util/OrderInfoBuilder.sol";
 import {MockAuctionResolver} from "../v4/util/mock/MockAuctionResolver.sol";
 import {MockOrder, MockOrderLib} from "../v4/util/mock/MockOrderLib.sol";
