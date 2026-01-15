@@ -94,7 +94,12 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
             priceCurve: new uint256[](0),
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
     }
@@ -144,7 +149,12 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
             priceCurve: new uint256[](0),
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -186,7 +196,12 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
             priceCurve: new uint256[](0),
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 
@@ -216,7 +231,12 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
             priceCurve: new uint256[](0),
-            cosignerData: HybridCosignerData({auctionTargetBlock: 0, supplementalPriceCurve: new uint256[](0)}),
+            cosignerData: HybridCosignerData({
+                auctionTargetBlock: 0,
+                supplementalPriceCurve: new uint256[](0),
+                exclusiveFiller: address(0),
+                exclusivityOverrideBps: 0
+            }),
             cosignature: ""
         });
 

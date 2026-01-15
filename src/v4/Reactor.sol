@@ -147,6 +147,13 @@ contract Reactor is IReactor, ReactorEvents, ProtocolFees, ReentrancyGuard {
                 emit Fill(order.hash, msg.sender, order.info.swapper, order.info.nonce);
             }
         }
+
+        // refund any remaining ETH to the filler. Only occurs when filler sends more ETH than required to
+        // `execute()` or `executeBatch()`, or when there is excess contract balance remaining from others
+        // incorrectly calling execute/executeBatch without direct filler method but with a msg.value
+        if (address(this).balance > 0) {
+            CurrencyLibrary.transferNative(msg.sender, address(this).balance);
+        }
     }
 
     /// @notice Call post-execution hook if set
