@@ -105,10 +105,12 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
             });
         }
 
-        // Handle exclusivity if cosigner provided exclusivity parameters
+        bool hasDutchAuction = effectivePriceCurve.length > 0;
+
+        // Handle exclusivity only when a dutch curve is present.
         // Note: Uses tx.origin to identify filler since resolver is called via staticcall
         // Note: fillers should use EOA to call a deployed executor contract, instead of using a contract wallet directly
-        if (order.cosigner != address(0)) {
+        if (order.cosigner != address(0) && hasDutchAuction) {
             ExclusivityLib.handleExclusiveOverrideBlock(
                 resolvedOrder,
                 order.cosignerData.exclusiveFiller,
