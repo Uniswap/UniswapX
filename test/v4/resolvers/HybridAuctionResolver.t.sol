@@ -1679,6 +1679,11 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         fillContract.execute(signedOrder);
     }
 
+    function _neutralPriceCurve() internal pure returns (uint256[] memory priceCurve) {
+        priceCurve = new uint256[](1);
+        priceCurve[0] = (100 << 240) | uint256(1e18);
+    }
+
     /* ================================================
      *                 EXCLUSIVITY TESTS
      * ================================================ */
@@ -1687,6 +1692,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     function test_StrictExclusivity_InvalidCaller_Reverts() public {
         uint256 inputAmount = 100e18;
         uint256 outputMinAmount = 95e18;
+        uint256[] memory priceCurve = _neutralPriceCurve();
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
@@ -1712,7 +1718,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             auctionStartBlock: block.number,
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
-            priceCurve: new uint256[](0),
+            priceCurve: priceCurve,
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -1730,6 +1736,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 inputAmount = 100e18;
         uint256 outputMinAmount = 95e18;
         uint256 exclusivityOverrideBps = 100; // 1%
+        uint256[] memory priceCurve = _neutralPriceCurve();
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
@@ -1755,7 +1762,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             auctionStartBlock: block.number,
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
-            priceCurve: new uint256[](0),
+            priceCurve: priceCurve,
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -1776,6 +1783,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     function test_ExclusivityExpired_AnyoneCanFill() public {
         uint256 inputAmount = 100e18;
         uint256 outputMinAmount = 95e18;
+        uint256[] memory priceCurve = _neutralPriceCurve();
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
@@ -1803,7 +1811,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             auctionStartBlock: exclusivityEndBlock,
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
-            priceCurve: new uint256[](0),
+            priceCurve: priceCurve,
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -1826,6 +1834,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
     function test_NoExclusivity_AnyoneCanFill() public {
         uint256 inputAmount = 100e18;
         uint256 outputMinAmount = 95e18;
+        uint256[] memory priceCurve = _neutralPriceCurve();
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
@@ -1838,6 +1847,49 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             auctionTargetBlock: block.number,
             supplementalPriceCurve: new uint256[](0),
             exclusiveFiller: address(0), // No exclusivity
+            exclusivityOverrideBps: 0
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: priceCurve,
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test that exclusivity fields are ignored for priority-only orders
+    function test_PriorityOnly_IgnoresExclusivity() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: 0,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: EXCLUSIVE_FILLER,
             exclusivityOverrideBps: 0
         });
 
@@ -1871,6 +1923,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 output1MinAmount = 50e18;
         uint256 output2MinAmount = 45e18;
         uint256 exclusivityOverrideBps = 200; // 2%
+        uint256[] memory priceCurve = _neutralPriceCurve();
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
@@ -1897,7 +1950,7 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
             auctionStartBlock: block.number,
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
-            priceCurve: new uint256[](0),
+            priceCurve: priceCurve,
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -1916,5 +1969,245 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
         assertEq(tokenOut.balanceOf(swapper), swapperBalance1Before + expectedOutput1);
         assertEq(tokenOut2.balanceOf(swapper), swapperBalance2Before + expectedOutput2);
+    }
+
+    /// @notice Test that pure priority-only order with STRICT exclusivity still allows any filler
+    /// @dev Unlike Dutch orders which revert with NoExclusiveOverride, pure PGA should succeed
+    function test_PriorityOnly_StrictExclusivity_StillFillable() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        // Set strict exclusivity (overrideBps = 0) which would revert for Dutch orders
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0), // Empty = pure priority-only
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Should NOT revert even though fillContract is not the exclusive filler
+        // because pure priority-only orders skip exclusivity entirely
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test that pure priority-only order ignores exclusivity even with supplemental curve
+    /// @dev Supplemental curve on empty base curve results in empty effective curve
+    function test_PriorityOnly_WithSupplementalCurve_IgnoresExclusivity() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        // Cosigner provides supplemental curve, but base curve is empty
+        uint256[] memory supplementalCurve = new uint256[](1);
+        supplementalCurve[0] = uint256(PriceCurveElement.unwrap(PriceCurveLib.create(10, 1.1e18)));
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: block.number,
+            supplementalPriceCurve: supplementalCurve, // Non-empty supplemental
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: block.number,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0), // Empty base curve
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Should NOT revert - supplemental curve on empty base = empty effective curve
+        // so exclusivity is skipped
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test that pure priority-only order with non-zero target block ignores exclusivity
+    /// @dev At exactly auctionTargetBlock, Dutch orders would enforce exclusivity, but PGA should not
+    function test_PriorityOnly_NonZeroTargetBlock_IgnoresExclusivity() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+        uint256 targetBlock = block.number + 5;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: targetBlock,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: targetBlock,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR,
+            priceCurve: new uint256[](0), // Empty = pure priority-only
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Roll to exactly the target block
+        vm.roll(targetBlock);
+
+        // Should NOT revert even at exactly targetBlock
+        // For Dutch orders, this would be within exclusivity period
+        // But for pure PGA, exclusivity is skipped entirely
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test that fixed-price order (no curve, neutral scaling) ignores exclusivity
+    /// @dev Fixed-price is a degenerate case that also has empty curve
+    function test_FixedPrice_IgnoresExclusivity() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: 0, // No target block
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: 0,
+            baselinePriorityFee: 0,
+            scalingFactor: NEUTRAL_SCALING_FACTOR, // Neutral = no priority fee impact
+            priceCurve: new uint256[](0), // Empty = no Dutch decay
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Should NOT revert - fixed-price orders also skip exclusivity
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
+    }
+
+    /// @notice Test pure priority-only with actual priority fee scaling ignores exclusivity
+    /// @dev Verifies the fix works when scalingFactor != 1e18 (actual PGA behavior)
+    function test_PriorityOnly_WithPriorityScaling_IgnoresExclusivity() public {
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+        uint256 priorityScalingFactor = 1.001e18; // Scaling factor for priority fee
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
+
+        HybridOutput[] memory outputs = new HybridOutput[](1);
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: outputMinAmount, recipient: swapper});
+
+        HybridCosignerData memory cosignerData = HybridCosignerData({
+            auctionTargetBlock: 0,
+            supplementalPriceCurve: new uint256[](0),
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 0 // Strict exclusivity
+        });
+
+        HybridOrder memory order = HybridOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
+                .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
+            cosigner: cosigner,
+            input: input,
+            outputs: outputs,
+            auctionStartBlock: 0,
+            baselinePriorityFee: 0,
+            scalingFactor: priorityScalingFactor, // Non-neutral = actual PGA
+            priceCurve: new uint256[](0), // Empty = pure priority-only
+            cosignerData: cosignerData,
+            cosignature: bytes("")
+        });
+        order.cosignature = cosignOrder(order.hash(), cosignerData);
+
+        (SignedOrder memory signedOrder,) = createAndSignOrder(order);
+
+        // Should NOT revert - pure PGA skips exclusivity regardless of scalingFactor
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        fillContract.execute(signedOrder);
+
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
+        // Output should be at least minAmount (may be higher due to priority fee scaling)
+        assertGe(tokenOut.balanceOf(swapper), swapperBalanceBefore + outputMinAmount);
     }
 }
