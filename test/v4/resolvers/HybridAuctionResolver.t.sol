@@ -1919,38 +1919,29 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
     /// @notice Test exclusivity with multiple outputs
     function test_ExclusivityOverride_MultipleOutputs() public {
-        uint256 inputAmount = 100e18;
-        uint256 output1MinAmount = 50e18;
-        uint256 output2MinAmount = 45e18;
-        uint256 exclusivityOverrideBps = 200; // 2%
-        uint256[] memory priceCurve = _neutralPriceCurve();
-
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
-        HybridInput memory input = HybridInput({token: tokenIn, maxAmount: inputAmount});
-
         HybridOutput[] memory outputs = new HybridOutput[](2);
-        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: output1MinAmount, recipient: swapper});
-        outputs[1] = HybridOutput({token: address(tokenOut2), minAmount: output2MinAmount, recipient: swapper});
+        outputs[0] = HybridOutput({token: address(tokenOut), minAmount: 50e18, recipient: swapper});
+        outputs[1] = HybridOutput({token: address(tokenOut2), minAmount: 45e18, recipient: swapper});
 
-        address exclusiveFiller = EXCLUSIVE_FILLER;
         HybridCosignerData memory cosignerData = HybridCosignerData({
             auctionTargetBlock: block.number,
             supplementalPriceCurve: new uint256[](0),
-            exclusiveFiller: exclusiveFiller,
-            exclusivityOverrideBps: exclusivityOverrideBps
+            exclusiveFiller: EXCLUSIVE_FILLER,
+            exclusivityOverrideBps: 200 // 2%
         });
 
         HybridOrder memory order = HybridOrder({
             info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000)
                 .withPreExecutionHook(tokenTransferHook).withAuctionResolver(resolver),
             cosigner: cosigner,
-            input: input,
+            input: HybridInput({token: tokenIn, maxAmount: 100e18}),
             outputs: outputs,
             auctionStartBlock: block.number,
             baselinePriorityFee: 0,
             scalingFactor: NEUTRAL_SCALING_FACTOR,
-            priceCurve: priceCurve,
+            priceCurve: _neutralPriceCurve(),
             cosignerData: cosignerData,
             cosignature: bytes("")
         });
@@ -1962,13 +1953,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         uint256 swapperBalance2Before = tokenOut2.balanceOf(swapper);
         fillContract.execute(signedOrder);
 
-        // Both outputs should have override applied
-        uint256 expectedOutput1 = output1MinAmount * (10000 + exclusivityOverrideBps) / 10000;
-        uint256 expectedOutput2 = output2MinAmount * (10000 + exclusivityOverrideBps) / 10000;
-
-        assertEq(tokenIn.balanceOf(swapper), 1000e18 - inputAmount);
-        assertEq(tokenOut.balanceOf(swapper), swapperBalance1Before + expectedOutput1);
-        assertEq(tokenOut2.balanceOf(swapper), swapperBalance2Before + expectedOutput2);
+        // Both outputs should have override applied (2% = 200 bps)
+        assertEq(tokenIn.balanceOf(swapper), 1000e18 - 100e18);
+        assertEq(tokenOut.balanceOf(swapper), swapperBalance1Before + (50e18 * 10200 / 10000));
+        assertEq(tokenOut2.balanceOf(swapper), swapperBalance2Before + (45e18 * 10200 / 10000));
     }
 
     /// @notice Test that pure priority-only order with STRICT exclusivity still allows any filler
