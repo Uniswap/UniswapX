@@ -1,0 +1,21 @@
+on:
+    pull_request:
+      branches:
+        - main
+
+jobs:
+    quick-scan:
+      runs-on: ubuntu-latest
+      env:
+        AUDIT_AGENT_TOKEN: ${{ secrets.AUDIT_AGENT_TOKEN }}
+      steps:
+        - uses: actions/checkout@v4
+        - name: Quick Scan
+          run: |
+            curl -X POST \-H "Content-Type: application/json" \-H "X-Api-Key: $AUDIT_AGENT_TOKEN" \-d '{
+                "githubUrl": "${{ github.event.repository.html_url }}",
+                "branchName": "${{ github.event.pull_request.head.ref }}",
+                "issueNumber": ${{ github.event.number }},
+                "commitHash": "${{ github.event.pull_request.head.sha }}",
+                "contractFiles": ["src/v4/**"]
+              }' \https://api.auditagent.nethermind.io/api/v1/scanner/quick-scan/launch
