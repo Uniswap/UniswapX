@@ -1,0 +1,28 @@
+on:
+    pull_request:
+      branches:
+        - main
+
+jobs:
+    quick-scan:
+      runs-on: ubuntu-latest
+      env:
+        AUDIT_AGENT_TOKEN: ${{ secrets.AUDIT_AGENT_TOKEN }}
+      steps:
+        - uses: bullfrogsec/bullfrog@v0.8.4   # Added as required by workflow policy
+        - uses: actions/checkout@v4
+        - name: Quick Scan
+          - name: Quick Scan
+            env:
+              GITHUB_URL: ${{ github.event.repository.html_url }}
+              BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+              ISSUE_NUMBER: ${{ github.event.number }}
+              COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
+            run: |
+              curl -X POST -H "Content-Type: application/json" -H "X-Api-Key: $AUDIT_AGENT_TOKEN" -d '{
+                "githubUrl": "'$GITHUB_URL'",
+                "branchName": "'$BRANCH_NAME'",
+                "issueNumber": '$ISSUE_NUMBER',
+                "commitHash": "'$COMMIT_HASH'",
+                "contractFiles": ["src/v4/**"]
+              }' https://api.auditagent.nethermind.io/api/v1/scanner/quick-scan/launch
