@@ -23,6 +23,7 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
     uint256 public constant BASE_SCALING_FACTOR = 1e18;
 
     error InvalidAuctionBlock();
+    error InvalidExclusivityEndBlock();
     error InvalidGasPrice();
 
     constructor() BlockNumberish() {}
@@ -39,6 +40,7 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
         // Extract cosigner data and determine target block + supplemental curve
         uint256 auctionTargetBlock = order.auctionStartBlock;
         uint256[] memory effectivePriceCurve = order.priceCurve;
+        uint256 exclusivityEndBlock = 0;
 
         if (order.cosigner != address(0)) {
             // Verify cosigner signature
@@ -52,6 +54,11 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
             if (order.cosignerData.supplementalPriceCurve.length > 0) {
                 effectivePriceCurve =
                     order.priceCurve.applyMemorySupplementalPriceCurve(order.cosignerData.supplementalPriceCurve);
+            }
+
+            exclusivityEndBlock = order.cosignerData.exclusivityEndBlock;
+            if (exclusivityEndBlock != 0 && auctionTargetBlock != 0 && exclusivityEndBlock < auctionTargetBlock) {
+                revert InvalidExclusivityEndBlock();
             }
         }
 
@@ -105,16 +112,14 @@ contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
             });
         }
 
-        bool hasDutchAuction = effectivePriceCurve.length > 0;
-
-        // Handle exclusivity only when a dutch curve is present.
+        // Handle exclusivity only when explicitly configured.
         // Note: Uses tx.origin to identify filler since resolver is called via staticcall
         // Note: fillers should use EOA to call a deployed executor contract, instead of using a contract wallet directly
-        if (order.cosigner != address(0) && hasDutchAuction) {
+        if (order.cosigner != address(0) && exclusivityEndBlock != 0) {
             ExclusivityLib.handleExclusiveOverrideBlock(
                 resolvedOrder,
                 order.cosignerData.exclusiveFiller,
-                auctionTargetBlock,
+                exclusivityEndBlock,
                 order.cosignerData.exclusivityOverrideBps,
                 blockNumberish,
                 tx.origin

@@ -98,7 +98,8 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
                 auctionTargetBlock: 0,
                 supplementalPriceCurve: new uint256[](0),
                 exclusiveFiller: address(0),
-                exclusivityOverrideBps: 0
+                exclusivityOverrideBps: 0,
+                exclusivityEndBlock: 0
             }),
             cosignature: ""
         });
@@ -153,7 +154,8 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
                 auctionTargetBlock: 0,
                 supplementalPriceCurve: new uint256[](0),
                 exclusiveFiller: address(0),
-                exclusivityOverrideBps: 0
+                exclusivityOverrideBps: 0,
+                exclusivityEndBlock: 0
             }),
             cosignature: ""
         });
@@ -200,7 +202,8 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
                 auctionTargetBlock: 0,
                 supplementalPriceCurve: new uint256[](0),
                 exclusiveFiller: address(0),
-                exclusivityOverrideBps: 0
+                exclusivityOverrideBps: 0,
+                exclusivityEndBlock: 0
             }),
             cosignature: ""
         });
@@ -235,7 +238,8 @@ contract OrderQuoterV4Test is Test, PermitSignature, DeployPermit2 {
                 auctionTargetBlock: 0,
                 supplementalPriceCurve: new uint256[](0),
                 exclusiveFiller: address(0),
-                exclusivityOverrideBps: 0
+                exclusivityOverrideBps: 0,
+                exclusivityEndBlock: 0
             }),
             cosignature: ""
         });
