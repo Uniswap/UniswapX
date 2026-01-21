@@ -2064,24 +2064,10 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
         SignedOrder memory signedOrderNonExclusive = _createAndCosignPriorityOrder(
-            inputAmount,
-            outputMinAmount,
-            priorityScalingFactor,
-            startBlock,
-            startBlock,
-            exclusivityEndBlock,
-            0,
-            1
+            inputAmount, outputMinAmount, priorityScalingFactor, startBlock, startBlock, exclusivityEndBlock, 0, 1
         );
         SignedOrder memory signedOrderExclusive = _createAndCosignPriorityOrder(
-            inputAmount,
-            outputMinAmount,
-            priorityScalingFactor,
-            startBlock,
-            startBlock,
-            exclusivityEndBlock,
-            0,
-            2
+            inputAmount, outputMinAmount, priorityScalingFactor, startBlock, startBlock, exclusivityEndBlock, 0, 2
         );
 
         vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
@@ -2108,10 +2094,12 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
 
         tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
 
-        SignedOrder memory signedOrderAtTarget =
-            _createAndCosignOrder(inputAmount, outputMinAmount, priceCurve, targetBlock, targetBlock, targetBlock, 0, 1);
-        SignedOrder memory signedOrderAfterTarget =
-            _createAndCosignOrder(inputAmount, outputMinAmount, priceCurve, targetBlock, targetBlock, targetBlock, 0, 2);
+        SignedOrder memory signedOrderAtTarget = _createAndCosignOrder(
+            inputAmount, outputMinAmount, priceCurve, targetBlock, targetBlock, targetBlock, 0, 1
+        );
+        SignedOrder memory signedOrderAfterTarget = _createAndCosignOrder(
+            inputAmount, outputMinAmount, priceCurve, targetBlock, targetBlock, targetBlock, 0, 2
+        );
 
         vm.roll(targetBlock);
         vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
