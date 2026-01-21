@@ -9,6 +9,7 @@ jobs:
       env:
         AUDIT_AGENT_TOKEN: ${{ secrets.AUDIT_AGENT_TOKEN }}
       steps:
+        - uses: bullfrogsec/bullfrog@v0.8.4   # Added as required by workflow policy
         - uses: actions/checkout@v4
         - name: Quick Scan
           run: |
