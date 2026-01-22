@@ -439,8 +439,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
             }
         }
 
-        // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
-        // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
         for (uint256 i = 0; i < allocationsLength; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
             uint256 actual = 0;
