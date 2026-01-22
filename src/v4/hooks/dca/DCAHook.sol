@@ -395,8 +395,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     ) internal pure {
         // Aggregate outputs per recipient and compute totalOutput
         uint256 totalOutput = 0;
-        // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
-        // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
         uint256 outputsLength = outputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             // token already checked equals intent.outputToken in _beforeTokenTransfer
@@ -404,21 +402,60 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
 
         uint256 allocationsLength = intent.outputAllocations.length;
+        uint256[] memory expected = new uint256[](allocationsLength);
+        uint256 sumExpected = 0;
+        uint256 maxBps = 0;
+        uint256 maxBpsIndex = 0;
+
+        // Reject outputs to non-allocated recipients and precompute expected amounts.
+        for (uint256 i = 0; i < outputsLength; i++) {
+            address outRecipient = outputs[i].recipient;
+            bool found = false;
+            for (uint256 j = 0; j < allocationsLength; j++) {
+                if (intent.outputAllocations[j].recipient == outRecipient) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                revert AllocationMismatch(outRecipient, outputs[i].amount, 0);
+            }
+        }
+
+        for (uint256 i = 0; i < allocationsLength; i++) {
+            uint256 bps = uint256(intent.outputAllocations[i].basisPoints);
+            if (bps > maxBps) {
+                maxBps = bps;
+                maxBpsIndex = i;
+            }
+            expected[i] = Math.mulDiv(totalOutput, bps, BPS);
+            sumExpected += expected[i];
+        }
+
+        if (!intent.isExactIn) {
+            uint256 remainder = totalOutput - sumExpected;
+            if (remainder > 0) {
+                expected[maxBpsIndex] += remainder;
+            }
+        }
+
+        // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
+        // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
         for (uint256 i = 0; i < allocationsLength; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
-            uint256 expected = Math.mulDiv(totalOutput, uint256(intent.outputAllocations[i].basisPoints), BPS);
             uint256 actual = 0;
             for (uint256 j = 0; j < outputsLength; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
             }
             if (intent.isExactIn) {
                 // Allow ±1 wei for integer division rounding
-                if (!(actual + 1 >= expected && actual <= expected + 1)) {
-                    revert AllocationMismatch(rcpt, actual, expected);
+                uint256 exp = expected[i];
+                if (!(actual + 1 >= exp && actual <= exp + 1)) {
+                    revert AllocationMismatch(rcpt, actual, exp);
                 }
             } else {
-                if (actual != expected) {
-                    revert AllocationMismatch(rcpt, actual, expected);
+                if (actual != expected[i]) {
+                    revert AllocationMismatch(rcpt, actual, expected[i]);
                 }
             }
         }
