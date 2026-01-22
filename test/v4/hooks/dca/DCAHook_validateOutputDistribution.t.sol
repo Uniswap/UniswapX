@@ -86,18 +86,4 @@ contract DCAHook_validateOutputDistributionTest is Test, DeployPermit2 {
         vm.expectRevert(abi.encodeWithSelector(IDCAHook.AllocationMismatch.selector, RECIPIENT_A, 50, 51));
         hook.validateOutputDistribution(intent, cosignerData, outputs);
     }
-
-    function test_validateOutputDistribution_revertsOnNonAllocationRecipient() public {
-        DCAIntent memory intent = _createExactOutIntent();
-        DCAOrderCosignerData memory cosignerData =
-            hook.createTestCosignerData(SWAPPER, NONCE, 101, 0, 0);
-
-        OutputToken[] memory outputs = new OutputToken[](3);
-        outputs[0] = OutputToken({token: intent.outputToken, amount: 51, recipient: RECIPIENT_A});
-        outputs[1] = OutputToken({token: intent.outputToken, amount: 49, recipient: RECIPIENT_B});
-        outputs[2] = OutputToken({token: intent.outputToken, amount: 1, recipient: address(0xCCCC)});
-
-        vm.expectRevert(abi.encodeWithSelector(IDCAHook.AllocationMismatch.selector, address(0xCCCC), 1, 0));
-        hook.validateOutputDistribution(intent, cosignerData, outputs);
-    }
 }

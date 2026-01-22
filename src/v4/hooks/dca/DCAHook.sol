@@ -407,21 +407,6 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         uint256 maxBps = 0;
         uint256 maxBpsIndex = 0;
 
-        // Reject outputs to non-allocated recipients and precompute expected amounts.
-        for (uint256 i = 0; i < outputsLength; i++) {
-            address outRecipient = outputs[i].recipient;
-            bool found = false;
-            for (uint256 j = 0; j < allocationsLength; j++) {
-                if (intent.outputAllocations[j].recipient == outRecipient) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                revert AllocationMismatch(outRecipient, outputs[i].amount, 0);
-            }
-        }
-
         for (uint256 i = 0; i < allocationsLength; i++) {
             uint256 bps = uint256(intent.outputAllocations[i].basisPoints);
             if (bps > maxBps) {
