@@ -12,7 +12,6 @@ import {
     PermitData
 } from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {ResolvedOrder} from "../../../../src/v4/base/ReactorStructs.sol";
-import {OutputToken} from "../../../../src/base/ReactorStructs.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 
@@ -66,15 +65,6 @@ contract DCAHookHarness is DCAHook {
         pure
     {
         _validateChunkSize(intent, cosignerData, inputAmount);
-    }
-
-    /// @notice Exposes the internal _validateOutputDistribution function for testing
-    function validateOutputDistribution(
-        DCAIntent memory intent,
-        DCAOrderCosignerData memory cosignerData,
-        OutputToken[] memory outputs
-    ) external pure {
-        _validateOutputDistribution(intent, cosignerData, outputs);
     }
 
     /// @notice Helper to create a basic DCA intent for testing
