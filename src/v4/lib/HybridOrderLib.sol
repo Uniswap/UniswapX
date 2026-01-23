@@ -14,6 +14,7 @@ struct HybridCosignerData {
     uint256[] supplementalPriceCurve;
     address exclusiveFiller;
     uint256 exclusivityOverrideBps;
+    uint256 exclusivityEndBlock;
 }
 
 /// @notice Input tokens for hybrid auction
