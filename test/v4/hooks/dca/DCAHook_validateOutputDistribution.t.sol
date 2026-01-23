@@ -8,7 +8,13 @@ import {DeployPermit2} from "../../../util/DeployPermit2.sol";
 import {DCAHookHarness} from "./DCAHookHarness.sol";
 import {IReactor} from "../../../../src/v4/interfaces/IReactor.sol";
 
-import {DCAIntent, DCAOrderCosignerData, OutputAllocation, PrivateIntent, FeedInfo} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
+import {
+    DCAIntent,
+    DCAOrderCosignerData,
+    OutputAllocation,
+    PrivateIntent,
+    FeedInfo
+} from "../../../../src/v4/hooks/dca/DCAStructs.sol";
 import {OutputToken} from "../../../../src/base/ReactorStructs.sol";
 import {IDCAHook} from "../../../../src/v4/interfaces/IDCAHook.sol";
 
