@@ -393,7 +393,7 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         DCAOrderCosignerData memory cosignerData,
         OutputToken[] memory outputs
     ) internal pure {
-        // Aggregate outputs per recipient and compute totalOutput
+        // Aggregate outputs and compute totalOutput
         uint256 totalOutput = 0;
         uint256 outputsLength = outputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
@@ -404,6 +404,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         uint256 allocationsLength = intent.outputAllocations.length;
         uint256[] memory expected = new uint256[](allocationsLength);
         uint256 sumExpected = 0;
+
+        // Select a deterministic recipient to receive any rounding remainder for EXACT_OUT.
+        // We choose the allocation with the highest bps; ties pick the first max due to strict `>`.
         uint256 maxBps = 0;
         uint256 maxBpsIndex = 0;
 
@@ -413,11 +416,13 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
                 maxBps = bps;
                 maxBpsIndex = i;
             }
+            // Floor(totalOutput * bps / BPS). Sum of floors may be < totalOutput.
             expected[i] = Math.mulDiv(totalOutput, bps, BPS);
             sumExpected += expected[i];
         }
 
         if (!intent.isExactIn) {
+            // EXACT_OUT requires expected[] to sum exactly to totalOutput; otherwise allocation checks can be unfillable.
             uint256 remainder = totalOutput - sumExpected;
             if (remainder > 0) {
                 expected[maxBpsIndex] += remainder;
