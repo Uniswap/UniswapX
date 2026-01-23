@@ -393,10 +393,8 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         DCAOrderCosignerData memory cosignerData,
         OutputToken[] memory outputs
     ) internal pure {
-        // Aggregate outputs per recipient and compute totalOutput
+        // Aggregate outputs and compute totalOutput
         uint256 totalOutput = 0;
-        // Use a temporary in-memory structure to tally by recipient (no memory mapping in Solidity):
-        // Approach: loop once to total output; for each allocation, loop outputs to sum matching recipient.
         uint256 outputsLength = outputs.length;
         for (uint256 i = 0; i < outputsLength; i++) {
             // token already checked equals intent.outputToken in _beforeTokenTransfer
@@ -404,21 +402,48 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
         }
 
         uint256 allocationsLength = intent.outputAllocations.length;
+        uint256[] memory expected = new uint256[](allocationsLength);
+        uint256 sumExpected = 0;
+
+        // Select a deterministic recipient to receive any rounding remainder for EXACT_OUT.
+        // We choose the allocation with the highest bps; ties pick the first max due to strict `>`.
+        uint256 maxBps = 0;
+        uint256 maxBpsIndex = 0;
+
+        for (uint256 i = 0; i < allocationsLength; i++) {
+            uint256 bps = uint256(intent.outputAllocations[i].basisPoints);
+            if (bps > maxBps) {
+                maxBps = bps;
+                maxBpsIndex = i;
+            }
+            // Floor(totalOutput * bps / BPS). Sum of floors may be < totalOutput.
+            expected[i] = Math.mulDiv(totalOutput, bps, BPS);
+            sumExpected += expected[i];
+        }
+
+        if (!intent.isExactIn) {
+            // EXACT_OUT requires expected[] to sum exactly to totalOutput; otherwise allocation checks can be unfillable.
+            uint256 remainder = totalOutput - sumExpected;
+            if (remainder > 0) {
+                expected[maxBpsIndex] += remainder;
+            }
+        }
+
         for (uint256 i = 0; i < allocationsLength; i++) {
             address rcpt = intent.outputAllocations[i].recipient;
-            uint256 expected = Math.mulDiv(totalOutput, uint256(intent.outputAllocations[i].basisPoints), BPS);
             uint256 actual = 0;
             for (uint256 j = 0; j < outputsLength; j++) {
                 if (outputs[j].recipient == rcpt) actual += outputs[j].amount;
             }
             if (intent.isExactIn) {
                 // Allow ±1 wei for integer division rounding
-                if (!(actual + 1 >= expected && actual <= expected + 1)) {
-                    revert AllocationMismatch(rcpt, actual, expected);
+                uint256 exp = expected[i];
+                if (!(actual + 1 >= exp && actual <= exp + 1)) {
+                    revert AllocationMismatch(rcpt, actual, exp);
                 }
             } else {
-                if (actual != expected) {
-                    revert AllocationMismatch(rcpt, actual, expected);
+                if (actual != expected[i]) {
+                    revert AllocationMismatch(rcpt, actual, expected[i]);
                 }
             }
         }
