@@ -1784,6 +1784,80 @@ contract HybridAuctionResolverTest is ReactorEvents, Test, PermitSignature, Depl
      *                 EXCLUSIVITY TESTS
      * ================================================ */
 
+    /// @notice Fuzz exclusivity outcomes based on target, end, and fill blocks.
+    function testFuzz_ExclusivityWindow(
+        uint32 targetBlockSeed,
+        uint32 endBlockSeed,
+        uint32 fillBlockSeed,
+        uint16 overrideBpsSeed,
+        bool useExclusiveFiller
+    ) public {
+        uint256 baseBlock = 1000;
+        vm.roll(baseBlock);
+
+        uint256 targetBlock = bound(uint256(targetBlockSeed), 0, baseBlock + 20);
+        uint256 exclusivityEndBlock = bound(uint256(endBlockSeed), 0, baseBlock + 20);
+        uint256 fillBlock = bound(uint256(fillBlockSeed), 0, baseBlock + 20);
+        uint256 exclusivityOverrideBps = bound(uint256(overrideBpsSeed), 0, 10_000);
+
+        uint256 inputAmount = 100e18;
+        uint256 outputMinAmount = 95e18;
+        uint256[] memory emptyCurve = new uint256[](0);
+
+        tokenIn.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        SignedOrder memory signedOrder = _createAndCosignOrder(
+            inputAmount,
+            outputMinAmount,
+            emptyCurve,
+            targetBlock,
+            targetBlock,
+            exclusivityEndBlock,
+            exclusivityOverrideBps,
+            1
+        );
+
+        vm.roll(fillBlock);
+
+        if (exclusivityEndBlock != 0 && targetBlock != 0 && exclusivityEndBlock < targetBlock) {
+            vm.expectRevert(HybridAuctionResolver.InvalidExclusivityEndBlock.selector);
+            if (useExclusiveFiller) {
+                vm.prank(EXCLUSIVE_FILLER, EXCLUSIVE_FILLER);
+            }
+            fillContract.execute(signedOrder);
+            return;
+        }
+
+        if (targetBlock != 0 && fillBlock < targetBlock) {
+            vm.expectRevert(HybridAuctionResolver.InvalidAuctionBlock.selector);
+            if (useExclusiveFiller) {
+                vm.prank(EXCLUSIVE_FILLER, EXCLUSIVE_FILLER);
+            }
+            fillContract.execute(signedOrder);
+            return;
+        }
+
+        bool exclusivityActive = exclusivityEndBlock != 0 && fillBlock <= exclusivityEndBlock;
+        if (exclusivityActive && !useExclusiveFiller && exclusivityOverrideBps == 0) {
+            vm.expectRevert(ExclusivityLib.NoExclusiveOverride.selector);
+            fillContract.execute(signedOrder);
+            return;
+        }
+
+        uint256 swapperBalanceBefore = tokenOut.balanceOf(swapper);
+        if (useExclusiveFiller) {
+            vm.prank(EXCLUSIVE_FILLER, EXCLUSIVE_FILLER);
+        }
+        fillContract.execute(signedOrder);
+
+        uint256 expectedOutput = outputMinAmount;
+        if (exclusivityActive && !useExclusiveFiller && exclusivityOverrideBps > 0) {
+            expectedOutput = outputMinAmount.mulDivUp(10_000 + exclusivityOverrideBps, 10_000);
+        }
+
+        assertEq(tokenOut.balanceOf(swapper), swapperBalanceBefore + expectedOutput);
+    }
+
     /// @notice Test that strict exclusivity (0 bps) reverts for non-exclusive filler
     function test_StrictExclusivity_InvalidCaller_Reverts() public {
         uint256 inputAmount = 100e18;
