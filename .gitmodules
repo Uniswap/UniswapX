@@ -19,3 +19,6 @@
 [submodule "Tribunal"]
 	path = lib/Tribunal
 	url = https://github.com/Uniswap/Tribunal
+[submodule "lib/blocknumberish"]
+	path = lib/blocknumberish
+	url = https://github.com/Uniswap/blocknumberish
