@@ -9,7 +9,7 @@ import {SignedOrder, InputToken, OutputToken} from "../../base/ReactorStructs.so
 import {ResolvedOrder} from "../base/ReactorStructs.sol";
 import {HybridOrder, HybridOrderLib, HybridInput, HybridOutput} from "../lib/HybridOrderLib.sol";
 import {CosignerLib} from "../../lib/CosignerLib.sol";
-import {BlockNumberish} from "../../base/BlockNumberish.sol";
+import {BlockNumberish} from "blocknumberish/src/BlockNumberish.sol";
 
 /// @notice Resolver for hybrid Dutch + priority gas auctions following Tribunal's model
 contract HybridAuctionResolver is IAuctionResolver, BlockNumberish {
