@@ -6,6 +6,8 @@ on:
       - main
   pull_request:
 
+permissions: {}
+
 env:
   FOUNDRY_PROFILE: ci
 
@@ -35,6 +37,7 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@82dee4ba654bd2146511f85f0d013af94670c4de # v1
