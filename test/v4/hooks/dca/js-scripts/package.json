@@ -1,5 +1,6 @@
 {
     "name": "dca-js-scripts",
+    "private": true,
     "version": "1.0.0",
     "description": "JavaScript scripts for DCA FFI with Foundry",
     "scripts": {
