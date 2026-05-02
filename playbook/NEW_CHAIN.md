@@ -279,16 +279,16 @@ Chains with elevated state-creation costs (Tempo: 12.5×) sound scary but are ec
 
 ## 6. Tempo case study (TRA2-12)
 
-For reference when integrating Avalanche / Robinhood / next chains. All commits are **local-only** branches (not pushed) at the time of this writing; they're the durable per-repo state of TRA2-12.
+All work landed across the following PRs (each links back to Linear TRA2-12):
 
-| Repo | Branch | Commits |
-|---|---|---|
-| `x-contracts` | `tempo-uniswapx` | `89d58edc` (deploy notes + playbook), `82045727` (concrete Tempo deploy command) |
-| `sdks/sdk-core` | (already on main) | PRs #533, #540 |
-| `sdks/uniswapx-sdk` | `tempo-uniswapx` | `c7673bb0` |
-| `x-parameterization-api` | `tempo-uniswapx-v3-rfq` | `994f92e0` |
-| `x-service` | `tempo-uniswapx` | `b120f324`, `7739797` (retry-floor scoping fix) |
-| `b/packages/services/trading` | `tempo-uniswapx` | `76ab70e0` |
+| Repo | PR |
+|---|---|
+| `x-contracts` | [Uniswap/UniswapX#367](https://github.com/Uniswap/UniswapX/pull/367) |
+| `sdks/sdk-core` | [Uniswap/sdks#533](https://github.com/Uniswap/sdks/pull/533), [Uniswap/sdks#540](https://github.com/Uniswap/sdks/pull/540) |
+| `sdks/uniswapx-sdk` | [Uniswap/sdks#577](https://github.com/Uniswap/sdks/pull/577) |
+| `x-parameterization-api` | [Uniswap/uniswapx-parameterization-api#438](https://github.com/Uniswap/uniswapx-parameterization-api/pull/438) |
+| `x-service` | [Uniswap/uniswapx-service#654](https://github.com/Uniswap/uniswapx-service/pull/654) |
+| `b/packages/services/trading` | [Uniswap/backend#7813](https://github.com/Uniswap/backend/pull/7813) |
 
 ---
 
