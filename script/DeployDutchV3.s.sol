@@ -13,13 +13,16 @@ pragma solidity ^0.8.13;
 // Required env vars:
 //   - FOUNDRY_REACTOR_OWNER : address that will own the deployed reactor.
 //
-// Tempo (chainId 4217) example invocation (for testing only — production
-// deploys go through the /contracts orchestration repo):
+// Tempo (chainId 4217) production invocation:
 //
+//   FOUNDRY_REACTOR_OWNER=0x2bad8182c09f50c8318d769245bea52c32be46cd \
 //   forge script script/DeployDutchV3.s.sol \
 //       --rpc-url https://rpc.tempo.xyz \
 //       --broadcast \
 //       --private-key $DEPLOYER_KEY
+//
+// (FOUNDRY_REACTOR_OWNER above matches the protocolFeeOwner used on
+// Arbitrum One — see deployments records in the Uniswap contracts repo.)
 //
 // See README.md "Tempo (chain 4217) deployment notes" for chain-specific
 // quirks (ERC20-only, constant block.basefee, etc.).
