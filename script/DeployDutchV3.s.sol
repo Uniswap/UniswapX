@@ -66,8 +66,8 @@ contract DeployDutchV3 is Script {
     // bytes, saving ~12 gas per zero byte of calldata each time the reactor
     // address is encoded (every UniswapX fill encodes the reactor in the
     // order's Permit2 witness).
-    bytes32 constant SALT = 0x0000000000000000000000000000000000000000e931b28b35b132822db301c0;
-    address constant EXPECTED_REACTOR = 0x000000005aF66799D1a6317714D66800f9CA1406;
+    bytes32 public constant SALT = 0x0000000000000000000000000000000000000000e931b28b35b132822db301c0;
+    address public constant EXPECTED_REACTOR = 0x000000005aF66799D1a6317714D66800f9CA1406;
 
     function setUp() public {}
 

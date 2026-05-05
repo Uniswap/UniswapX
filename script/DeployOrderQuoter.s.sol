@@ -47,8 +47,8 @@ contract DeployOrderQuoter is Script {
     // the reactor (off-chain simulation only), so the bar is lower than the
     // reactor's >=4 leading zero bytes. Each leading zero byte saves ~12 gas
     // per zero byte of calldata each time the address is encoded.
-    bytes32 constant SALT = 0x00000000000000000000000000000000000000009a06322ea4c741ed87480020;
-    address constant EXPECTED_QUOTER = 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58;
+    bytes32 public constant SALT = 0x00000000000000000000000000000000000000009a06322ea4c741ed87480020;
+    address public constant EXPECTED_QUOTER = 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58;
 
     function setUp() public {}
 

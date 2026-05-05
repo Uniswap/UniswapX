@@ -61,7 +61,17 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | OrderQuoter                   | [0x88440407634f89873c5d9439987ac4be9725fea8](https://basescan.io/address/0x88440407634f89873c5d9439987ac4be9725fea8)  | [OrderQuoter](https://github.com/Uniswap/UniswapX/blob/v2.1.0/src/lens/OrderQuoter.sol)                                   |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://basescan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)  | [Permit2](https://github.com/Uniswap/permit2)                                                                             |
 
-## Tempo (chain 4217) deployment notes
+## Tempo
+
+| Contract                      | Address                                                                                                                                                                        | Source                                                                                                          |
+| ---                           | ---                                                                                                                                                                            | ---                                                                                                             |
+| V3 Dutch Order Reactor        | [0x000000005aF66799D1a6317714D66800f9CA1406](https://explore.mainnet.tempo.xyz/address/0x000000005aF66799D1a6317714D66800f9CA1406)                                             | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol)                                                   |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explore.mainnet.tempo.xyz/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58)                                             | [OrderQuoter](./src/lens/OrderQuoter.sol)                                                                       |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explore.mainnet.tempo.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)                                             | [Permit2](https://github.com/Uniswap/permit2)                                                                   |
+
+Both V3DutchOrderReactor and OrderQuoter were deployed via the canonical Arachnid CREATE2 factory (`0x4e59b44847b379578588920cA78FbF26c0B4956C`) using salts mined with [create2crunch](https://github.com/0age/create2crunch) — the reactor address has 4 leading zero bytes (5 total) and the quoter has 4 leading zero bytes, saving ~12 gas per zero byte each time those addresses are encoded in calldata.
+
+### Deployment notes
 
 UniswapX is being deployed on Tempo (chainId `4217`) via `V3DutchOrderReactor`. Tempo has several EVM-level quirks that integrators and fillers must understand before building or running orders against it:
 
