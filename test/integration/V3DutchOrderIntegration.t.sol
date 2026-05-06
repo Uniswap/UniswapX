@@ -19,6 +19,7 @@ import {OrderQuoter} from "../../src/lens/OrderQuoter.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
+import {MockERC20} from "../util/mock/MockERC20.sol";
 
 /// @title V3DutchOrderIntegrationTest
 ///
@@ -31,14 +32,18 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 ///   1. Sanity (always runs when forked): contracts have code, reactor is
 ///      bound to the canonical Permit2.
 ///   2. Off-chain quote (always runs when forked): build + sign + cosign a V3
-///      order and resolve it via the OrderQuoter lens. Does not require token
-///      balances or approvals; verifies cosigning and decay math against a
-///      live reactor.
-///   3. End-to-end fill (runs when INTEGRATION_TOKEN_IN/OUT + AMOUNT_*
-///      are set): mints tokenIn to the swapper via `deal()` (fork-only,
-///      doesn't touch mainnet state), signs + cosigns the order, fills it
-///      from the filler EOA via direct fill, and asserts post-state token
-///      balances.
+///      order and resolve it via the OrderQuoter lens. Verifies the full
+///      sign/cosign/permit2/resolve path against a live reactor.
+///   3. End-to-end fill (always runs when forked): signs + cosigns the order,
+///      fills it from the filler EOA via direct fill, asserts token deltas.
+///
+/// Tier-2 and tier-3 deploy fresh `MockERC20` contracts on the fork and use
+/// those as the input/output tokens. We do this because some chains' native
+/// stablecoins (e.g. Tempo's TIP-20 tokens at `0x20c0...`) use chain-specific
+/// opcodes that revert with `OpcodeNotFound` under Foundry's local EVM —
+/// `transferFrom` simply doesn't work in a fork. Mocks are the canonical
+/// foundry pattern for this. The reactor is real; only the trade tokens are
+/// substituted.
 ///
 /// Required env (always):
 ///   FOUNDRY_RPC_URL              chain RPC. Without this the suite is skipped.
@@ -53,21 +58,11 @@ import {PermitSignature} from "../util/PermitSignature.sol";
 ///                                field is set to its derived address — this
 ///                                is what makes the test fully self-contained
 ///                                without needing a production cosigner key.
-///
-/// Required env for tier-3 fill (skipped if any are missing):
-///   INTEGRATION_TOKEN_IN         ERC20 input token
-///   INTEGRATION_TOKEN_OUT        ERC20 output token
-///   INTEGRATION_AMOUNT_IN        amount swapper sends (raw units)
-///   INTEGRATION_AMOUNT_OUT       amount filler delivers (raw units)
+///   INTEGRATION_AMOUNT_IN        default 1_000_000 (raw units)
+///   INTEGRATION_AMOUNT_OUT       default   999_000 (raw units; 0.1% spread)
 ///
 /// Run:
 ///   FOUNDRY_RPC_URL=https://rpc.tempo.xyz \
-///   INTEGRATION_SWAPPER_PK=0x... \
-///   INTEGRATION_FILLER_PK=0x... \
-///   INTEGRATION_TOKEN_IN=0x... \
-///   INTEGRATION_TOKEN_OUT=0x... \
-///   INTEGRATION_AMOUNT_IN=1000000 \
-///   INTEGRATION_AMOUNT_OUT=999000 \
 ///   FOUNDRY_PROFILE=integration forge test --match-contract V3DutchOrderIntegrationTest -vv
 contract V3DutchOrderIntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
@@ -100,7 +95,16 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         // Skip the entire suite if no fork RPC is configured. Mirrors the
         // existing UniversalRouterExecutorIntegration.t.sol pattern.
         try vm.envString("FOUNDRY_RPC_URL") returns (string memory rpc) {
-            vm.createSelectFork(rpc);
+            // Tempo's 500ms block time means public RPCs may prune state
+            // faster than forge's fork-cache resolves; pin to a specific
+            // block so account lookups stay coherent. Override via
+            // INTEGRATION_FORK_BLOCK if running against another chain.
+            uint256 forkBlock = _envUintOrDefault("INTEGRATION_FORK_BLOCK", 0);
+            if (forkBlock == 0) {
+                vm.createSelectFork(rpc);
+            } else {
+                vm.createSelectFork(rpc, forkBlock);
+            }
             forked = true;
         } catch {
             console2.log("FOUNDRY_RPC_URL unset; integration tests skipped.");
@@ -151,14 +155,15 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
 
     // ---------- tier 2: off-chain order resolution ----------
 
-    /// Resolves a freshly-built V3 order through the OrderQuoter lens. Doesn't
-    /// require any token balances — just exercises the full sign + cosign +
-    /// resolve path on a real reactor + quoter pair.
+    /// Resolves a freshly-built V3 order through the OrderQuoter lens.
+    /// Exercises the full sign + cosign + permit2 + resolve path on a real
+    /// reactor + quoter pair. Uses fork-deployed mock ERC20s as trade tokens
+    /// (see contract header).
     function test_resolveOrder_offchain() public {
         if (!forked) return;
+        require(swapper != filler, "swapper and filler must differ; set distinct INTEGRATION_*_PK");
 
-        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) = _readTradeOrSkip();
-        if (tokenIn == address(0)) return; // graceful skip if trade env not provided
+        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) = _setupTrade();
 
         SignedOrder memory signed = _buildSignedOrder(tokenIn, tokenOut, amountIn, amountOut);
         ResolvedOrder memory resolved = quoter.quote(signed.order, signed.sig);
@@ -172,29 +177,16 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
 
     // ---------- tier 3: end-to-end fill ----------
 
-    /// Full sign → fill round-trip against the live reactor. Uses `deal()` to
-    /// mint balances on the fork — does not move real chain state. Asserts
-    /// the swapper's tokenIn decreased by amountIn, the swapper's tokenOut
-    /// increased by amountOut, and the filler's balances mirror.
+    /// Full sign → fill round-trip against the live reactor. Uses fork-
+    /// deployed mock ERC20s + `deal()` to mint balances; does not move real
+    /// chain state. Asserts the swapper's tokenIn decreased by amountIn, the
+    /// swapper's tokenOut increased by amountOut, and the filler's balances
+    /// mirror.
     function test_fillOrder_endToEnd() public {
         if (!forked) return;
+        require(swapper != filler, "swapper and filler must differ; set distinct INTEGRATION_*_PK");
 
-        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) = _readTradeOrSkip();
-        if (tokenIn == address(0)) return;
-
-        // Mint test balances on the fork.
-        deal(tokenIn, swapper, amountIn);
-        deal(tokenOut, filler, amountOut);
-
-        // Swapper grants Permit2 allowance for tokenIn.
-        vm.startPrank(swapper);
-        ERC20(tokenIn).approve(CANONICAL_PERMIT2, type(uint256).max);
-        vm.stopPrank();
-
-        // Filler grants reactor allowance for tokenOut (direct-fill path).
-        vm.startPrank(filler);
-        ERC20(tokenOut).approve(address(reactor), type(uint256).max);
-        vm.stopPrank();
+        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) = _setupTrade();
 
         SignedOrder memory signed = _buildSignedOrder(tokenIn, tokenOut, amountIn, amountOut);
 
@@ -210,6 +202,28 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         assertEq(ERC20(tokenOut).balanceOf(swapper), swapperOutBefore + amountOut, "swapper did not receive tokenOut");
         assertEq(ERC20(tokenIn).balanceOf(filler), fillerInBefore + amountIn, "filler did not receive tokenIn");
         assertEq(ERC20(tokenOut).balanceOf(filler), fillerOutBefore - amountOut, "filler tokenOut unchanged");
+    }
+
+    /// Deploy fresh mock ERC20s on the fork, mint balances to swapper/filler,
+    /// and wire up the permit2 + reactor approvals. Returns the token
+    /// addresses + amounts ready to be passed into the order builder.
+    function _setupTrade() internal returns (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut) {
+        amountIn = _envUintOrDefault("INTEGRATION_AMOUNT_IN", 1_000_000);
+        amountOut = _envUintOrDefault("INTEGRATION_AMOUNT_OUT", 999_000);
+
+        MockERC20 inMock = new MockERC20("MockTokenIn", "MIN", 6);
+        MockERC20 outMock = new MockERC20("MockTokenOut", "MOUT", 6);
+        tokenIn = address(inMock);
+        tokenOut = address(outMock);
+
+        inMock.mint(swapper, amountIn);
+        outMock.mint(filler, amountOut);
+
+        vm.prank(swapper);
+        ERC20(tokenIn).approve(CANONICAL_PERMIT2, type(uint256).max);
+
+        vm.prank(filler);
+        ERC20(tokenOut).approve(address(reactor), type(uint256).max);
     }
 
     // ---------- helpers ----------
@@ -269,33 +283,6 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         bytes32 msgHash = keccak256(abi.encodePacked(orderHash, block.chainid, abi.encode(cd)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(cosignerPK, msgHash);
         return bytes.concat(r, s, bytes1(v));
-    }
-
-    function _readTradeOrSkip()
-        internal
-        view
-        returns (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut)
-    {
-        try vm.envAddress("INTEGRATION_TOKEN_IN") returns (address t) {
-            tokenIn = t;
-        } catch {
-            return (address(0), address(0), 0, 0);
-        }
-        try vm.envAddress("INTEGRATION_TOKEN_OUT") returns (address t) {
-            tokenOut = t;
-        } catch {
-            return (address(0), address(0), 0, 0);
-        }
-        try vm.envUint("INTEGRATION_AMOUNT_IN") returns (uint256 a) {
-            amountIn = a;
-        } catch {
-            return (address(0), address(0), 0, 0);
-        }
-        try vm.envUint("INTEGRATION_AMOUNT_OUT") returns (uint256 a) {
-            amountOut = a;
-        } catch {
-            return (address(0), address(0), 0, 0);
-        }
     }
 
     function _envAddressOrDefault(string memory key, address fallback_) internal view returns (address) {
