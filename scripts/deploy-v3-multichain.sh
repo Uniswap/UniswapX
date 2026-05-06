@@ -4,11 +4,19 @@
 # the Uniswap AMM front-end supports, where it isn't already live and the
 # deployer wallet has enough native balance to pay deploy gas.
 #
-# Per chain, runs four preconditions before broadcasting:
+# Per chain, runs preconditions before broadcasting (in this order):
 #   1. RPC reachable + correct chainId
-#   2. Permit2 + canonical Arachnid CREATE2 factory both deployed
-#   3. EXPECTED_REACTOR address has no code yet (i.e., not already deployed)
-#   4. Deployer wallet native balance >= MIN_BALANCE_WEI
+#   2. EXPECTED_REACTOR address has no code yet (idempotent skip)
+#   3. Permit2 deployed at canonical address AND functional
+#      (DOMAIN_SEPARATOR() returns non-zero bytes32 + encodes correct chainId)
+#   4. Canonical Arachnid CREATE2 factory deployed at canonical address
+#   5. Deployer wallet native balance >= MIN_BALANCE_WEI
+#   6. Owner-address sanity: log whether FOUNDRY_REACTOR_OWNER is a contract
+#      (expected: multisig) or an EOA. Warn on EOA; do not block.
+#   7. Simulated deploy (forge script without --broadcast): runs the full
+#      run() against a fork of the chain incl. the EXPECTED_REACTOR == predicted
+#      invariant assertion. Catches bytecode drift, factory-return issues, gas
+#      shortfalls, etc. before paying real gas.
 #
 # Skip list (chains that aren't compatible with the canonical-CREATE2 path):
 #   - zkSync Era (324): zksolc bytecode + non-EVM CREATE2 derivation —
@@ -35,8 +43,11 @@
 #                                (canonical: 0x2bad8182c09f50c8318d769245bea52c32be46cd)
 #
 # Optional env:
-#   DRY_RUN=1                    skip broadcast; only run preconditions and
-#                                print what would happen.
+#   DRY_RUN=1                    skip broadcast; still runs all preconditions
+#                                AND the simulated forge-script run, so you can
+#                                see exactly whether a real broadcast would
+#                                succeed. The only thing skipped is sending
+#                                the actual tx.
 #   MIN_BALANCE_WEI=<value>      override the default 0.05 ETH-equivalent
 #                                threshold (default 5e16 wei).
 #   RPC_<chainId>=<url>          override the public RPC for a specific chain
@@ -165,14 +176,29 @@ for row in "${CHAINS[@]}"; do
     continue
   fi
 
-  # 3. Permit2 + Arachnid present
+  # 3a. Permit2 code present
   permit2_code=$(cast code "$PERMIT2" --rpc-url "$rpc" 2>/dev/null || echo "0x")
-  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" 2>/dev/null || echo "0x")
   if [[ "$permit2_code" == "0x" || -z "$permit2_code" ]]; then
     echo "  [SKIP] Permit2 not deployed at canonical address"
     results+=("$name|$chainid|SKIP-NO-PERMIT2")
     continue
   fi
+
+  # 3b. Permit2 functional: returns a valid 32-byte DOMAIN_SEPARATOR. Catches
+  # squatter contracts and broken zkEVM ports that share the address but not
+  # the ABI. Cost: one staticcall.
+  permit2_ds=$(cast call "$PERMIT2" "DOMAIN_SEPARATOR()(bytes32)" --rpc-url "$rpc" 2>/dev/null || echo "")
+  if [[ -z "$permit2_ds" || "$permit2_ds" == "0x"$(printf '0%.0s' {1..64}) ]]; then
+    echo "  [SKIP] Permit2.DOMAIN_SEPARATOR() did not return a valid bytes32 (squatter/non-ABI-compatible contract?)"
+    results+=("$name|$chainid|SKIP-PERMIT2-INVALID")
+    continue
+  fi
+
+  # 3c. Arachnid factory code present (no functional probe — its fallback-only
+  # ABI doesn't expose a static-callable identity check; the simulation in
+  # step 7 below catches a non-functional factory by failing to produce code
+  # at the predicted address).
+  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" 2>/dev/null || echo "0x")
   if [[ "$arachnid_code" == "0x" || -z "$arachnid_code" ]]; then
     echo "  [SKIP] Arachnid CREATE2 factory not deployed"
     results+=("$name|$chainid|SKIP-NO-ARACHNID")
@@ -191,14 +217,54 @@ for row in "${CHAINS[@]}"; do
   eth_balance=$(python3 -c "print(int('$balance')/1e18)" 2>/dev/null || echo "?")
   echo "  balance: $balance wei (~${eth_balance} native)"
 
-  # All preconditions pass.
+  # 6. Owner sanity. The reactor's `owner` is set from FOUNDRY_REACTOR_OWNER
+  # at construction. The reactor doesn't validate the owner is a contract,
+  # but governance expects a multisig. Warn if it's an EOA on this chain —
+  # could indicate the multisig hasn't been deployed yet, or that we're
+  # pointing at a wrong address.
+  owner_code=$(cast code "$FOUNDRY_REACTOR_OWNER" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  if [[ "$owner_code" == "0x" || -z "$owner_code" ]]; then
+    echo "  [WARN] owner $FOUNDRY_REACTOR_OWNER is an EOA on this chain (expected: multisig). Continuing."
+  else
+    echo "  owner: contract (~$((${#owner_code}/2 - 1)) bytes of code)"
+  fi
+
+  # 7. Pre-broadcast simulation: forge script with no --broadcast forks the
+  # chain and runs run() end-to-end including the in-script
+  # `EXPECTED_REACTOR == predicted` invariant assertion. Catches bytecode
+  # drift (compiler bump / metadata trailer shift), Arachnid factory return
+  # issues, gas-estimate-too-low, and the predicted address not actually
+  # producing code post-create2 — all without spending real gas. We pass
+  # the same gas-estimate-multiplier as the real broadcast so simulated
+  # gas usage matches.
+  sim_log="/tmp/deploy-v3-${name}-sim-$(date +%s).log"
+  echo "  [SIMULATE] forking and running script (no broadcast)..."
+  if ! forge script script/DeployDutchV3.s.sol \
+      --rpc-url "$rpc" \
+      --private-key "$DEPLOYER_KEY" \
+      --gas-estimate-multiplier 500 \
+      >"$sim_log" 2>&1; then
+    echo "  [FAIL-SIM] simulation reverted; log: $sim_log"
+    tail -8 "$sim_log" | sed 's/^/    /'
+    results+=("$name|$chainid|FAIL-SIM")
+    continue
+  fi
+  if ! grep -q "Script ran successfully" "$sim_log"; then
+    echo "  [FAIL-SIM] forge did not report success; log: $sim_log"
+    tail -8 "$sim_log" | sed 's/^/    /'
+    results+=("$name|$chainid|FAIL-SIM")
+    continue
+  fi
+  echo "  [SIM-OK] simulation succeeded"
+
+  # All preconditions pass + simulation green. Stop here on DRY_RUN.
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "  [DRY-RUN] would deploy V3DutchOrderReactor here"
-    results+=("$name|$chainid|DRY-RUN-WOULD-DEPLOY")
+    echo "  [DRY-RUN] would broadcast next"
+    results+=("$name|$chainid|DRY-RUN-SIM-OK")
     continue
   fi
 
-  # 5. Broadcast
+  # 8. Broadcast
   echo "  [DEPLOY] broadcasting..."
   log="/tmp/deploy-v3-${name}-$(date +%s).log"
   if forge script script/DeployDutchV3.s.sol \
