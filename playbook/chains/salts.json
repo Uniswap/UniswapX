@@ -1,0 +1,157 @@
+{
+  "_comment": "Per-chain V3DutchOrderReactor deploy configuration. Owner is derived from the v4 PoolManager.owner() on each chain so the V3 reactor's protocolFeeOwner matches the AMM's per-chain governance. SALT + expectedReactor are mined together per chain via create2crunch against (PERMIT2, owner). Chains where owner == 0x2bad...46cd reuse Tempo's canonical mined salt and converge on 0x000000005aF6...; other chains have their own (salt, address) pair. Update via scripts/mine-salt.sh.",
+  "schemaVersion": 1,
+  "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  "create2Factory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+  "canonical": {
+    "_comment": "These three values are the (salt, expected) pair for owner == 0x2bad...46cd. Reused by chains where v4 PoolManager.owner() returns this address.",
+    "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+    "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+    "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406"
+  },
+  "chains": {
+    "1": {
+      "name": "mainnet",
+      "poolManager": "0x000000000004444c5dc75cB358380D2e3dE08A90",
+      "owner": "0x1a9C8182C09F50C8318d769245beA52c32BE35BC",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "10": {
+      "name": "optimism",
+      "poolManager": "0x9a13f98cb987694c9f086b1f5eb990eea8264ec3",
+      "owner": "0xa1dD330d602c32622AA270Ea73d078B803Cb3518",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "56": {
+      "name": "bnb",
+      "poolManager": "0x28e2ea090877bf75740558f6bfb36a5ffee9e9df",
+      "owner": "0x341c1511141022cf8eE20824Ae0fFA3491F1302b",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "130": {
+      "name": "unichain",
+      "poolManager": "0x1f98400000000000000000000000000000000004",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
+      "minedAt": "2026-05-05",
+      "minedFor": "tempo (canonical owner reuse)"
+    },
+    "137": {
+      "name": "polygon",
+      "poolManager": "0x67366782805870060151383f4bbff9dab53e5cd6",
+      "owner": "0x8a1B966aC46F42275860f905dbC75EfBfDC12374",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "143": {
+      "name": "monad",
+      "poolManager": "0x188d586ddcf52439676ca21a244753fa19f9ea8e",
+      "owner": "0xE783DE89a7F0408687f051e3E6D0BEb62719EbAd",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "196": {
+      "name": "xlayer",
+      "poolManager": "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
+      "minedAt": "2026-05-05",
+      "minedFor": "tempo (canonical owner reuse)"
+    },
+    "480": {
+      "name": "worldchain",
+      "poolManager": "0xb1860d529182ac3bc1f51fa2abd56662b7d13f33",
+      "owner": "0xcb2436774C3e191c85056d248EF4260ce5f27A9D",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "1868": {
+      "name": "soneium",
+      "poolManager": "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
+      "minedAt": "2026-05-05",
+      "minedFor": "tempo (canonical owner reuse)"
+    },
+    "4217": {
+      "name": "tempo",
+      "poolManager": "0x33620f62c5b9b2086dd6b62f4a297a9f30347029",
+      "owner": "0xCFB43dC56B55bE9611deD8384201cECf06A9811b",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null,
+      "_redeployNote": "Tempo's V3 reactor was originally deployed at 0x000000005aF66799D1a6317714D66800f9CA1406 with owner 0x2bad...46cd (ECO-365 phase 1b). That owner does NOT match Tempo's PoolManager.owner(). Per-AMM-governance redeploy planned at a new address mined for the correct owner (0xCFB43dC5...811b). Old reactor will be left on-chain (inert)."
+    },
+    "8453": {
+      "name": "base",
+      "poolManager": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+      "owner": "0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "42161": {
+      "name": "arbitrum",
+      "poolManager": "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
+      "minedAt": "2026-05-05",
+      "minedFor": "tempo (canonical owner reuse)",
+      "_legacyNote": "Arbitrum has a legacy V3 reactor at 0xB274d5F4b833b61B340b654d600A864fB604a87c (registered in uniswapx-sdk). The new canonical-address deploy will produce 0x000000005aF6... and the SDK should be updated to point there. Old reactor will be inert."
+    },
+    "42220": {
+      "name": "celo",
+      "poolManager": "0x288dc841A52FCA2707c6947B3A777c5E56cd87BC",
+      "owner": "0x0Eb863541278308c3A64F8E908BC646e27BFD071",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "43114": {
+      "name": "avalanche",
+      "poolManager": "0x06380c0e0912312b5150364b9dc4542ba0dbbc85",
+      "owner": "0xeb0BCF27D1Fb4b25e708fBB815c421Aeb51eA9fc",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "59144": {
+      "name": "linea",
+      "poolManager": null,
+      "owner": null,
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null,
+      "_skipNote": "Uniswap v4 PoolManager not deployed on Linea as of 2026-05-06; cannot derive owner via PoolManager.owner(). Defer V3 deploy until v4 ships, or set owner manually if rolling out ahead of v4."
+    },
+    "81457": {
+      "name": "blast",
+      "poolManager": "0x1631559198a9e474033433b2958dabc135ab6446",
+      "owner": "0x2339C0d23b60739B3E5ABF201F05903D24A26C77",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    },
+    "7777777": {
+      "name": "zora",
+      "poolManager": "0x0575338e4c17006ae181b47900a84404247ca30f",
+      "owner": "0x36eEC182D0B24Df3DC23115D64DB521A93D5154f",
+      "salt": null,
+      "expectedReactor": null,
+      "minedAt": null
+    }
+  }
+}
