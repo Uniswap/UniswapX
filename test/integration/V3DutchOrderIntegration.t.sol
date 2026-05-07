@@ -51,13 +51,15 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 /// Optional env (with Tempo defaults so the suite runs out of the box):
 ///   INTEGRATION_REACTOR          V3DutchOrderReactor address on the target chain
 ///   INTEGRATION_QUOTER           OrderQuoter address
-///   INTEGRATION_SWAPPER_PK       swapper EIP-712 signing key
-///   INTEGRATION_FILLER_PK        filler EOA key (may equal swapper)
-///   INTEGRATION_COSIGNER_PK      cosigner key. If unset, a deterministic
-///                                test key is used and the order's cosigner
-///                                field is set to its derived address — this
-///                                is what makes the test fully self-contained
-///                                without needing a production cosigner key.
+///   DEPLOYER_MNEMONIC            BIP-39 seed phrase. When set, swapper / filler /
+///                                cosigner are derived at HD indexes 1 / 2 / 3
+///                                (index 0 is the deployer EOA itself, kept for
+///                                broadcast scripts). When unset, deterministic
+///                                keys derived from keccak256("integration-...")
+///                                are used so the suite still runs without
+///                                configured EOAs. Either way, no real funds
+///                                are needed — tier-2/3 deploy MockERC20s and
+///                                `deal()` token balances onto the fork.
 ///   INTEGRATION_AMOUNT_IN        default 1_000_000 (raw units)
 ///   INTEGRATION_AMOUNT_OUT       default   999_000 (raw units; 0.1% spread)
 ///
@@ -68,16 +70,22 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using V3DutchOrderLib for V3DutchOrder;
 
-    // Tempo defaults — pinned to the live deployments from ECO-365 phase 1b.
-    address constant DEFAULT_REACTOR = 0x000000005aF66799D1a6317714D66800f9CA1406;
+    // Tempo defaults. Reactor is the per-AMM-governance redeploy
+    // (PoolManager.owner() = 0xCFB43dC5...811b) — supersedes the original
+    // ECO-365 phase 1b reactor at 0x000000005aF6... which had the wrong owner
+    // and is now inert on Tempo. Quoter is the original from phase 1b
+    // (stateless, no governance, unaffected by the reactor redeploy).
+    address constant DEFAULT_REACTOR = 0x00000000fc1E66C9f582566EAd00108e55F1c0C6;
     address constant DEFAULT_QUOTER = 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58;
     address constant CANONICAL_PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
-    // Deterministic fallback cosigner so the suite can run without a real
-    // cosigner key. The key never controls real funds — it's only used to
-    // produce a valid cosignature for an order whose `cosigner` field we
-    // set to its derived address.
-    uint256 constant FALLBACK_COSIGNER_PK = 0xC0517E4;
+    // HD derivation indexes for tier-2/tier-3 EOAs when DEPLOYER_MNEMONIC is
+    // set. Index 0 is reserved for the deployer (used by the broadcast
+    // scripts), so test EOAs start at 1 to avoid stomping on a wallet that
+    // may hold real funds.
+    uint32 constant SWAPPER_HD_INDEX = 1;
+    uint32 constant FILLER_HD_INDEX = 2;
+    uint32 constant COSIGNER_HD_INDEX = 3;
 
     bool internal forked;
     V3DutchOrderReactor internal reactor;
@@ -118,15 +126,37 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         quoter = OrderQuoter(payable(quoterAddr));
         permit2 = IPermit2(CANONICAL_PERMIT2);
 
-        swapperPK = _envUintOrDefault("INTEGRATION_SWAPPER_PK", uint256(keccak256("integration-swapper")));
+        // Arbitrum-only: the reactor's `BlockNumberish` mixin captures the
+        // chainid at deploy time and routes block-number reads through the
+        // ArbSys precompile (0x64) on chain 42161. Foundry's local EVM
+        // doesn't implement Arbitrum precompiles, so any forked call from
+        // the reactor that needs a block number reverts with InvalidFEOpcode.
+        // Mock the precompile to return the L1 block number — the test
+        // orders don't have meaningful decay (start == end), so the value
+        // only needs to be non-reverting and monotonic.
+        if (block.chainid == 42161) {
+            vm.mockCall(
+                address(0x64),
+                abi.encodeWithSignature("arbBlockNumber()"),
+                abi.encode(block.number)
+            );
+        }
+
+        // Derive tier-2/3 EOAs from DEPLOYER_MNEMONIC at indexes 1/2/3 when
+        // it's set. Otherwise fall back to deterministic keccak-derived keys
+        // so the suite still runs without env config. The cosigner is always
+        // a test key — tier-3 sets the order's `cosigner` field to its derived
+        // address, so the cosignature validates without needing the
+        // production cosigner key on the test machine.
+        swapperPK = _deriveOrFallback(SWAPPER_HD_INDEX, uint256(keccak256("integration-swapper")));
         swapper = vm.addr(swapperPK);
         vm.label(swapper, "swapper");
 
-        fillerPK = _envUintOrDefault("INTEGRATION_FILLER_PK", uint256(keccak256("integration-filler")));
+        fillerPK = _deriveOrFallback(FILLER_HD_INDEX, uint256(keccak256("integration-filler")));
         filler = vm.addr(fillerPK);
         vm.label(filler, "filler");
 
-        cosignerPK = _envUintOrDefault("INTEGRATION_COSIGNER_PK", FALLBACK_COSIGNER_PK);
+        cosignerPK = _deriveOrFallback(COSIGNER_HD_INDEX, uint256(keccak256("integration-cosigner")));
         cosigner = vm.addr(cosignerPK);
         vm.label(cosigner, "cosigner");
     }
@@ -145,7 +175,10 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
 
     function test_sanity_quoterHasCode() public view {
         if (!forked) return;
-        assertGt(address(quoter).code.length, 0, "quoter: no code at expected address");
+        // `setUp` either binds to a configured quoter (with code) or
+        // fork-deploys a fresh one — either way `quoter.code` must be
+        // non-empty for tier-2 tests to do anything meaningful.
+        assertGt(address(quoter).code.length, 0, "quoter has no code (setup invariant)");
     }
 
     function test_sanity_permit2HasCode() public view {
@@ -296,6 +329,24 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
     function _envUintOrDefault(string memory key, uint256 fallback_) internal view returns (uint256) {
         try vm.envUint(key) returns (uint256 v) {
             return v;
+        } catch {
+            return fallback_;
+        }
+    }
+
+    /// Derive a key from DEPLOYER_MNEMONIC at the given HD index, or return
+    /// `fallback_` (deterministic keccak-derived) when the mnemonic is unset.
+    /// Wrapped in a try/catch because `vm.deriveKey` reverts on a missing or
+    /// malformed mnemonic, and we want the suite to keep running with the
+    /// fallback in that case.
+    function _deriveOrFallback(uint32 hdIndex, uint256 fallback_) internal view returns (uint256) {
+        try vm.envString("DEPLOYER_MNEMONIC") returns (string memory mnemonic) {
+            if (bytes(mnemonic).length == 0) return fallback_;
+            try vm.deriveKey(mnemonic, hdIndex) returns (uint256 pk) {
+                return pk;
+            } catch {
+                return fallback_;
+            }
         } catch {
             return fallback_;
         }

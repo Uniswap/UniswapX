@@ -1,18 +1,49 @@
-# V3DutchOrderReactor deployments
+# UniswapX V3 deployments
 
-UniswapX V3 (`V3DutchOrderReactor`) deployed across all chains the Uniswap AMM
-front-end currently supports (see `playbook/chains/README.md` for the chain
-list). Deployed via the canonical Arachnid CREATE2 factory
-(`0x4e59b44847b379578588920cA78FbF26c0B4956C`), with `(salt, address)` pairs
-mined together per chain against `(PERMIT2, owner)` — owner is read from each
-chain's v4 `PoolManager.owner()` so the reactor's `protocolFeeOwner` matches
-the AMM's per-chain governance. See `script/DeployDutchV3.s.sol` and
-`scripts/deploy-v3-multichain.sh` for the deploy flow, and
-`playbook/chains/salts.json` for the full per-chain config.
+`V3DutchOrderReactor` + `OrderQuoter` deployed across all chains the Uniswap
+AMM front-end currently supports (see `playbook/chains/README.md` for the
+chain list). All deploys go through the canonical Arachnid CREATE2 factory
+(`0x4e59b44847b379578588920cA78FbF26c0B4956C`).
+
+- **Reactor**: per-chain `(salt, address)` pair mined against `(PERMIT2,
+  owner)`, where owner is read from each chain's v4 `PoolManager.owner()`.
+  Per-chain config in `playbook/chains/salts.json`. Deploy script:
+  `script/DeployDutchV3.s.sol` + multi-chain wrapper
+  `scripts/deploy-v3-multichain.sh`.
+- **OrderQuoter**: stateless lens with no constructor args, so a single
+  global salt produces the **same address on every chain**. Deploys to
+  `0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58` everywhere. Deploy script:
+  `script/DeployOrderQuoter.s.sol` + multi-chain wrapper
+  `scripts/deploy-quoter-multichain.sh`.
 
 Deployed by `0x2179a60856E37dfeAacA0ab043B931fE224b27B6` on **2026-05-07**
-(except Optimism, which had been deployed by an earlier broadcast attempt that
-ran into a mainnet gas-limit issue).
+(except Optimism, which had been deployed by an earlier broadcast attempt
+that ran into a mainnet gas-limit issue, and Tempo's pre-existing OrderQuoter
+from ECO-365 phase 1b).
+
+## OrderQuoter address
+
+Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
+
+| Chain | ID | Status | Verified |
+|---|---|---|---|
+| Mainnet | 1 | ✅ deployed | ✅ Etherscan |
+| Optimism | 10 | ✅ deployed | ✅ Etherscan |
+| BNB | 56 | ✅ deployed | ✅ Etherscan |
+| Unichain | 130 | ✅ deployed (via `cast send` fallback — public RPC pruning blocked forge) | ✅ Etherscan |
+| Polygon | 137 | ✅ deployed | ✅ Etherscan |
+| Monad | 143 | ✅ deployed | ✅ Etherscan (V2 unified URL) |
+| XLayer | 196 | ✅ deployed | ❌ (OKLink: manual upload only) |
+| Worldchain | 480 | ✅ deployed | ✅ Etherscan |
+| Soneium | 1868 | ✅ deployed | ✅ Sourcify (Blockscout) |
+| Tempo | 4217 | ✅ pre-existing (ECO-365 phase 1b) | ✅ Sourcify |
+| Base | 8453 | ✅ deployed (recovered after a transient Cloudflare 502) | ✅ Etherscan |
+| Arbitrum | 42161 | ✅ deployed | ✅ Etherscan |
+| Celo | 42220 | ✅ deployed | ✅ Etherscan |
+| Avalanche | 43114 | ✅ deployed | ✅ Etherscan |
+| Linea | 59144 | (deferred — same as reactor, no v4 PoolManager) | — |
+| Blast | 81457 | ✅ deployed | ✅ Etherscan |
+| Zora | 7777777 | ✅ deployed | ✅ Blockscout |
 
 ## Reactor addresses
 
@@ -83,6 +114,58 @@ the old reactor remains on-chain but inert (do not route to it).
 | Avalanche | 43114 | `0x1ee85f6ea0dc5b7c83f7e7a3d107391022dd1aee0f0fad8483f2b64a1c970afe` |
 | Blast | 81457 | `0x54cf96c8a74a9142da93f8d88755aaafb3eb47815da9de3a3d2caaf6c500f9c6` |
 | Zora | 7777777 | `0xa64c2743279f4c6d677a57488af1b97ca0c28401617c2f615e470a0c3e0d8570` |
+
+## Integration test results
+
+All 17 reactor instances were exercised with the V3 Dutch order integration
+suite (`test/integration/V3DutchOrderIntegration.t.sol`) against their
+respective chain's public RPC, fork pinned to current-block-minus-50:
+
+```
+FOUNDRY_RPC_URL=<chain rpc>
+INTEGRATION_REACTOR=<reactor addr>
+INTEGRATION_FORK_BLOCK=<recent block>
+FOUNDRY_PROFILE=integration forge test --match-contract V3DutchOrderIntegrationTest
+```
+
+Each suite runs 6 tests across three tiers: sanity (reactor/quoter/permit2
+have code, reactor bound to canonical Permit2), tier-2 (off-chain order
+resolution via OrderQuoter), tier-3 (end-to-end fill round-trip).
+
+Tier-2/3 deploy fresh `MockERC20`s on the fork as trade tokens (some chains'
+native stablecoins use chain-specific opcodes that revert under Foundry's
+local EVM). The `OrderQuoter` lens is the real on-chain instance at
+`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58` on every chain — the multi-chain
+quoter deploy made the fork-deploy fallback that earlier versions of the
+test had unnecessary.
+
+Both Arbitrum reactors require a `vm.mockCall` on the ArbSys precompile
+(`0x64`) since the reactor's `BlockNumberish` mixin captures chainid 42161
+at deploy time and routes block-number reads through ArbSys, which
+Foundry's local EVM doesn't implement.
+
+| Chain | ID | Reactor | Tests |
+|---|---|---|---|
+| Mainnet | 1 | `0x0000000015757c461808EA25Eb309638B62681cf` | ✅ 6/6 |
+| Optimism | 10 | `0x000000000923439A92daE8930613568824108631` | ✅ 6/6 |
+| BNB | 56 | `0x00000000a55e50C71b70Db3C8B58749cd1E18eB2` | ✅ 6/6 |
+| Unichain | 130 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
+| Polygon | 137 | `0x00000000bAB6E234db8AD638B6A6395b7c499Bc4` | ✅ 6/6 |
+| Monad | 143 | `0x000000000Ac008F7e07210CFb6648e40249232c2` | ✅ 6/6 |
+| XLayer | 196 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
+| Worldchain | 480 | `0x00000000d714EA34028930b762E96bFBe50F42C2` | ✅ 6/6 |
+| Soneium | 1868 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
+| Tempo | 4217 | `0x00000000fc1E66C9f582566EAd00108e55F1c0C6` | ✅ 6/6 |
+| Base | 8453 | `0x000000008a8330B5d1F43A62Bf4C673A49f27ba0` | ✅ 6/6 |
+| Arbitrum (canonical, parked) | 42161 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
+| Arbitrum (legacy, prod) | 42161 | `0xB274d5F4b833b61B340b654d600A864fB604a87c` | ✅ 6/6 |
+| Celo | 42220 | `0x00000000B8077fdf2281A80bE96f6c282B5d943A` | ✅ 6/6 |
+| Avalanche | 43114 | `0x00000000862cCF095823fc7576Fa6C7e6b7385ef` | ✅ 6/6 |
+| Blast | 81457 | `0x0000000086f50C5E1a2500602183D4390A7FFc98` | ✅ 6/6 |
+| Zora | 7777777 | `0x000000002C9A3812e15cf233190992E9a57EDB56` | ✅ 6/6 |
+
+All sanity, off-chain quote, and end-to-end fill paths verified against
+each deployed reactor on its native chain.
 
 ## Block explorer verification
 
