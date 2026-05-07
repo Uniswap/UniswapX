@@ -37,9 +37,10 @@
 #     this script treats null-owner chains as SKIP-NO-POOLMANAGER.
 #
 # Required env:
-#   DEPLOYER_KEY                 hex private key with 0x prefix
+#   DEPLOYER_MNEMONIC            BIP-39 seed phrase for the deployer wallet
 #
 # Optional env:
+#   DEPLOYER_MNEMONIC_INDEX      HD derivation index (default 0)
 #   DRY_RUN=1                    runs all preconditions and the simulation,
 #                                stops short of broadcasting.
 #   MIN_BALANCE_WEI=<value>      default 5e16 (~0.05 ETH-equivalent).
@@ -48,8 +49,8 @@
 #                                (default: playbook/chains/salts.json).
 #
 # Usage:
-#   DEPLOYER_KEY=0x... ./scripts/deploy-v3-multichain.sh
-#   DRY_RUN=1 DEPLOYER_KEY=0x... ./scripts/deploy-v3-multichain.sh
+#   DEPLOYER_MNEMONIC="word1 word2 ..." ./scripts/deploy-v3-multichain.sh
+#   DRY_RUN=1 DEPLOYER_MNEMONIC="word1 word2 ..." ./scripts/deploy-v3-multichain.sh
 # =============================================================================
 
 set -uo pipefail
@@ -66,25 +67,29 @@ MIN_BALANCE_WEI=${MIN_BALANCE_WEI:-50000000000000000} # ~0.05 ETH-equivalent
 DRY_RUN=${DRY_RUN:-0}
 
 # Default RPCs per chain. Override with RPC_<chainId>=<url> at invocation time.
-declare -A DEFAULT_RPCS=(
-  [1]="https://ethereum-rpc.publicnode.com"
-  [10]="https://mainnet.optimism.io"
-  [56]="https://bsc-dataseed.binance.org"
-  [130]="https://mainnet.unichain.org"
-  [137]="https://polygon-rpc.com"
-  [143]="https://rpc.monad.xyz"
-  [196]="https://rpc.xlayer.tech"
-  [480]="https://worldchain-mainnet.g.alchemy.com/public"
-  [1868]="https://rpc.soneium.org"
-  [4217]="https://rpc.tempo.xyz"
-  [8453]="https://mainnet.base.org"
-  [42161]="https://arb1.arbitrum.io/rpc"
-  [42220]="https://forno.celo.org"
-  [43114]="https://api.avax.network/ext/bc/C/rpc"
-  [59144]="https://rpc.linea.build"
-  [81457]="https://rpc.blast.io"
-  [7777777]="https://rpc.zora.energy"
-)
+# Function-based lookup (instead of `declare -A`) so the script works under
+# macOS's default bash 3.2 in addition to bash 4+.
+default_rpc() {
+  case "$1" in
+    1)        echo "https://ethereum-rpc.publicnode.com" ;;
+    10)       echo "https://mainnet.optimism.io" ;;
+    56)       echo "https://bsc-dataseed.binance.org" ;;
+    130)      echo "https://mainnet.unichain.org" ;;
+    137)      echo "https://polygon-rpc.com" ;;
+    143)      echo "https://rpc.monad.xyz" ;;
+    196)      echo "https://rpc.xlayer.tech" ;;
+    480)      echo "https://worldchain-mainnet.g.alchemy.com/public" ;;
+    1868)     echo "https://rpc.soneium.org" ;;
+    4217)     echo "https://rpc.tempo.xyz" ;;
+    8453)     echo "https://mainnet.base.org" ;;
+    42161)    echo "https://arb1.arbitrum.io/rpc" ;;
+    42220)    echo "https://forno.celo.org" ;;
+    43114)    echo "https://api.avax.network/ext/bc/C/rpc" ;;
+    59144)    echo "https://rpc.linea.build" ;;
+    81457)    echo "https://rpc.blast.io" ;;
+    7777777)  echo "https://rpc.zora.energy" ;;
+  esac
+}
 
 # ---- preflight ----
 
@@ -95,17 +100,18 @@ for cmd in cast forge python3 jq; do
   fi
 done
 
-if [[ -z "${DEPLOYER_KEY:-}" ]]; then
-  echo "DEPLOYER_KEY not set" >&2
+if [[ -z "${DEPLOYER_MNEMONIC:-}" ]]; then
+  echo "DEPLOYER_MNEMONIC not set" >&2
   exit 1
 fi
+DEPLOYER_MNEMONIC_INDEX=${DEPLOYER_MNEMONIC_INDEX:-0}
 
 if [[ ! -f "$SALTS_JSON" ]]; then
   echo "salts file not found at $SALTS_JSON" >&2
   exit 1
 fi
 
-DEPLOYER=$(cast wallet address --private-key "$DEPLOYER_KEY")
+DEPLOYER=$(cast wallet address --mnemonic "$DEPLOYER_MNEMONIC" --mnemonic-index "$DEPLOYER_MNEMONIC_INDEX")
 echo "Deployer:  $DEPLOYER"
 echo "Salts:     $SALTS_JSON"
 echo "Mode:      $([ "$DRY_RUN" = "1" ] && echo 'DRY RUN — no broadcast' || echo 'BROADCAST')"
@@ -127,9 +133,10 @@ for chainid in $chain_ids; do
   owner=$(echo "$entry" | jq -r '.owner // "null"')
   salt=$(echo "$entry" | jq -r '.salt // "null"')
   expected_reactor=$(echo "$entry" | jq -r '.expectedReactor // "null"')
+  gas_mult=$(echo "$entry" | jq -r '.gasEstimateMultiplier // empty')
 
   override_var="RPC_${chainid}"
-  rpc="${!override_var:-${DEFAULT_RPCS[$chainid]:-}}"
+  rpc="${!override_var:-$(default_rpc "$chainid")}"
   if [[ -z "$rpc" ]]; then
     echo "=== $name ($chainid) ==="
     echo "  [SKIP] no default RPC and no RPC_$chainid override"
@@ -240,13 +247,21 @@ for chainid in $chain_ids; do
   fi
 
   # 9. Simulation
+  # Per-chain gas-estimate multiplier (Tempo needs 500 for high gas/byte code
+  # deposit cost; others use forge's default 130%). Read from salts.json.
+  gas_args=()
+  if [[ -n "$gas_mult" ]]; then
+    gas_args+=(--gas-estimate-multiplier "$gas_mult")
+    echo "  gas multiplier: ${gas_mult}% (override from salts.json)"
+  fi
   sim_log="/tmp/deploy-v3-${name}-sim-$(date +%s).log"
   echo "  [SIMULATE] forking and running script (no broadcast)..."
   if ! FOUNDRY_REACTOR_OWNER="$owner" V3_REACTOR_SALT="$salt" V3_REACTOR_EXPECTED="$expected_reactor" \
       forge script script/DeployDutchV3.s.sol \
         --rpc-url "$rpc" \
-        --private-key "$DEPLOYER_KEY" \
-        --gas-estimate-multiplier 500 \
+        --mnemonics "$DEPLOYER_MNEMONIC" \
+        --mnemonic-indexes "$DEPLOYER_MNEMONIC_INDEX" \
+        ${gas_args[@]+"${gas_args[@]}"} \
         >"$sim_log" 2>&1; then
     echo "  [FAIL-SIM] simulation reverted; log: $sim_log"
     tail -8 "$sim_log" | sed 's/^/    /'
@@ -274,8 +289,9 @@ for chainid in $chain_ids; do
       forge script script/DeployDutchV3.s.sol \
         --rpc-url "$rpc" \
         --broadcast \
-        --private-key "$DEPLOYER_KEY" \
-        --gas-estimate-multiplier 500 \
+        --mnemonics "$DEPLOYER_MNEMONIC" \
+        --mnemonic-indexes "$DEPLOYER_MNEMONIC_INDEX" \
+        ${gas_args[@]+"${gas_args[@]}"} \
         >"$log" 2>&1 \
     && grep -q "ONCHAIN EXECUTION COMPLETE & SUCCESSFUL" "$log"; then
     echo "  [OK] reactor at $expected_reactor (log: $log)"

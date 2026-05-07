@@ -14,25 +14,28 @@
       "name": "mainnet",
       "poolManager": "0x000000000004444c5dc75cB358380D2e3dE08A90",
       "owner": "0x1a9C8182C09F50C8318d769245beA52c32BE35BC",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x0000000000000000000000000000000000000000b32ebb0bca4619e5b3030060",
+      "expectedReactor": "0x0000000015757c461808EA25Eb309638B62681cf",
+      "minedAt": "2026-05-06T21:53:02Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "10": {
       "name": "optimism",
       "poolManager": "0x9a13f98cb987694c9f086b1f5eb990eea8264ec3",
       "owner": "0xa1dD330d602c32622AA270Ea73d078B803Cb3518",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x00000000000000000000000000000000000000007764d99a1ad65e6e650c00a0",
+      "expectedReactor": "0x000000000923439A92daE8930613568824108631",
+      "minedAt": "2026-05-06T21:53:02Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "56": {
       "name": "bnb",
       "poolManager": "0x28e2ea090877bf75740558f6bfb36a5ffee9e9df",
       "owner": "0x341c1511141022cf8eE20824Ae0fFA3491F1302b",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x0000000000000000000000000000000000000000f1eb47ee78757af369050080",
+      "expectedReactor": "0x00000000a55e50C71b70Db3C8B58749cd1E18eB2",
+      "minedAt": "2026-05-06T21:53:02Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "130": {
       "name": "unichain",
@@ -47,17 +50,19 @@
       "name": "polygon",
       "poolManager": "0x67366782805870060151383f4bbff9dab53e5cd6",
       "owner": "0x8a1B966aC46F42275860f905dbC75EfBfDC12374",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x0000000000000000000000000000000000000000d3b11dbe7d82ab4282060004",
+      "expectedReactor": "0x00000000bAB6E234db8AD638B6A6395b7c499Bc4",
+      "minedAt": "2026-05-06T21:53:02Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "143": {
       "name": "monad",
       "poolManager": "0x188d586ddcf52439676ca21a244753fa19f9ea8e",
       "owner": "0xE783DE89a7F0408687f051e3E6D0BEb62719EbAd",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x00000000000000000000000000000000000000003bf2facff70c91359a150060",
+      "expectedReactor": "0x000000000Ac008F7e07210CFb6648e40249232c2",
+      "minedAt": "2026-05-06T22:03:03Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "196": {
       "name": "xlayer",
@@ -72,9 +77,10 @@
       "name": "worldchain",
       "poolManager": "0xb1860d529182ac3bc1f51fa2abd56662b7d13f33",
       "owner": "0xcb2436774C3e191c85056d248EF4260ce5f27A9D",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x0000000000000000000000000000000000000000e33337472df531ea0a010058",
+      "expectedReactor": "0x00000000d714EA34028930b762E96bFBe50F42C2",
+      "minedAt": "2026-05-06T22:03:03Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "1868": {
       "name": "soneium",
@@ -89,18 +95,22 @@
       "name": "tempo",
       "poolManager": "0x33620f62c5b9b2086dd6b62f4a297a9f30347029",
       "owner": "0xCFB43dC56B55bE9611deD8384201cECf06A9811b",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null,
-      "_redeployNote": "Tempo's V3 reactor was originally deployed at 0x000000005aF66799D1a6317714D66800f9CA1406 with owner 0x2bad...46cd (ECO-365 phase 1b). That owner does NOT match Tempo's PoolManager.owner(). Per-AMM-governance redeploy planned at a new address mined for the correct owner (0xCFB43dC5...811b). Old reactor will be left on-chain (inert)."
+      "salt": "0x0000000000000000000000000000000000000000a8c512c2a77bc99668020008",
+      "expectedReactor": "0x00000000fc1E66C9f582566EAd00108e55F1c0C6",
+      "minedAt": "2026-05-06T22:03:03Z",
+      "_redeployNote": "Tempo's V3 reactor was originally deployed at 0x000000005aF66799D1a6317714D66800f9CA1406 with owner 0x2bad...46cd (ECO-365 phase 1b). That owner does NOT match Tempo's PoolManager.owner(). Per-AMM-governance redeploy planned at a new address mined for the correct owner (0xCFB43dC5...811b). Old reactor will be left on-chain (inert).",
+      "minedZeroBytes": "4 leading + 5 total",
+      "gasEstimateMultiplier": 500,
+      "_gasNote": "Tempo charges ~1000 gas/byte for code deposit vs 200 on standard EVM, so forge's default 130% gas estimate is short of actual on-chain cost. 5x ensures the broadcast tx has enough gas headroom to deposit the runtime code. Other chains use forge's default."
     },
     "8453": {
       "name": "base",
       "poolManager": "0x498581ff718922c3f8e6a244956af099b2652b2b",
       "owner": "0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x00000000000000000000000000000000000000000bd00f51e74c16c712150084",
+      "expectedReactor": "0x000000008a8330B5d1F43A62Bf4C673A49f27ba0",
+      "minedAt": "2026-05-06T22:03:03Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "42161": {
       "name": "arbitrum",
@@ -110,23 +120,25 @@
       "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
       "minedAt": "2026-05-05",
       "minedFor": "tempo (canonical owner reuse)",
-      "_legacyNote": "Arbitrum has a legacy V3 reactor at 0xB274d5F4b833b61B340b654d600A864fB604a87c (registered in uniswapx-sdk). The new canonical-address deploy will produce 0x000000005aF6... and the SDK should be updated to point there. Old reactor will be inert."
+      "_legacyNote": "Arbitrum's legacy V3 reactor at 0xB274d5F4b833b61B340b654d600A864fB604a87c remains the PRODUCTION reactor — currently registered in uniswapx-sdk and routing live traffic. The new canonical-address reactor at 0x000000005aF66799D1a6317714D66800f9CA1406 (deployed 2026-05-07, tx 0x51040b09716b231d438301e17b22bacf8d10b83aecfdd674fcf7000a2a90f0b3) is parked for future SDK migration; do not switch routing to it until the migration is planned."
     },
     "42220": {
       "name": "celo",
       "poolManager": "0x288dc841A52FCA2707c6947B3A777c5E56cd87BC",
       "owner": "0x0Eb863541278308c3A64F8E908BC646e27BFD071",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x000000000000000000000000000000000000000037b96a0e50df1ab013070060",
+      "expectedReactor": "0x00000000B8077fdf2281A80bE96f6c282B5d943A",
+      "minedAt": "2026-05-06T23:32:33Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "43114": {
       "name": "avalanche",
       "poolManager": "0x06380c0e0912312b5150364b9dc4542ba0dbbc85",
       "owner": "0xeb0BCF27D1Fb4b25e708fBB815c421Aeb51eA9fc",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x0000000000000000000000000000000000000000dac7025c296d41b03c0a0030",
+      "expectedReactor": "0x00000000862cCF095823fc7576Fa6C7e6b7385ef",
+      "minedAt": "2026-05-06T23:32:33Z",
+      "minedZeroBytes": "4 leading + 4 total"
     },
     "59144": {
       "name": "linea",
@@ -141,17 +153,19 @@
       "name": "blast",
       "poolManager": "0x1631559198a9e474033433b2958dabc135ab6446",
       "owner": "0x2339C0d23b60739B3E5ABF201F05903D24A26C77",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x00000000000000000000000000000000000000002be8cec522c95f8308020090",
+      "expectedReactor": "0x0000000086f50C5E1a2500602183D4390A7FFc98",
+      "minedAt": "2026-05-06T23:32:33Z",
+      "minedZeroBytes": "4 leading + 5 total"
     },
     "7777777": {
       "name": "zora",
       "poolManager": "0x0575338e4c17006ae181b47900a84404247ca30f",
       "owner": "0x36eEC182D0B24Df3DC23115D64DB521A93D5154f",
-      "salt": null,
-      "expectedReactor": null,
-      "minedAt": null
+      "salt": "0x000000000000000000000000000000000000000045d19f37cf4322f4a90c000a",
+      "expectedReactor": "0x000000002C9A3812e15cf233190992E9a57EDB56",
+      "minedAt": "2026-05-06T23:32:33Z",
+      "minedZeroBytes": "4 leading + 4 total"
     }
   }
 }
