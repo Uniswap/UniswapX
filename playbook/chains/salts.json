@@ -112,16 +112,6 @@
       "minedAt": "2026-05-06T22:03:03Z",
       "minedZeroBytes": "4 leading + 4 total"
     },
-    "42161": {
-      "name": "arbitrum",
-      "poolManager": "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
-      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
-      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
-      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406",
-      "minedAt": "2026-05-05",
-      "minedFor": "tempo (canonical owner reuse)",
-      "_legacyNote": "Arbitrum's legacy V3 reactor at 0xB274d5F4b833b61B340b654d600A864fB604a87c remains the PRODUCTION reactor — currently registered in uniswapx-sdk and routing live traffic. The new canonical-address reactor at 0x000000005aF66799D1a6317714D66800f9CA1406 (deployed 2026-05-07, tx 0x51040b09716b231d438301e17b22bacf8d10b83aecfdd674fcf7000a2a90f0b3) is parked for future SDK migration; do not switch routing to it until the migration is planned."
-    },
     "42220": {
       "name": "celo",
       "poolManager": "0x288dc841A52FCA2707c6947B3A777c5E56cd87BC",

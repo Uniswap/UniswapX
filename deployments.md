@@ -60,8 +60,7 @@ Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
 | Soneium | 1868 | [`0x000000005aF66799D1a6317714D66800f9CA1406`](https://soneium.blockscout.com/address/0x000000005aF66799D1a6317714D66800f9CA1406) | `0x2bad8182c09f50c8318d769245bea52c32be46cd` | ✅ |
 | Tempo | 4217 | [`0x00000000fc1E66C9f582566EAd00108e55F1c0C6`](https://explorer.tempo.xyz/address/0x00000000fc1E66C9f582566EAd00108e55F1c0C6) | `0xCFB43dC56B55bE9611deD8384201cECf06A9811b` | 🟡 Sourcify (explorer ingest unconfirmed) |
 | Base | 8453 | [`0x000000008a8330B5d1F43A62Bf4C673A49f27ba0`](https://basescan.org/address/0x000000008a8330B5d1F43A62Bf4C673A49f27ba0) | `0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9` | ✅ |
-| Arbitrum (legacy, **prod**) | 42161 | [`0xB274d5F4b833b61B340b654d600A864fB604a87c`](https://arbiscan.io/address/0xB274d5F4b833b61B340b654d600A864fB604a87c) | (see uniswapx-sdk) | ✅ (pre-existing) |
-| Arbitrum (canonical, parked) | 42161 | [`0x000000005aF66799D1a6317714D66800f9CA1406`](https://arbiscan.io/address/0x000000005aF66799D1a6317714D66800f9CA1406) | `0x2bad8182c09f50c8318d769245bea52c32be46cd` | ✅ |
+| Arbitrum | 42161 | [`0xB274d5F4b833b61B340b654d600A864fB604a87c`](https://arbiscan.io/address/0xB274d5F4b833b61B340b654d600A864fB604a87c) | (see uniswapx-sdk) | ✅ (pre-existing) |
 | Celo | 42220 | [`0x00000000B8077fdf2281A80bE96f6c282B5d943A`](https://celoscan.io/address/0x00000000B8077fdf2281A80bE96f6c282B5d943A) | `0x0Eb863541278308c3A64F8E908BC646e27BFD071` | ✅ |
 | Avalanche | 43114 | [`0x00000000862cCF095823fc7576Fa6C7e6b7385ef`](https://snowtrace.io/address/0x00000000862cCF095823fc7576Fa6C7e6b7385ef) | `0xeb0BCF27D1Fb4b25e708fBB815c421Aeb51eA9fc` | ✅ |
 | Linea | 59144 | (deferred — no v4 PoolManager yet) | — | — |
@@ -70,29 +69,12 @@ Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
 
 ### Notes on the canonical-address chains
 
-Four chains converge on the same reactor address `0x000000005aF66799D1a6317714D66800f9CA1406`:
-**Unichain, XLayer, Soneium, Arbitrum** (parked). Each has the same v4
-`PoolManager.owner()` value `0x2bad8182c09f50c8318d769245bea52c32be46cd`, so
-the same `(salt, owner, bytecode)` tuple produces the same CREATE2 address
-across chains. This is the original "canonical Tempo salt" mined for the
-ECO-365 phase 1b deployment and reused here.
-
-### Notes on Arbitrum
-
-The legacy reactor at `0xB274d5F4b833b61B340b654d600A864fB604a87c` remains the
-**production** reactor — registered in `uniswapx-sdk` and routing live traffic.
-Do not switch routing to the new canonical-address reactor at
-`0x000000005aF66799D1a6317714D66800f9CA1406` until a deliberate SDK migration
-is planned.
-
-### Notes on Tempo
-
-The original Tempo deploy from ECO-365 phase 1b at
-`0x000000005aF66799D1a6317714D66800f9CA1406` had `protocolFeeOwner` set to
-`0x2bad...46cd`, which does **not** match Tempo's v4 `PoolManager.owner()`
-(`0xCFB43dC56B55bE9611deD8384201cECf06A9811b`). The new redeploy at
-`0x00000000fc1E66C9f582566EAd00108e55F1c0C6` is the production Tempo reactor;
-the old reactor remains on-chain but inert (do not route to it).
+Three chains converge on the same reactor address
+`0x000000005aF66799D1a6317714D66800f9CA1406`: **Unichain, XLayer, Soneium**.
+Each has the same v4 `PoolManager.owner()` value
+`0x2bad8182c09f50c8318d769245bea52c32be46cd`, so the same
+`(salt, owner, bytecode)` tuple produces the same CREATE2 address across
+chains.
 
 ## Transaction hashes
 
@@ -109,7 +91,6 @@ the old reactor remains on-chain but inert (do not route to it).
 | Soneium | 1868 | `0xcb5a9516b309b1ab2e12992058f2480b4773bbf5f851ea689331ab25c13b6dce` |
 | Tempo | 4217 | `0x5e97c535dc39893f883c8c96ba29f49a7a911d6fd2c584c3b3e02ece1cedb92d` |
 | Base | 8453 | `0xef1b4c1893bba99de9f5f56d1e2f0c9850424ecea2875ae16e95598ce9ab5d09` |
-| Arbitrum (canonical, parked) | 42161 | `0x51040b09716b231d438301e17b22bacf8d10b83aecfdd674fcf7000a2a90f0b3` |
 | Celo | 42220 | `0x02f1c4477908154ab7eac35d95757b57ba9ec04ec944b54c58667f03baf3b760` |
 | Avalanche | 43114 | `0x1ee85f6ea0dc5b7c83f7e7a3d107391022dd1aee0f0fad8483f2b64a1c970afe` |
 | Blast | 81457 | `0x54cf96c8a74a9142da93f8d88755aaafb3eb47815da9de3a3d2caaf6c500f9c6` |
@@ -117,7 +98,7 @@ the old reactor remains on-chain but inert (do not route to it).
 
 ## Integration test results
 
-All 17 reactor instances were exercised with the V3 Dutch order integration
+All 16 reactor instances were exercised with the V3 Dutch order integration
 suite (`test/integration/V3DutchOrderIntegration.t.sol`) against their
 respective chain's public RPC, fork pinned to current-block-minus-50:
 
@@ -139,10 +120,10 @@ local EVM). The `OrderQuoter` lens is the real on-chain instance at
 quoter deploy made the fork-deploy fallback that earlier versions of the
 test had unnecessary.
 
-Both Arbitrum reactors require a `vm.mockCall` on the ArbSys precompile
-(`0x64`) since the reactor's `BlockNumberish` mixin captures chainid 42161
-at deploy time and routes block-number reads through ArbSys, which
-Foundry's local EVM doesn't implement.
+Arbitrum requires a `vm.mockCall` on the ArbSys precompile (`0x64`) since
+the reactor's `BlockNumberish` mixin captures chainid 42161 at deploy time
+and routes block-number reads through ArbSys, which Foundry's local EVM
+doesn't implement.
 
 | Chain | ID | Reactor | Tests |
 |---|---|---|---|
@@ -157,8 +138,7 @@ Foundry's local EVM doesn't implement.
 | Soneium | 1868 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
 | Tempo | 4217 | `0x00000000fc1E66C9f582566EAd00108e55F1c0C6` | ✅ 6/6 |
 | Base | 8453 | `0x000000008a8330B5d1F43A62Bf4C673A49f27ba0` | ✅ 6/6 |
-| Arbitrum (canonical, parked) | 42161 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
-| Arbitrum (legacy, prod) | 42161 | `0xB274d5F4b833b61B340b654d600A864fB604a87c` | ✅ 6/6 |
+| Arbitrum | 42161 | `0xB274d5F4b833b61B340b654d600A864fB604a87c` | ✅ 6/6 |
 | Celo | 42220 | `0x00000000B8077fdf2281A80bE96f6c282B5d943A` | ✅ 6/6 |
 | Avalanche | 43114 | `0x00000000862cCF095823fc7576Fa6C7e6b7385ef` | ✅ 6/6 |
 | Blast | 81457 | `0x0000000086f50C5E1a2500602183D4390A7FFc98` | ✅ 6/6 |
@@ -173,11 +153,11 @@ Verification status (authoritative — confirmed via Etherscan V2 API on
 2026-05-07):
 
 **Verified on respective explorer (15 of 16 chains):**
-- Etherscan family (12 chains, pushed via Etherscan V2 unified API): Mainnet,
-  Optimism, BNB, Unichain, Polygon, Monad, Worldchain, Base, Arbitrum
-  (canonical), Celo, Avalanche, Blast.
+- Etherscan family (11 chains, pushed via Etherscan V2 unified API): Mainnet,
+  Optimism, BNB, Unichain, Polygon, Monad, Worldchain, Base, Celo, Avalanche,
+  Blast.
 - Blockscout family (2 chains, picked up from Sourcify push): Soneium, Zora.
-- Pre-existing: Arbitrum legacy `0xB274d5F4...` (Etherscan, original deploy).
+- Arbitrum: pre-existing Etherscan verification of `0xB274d5F4...`.
 
 **Tempo (4217):** source code is on Sourcify (perfect match) but Tempo's
 explorer doesn't expose a verification API, so explorer-side ingest can't be
