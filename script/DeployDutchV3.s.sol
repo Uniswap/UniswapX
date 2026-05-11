@@ -75,6 +75,20 @@ contract DeployDutchV3 is Script {
         console2.log("Owner    ", owner);
         console2.log("Expected ", expected);
 
+        // Optional chain-id pin: when V3_REACTOR_CHAIN_ID is set, assert we're
+        // actually broadcasting on the chain the salt was mined for. Catches
+        // accidentally running with the wrong --rpc-url. The multi-chain
+        // wrapper sets this per chain; manual invocations may leave it unset.
+        try vm.envUint("V3_REACTOR_CHAIN_ID") returns (uint256 pinnedChainId) {
+            require(block.chainid == pinnedChainId, "block.chainid != V3_REACTOR_CHAIN_ID");
+        } catch {}
+
+        // Canonical-address sanity: both Permit2 and the Arachnid factory must
+        // be deployed at their well-known addresses for the salt to produce
+        // the predicted CREATE2 address.
+        require(PERMIT2.code.length > 0, "Permit2 not deployed at canonical address on this chain");
+        require(CREATE2_FACTORY.code.length > 0, "Arachnid CREATE2 factory not deployed at canonical address on this chain");
+
         // Build the V3DutchOrderReactor initcode the canonical CREATE2 factory
         // expects: creationCode || abi.encode(constructor args).
         bytes memory initcode =

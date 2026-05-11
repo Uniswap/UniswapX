@@ -256,7 +256,7 @@ for chainid in $chain_ids; do
   fi
   sim_log="/tmp/deploy-v3-${name}-sim-$(date +%s).log"
   echo "  [SIMULATE] forking and running script (no broadcast)..."
-  if ! FOUNDRY_REACTOR_OWNER="$owner" V3_REACTOR_SALT="$salt" V3_REACTOR_EXPECTED="$expected_reactor" \
+  if ! FOUNDRY_REACTOR_OWNER="$owner" V3_REACTOR_SALT="$salt" V3_REACTOR_EXPECTED="$expected_reactor" V3_REACTOR_CHAIN_ID="$chainid" \
       forge script script/DeployDutchV3.s.sol \
         --rpc-url "$rpc" \
         --mnemonics "$DEPLOYER_MNEMONIC" \
@@ -285,7 +285,7 @@ for chainid in $chain_ids; do
   # 10. Broadcast
   echo "  [DEPLOY] broadcasting..."
   log="/tmp/deploy-v3-${name}-$(date +%s).log"
-  if FOUNDRY_REACTOR_OWNER="$owner" V3_REACTOR_SALT="$salt" V3_REACTOR_EXPECTED="$expected_reactor" \
+  if FOUNDRY_REACTOR_OWNER="$owner" V3_REACTOR_SALT="$salt" V3_REACTOR_EXPECTED="$expected_reactor" V3_REACTOR_CHAIN_ID="$chainid" \
       forge script script/DeployDutchV3.s.sol \
         --rpc-url "$rpc" \
         --broadcast \
