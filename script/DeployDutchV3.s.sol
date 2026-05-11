@@ -87,7 +87,9 @@ contract DeployDutchV3 is Script {
         // be deployed at their well-known addresses for the salt to produce
         // the predicted CREATE2 address.
         require(PERMIT2.code.length > 0, "Permit2 not deployed at canonical address on this chain");
-        require(CREATE2_FACTORY.code.length > 0, "Arachnid CREATE2 factory not deployed at canonical address on this chain");
+        require(
+            CREATE2_FACTORY.code.length > 0, "Arachnid CREATE2 factory not deployed at canonical address on this chain"
+        );
 
         // Build the V3DutchOrderReactor initcode the canonical CREATE2 factory
         // expects: creationCode || abi.encode(constructor args).

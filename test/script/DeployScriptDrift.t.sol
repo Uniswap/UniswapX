@@ -73,7 +73,10 @@ contract DeployScriptDriftTest is Test {
             address expected;
             string memory name;
             try this._readChain(json, base) returns (bool, address o, bytes32 s, address e, string memory n) {
-                owner = o; salt = s; expected = e; name = n;
+                owner = o;
+                salt = s;
+                expected = e;
+                name = n;
             } catch {
                 continue;
             }
