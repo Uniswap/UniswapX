@@ -20,6 +20,7 @@ import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 import {MockERC20} from "../util/mock/MockERC20.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 
 /// @title V3DutchOrderIntegrationTest
 ///
@@ -69,6 +70,7 @@ import {MockERC20} from "../util/mock/MockERC20.sol";
 contract V3DutchOrderIntegrationTest is Test, PermitSignature {
     using OrderInfoBuilder for OrderInfo;
     using V3DutchOrderLib for V3DutchOrder;
+    using stdJson for string;
 
     // Tempo defaults. Reactor is the per-AMM-governance redeploy
     // (PoolManager.owner() = 0xCFB43dC5...811b) — supersedes the original
@@ -120,7 +122,30 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
             return;
         }
 
-        address reactorAddr = _envAddressOrDefault("INTEGRATION_REACTOR", DEFAULT_REACTOR);
+        // Resolve the reactor for the forked chain. Salts.json (keyed by the
+        // forked chainid) is the source of truth; the INTEGRATION_REACTOR env
+        // var is only an escape hatch for chains not in the registry (e.g.
+        // testing Arbitrum's legacy production reactor). A stale env value
+        // can't override what salts.json says about the chain we forked.
+        address reactorAddr = _readReactorFromSaltsJson(block.chainid);
+        if (reactorAddr == address(0)) {
+            // No salts.json entry — accept an env override or fall back to
+            // the Tempo default.
+            try vm.envAddress("INTEGRATION_REACTOR") returns (address override_) {
+                reactorAddr = override_;
+            } catch {
+                reactorAddr = DEFAULT_REACTOR;
+            }
+        }
+        if (reactorAddr.code.length == 0) {
+            console2.log("No V3DutchOrderReactor code at", reactorAddr, "on chainid", block.chainid);
+            console2.log(
+                "Set INTEGRATION_REACTOR explicitly or point FOUNDRY_RPC_URL at a chain in playbook/chains/salts.json."
+            );
+            forked = false;
+            return;
+        }
+
         address quoterAddr = _envAddressOrDefault("INTEGRATION_QUOTER", DEFAULT_QUOTER);
         reactor = V3DutchOrderReactor(payable(reactorAddr));
         quoter = OrderQuoter(payable(quoterAddr));
@@ -135,11 +160,7 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         // orders don't have meaningful decay (start == end), so the value
         // only needs to be non-reverting and monotonic.
         if (block.chainid == 42161) {
-            vm.mockCall(
-                address(0x64),
-                abi.encodeWithSignature("arbBlockNumber()"),
-                abi.encode(block.number)
-            );
+            vm.mockCall(address(0x64), abi.encodeWithSignature("arbBlockNumber()"), abi.encode(block.number));
         }
 
         // Derive tier-2/3 EOAs from DEPLOYER_MNEMONIC at indexes 1/2/3 when
@@ -350,5 +371,34 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         } catch {
             return fallback_;
         }
+    }
+
+    /// Look up the V3DutchOrderReactor address for `chainid` from
+    /// playbook/chains/salts.json. Returns address(0) when the chain is not
+    /// in the registry or its `expectedReactor` is null. External so
+    /// individual parse failures (e.g. salt: null on deferred chains) can be
+    /// caught with try/catch without aborting setUp.
+    function _readReactorFromSaltsJson(uint256 chainid) internal returns (address) {
+        try this._parseReactorForChain(chainid) returns (address a) {
+            return a;
+        } catch {
+            return address(0);
+        }
+    }
+
+    function _parseReactorForChain(uint256 chainid) external view returns (address) {
+        string memory json = vm.readFile("playbook/chains/salts.json");
+        string memory target = vm.toString(chainid);
+        // Iterate parsed keys to find the one whose string equals our chainid,
+        // then use that exact key for the path. Direct `.chains.<id>` and
+        // `.chains["<id>"]` both gave wrong matches for some entries under
+        // stdJson; iterating sidesteps the JSON-path quoting quirks.
+        string[] memory chainIds = vm.parseJsonKeys(json, ".chains");
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            if (keccak256(bytes(chainIds[i])) == keccak256(bytes(target))) {
+                return json.readAddress(string.concat(".chains.", chainIds[i], ".expectedReactor"));
+            }
+        }
+        return address(0);
     }
 }
