@@ -7,7 +7,8 @@ no_match_path = "*/integration/*"
 ffi = true
 fs_permissions = [
     { access = "read-write", path = "./out"},
-    { access = "read-write", path = "./lib/calibur/out/"}
+    { access = "read-write", path = "./lib/calibur/out/"},
+    { access = "read", path = "./playbook/chains/salts.json"}
 ]
 optimizer = true
 optimizer_runs = 1000000
@@ -20,6 +21,7 @@ optimizer_runs = 1000000
 [profile.integration]
 match_path = "*/integration/*"
 no_match_path = "override/default/*"
+fs_permissions = [{ access = "read", path = "./playbook/chains/salts.json" }]
 
 [profile.lite.optimizer_details.yulDetails]
 stackAllocation = true

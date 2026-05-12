@@ -61,6 +61,28 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | OrderQuoter                   | [0x88440407634f89873c5d9439987ac4be9725fea8](https://basescan.io/address/0x88440407634f89873c5d9439987ac4be9725fea8)  | [OrderQuoter](https://github.com/Uniswap/UniswapX/blob/v2.1.0/src/lens/OrderQuoter.sol)                                   |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://basescan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)  | [Permit2](https://github.com/Uniswap/permit2)                                                                             |
 
+## Tempo
+
+| Contract                      | Address                                                                                                                                                                        | Source                                                                                                          |
+| ---                           | ---                                                                                                                                                                            | ---                                                                                                             |
+| V3 Dutch Order Reactor        | [0x00000000fc1E66C9f582566EAd00108e55F1c0C6](https://explore.mainnet.tempo.xyz/address/0x00000000fc1E66C9f582566EAd00108e55F1c0C6)                                             | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol)                                                   |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explore.mainnet.tempo.xyz/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58)                                             | [OrderQuoter](./src/lens/OrderQuoter.sol)                                                                       |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explore.mainnet.tempo.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)                                             | [Permit2](https://github.com/Uniswap/permit2)                                                                   |
+
+Both V3DutchOrderReactor and OrderQuoter were deployed via the canonical Arachnid CREATE2 factory (`0x4e59b44847b379578588920cA78FbF26c0B4956C`) using salts mined with [create2crunch](https://github.com/0age/create2crunch) — the reactor address has 4 leading zero bytes (5 total) and the quoter has 4 leading zero bytes, saving ~12 gas per zero byte each time those addresses are encoded in calldata.
+
+### Deployment notes
+
+UniswapX is being deployed on Tempo (chainId `4217`) via `V3DutchOrderReactor`. Tempo has several EVM-level quirks that integrators and fillers must understand before building or running orders against it:
+
+- **ERC20-only — no native token.** Tempo has no native gas token. Orders MUST NOT use the `NATIVE` sentinel address (`address(0)`) for either the input token or any output token. Both swappers and fillers are expected to operate strictly in ERC20s.
+- **`CALLVALUE` / `BALANCE` / `SELFBALANCE` always return 0.** The `payable` modifier on reactor entry points (`execute`, `executeBatch`, `executeWithCallback`, `executeBatchWithCallback`) is a no-op on Tempo because no value can ever be transferred. The leftover-balance refund branch in [`BaseReactor.sol:126`](./src/reactors/BaseReactor.sol#L126) (the `address(this).balance > 0` refund path) is dead code on Tempo — it is harmless but will never execute.
+- **`block.basefee` is a constant.** On Tempo, `block.basefee` is fixed at approximately `2e10` in attodollars per gas (note: attodollars, not wei). The V3 gas-adjustment math in `_updateWithGasAdjustment` remains internally consistent as long as the cosigner sets `startingBaseFee = block.basefee` and `adjustmentPerGweiBaseFee = 0`. Setting `adjustmentPerGweiBaseFee = 0` makes the gas adjustment unambiguously a no-op and is the recommended cosigner configuration for V3 orders on Tempo.
+- **`block.number` is a standard monotonic counter.** `BlockNumberish.sol` requires no changes for Tempo. Block time is roughly 500ms.
+- **Sample executors are ERC20-only on Tempo.** The sample fillers in this repo — [`UniversalRouterExecutor`](./src/sample-executors/UniversalRouterExecutor.sol), [`SwapRouter02Executor`](./src/sample-executors/SwapRouter02Executor.sol), and [`MultiFillerSwapRouter02Executor`](./src/sample-executors/MultiFillerSwapRouter02Executor.sol) — perform native sweeps via `address(this).balance`. Those sweep paths are inert on Tempo (the balance is always 0). PMMs and other fillers building executors for Tempo MUST implement ERC20-balance-based sweeps instead of relying on native-balance logic.
+
+The canonical Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) is deployed on Tempo, and `V3DutchOrderReactor` binds to it via `script/DeployDutchV3.s.sol`. See that script's header comment for deploy invocation details.
+
 # Usage
 
 ```
