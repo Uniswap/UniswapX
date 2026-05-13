@@ -49,12 +49,10 @@ contract SwapRouter02Executor is IReactorCallback, Owned {
         weth = WETH(payable(_swapRouter02.WETH9()));
     }
 
-    /// @notice assume that we already have all output tokens
     function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
         reactor.executeWithCallback(order, callbackData);
     }
 
-    /// @notice assume that we already have all output tokens
     function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
         reactor.executeBatchWithCallback(orders, callbackData);
     }
