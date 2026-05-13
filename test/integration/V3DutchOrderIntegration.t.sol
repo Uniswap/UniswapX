@@ -72,11 +72,8 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
     using V3DutchOrderLib for V3DutchOrder;
     using stdJson for string;
 
-    // Tempo defaults. Reactor is the per-AMM-governance redeploy
-    // (PoolManager.owner() = 0xCFB43dC5...811b) — supersedes the original
-    // ECO-365 phase 1b reactor at 0x000000005aF6... which had the wrong owner
-    // and is now inert on Tempo. Quoter is the original from phase 1b
-    // (stateless, no governance, unaffected by the reactor redeploy).
+    // Tempo defaults used when FOUNDRY_RPC_URL points at Tempo and no
+    // INTEGRATION_REACTOR override is set.
     address constant DEFAULT_REACTOR = 0x00000000fc1E66C9f582566EAd00108e55F1c0C6;
     address constant DEFAULT_QUOTER = 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58;
     address constant CANONICAL_PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
