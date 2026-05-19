@@ -24,6 +24,35 @@ pragma solidity ^0.8.13;
 //
 // See README.md "Tempo (chain 4217) deployment notes" for chain-specific
 // quirks (ERC20-only, constant block.basefee, elevated state-creation costs).
+//
+// -----------------------------------------------------------------------------
+// TOOLCHAIN REPRODUCIBILITY (read before re-deploying or re-mining)
+// -----------------------------------------------------------------------------
+// The SALT below was mined against creationCode produced by this exact
+// toolchain:
+//
+//   - OS         : macOS (Darwin, arm64 or x86_64)
+//   - forge      : v1.4.4   (foundry-rs/foundry, see foundry.toml)
+//   - solc       : 0.8.30   (pinned in foundry.toml)
+//   - optimizer  : enabled, 1_000_000 runs (foundry.toml [profile.default])
+//
+// Solc emits an IPFS multihash of the source-metadata JSON into the CBOR
+// trailer of every contract's bytecode. That hash is *not* reproducible
+// across host platforms: a Linux solc-0.8.30 build of these same sources
+// emits a different trailer than a macOS build, so the resulting CREATE2
+// address differs even though the executable bytes are byte-identical.
+//
+// Practical consequence: re-deploying OrderQuoter from a Linux host will
+// NOT produce 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58 — the broadcast
+// will land at a different address, and downstream SDKs (which pin the
+// macOS-mined address) will not resolve it. Deploy from macOS or skip the
+// deployment entirely on that chain.
+//
+// The previous CI guard test (test/script/DeployScriptDrift.t.sol) was
+// removed because Ubuntu GHA runners produce Linux bytecode that
+// permanently mismatches the on-chain macOS-mined addresses across all
+// already-deployed chains; the guard was unfixable without re-mining, and
+// re-mining is impossible since the addresses are committed on-chain.
 // =============================================================================
 
 import "forge-std/console2.sol";

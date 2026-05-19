@@ -2,9 +2,100 @@
 
 This document is the runbook for bringing up UniswapX on a new EVM chain. It was distilled from the Tempo (chainId 4217) rollout (Linear TRA2-12) and is intended to make Avalanche, Robinhood, and any subsequent chain ~80% mechanical.
 
-**Audience**: an engineer or pod that is about to enable UniswapX on a chain that already has Permit2 deployed (or is willing to deploy it) and has at least one PMM/filler willing to integrate.
+**Audience**: an engineer or pod that is about to enable UniswapX on a chain that already has Permit2 deployed (or is willing to deploy it) and has at least one MM/filler willing to integrate.
 
 **Scope**: end-to-end — reactors, SDK, services, trading API, rollout. Includes the gotchas that cost us cycles on Tempo so future integrations don't repeat them.
+
+---
+
+## Process overview
+
+```mermaid
+stateDiagram-v2
+    [*] --> Docs: Uniswap and new chain docs
+
+    Docs --> PreIntegration
+
+    PreIntegration: §0 Pre-integration Questionnaire
+    PreIntegration: chainId, RPC, block time, basefee semantics,\nnative token, Permit2, opcode behavior, protocolFeeOwner
+
+    PreIntegration --> EVMAudit: Questionnaire answered
+
+    EVMAudit: §1 EVM Compatibility Audit
+    EVMAudit: Verify bytecode vs docs\n(block.number, basefee, CALLVALUE,\nBALANCE, Permit2, EIP-1559)
+
+    EVMAudit --> ChainNonStandard: Non-standard behavior found
+    EVMAudit --> Phase0: All standard
+    EVMAudit --> Alignment: side-branch (parallel)
+
+    ChainNonStandard: Document caveats
+    ChainNonStandard --> Phase0: Mitigations planned
+
+    Alignment: Identify launch MMs, canary pairs
+    Alignment --> Phase0: MMs committed
+
+    Phase0: Phase 0 — Ready to deploy
+
+    state "Phase 1 — Parallel build (1d)" as Phase1 {
+        direction LR
+
+        state "sdk-core" as SDKBranch {
+            SDKCore: 3.1 sdk-core
+            SDKCore: ChainId enum, addresses, block times
+            SDKCore --> Publish: Tests pass
+            Publish: Publish @uniswap/sdk-core
+        }
+
+        state "x-contracts" as ContractsBranch {
+            DeployReactor: 3.2 x-contracts
+            DeployReactor: Deploy V3DutchOrderReactor\n+ OrderQuoter via DeployDutchV3.s.sol
+            DeployReactor --> Verify: Broadcast
+            Verify: Integ tests, verify on explorer,\nrecord addresses
+        }
+    }
+
+    Phase0 --> Phase1: Kick off parallel work
+    Phase1 --> Phase2: sdk-core published\n+ addresses recorded
+
+    state "Phase 2 — SDK Release (1d)" as Phase2 {
+        UniswapXSDK: 3.3 uniswapx-sdk
+        UniswapXSDK: PERMIT2_MAPPING,\nREACTOR_ADDRESS_MAPPING[Dutch_V3],\nUNISWAPX_ORDER_QUOTER_MAPPING
+        UniswapXSDK --> Release: Tests pass
+        Release: Publish standard @uniswap/uniswapx-sdk release
+    }
+
+    Phase2 --> Phase3: Released
+
+    state "Phase 3 — Service Deploys (1w)" as Phase3 {
+        direction LR
+        ParamAPI: 3.4 parameterization-api
+        ParamAPI: ChainId in BOTH chains.ts files,\nV3_BLOCK_BUFFER, getBlockTimeSecs
+
+        XService: 3.5 x-service
+        XService: BLOCK_TIME_MS_BY_CHAIN,\nMIN_RETRY_WAIT (sub-second floor),\nPRIORITY/HYBRID buffer entries
+
+        TradingAPI: 3.6 trading-api
+        TradingAPI: CHAIN_INFO_MAP, GAS_COMPARISON_MULTIPLIER,\nadjustmentPerGweiBaseFee=0 in factory,\nnative-sentinel rejection at schema
+
+        ParamAPI --> XService
+        XService --> TradingAPI
+        TradingAPI --> FlagOff: All deployed
+        FlagOff: disable_uniswapx_chainId = true
+    }
+
+    Phase3 --> Phase4: Filler's ready
+
+    state "Phase 4 — Launch" as Phase4 {
+        Dashboards: Ensure new-chain metrics are wired into dashboards
+        Dashboards --> FlipFlag: Dashboards live
+        FlipFlag: Set disable_uniswapx_chainId = false (threshold:0)
+        FlipFlag --> Monitor: Traffic flowing
+        Monitor: Monitor latency, PI, fill rate per MM
+    }
+
+    Phase4 --> [*]: Stable
+    Phase4 --> Rollback: Anomaly detected
+```
 
 ---
 
@@ -27,7 +118,8 @@ Answer these before writing a single line of code. Most can be resolved against 
 | **Permit2 at canonical address?** | Reactor binds to a fixed Permit2 address | ✅ Yes (verified via `eth_getCode`) |
 | **Sequencer / private mempool / pre-confs** | Affects RFQ exclusivity protection beyond the reactor's `ExclusivityLib` | Multi-validator with VRF leader election, no private mempool — same as other UniswapX chains |
 | **EIP-1559 / typed tx support** | RPC compatibility for fillers | Yes (basefee constant, but fields are populated) |
-| **Routing surfaces (UniversalRouter, etc.)** | Whether existing sample executors can be reused | Sample executors require ERC20-only sweep variants on Tempo; PMMs typically roll their own |
+| **Routing surfaces (UniversalRouter, etc.)** | Whether existing sample executors can be reused | Sample executors require ERC20-only sweep variants on Tempo; MMs typically roll their own |
+| **protocolFeeOwner** | Address that owns the deployed reactor's protocol-fee config | Same as Arbitrum One: `0x2bad8182c09f50c8318d769245bea52c32be46cd` (unless governance overrides per-chain) |
 
 A useful one-liner to probe basefee + block time + block-number monotonicity in one shot:
 
@@ -56,7 +148,7 @@ Run this audit against the chain's docs **and** by reading bytecode behavior on 
 | `block.basefee` real wei value | ✅ | If constant or zero or denominated differently (Tempo: attodollars), set `adjustmentPerGweiBaseFee = 0` in `DutchV3OrderFactory` for that chain so gas-adjustment math is a no-op |
 | `block.timestamp` seconds since epoch, monotonic | ✅ | Deadline checks rely on this; non-standard would break order expiry |
 | `msg.value` (`CALLVALUE` opcode) reflects sent ETH | ✅ | If always 0 (Tempo): `payable` modifiers on reactor are no-ops, but the leftover-balance refund branch in `BaseReactor.sol:126` becomes dead code (harmless) — and **orders cannot use NATIVE sentinel** |
-| `address(this).balance` (`BALANCE`/`SELFBALANCE`) reflects ETH balance | ✅ | If always 0 (Tempo): reactor's refund branch is dead; sample executors `UniversalRouterExecutor`, `SwapRouter02Executor`, `MultiFillerSwapRouter02Executor` have broken native sweeps — PMMs need ERC20-balance variants |
+| `address(this).balance` (`BALANCE`/`SELFBALANCE`) reflects ETH balance | ✅ | If always 0 (Tempo): reactor's refund branch is dead; sample executors `UniversalRouterExecutor`, `SwapRouter02Executor`, `MultiFillerSwapRouter02Executor` have broken native sweeps — MMs need ERC20-balance variants |
 | Permit2 deployed at canonical address | ✅ on most chains | If absent, deploy permit2 first via the canonical CREATE2 deployer, then UniswapX reactor binds to it |
 | EIP-1559 fields populated | ✅ | Cosigner reads `baseFeePerGas` from latest block to set `startingBaseFee` (or as a tripwire) |
 
@@ -92,7 +184,7 @@ Order matters because of inter-repo dependencies. The graph below is the "right"
 6. trading-api (b/packages/services/trading) ┘
 ```
 
-Steps 4–6 can be developed in parallel and pinned to the SDK canary release from step 3 in dev.
+Steps 4–6 can be developed in parallel and pinned to the standard `@uniswap/uniswapx-sdk` release from step 3 in dev.
 
 ---
 
@@ -133,6 +225,8 @@ forge script script/DeployDutchV3.s.sol \
 Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol` / a future dedicated lens deploy script). Verify on the chain's explorer; record the addresses.
 
 **Don't** spend cycles wiring this into the `/contracts` deployment-orchestration repo unless that repo's UniswapX deployer support has already landed — on Tempo we hit a `compilation_restrictions` conflict in `foundry.toml` where uniswapx (solc 0.8.30, no via_ir) and permit2 (solc 0.8.17, via_ir) couldn't coexist on shared interface files. The direct `x-contracts` deploy route is the proven path.
+
+**Toolchain reproducibility — deploy from macOS only.** Every salt currently in `script/DeployOrderQuoter.s.sol` (`EXPECTED_QUOTER`) and `playbook/chains/salts.json` (`expectedReactor` per chain) was mined against bytecode produced by **macOS + forge `v1.4.4` + solc `0.8.30`** with the `foundry.toml [profile.default]` optimizer settings (enabled, `1_000_000` runs). Solc 0.8.30 embeds an IPFS metadata-hash of the source-metadata JSON in the CBOR trailer of each contract's creationCode, and that trailer is **not byte-reproducible across host platforms** — a Linux build of these same sources emits a different trailer and therefore a different CREATE2 address. If you broadcast `DeployDutchV3.s.sol` or `DeployOrderQuoter.s.sol` from a Linux host, the in-script `predicted == EXPECTED` assertion will fail and the broadcast will abort. Use a Mac (or a Mac CI runner). The previous unit test that guarded against this drift (`test/script/DeployScriptDrift.t.sol`) was removed because Ubuntu GHA runners permanently mismatch all 17 on-chain addresses and the test was unfixable without re-mining, which is impossible since the addresses are already committed on-chain.
 
 ### 3.3 `@uniswap/uniswapx-sdk`
 
@@ -236,42 +330,35 @@ Chains with elevated state-creation costs (Tempo: 12.5×) sound scary but are ec
 
 ## 5. Rollout plan template
 
-**Phase 0 — alignment (3 days)**
-- Identify launch fillers (1–2 PMMs).
+See the [Process overview](#process-overview) diagram at the top of this document for the state-machine view. Phases below match it 1:1.
+
+**Pre-work (parallel side-branch off the §1 EVM audit)**
+- Identify launch MMs (any MM that supports the chain receives RFQs once launched — no whitelist).
 - Decide canary stablecoin pairs.
-- Confirm chain team is OK with our planned addresses + protocolFeeOwner.
+- protocolFeeOwner is captured in the §0 questionnaire.
 
-**Phase 1 — contracts deploy (1 day)**
-- Deploy `V3DutchOrderReactor` to mainnet via `x-contracts/script/DeployDutchV3.s.sol`.
-- Deploy `OrderQuoter` lens.
-- Verify on the chain's explorer. Record addresses.
+**Phase 0 — Ready to deploy**
+- Gate confirming §0 questionnaire + §1 EVM audit + MM alignment are all complete.
 
-**Phase 2 — SDK update + canary (1 day)**
+**Phase 1 — parallel build (1 day)** — sdk-core and x-contracts run in parallel:
+- *sdk-core branch*: §3.1 changes, tests, publish standard `@uniswap/sdk-core` release.
+- *x-contracts branch*: Deploy `V3DutchOrderReactor` + `OrderQuoter` lens via `script/DeployDutchV3.s.sol`. Integration tests against the live chain. Verify on the chain's explorer. Record addresses.
+
+**Phase 2 — SDK release (1 day)**
 - Replace zero-address placeholders in `uniswapx-sdk/src/constants.ts` with real reactor + quoter addresses.
-- Cut `@uniswap/uniswapx-sdk` canary release (`x.y.z-<chain>.0`).
+- Publish a standard `@uniswap/uniswapx-sdk` release (no canary needed — downstream repos pin the normal version).
 
 **Phase 3 — service deploys (1 week)**
-- Pin trading-api / x-service / parameterization-api to the SDK canary in dev.
+- Pin trading-api / x-service / parameterization-api to the new SDK release in dev.
 - Deploy parameterization-api → x-service → trading-api in that order.
 - `disable_uniswapx_<chain>` flag stays ON throughout (= UniswapX OFF on the chain).
 - Internal security review of any new cosigning logic.
+- Exit criterion: filler(s) ready and services healthy.
 
-**Phase 4 — closed canary (1 week)**
-- Whitelist 1–2 PMM addresses via the existing exclusivity mechanism.
-- Flip `disable_uniswapx_<chain>` to `false`.
-- Real swaps at small notional ($100–$1k). Monitor:
-  - Decay block math hits expected windows
-  - Gas-adjustment net-zero where expected
-  - Step Functions retry cadence within execution-history limits
-  - `compareQuotes` selecting RFQ where expected
-- Extend dashboards with chain-specific cuts.
-
-**Phase 5 — open canary (1 week)**
-- Remove filler whitelist; cap notional via min-order-size.
-
-**Phase 6 — full launch**
-- Remove notional cap.
-- Schedule a 30-day post-launch review.
+**Phase 4 — launch**
+1. Ensure new-chain metrics are wired into dashboards (latency, PI, fill rate per MM, decay block math, gas-adjustment, Step Functions retry cadence, `compareQuotes` selection).
+2. Set `disable_uniswapx_<chain>` to `false` (`{"threshold": 0}`). UniswapX routing is now available to any TAPI caller that opts into UniswapX, and all MMs that support the chain receive RFQs.
+3. Monitor.
 
 **Rollback**: `disable_uniswapx_<chain> = true` short-circuits routing to Classic-only on the chain. Order posting can be disabled in x-service via `SUPPORTED_CHAINS` redeploy. No on-chain rollback needed — unused reactors are inert.
 

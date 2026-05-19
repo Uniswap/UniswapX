@@ -40,6 +40,38 @@ pragma solidity ^0.8.13;
 //
 // See README.md "Tempo (chain 4217) deployment notes" for chain-specific
 // quirks (ERC20-only, constant block.basefee, etc.).
+//
+// -----------------------------------------------------------------------------
+// TOOLCHAIN REPRODUCIBILITY (read before re-deploying or re-mining)
+// -----------------------------------------------------------------------------
+// Every salt in `playbook/chains/salts.json` was mined against creationCode
+// produced by this exact toolchain:
+//
+//   - OS         : macOS (Darwin, arm64 or x86_64)
+//   - forge      : v1.4.4   (foundry-rs/foundry, see foundry.toml)
+//   - solc       : 0.8.30   (pinned in foundry.toml)
+//   - optimizer  : enabled, 1_000_000 runs (foundry.toml [profile.default])
+//
+// Solc emits an IPFS multihash of the source-metadata JSON into the CBOR
+// trailer of each contract's bytecode. That hash is *not* reproducible
+// across host platforms: Linux solc-0.8.30 builds emit a different trailer
+// than macOS builds for the same sources, so the predicted CREATE2 address
+// differs.
+//
+// Practical consequence: a Linux host running this script will NOT
+// reproduce the `expectedReactor` values in salts.json. The on-chain
+// pre-broadcast assertion (predicted == V3_REACTOR_EXPECTED) will fail
+// and the broadcast will abort. Deploy from macOS, or re-mine the salt
+// from a Linux host and update salts.json + every downstream SDK that
+// pins the reactor address (uniswapx-sdk, x-service, x-parameterization,
+// trading-api).
+//
+// The previous CI guard test (test/script/DeployScriptDrift.t.sol) was
+// removed because Ubuntu GHA runners produce Linux bytecode that
+// permanently mismatches the on-chain macOS-mined `expectedReactor`
+// across all 17 already-deployed chains; the guard was unfixable without
+// re-mining, and re-mining is impossible since the addresses are
+// committed on-chain.
 // =============================================================================
 
 import "forge-std/console2.sol";
