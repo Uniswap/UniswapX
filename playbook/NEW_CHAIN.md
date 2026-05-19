@@ -226,6 +226,8 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
 
 **Don't** spend cycles wiring this into the `/contracts` deployment-orchestration repo unless that repo's UniswapX deployer support has already landed — on Tempo we hit a `compilation_restrictions` conflict in `foundry.toml` where uniswapx (solc 0.8.30, no via_ir) and permit2 (solc 0.8.17, via_ir) couldn't coexist on shared interface files. The direct `x-contracts` deploy route is the proven path.
 
+**Toolchain reproducibility — deploy from macOS only.** Every salt currently in `script/DeployOrderQuoter.s.sol` (`EXPECTED_QUOTER`) and `playbook/chains/salts.json` (`expectedReactor` per chain) was mined against bytecode produced by **macOS + forge `v1.4.4` + solc `0.8.30`** with the `foundry.toml [profile.default]` optimizer settings (enabled, `1_000_000` runs). Solc 0.8.30 embeds an IPFS metadata-hash of the source-metadata JSON in the CBOR trailer of each contract's creationCode, and that trailer is **not byte-reproducible across host platforms** — a Linux build of these same sources emits a different trailer and therefore a different CREATE2 address. If you broadcast `DeployDutchV3.s.sol` or `DeployOrderQuoter.s.sol` from a Linux host, the in-script `predicted == EXPECTED` assertion will fail and the broadcast will abort. Use a Mac (or a Mac CI runner). The previous unit test that guarded against this drift (`test/script/DeployScriptDrift.t.sol`) was removed because Ubuntu GHA runners permanently mismatch all 17 on-chain addresses and the test was unfixable without re-mining, which is impossible since the addresses are already committed on-chain.
+
 ### 3.3 `@uniswap/uniswapx-sdk`
 
 **File:** `src/constants.ts`
