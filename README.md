@@ -49,6 +49,7 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | Contract                      | Address                                                                                                               | Source                                                                                                                    |
 | ---                           | ---                                                                                                                   | ---                                                                                                                       |
 | V2 Dutch Order Reactor        | [0x00000011F84B9aa48e5f8aA8B9897600006289Be](https://etherscan.io/address/0x00000011F84B9aa48e5f8aA8B9897600006289Be) | [V2DutchOrderReactor](https://github.com/Uniswap/UniswapX/blob/v2.0.0/src/reactors/V2DutchOrderReactor.sol)               |
+| V3 Dutch Order Reactor        | [0x0000000015757c461808EA25Eb309638B62681cf](https://etherscan.io/address/0x0000000015757c461808EA25Eb309638B62681cf) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol)                                                             |
 | Exclusive Dutch Order Reactor | [0x6000da47483062A0D734Ba3dc7576Ce6A0B645C4](https://etherscan.io/address/0x6000da47483062A0D734Ba3dc7576Ce6A0B645C4) | [ExclusiveDutchOrderReactor](https://github.com/Uniswap/UniswapX/blob/v1.1.0/src/reactors/ExclusiveDutchOrderReactor.sol) |
 | OrderQuoter                   | [0x54539967a06Fc0E3C3ED0ee320Eb67362D13C5fF](https://etherscan.io/address/0x54539967a06Fc0E3C3ED0ee320Eb67362D13C5fF) | [OrderQuoter](https://github.com/Uniswap/UniswapX/blob/v1.1.0/src/lens/OrderQuoter.sol)                                   |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                                                                             |
@@ -69,19 +70,117 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explore.mainnet.tempo.xyz/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58)                                             | [OrderQuoter](./src/lens/OrderQuoter.sol)                                                                       |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explore.mainnet.tempo.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)                                             | [Permit2](https://github.com/Uniswap/permit2)                                                                   |
 
-Both V3DutchOrderReactor and OrderQuoter were deployed via the canonical Arachnid CREATE2 factory (`0x4e59b44847b379578588920cA78FbF26c0B4956C`) using salts mined with [create2crunch](https://github.com/0age/create2crunch) — the reactor address has 4 leading zero bytes (5 total) and the quoter has 4 leading zero bytes, saving ~12 gas per zero byte each time those addresses are encoded in calldata.
+## Optimism
 
-### Deployment notes
+| Contract                      | Address                                                                                                                          | Source                                                        |
+| ---                           | ---                                                                                                                              | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000000923439A92daE8930613568824108631](https://optimistic.etherscan.io/address/0x000000000923439A92daE8930613568824108631) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://optimistic.etherscan.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://optimistic.etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
 
-UniswapX is being deployed on Tempo (chainId `4217`) via `V3DutchOrderReactor`. Tempo has several EVM-level quirks that integrators and fillers must understand before building or running orders against it:
+## BNB
 
-- **ERC20-only — no native token.** Tempo has no native gas token. Orders MUST NOT use the `NATIVE` sentinel address (`address(0)`) for either the input token or any output token. Both swappers and fillers are expected to operate strictly in ERC20s.
-- **`CALLVALUE` / `BALANCE` / `SELFBALANCE` always return 0.** The `payable` modifier on reactor entry points (`execute`, `executeBatch`, `executeWithCallback`, `executeBatchWithCallback`) is a no-op on Tempo because no value can ever be transferred. The leftover-balance refund branch in [`BaseReactor.sol:126`](./src/reactors/BaseReactor.sol#L126) (the `address(this).balance > 0` refund path) is dead code on Tempo — it is harmless but will never execute.
-- **`block.basefee` is a constant.** On Tempo, `block.basefee` is fixed at approximately `2e10` in attodollars per gas (note: attodollars, not wei). The V3 gas-adjustment math in `_updateWithGasAdjustment` remains internally consistent as long as the cosigner sets `startingBaseFee = block.basefee` and `adjustmentPerGweiBaseFee = 0`. Setting `adjustmentPerGweiBaseFee = 0` makes the gas adjustment unambiguously a no-op and is the recommended cosigner configuration for V3 orders on Tempo.
-- **`block.number` is a standard monotonic counter.** `BlockNumberish.sol` requires no changes for Tempo. Block time is roughly 500ms.
-- **Sample executors are ERC20-only on Tempo.** The sample fillers in this repo — [`UniversalRouterExecutor`](./src/sample-executors/UniversalRouterExecutor.sol), [`SwapRouter02Executor`](./src/sample-executors/SwapRouter02Executor.sol), and [`MultiFillerSwapRouter02Executor`](./src/sample-executors/MultiFillerSwapRouter02Executor.sol) — perform native sweeps via `address(this).balance`. Those sweep paths are inert on Tempo (the balance is always 0). PMMs and other fillers building executors for Tempo MUST implement ERC20-balance-based sweeps instead of relying on native-balance logic.
+| Contract                      | Address                                                                                                            | Source                                                        |
+| ---                           | ---                                                                                                                | ---                                                           |
+| V3 Dutch Order Reactor        | [0x00000000a55e50C71b70Db3C8B58749cd1E18eB2](https://bscscan.com/address/0x00000000a55e50C71b70Db3C8B58749cd1E18eB2) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://bscscan.com/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://bscscan.com/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
 
-The canonical Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) is deployed on Tempo, and `V3DutchOrderReactor` binds to it via `script/DeployDutchV3.s.sol`. See that script's header comment for deploy invocation details.
+## Unichain
+
+| Contract                      | Address                                                                                                          | Source                                                        |
+| ---                           | ---                                                                                                              | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000005aF66799D1a6317714D66800f9CA1406](https://uniscan.xyz/address/0x000000005aF66799D1a6317714D66800f9CA1406) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://uniscan.xyz/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://uniscan.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Polygon
+
+| Contract                      | Address                                                                                                                | Source                                                        |
+| ---                           | ---                                                                                                                    | ---                                                           |
+| V3 Dutch Order Reactor        | [0x00000000bAB6E234db8AD638B6A6395b7c499Bc4](https://polygonscan.com/address/0x00000000bAB6E234db8AD638B6A6395b7c499Bc4) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://polygonscan.com/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://polygonscan.com/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Monad
+
+| Contract                      | Address                                                                                                              | Source                                                        |
+| ---                           | ---                                                                                                                  | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000000Ac008F7e07210CFb6648e40249232c2](https://monadscan.com/address/0x000000000Ac008F7e07210CFb6648e40249232c2) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://monadscan.com/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://monadscan.com/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## XLayer
+
+| Contract                      | Address                                                                                                                        | Source                                                        |
+| ---                           | ---                                                                                                                            | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000005aF66799D1a6317714D66800f9CA1406](https://www.oklink.com/xlayer/address/0x000000005aF66799D1a6317714D66800f9CA1406) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://www.oklink.com/xlayer/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://www.oklink.com/xlayer/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Worldchain
+
+| Contract                      | Address                                                                                                            | Source                                                        |
+| ---                           | ---                                                                                                                | ---                                                           |
+| V3 Dutch Order Reactor        | [0x00000000d714EA34028930b762E96bFBe50F42C2](https://worldscan.org/address/0x00000000d714EA34028930b762E96bFBe50F42C2) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://worldscan.org/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://worldscan.org/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Soneium
+
+| Contract                      | Address                                                                                                                       | Source                                                        |
+| ---                           | ---                                                                                                                           | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000005aF66799D1a6317714D66800f9CA1406](https://soneium.blockscout.com/address/0x000000005aF66799D1a6317714D66800f9CA1406) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://soneium.blockscout.com/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://soneium.blockscout.com/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Base (DutchV3)
+
+| Contract                      | Address                                                                                                            | Source                                                        |
+| ---                           | ---                                                                                                                | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000008a8330B5d1F43A62Bf4C673A49f27ba0](https://basescan.org/address/0x000000008a8330B5d1F43A62Bf4C673A49f27ba0) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://basescan.org/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://basescan.org/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Arbitrum
+
+| Contract                      | Address                                                                                                         | Source                                                        |
+| ---                           | ---                                                                                                             | ---                                                           |
+| V3 Dutch Order Reactor        | [0xB274d5F4b833b61B340b654d600A864fB604a87c](https://arbiscan.io/address/0xB274d5F4b833b61B340b654d600A864fB604a87c) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://arbiscan.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://arbiscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Celo
+
+| Contract                      | Address                                                                                                          | Source                                                        |
+| ---                           | ---                                                                                                              | ---                                                           |
+| V3 Dutch Order Reactor        | [0x00000000B8077fdf2281A80bE96f6c282B5d943A](https://celoscan.io/address/0x00000000B8077fdf2281A80bE96f6c282B5d943A) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://celoscan.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://celoscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Avalanche
+
+| Contract                      | Address                                                                                                          | Source                                                        |
+| ---                           | ---                                                                                                              | ---                                                           |
+| V3 Dutch Order Reactor        | [0x00000000862cCF095823fc7576Fa6C7e6b7385ef](https://snowtrace.io/address/0x00000000862cCF095823fc7576Fa6C7e6b7385ef) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://snowtrace.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://snowtrace.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Blast
+
+| Contract                      | Address                                                                                                           | Source                                                        |
+| ---                           | ---                                                                                                               | ---                                                           |
+| V3 Dutch Order Reactor        | [0x0000000086f50C5E1a2500602183D4390A7FFc98](https://blastscan.io/address/0x0000000086f50C5E1a2500602183D4390A7FFc98) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://blastscan.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://blastscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+## Zora
+
+| Contract                      | Address                                                                                                                  | Source                                                        |
+| ---                           | ---                                                                                                                      | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000002C9A3812e15cf233190992E9a57EDB56](https://explorer.zora.energy/address/0x000000002C9A3812e15cf233190992E9a57EDB56) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explorer.zora.energy/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explorer.zora.energy/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
 
 # Usage
 
