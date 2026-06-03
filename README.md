@@ -49,6 +49,7 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | Contract                      | Address                                                                                                               | Source                                                                                                                    |
 | ---                           | ---                                                                                                                   | ---                                                                                                                       |
 | V2 Dutch Order Reactor        | [0x00000011F84B9aa48e5f8aA8B9897600006289Be](https://etherscan.io/address/0x00000011F84B9aa48e5f8aA8B9897600006289Be) | [V2DutchOrderReactor](https://github.com/Uniswap/UniswapX/blob/v2.0.0/src/reactors/V2DutchOrderReactor.sol)               |
+| V3 Dutch Order Reactor        | [0x0000000015757c461808EA25Eb309638B62681cf](https://etherscan.io/address/0x0000000015757c461808EA25Eb309638B62681cf) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol)                                                             |
 | Exclusive Dutch Order Reactor | [0x6000da47483062A0D734Ba3dc7576Ce6A0B645C4](https://etherscan.io/address/0x6000da47483062A0D734Ba3dc7576Ce6A0B645C4) | [ExclusiveDutchOrderReactor](https://github.com/Uniswap/UniswapX/blob/v1.1.0/src/reactors/ExclusiveDutchOrderReactor.sol) |
 | OrderQuoter                   | [0x54539967a06Fc0E3C3ED0ee320Eb67362D13C5fF](https://etherscan.io/address/0x54539967a06Fc0E3C3ED0ee320Eb67362D13C5fF) | [OrderQuoter](https://github.com/Uniswap/UniswapX/blob/v1.1.0/src/lens/OrderQuoter.sol)                                   |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                                                                             |
@@ -68,14 +69,6 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | V3 Dutch Order Reactor        | [0x00000000fc1E66C9f582566EAd00108e55F1c0C6](https://explore.mainnet.tempo.xyz/address/0x00000000fc1E66C9f582566EAd00108e55F1c0C6)                                             | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol)                                                   |
 | OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explore.mainnet.tempo.xyz/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58)                                             | [OrderQuoter](./src/lens/OrderQuoter.sol)                                                                       |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explore.mainnet.tempo.xyz/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)                                             | [Permit2](https://github.com/Uniswap/permit2)                                                                   |
-
-## Ethereum Mainnet (DutchV3)
-
-| Contract                      | Address                                                                                                               | Source                                                        |
-| ---                           | ---                                                                                                                   | ---                                                           |
-| V3 Dutch Order Reactor        | [0x0000000015757c461808EA25Eb309638B62681cf](https://etherscan.io/address/0x0000000015757c461808EA25Eb309638B62681cf) | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
-| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://etherscan.io/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
-| Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
 
 ## Optimism
 
