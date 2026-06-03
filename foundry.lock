@@ -1,0 +1,26 @@
+{
+  "lib/Tribunal": {
+    "rev": "87b803ae682eac9bfefecb109759c6a3e9ed6669"
+  },
+  "lib/blocknumberish": {
+    "rev": "b911c96b35aaaa45e79715e160b295d2efd56285"
+  },
+  "lib/calibur": {
+    "rev": "84a3981c3bf51e42ebcc0a6c327b432e05b89376"
+  },
+  "lib/forge-std": {
+    "rev": "1de6eecf821de7fe2c908cc48d3ab3dced20717f"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "e50c24f5839db17f46991478384bfda14acfb830"
+  },
+  "lib/permit2": {
+    "rev": "576f549a7351814f112edcc42f3f8472d1712673"
+  },
+  "lib/solarray": {
+    "rev": "0625e7e4369eb299753fcb90a3cd7ffb91e1b5bc"
+  },
+  "lib/solmate": {
+    "rev": "27545b09183a9852f7655535d3c56f1ca46f018d"
+  }
+}

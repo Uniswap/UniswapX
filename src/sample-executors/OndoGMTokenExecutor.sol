@@ -22,6 +22,21 @@ import {IGMTokenManager, Quote, QuoteSide} from "../external/IGMTokenManager.sol
 ///      share the same `executeWithCallback`/`reactorCallback` flow, so one executor (pinned to a
 ///      single reactor) works for any of them.
 ///
+///      Funding model. The stablecoin deposited to Ondo on a mint (`OndoFill.stableToken` /
+///      `stableAmount`) is sourced from THIS contract's balance — the contract never assumes it
+///      came from the swapper. Two modes follow from that:
+///        1. Swapper-funded (inventory-free): the order input IS the stablecoin Ondo wants, so the
+///           swapper's input (pulled in by `_prepare`) funds the mint directly. Nothing is parked
+///           here. This is the canonical buy-GM order.
+///        2. Inventory-funded: the swapper pays a non-stable input (e.g. WETH). This contract fronts
+///           the stablecoin from its own pre-funded balance to mint, and RETAINS the swapper's input
+///           token as filler inventory (the owner rebalances/sweeps it out-of-band via
+///           `withdrawERC20`). This keeps the executor swap-free at the cost of holding stablecoin
+///           inventory; sourcing the stablecoin just-in-time (a swap leg or flash loan) is a
+///           separate extension, intentionally not done here.
+///      Redeem is symmetric: the swapper's GM token (input) is redeemed for stablecoin, which is
+///      delivered as the output; any surplus stays as filler margin.
+///
 ///      NOT handled here (production prerequisites, out of scope for this example):
 ///      - GM tokens are permissioned. The reactor -> swapper transfer in `_fill` will revert unless
 ///        the swapper is on Ondo's transfer allowlist. The filler must ensure swapper eligibility.
@@ -101,8 +116,10 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
         OndoFill memory fill = abi.decode(callbackData, (OndoFill));
 
         if (fill.action == Action.MINT) {
-            // Buy side: deposit stablecoin -> mint GM token. The swapper's stablecoin input is
-            // already in this contract; approve it to the GM token manager and mint.
+            // Buy side: deposit stablecoin -> mint GM token. `fill.stableToken` is sourced from THIS
+            // contract's balance regardless of what the swapper paid: it may be the swapper's input
+            // (pulled in by _prepare when the input is the stablecoin), or pre-funded inventory when
+            // the swapper paid a non-stable input. The order's input token is intentionally not read.
             ERC20(fill.stableToken).safeApprove(address(gmTokenManager), fill.stableAmount);
             gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
             // The minted GM token is the order output; approve it to the reactor for `_fill`.

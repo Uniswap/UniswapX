@@ -60,6 +60,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
 
     MockERC20 gmToken; // e.g. AAPLon
     MockERC20 stable; // e.g. USDC
+    MockERC20 nonStable; // e.g. WETH (a non-stable order input)
 
     function setUp() public {
         vm.warp(1000);
@@ -70,6 +71,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         gmToken = new MockERC20("Apple GM", "AAPLon", 18);
         stable = new MockERC20("USD Coin", "USDC", 18);
+        nonStable = new MockERC20("Wrapped Ether", "WETH", 18);
 
         gmManager = new MockGMTokenManager(attestor);
         // seed manager inventory for both mint (GM out) and redeem (stable out)
@@ -79,9 +81,10 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         executorV2 = new OndoGMTokenExecutor(address(this), reactorV2, address(this), gmManager);
         executorV3 = new OndoGMTokenExecutor(address(this), reactorV3, address(this), gmManager);
 
-        // swapper approves permit2 for both possible input tokens
+        // swapper approves permit2 for every possible input token
         stable.forceApprove(swapper, address(permit2), type(uint256).max);
         gmToken.forceApprove(swapper, address(permit2), type(uint256).max);
+        nonStable.forceApprove(swapper, address(permit2), type(uint256).max);
     }
 
     /* ----------------------------------- MINT (buy GM token) ----------------------------------- */
@@ -176,6 +179,68 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         executorV2.withdrawERC20(gmToken, address(this));
         assertEq(gmToken.balanceOf(address(this)), minted - owed, "owner swept margin");
+    }
+
+    /* --------------------------- inventory-funded mint (non-stable input) --------------------------- */
+
+    /// @notice Option-2 funding model: the swapper pays a NON-stable input (WETH). The executor fronts
+    ///         USDC from its own pre-funded inventory to mint GM, delivers GM to the swapper, and
+    ///         retains the swapper's WETH as filler inventory (owner sweeps it via withdrawERC20).
+    ///         No swap leg, no flash loan — just executor-held stablecoin inventory.
+    function testMintFromInventory_NonStableInput_V2() public {
+        uint256 quantity = 100 * ONE; // GM tokens swapper buys
+        uint256 wethIn = 0.05 ether; // what the swapper pays (non-stable)
+        uint256 mintCost = 100 * ONE; // USDC the executor fronts to Ondo
+
+        nonStable.mint(swapper, wethIn);
+        // pre-fund the executor's own stablecoin inventory
+        stable.mint(address(executorV2), mintCost);
+
+        // order: input = WETH (from swapper), output = GM (to swapper)
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 10);
+        bytes memory cb = _mintCallback(quote, mintCost); // deposits `stable`, not the WETH input
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(nonStable)), wethIn, address(gmToken), quantity);
+
+        executorV2.execute(order, cb);
+
+        assertEq(gmToken.balanceOf(swapper), quantity, "swapper got GM tokens");
+        assertEq(nonStable.balanceOf(swapper), 0, "swapper paid WETH");
+        assertEq(nonStable.balanceOf(address(executorV2)), wethIn, "executor retained swapper's WETH");
+        assertEq(stable.balanceOf(address(executorV2)), 0, "executor's USDC inventory spent on mint");
+        assertEq(stable.balanceOf(address(gmManager)), 1_000_000 * ONE + mintCost, "manager received USDC deposit");
+
+        // owner sweeps the retained WETH out-of-band
+        executorV2.withdrawERC20(nonStable, address(this));
+        assertEq(nonStable.balanceOf(address(this)), wethIn, "owner swept retained WETH");
+    }
+
+    /// @notice Same inventory-funded mint as the V2 case, against the V3 (block-decay) reactor — the
+    ///         executor is reactor-version-agnostic, so balance-sourcing is identical.
+    function testMintFromInventory_NonStableInput_V3() public {
+        uint256 quantity = 100 * ONE; // GM tokens swapper buys
+        uint256 wethIn = 0.05 ether; // what the swapper pays (non-stable)
+        uint256 mintCost = 100 * ONE; // USDC the executor fronts to Ondo
+
+        nonStable.mint(swapper, wethIn);
+        // pre-fund the executor's own stablecoin inventory
+        stable.mint(address(executorV3), mintCost);
+
+        // order: input = WETH (from swapper), output = GM (to swapper)
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 11);
+        bytes memory cb = _mintCallback(quote, mintCost); // deposits `stable`, not the WETH input
+        SignedOrder memory order = _signV3(reactorV3, ERC20(address(nonStable)), wethIn, address(gmToken), quantity);
+
+        executorV3.execute(order, cb);
+
+        assertEq(gmToken.balanceOf(swapper), quantity, "swapper got GM tokens");
+        assertEq(nonStable.balanceOf(swapper), 0, "swapper paid WETH");
+        assertEq(nonStable.balanceOf(address(executorV3)), wethIn, "executor retained swapper's WETH");
+        assertEq(stable.balanceOf(address(executorV3)), 0, "executor's USDC inventory spent on mint");
+        assertEq(stable.balanceOf(address(gmManager)), 1_000_000 * ONE + mintCost, "manager received USDC deposit");
+
+        // owner sweeps the retained WETH out-of-band
+        executorV3.withdrawERC20(nonStable, address(this));
+        assertEq(nonStable.balanceOf(address(this)), wethIn, "owner swept retained WETH");
     }
 
     /* ----------------------------------- reverts ----------------------------------- */
