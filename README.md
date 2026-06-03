@@ -83,12 +83,6 @@ UniswapX is being deployed on Tempo (chainId `4217`) via `V3DutchOrderReactor`. 
 
 The canonical Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) is deployed on Tempo, and `V3DutchOrderReactor` binds to it via `script/DeployDutchV3.s.sol`. See that script's header comment for deploy invocation details.
 
-# DutchV3 Multi-Chain Deployment Addresses
-
-`V3DutchOrderReactor` and `OrderQuoter` are deployed across all chains the Uniswap AMM front-end supports. Both were deployed via the canonical Arachnid CREATE2 factory (`0x4e59b44847b379578588920cA78FbF26c0B4956C`). The `OrderQuoter` is a stateless lens with no constructor args, so a single global salt produces the **same address on every chain**: `0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`. The `V3DutchOrderReactor` address is mined per chain against `(PERMIT2, owner)`, where `owner` is each chain's v4 `PoolManager.owner()`.
-
-Linea (59144) is deferred — it has no v4 `PoolManager` yet. Unichain, XLayer, and Soneium converge on the same reactor address (`0x000000005aF66799D1a6317714D66800f9CA1406`) because they share the same v4 `PoolManager.owner()` (`0x2bad8182c09f50c8318d769245bea52c32be46cd`), so the same `(salt, owner, bytecode)` tuple produces the same CREATE2 address across those chains. Tempo's deployment is documented in the [Tempo](#tempo) section above.
-
 ## Ethereum Mainnet (DutchV3)
 
 | Contract                      | Address                                                                                                               | Source                                                        |
