@@ -17,6 +17,10 @@ contract MockGMTokenManager is IGMTokenManager {
     error InvalidAttestor();
     error AttestationAlreadyUsed();
     error InsufficientDeposit();
+    error InvalidQuoteSide();
+    error InvalidChainId();
+    error UserNotRegistered();
+    error UserIdMismatch(bytes32 expected, bytes32 actual);
 
     bytes32 public constant QUOTE_TYPEHASH = keccak256(
         "Quote(uint256 chainId,uint256 attestationId,bytes32 userId,address asset,uint256 price,uint256 quantity,uint256 expiration,uint8 side,bytes32 additionalData)"
@@ -26,6 +30,7 @@ contract MockGMTokenManager is IGMTokenManager {
     bytes32 public immutable DOMAIN_SEPARATOR;
 
     mapping(uint256 => bool) public usedAttestation;
+    mapping(address => bytes32) public registeredUserId;
 
     constructor(address _attestor) {
         attestor = _attestor;
@@ -40,6 +45,10 @@ contract MockGMTokenManager is IGMTokenManager {
         );
     }
 
+    function setRegisteredUserId(address account, bytes32 userId) external {
+        registeredUserId[account] = userId;
+    }
+
     /// @inheritdoc IGMTokenManager
     function mintWithAttestation(
         Quote calldata quote,
@@ -47,7 +56,9 @@ contract MockGMTokenManager is IGMTokenManager {
         address depositToken,
         uint256 depositTokenAmount
     ) external returns (uint256) {
+        if (quote.side != QuoteSide.BUY) revert InvalidQuoteSide();
         _validate(quote, signature);
+        usedAttestation[quote.attestationId] = true;
         // Require the deposit to cover the quoted USD cost (price * quantity).
         uint256 usdCost = (quote.price * quote.quantity) / 1e18;
         if (depositTokenAmount < usdCost) revert InsufficientDeposit();
@@ -64,7 +75,9 @@ contract MockGMTokenManager is IGMTokenManager {
         address receiveToken,
         uint256 minimumReceiveAmount
     ) external returns (uint256) {
+        if (quote.side != QuoteSide.SELL) revert InvalidQuoteSide();
         _validate(quote, signature);
+        usedAttestation[quote.attestationId] = true;
         uint256 usdValue = (quote.price * quote.quantity) / 1e18;
         if (usdValue < minimumReceiveAmount) revert InsufficientDeposit();
 
@@ -73,10 +86,13 @@ contract MockGMTokenManager is IGMTokenManager {
         return usdValue;
     }
 
-    function _validate(Quote calldata quote, bytes calldata signature) internal {
+    function _validate(Quote calldata quote, bytes calldata signature) internal view {
+        if (quote.chainId != block.chainid) revert InvalidChainId();
+        bytes32 userId = registeredUserId[msg.sender];
+        if (userId == bytes32(0)) revert UserNotRegistered();
+        if (userId != quote.userId) revert UserIdMismatch(userId, quote.userId);
         if (block.timestamp > quote.expiration) revert AttestationExpired();
         if (usedAttestation[quote.attestationId]) revert AttestationAlreadyUsed();
-        usedAttestation[quote.attestationId] = true;
 
         bytes32 structHash = keccak256(
             abi.encode(

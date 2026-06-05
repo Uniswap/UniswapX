@@ -44,6 +44,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
     using V3DutchOrderLib for V3DutchOrder;
 
     uint256 constant ONE = 1e18;
+    bytes32 constant EXECUTOR_USER_ID = bytes32(uint256(0xA11CE));
     address constant PROTOCOL_FEE_OWNER = address(80085);
     uint256 constant cosignerPrivateKey = 0x99999999;
 
@@ -81,6 +82,8 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         executorV2 = new OndoGMTokenExecutor(address(this), reactorV2, address(this), gmManager);
         executorV3 = new OndoGMTokenExecutor(address(this), reactorV3, address(this), gmManager);
+        gmManager.setRegisteredUserId(address(executorV2), EXECUTOR_USER_ID);
+        gmManager.setRegisteredUserId(address(executorV3), EXECUTOR_USER_ID);
 
         // swapper approves permit2 for every possible input token
         stable.forceApprove(swapper, address(permit2), type(uint256).max);
@@ -310,6 +313,95 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         executorV2.execute(order, cb);
     }
 
+    function testReverts_InvalidQuoteSideOnMint() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.SELL, address(gmToken), ONE, quantity, 6);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+
+        vm.expectRevert(MockGMTokenManager.InvalidQuoteSide.selector);
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_InvalidQuoteSideOnRedeem() public {
+        uint256 quantity = 100 * ONE;
+        uint256 proceeds = 100 * ONE;
+        gmToken.mint(swapper, quantity);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 7);
+        bytes memory cb = _redeemCallback(quote, proceeds);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(gmToken)), quantity, address(stable), proceeds);
+
+        vm.expectRevert(MockGMTokenManager.InvalidQuoteSide.selector);
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_QuoteChainIdMismatch() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 8);
+        quote.chainId = block.chainid + 1;
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+
+        vm.expectRevert(MockGMTokenManager.InvalidChainId.selector);
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_UserIdMismatch() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 9);
+        quote.userId = bytes32(uint256(0xBEEF));
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(MockGMTokenManager.UserIdMismatch.selector, EXECUTOR_USER_ID, bytes32(uint256(0xBEEF)))
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_UserNotRegistered() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+        gmManager.setRegisteredUserId(address(executorV2), bytes32(0));
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 10_000);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+
+        vm.expectRevert(MockGMTokenManager.UserNotRegistered.selector);
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_AttestationReplay() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        uint256 attestationId = 10_001;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, attestationId);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory firstOrder = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+        executorV2.execute(firstOrder, cb);
+
+        address secondSwapper = _switchSwapper(0x777777);
+        stable.mint(secondSwapper, cost);
+        SignedOrder memory secondOrder = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
+
+        vm.expectRevert(MockGMTokenManager.AttestationAlreadyUsed.selector);
+        executorV2.execute(secondOrder, cb);
+    }
+
     function testReverts_NotWhitelistedCaller() public {
         SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), ONE, address(gmToken), ONE);
         vm.prank(address(0xdead));
@@ -333,7 +425,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         return Quote({
             chainId: block.chainid,
             attestationId: attestationId,
-            userId: bytes32(0),
+            userId: EXECUTOR_USER_ID,
             asset: asset,
             price: price,
             quantity: quantity,
@@ -380,6 +472,15 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         bytes memory cb = _mintCallback(quote, cost);
         SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, asset, quantity);
         executorV2.execute(order, cb);
+    }
+
+    function _switchSwapper(uint256 newSwapperPrivateKey) internal returns (address newSwapper) {
+        newSwapper = vm.addr(newSwapperPrivateKey);
+        stable.forceApprove(newSwapper, address(permit2), type(uint256).max);
+        gmToken.forceApprove(newSwapper, address(permit2), type(uint256).max);
+        nonStable.forceApprove(newSwapper, address(permit2), type(uint256).max);
+        swapperPrivateKey = newSwapperPrivateKey;
+        swapper = newSwapper;
     }
 
     function _redeemCallback(Quote memory quote, uint256 minReceive) internal view returns (bytes memory) {
