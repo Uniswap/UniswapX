@@ -22,6 +22,9 @@ import {IGMTokenManager, Quote, QuoteSide} from "../external/IGMTokenManager.sol
 ///      share the same `executeWithCallback`/`reactorCallback` flow, so one executor (pinned to a
 ///      single reactor) works for any of them.
 ///
+///      This executor is for filling single orders. Batch execution is omitted to keep
+///      callback semantics unambiguous for one attestation quote per fill.
+///
 ///      Funding model. The stablecoin deposited to Ondo on a mint (`OndoFill.stableToken` /
 ///      `stableAmount`) is sourced from THIS contract's balance — the contract never assumes it
 ///      came from the swapper. Two modes follow from that:
@@ -104,11 +107,6 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     /// @param callbackData abi.encode(OndoFill) describing the mint/redeem to perform
     function execute(SignedOrder calldata order, bytes calldata callbackData) external onlyWhitelistedCaller {
         reactor.executeWithCallback(order, callbackData);
-    }
-
-    /// @notice Execute a batch of orders sharing the same callbackData
-    function executeBatch(SignedOrder[] calldata orders, bytes calldata callbackData) external onlyWhitelistedCaller {
-        reactor.executeBatchWithCallback(orders, callbackData);
     }
 
     /// @notice Called by the reactor mid-fill: input tokens are already held by this contract.
