@@ -130,6 +130,7 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
             // contract's balance regardless of what the swapper paid: it may be the swapper's input
             // (pulled in by _prepare when the input is the stablecoin), or pre-funded inventory when
             // the swapper paid a non-stable input. The order's input token is intentionally not read.
+            // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.stableToken), address(gmTokenManager), fill.stableAmount);
             gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
             // The minted GM token is the order output; approve it to the reactor for `_fill`.
@@ -137,6 +138,7 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
         } else {
             // Sell side: the swapper's GM token input is already in this contract; approve it to the
             // GM token manager and redeem for stablecoin.
+            // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.quote.asset), address(gmTokenManager), fill.quote.quantity);
             gmTokenManager.redeemWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
             // The received stablecoin is the order output; approve it to the reactor for `_fill`.
