@@ -370,6 +370,110 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         executorV2.execute(order, cb);
     }
 
+    function testReverts_MintOutputTokenMismatch() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 7_001);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(nonStable), quantity);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OndoGMTokenExecutor.OutputTokenMismatch.selector, address(gmToken), address(nonStable)
+            )
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_MintQuoteQuantityTooLowForOrderOutput() public {
+        uint256 quotedQuantity = 99 * ONE;
+        uint256 requiredOutputAmount = 100 * ONE;
+        uint256 cost = 99 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quotedQuantity, 7_002);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order =
+            _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), requiredOutputAmount);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OndoGMTokenExecutor.QuoteQuantityTooLow.selector, quotedQuantity, requiredOutputAmount
+            )
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_RedeemInputTokenMismatch() public {
+        uint256 quantity = 100 * ONE;
+        uint256 proceeds = 100 * ONE;
+        nonStable.mint(swapper, quantity);
+
+        Quote memory quote = _quote(QuoteSide.SELL, address(gmToken), ONE, quantity, 7_003);
+        bytes memory cb = _redeemCallback(quote, proceeds);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(nonStable)), quantity, address(stable), proceeds);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OndoGMTokenExecutor.InputTokenMismatch.selector, address(gmToken), address(nonStable)
+            )
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_RedeemOutputTokenMismatch() public {
+        uint256 quantity = 100 * ONE;
+        uint256 proceeds = 100 * ONE;
+        gmToken.mint(swapper, quantity);
+
+        Quote memory quote = _quote(QuoteSide.SELL, address(gmToken), ONE, quantity, 7_004);
+        bytes memory cb = _redeemCallback(quote, proceeds);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(gmToken)), quantity, address(nonStable), proceeds);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OndoGMTokenExecutor.OutputTokenMismatch.selector, address(stable), address(nonStable)
+            )
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_RedeemQuoteQuantityMismatchInputAmount() public {
+        uint256 inputAmount = 100 * ONE;
+        uint256 quoteQuantity = 99 * ONE;
+        uint256 proceeds = 99 * ONE;
+        gmToken.mint(swapper, inputAmount);
+
+        Quote memory quote = _quote(QuoteSide.SELL, address(gmToken), ONE, quoteQuantity, 7_005);
+        bytes memory cb = _redeemCallback(quote, proceeds);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(gmToken)), inputAmount, address(stable), proceeds);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(OndoGMTokenExecutor.QuoteQuantityMismatch.selector, quoteQuantity, inputAmount)
+        );
+        executorV2.execute(order, cb);
+    }
+
+    function testReverts_MultiOutputOrderNotSupported() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        stable.mint(swapper, cost);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken), ONE, quantity, 7_006);
+        bytes memory cb = _mintCallback(quote, cost);
+        uint256[] memory outputAmounts = new uint256[](2);
+        outputAmounts[0] = 50 * ONE;
+        outputAmounts[1] = 50 * ONE;
+        DutchOutput[] memory outputs =
+            OutputsBuilder.multipleDutch(address(gmToken), outputAmounts, outputAmounts, swapper);
+        SignedOrder memory order = _signV2WithOutputs(reactorV2, ERC20(address(stable)), cost, outputs);
+
+        vm.expectRevert(abi.encodeWithSelector(OndoGMTokenExecutor.InvalidOutputCount.selector, 2));
+        executorV2.execute(order, cb);
+    }
+
     function testReverts_QuoteChainIdMismatch() public {
         uint256 quantity = 100 * ONE;
         uint256 cost = 100 * ONE;
@@ -395,7 +499,9 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
 
         vm.expectRevert(
-            abi.encodeWithSelector(MockGMTokenManager.UserIdMismatch.selector, EXECUTOR_USER_ID, bytes32(uint256(0xBEEF)))
+            abi.encodeWithSelector(
+                MockGMTokenManager.UserIdMismatch.selector, EXECUTOR_USER_ID, bytes32(uint256(0xBEEF))
+            )
         );
         executorV2.execute(order, cb);
     }
@@ -539,6 +645,26 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
             baseInput: DutchInput(inputToken, inputAmount, inputAmount),
             baseOutputs: OutputsBuilder.singleDutch(outputToken, outputAmount, outputAmount, swapper),
             cosignerData: _buildV2CosignerData(block.timestamp + 1000),
+            cosignature: bytes("")
+        });
+        return _finalizeV2(order);
+    }
+
+    function _signV2WithOutputs(
+        V2DutchOrderReactor reactor,
+        ERC20 inputToken,
+        uint256 inputAmount,
+        DutchOutput[] memory outputs
+    ) internal view returns (SignedOrder memory) {
+        V2CosignerData memory cosignerData = _buildV2CosignerData(block.timestamp + 1000);
+        cosignerData.outputAmounts = new uint256[](outputs.length);
+
+        V2DutchOrder memory order = V2DutchOrder({
+            info: OrderInfoBuilder.init(address(reactor)).withSwapper(swapper).withDeadline(block.timestamp + 1000),
+            cosigner: vm.addr(cosignerPrivateKey),
+            baseInput: DutchInput(inputToken, inputAmount, inputAmount),
+            baseOutputs: outputs,
+            cosignerData: cosignerData,
             cosignature: bytes("")
         });
         return _finalizeV2(order);

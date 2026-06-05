@@ -54,6 +54,20 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     error MsgSenderNotReactor();
     /// @notice thrown if callback action does not match quote side
     error ActionQuoteSideMismatch();
+    /// @notice thrown if callback receives anything except one resolved order
+    error InvalidResolvedOrderCount(uint256 count);
+    /// @notice thrown if callback receives anything except one output
+    error InvalidOutputCount(uint256 count);
+    /// @notice thrown if order input token and quote asset differ
+    error InputTokenMismatch(address expected, address actual);
+    /// @notice thrown if order output token does not match expected token
+    error OutputTokenMismatch(address expected, address actual);
+    /// @notice thrown if quote quantity is below what the order requires
+    error QuoteQuantityTooLow(uint256 quoteQuantity, uint256 requiredQuantity);
+    /// @notice thrown if quote quantity does not match the order input amount
+    error QuoteQuantityMismatch(uint256 quoteQuantity, uint256 inputAmount);
+    /// @notice thrown if Ondo returns fewer tokens than required by the order
+    error InsufficientReceivedAmount(uint256 receivedAmount, uint256 requiredAmount);
 
     /// @notice Whether to mint GM tokens (buy) or redeem them (sell) during the callback
     enum Action {
@@ -112,10 +126,19 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     /// @notice Called by the reactor mid-fill: input tokens are already held by this contract.
     ///         Mint or redeem GM tokens via Ondo, then approve the output token to the reactor.
     /// @param callbackData abi.encode(OndoFill)
-    function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
-        // callbackData is provided by the filler operating this executor,
-        // so we intentionally do not cross-check it against resolvedOrders
+    function reactorCallback(ResolvedOrder[] calldata resolvedOrders, bytes calldata callbackData)
+        external
+        onlyReactor
+    {
+        if (resolvedOrders.length != 1) revert InvalidResolvedOrderCount(resolvedOrders.length);
+        ResolvedOrder calldata resolvedOrder = resolvedOrders[0];
+        if (resolvedOrder.outputs.length != 1) revert InvalidOutputCount(resolvedOrder.outputs.length);
+
+        // callbackData is supplied by the filler. We still enforce minimal invariants against the
+        // resolved order so malformed callback params fail fast instead of spending executor inventory.
         OndoFill memory fill = abi.decode(callbackData, (OndoFill));
+        address outputToken = resolvedOrder.outputs[0].token;
+        uint256 requiredOutputAmount = resolvedOrder.outputs[0].amount;
         if (
             (fill.action == Action.MINT && fill.quote.side != QuoteSide.BUY)
                 || (fill.action == Action.REDEEM && fill.quote.side != QuoteSide.SELL)
@@ -124,21 +147,39 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
         }
 
         if (fill.action == Action.MINT) {
+            if (outputToken != fill.quote.asset) revert OutputTokenMismatch(fill.quote.asset, outputToken);
+            if (fill.quote.quantity < requiredOutputAmount) {
+                revert QuoteQuantityTooLow(fill.quote.quantity, requiredOutputAmount);
+            }
             // Buy side: deposit stablecoin -> mint GM token. `fill.stableToken` is sourced from THIS
             // contract's balance regardless of what the swapper paid: it may be the swapper's input
             // (pulled in by _prepare when the input is the stablecoin), or pre-funded inventory when
             // the swapper paid a non-stable input. The order's input token is intentionally not read.
             // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.stableToken), address(gmTokenManager), fill.stableAmount);
-            gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
+            uint256 mintedAmount =
+                gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
+            if (mintedAmount < requiredOutputAmount) {
+                revert InsufficientReceivedAmount(mintedAmount, requiredOutputAmount);
+            }
             // The minted GM token is the order output; approve it to the reactor for `_fill`.
             _approveIfNeeded(ERC20(fill.quote.asset), address(reactor), type(uint256).max);
         } else {
+            address inputToken = address(resolvedOrder.input.token);
+            if (inputToken != fill.quote.asset) revert InputTokenMismatch(fill.quote.asset, inputToken);
+            if (outputToken != fill.stableToken) revert OutputTokenMismatch(fill.stableToken, outputToken);
+            if (fill.quote.quantity != resolvedOrder.input.amount) {
+                revert QuoteQuantityMismatch(fill.quote.quantity, resolvedOrder.input.amount);
+            }
             // Sell side: the swapper's GM token input is already in this contract; approve it to the
             // GM token manager and redeem for stablecoin.
             // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.quote.asset), address(gmTokenManager), fill.quote.quantity);
-            gmTokenManager.redeemWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
+            uint256 receivedAmount =
+                gmTokenManager.redeemWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
+            if (receivedAmount < requiredOutputAmount) {
+                revert InsufficientReceivedAmount(receivedAmount, requiredOutputAmount);
+            }
             // The received stablecoin is the order output; approve it to the reactor for `_fill`.
             _approveIfNeeded(ERC20(fill.stableToken), address(reactor), type(uint256).max);
         }
