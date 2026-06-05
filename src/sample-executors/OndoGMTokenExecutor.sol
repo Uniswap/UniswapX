@@ -24,6 +24,9 @@ import {IGMTokenManager, Quote, QuoteSide} from "../external/IGMTokenManager.sol
 ///
 ///      This executor is for filling single orders. Batch execution is omitted to keep
 ///      callback semantics unambiguous for one attestation quote per fill.
+///      It also assumes protocol fee output injection is disabled on the configured reactor.
+///      BaseReactor can append fee outputs before callback; because this executor enforces
+///      exactly one output, enabling protocol fee outputs will intentionally make fills revert.
 ///
 ///      Funding model. The stablecoin deposited to Ondo on a mint (`OndoFill.stableToken` /
 ///      `stableAmount`) is sourced from THIS contract's balance — the contract never assumes it
@@ -132,6 +135,8 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     {
         if (resolvedOrders.length != 1) revert InvalidResolvedOrderCount(resolvedOrders.length);
         ResolvedOrder calldata resolvedOrder = resolvedOrders[0];
+        // Single-output invariant for this reference executor: if protocol fees append extra
+        // outputs in BaseReactor._prepare, revert instead of silently under-provisioning `_fill`.
         if (resolvedOrder.outputs.length != 1) revert InvalidOutputCount(resolvedOrder.outputs.length);
 
         // callbackData is supplied by the filler. We still enforce minimal invariants against the
@@ -155,7 +160,6 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
             // contract's balance regardless of what the swapper paid: it may be the swapper's input
             // (pulled in by _prepare when the input is the stablecoin), or pre-funded inventory when
             // the swapper paid a non-stable input. The order's input token is intentionally not read.
-            // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.stableToken), address(gmTokenManager), fill.stableAmount);
             uint256 mintedAmount =
                 gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
@@ -173,7 +177,6 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
             }
             // Sell side: the swapper's GM token input is already in this contract; approve it to the
             // GM token manager and redeem for stablecoin.
-            // Account for protocol fees if needed.
             _approveIfNeeded(ERC20(fill.quote.asset), address(gmTokenManager), fill.quote.quantity);
             uint256 receivedAmount =
                 gmTokenManager.redeemWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
