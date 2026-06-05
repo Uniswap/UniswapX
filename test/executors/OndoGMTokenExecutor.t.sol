@@ -28,6 +28,7 @@ import {V3DutchInput} from "../../src/lib/V3DutchOrderLib.sol";
 
 import {MockERC20} from "../util/mock/MockERC20.sol";
 import {MockGMTokenManager} from "../util/mock/MockGMTokenManager.sol";
+import {MockUSDTApproveToken} from "../util/mock/MockUSDTApproveToken.sol";
 import {DeployPermit2} from "../util/DeployPermit2.sol";
 import {OrderInfoBuilder} from "../util/OrderInfoBuilder.sol";
 import {OutputsBuilder} from "../util/OutputsBuilder.sol";
@@ -120,6 +121,33 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
 
         assertEq(gmToken.balanceOf(swapper), quantity, "swapper got GM tokens");
         assertEq(stable.balanceOf(swapper), 0, "swapper spent stable");
+    }
+
+    function testMintBuyGmToken_V2_DoesNotReapproveMaxForUSDTLikeOutput() public {
+        uint256 quantity = 100 * ONE;
+        uint256 cost = 100 * ONE;
+        address firstSwapper = swapper;
+
+        MockUSDTApproveToken usdtLikeGmToken = new MockUSDTApproveToken("Apple GM", "AAPLon", 18);
+        usdtLikeGmToken.mint(address(gmManager), 1_000_000 * ONE);
+        stable.mint(firstSwapper, cost);
+
+        _executeV2MintOrder(address(usdtLikeGmToken), cost, quantity, 1000);
+
+        assertEq(usdtLikeGmToken.allowance(address(executorV2), address(reactorV2)), type(uint256).max);
+
+        uint256 secondSwapperPrivateKey = 0x556677;
+        address secondSwapper = vm.addr(secondSwapperPrivateKey);
+        stable.forceApprove(secondSwapper, address(permit2), type(uint256).max);
+        stable.mint(secondSwapper, cost);
+        swapperPrivateKey = secondSwapperPrivateKey;
+        swapper = secondSwapper;
+
+        _executeV2MintOrder(address(usdtLikeGmToken), cost, quantity, 1001);
+
+        assertEq(usdtLikeGmToken.balanceOf(firstSwapper), quantity, "first swapper got GM tokens");
+        assertEq(usdtLikeGmToken.balanceOf(secondSwapper), quantity, "second swapper got GM tokens");
+        assertEq(usdtLikeGmToken.allowance(address(executorV2), address(reactorV2)), type(uint256).max);
     }
 
     /* --------------------------------- REDEEM (sell GM token) --------------------------------- */
@@ -345,6 +373,13 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
                 stableAmount: depositAmount
             })
         );
+    }
+
+    function _executeV2MintOrder(address asset, uint256 cost, uint256 quantity, uint256 attestationId) internal {
+        Quote memory quote = _quote(QuoteSide.BUY, asset, ONE, quantity, attestationId);
+        bytes memory cb = _mintCallback(quote, cost);
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, asset, quantity);
+        executorV2.execute(order, cb);
     }
 
     function _redeemCallback(Quote memory quote, uint256 minReceive) internal view returns (bytes memory) {

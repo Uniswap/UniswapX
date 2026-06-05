@@ -120,18 +120,30 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
             // contract's balance regardless of what the swapper paid: it may be the swapper's input
             // (pulled in by _prepare when the input is the stablecoin), or pre-funded inventory when
             // the swapper paid a non-stable input. The order's input token is intentionally not read.
-            ERC20(fill.stableToken).safeApprove(address(gmTokenManager), fill.stableAmount);
+            _approveIfNeeded(ERC20(fill.stableToken), address(gmTokenManager), fill.stableAmount);
             gmTokenManager.mintWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
             // The minted GM token is the order output; approve it to the reactor for `_fill`.
-            ERC20(fill.quote.asset).safeApprove(address(reactor), type(uint256).max);
+            _approveIfNeeded(ERC20(fill.quote.asset), address(reactor), type(uint256).max);
         } else {
             // Sell side: the swapper's GM token input is already in this contract; approve it to the
             // GM token manager and redeem for stablecoin.
-            ERC20(fill.quote.asset).safeApprove(address(gmTokenManager), fill.quote.quantity);
+            _approveIfNeeded(ERC20(fill.quote.asset), address(gmTokenManager), fill.quote.quantity);
             gmTokenManager.redeemWithAttestation(fill.quote, fill.signature, fill.stableToken, fill.stableAmount);
             // The received stablecoin is the order output; approve it to the reactor for `_fill`.
-            ERC20(fill.stableToken).safeApprove(address(reactor), type(uint256).max);
+            _approveIfNeeded(ERC20(fill.stableToken), address(reactor), type(uint256).max);
         }
+    }
+
+    /// @notice Sets allowance only when needed, with a zero-reset for non-standard ERC20s.
+    /// @dev Handles tokens that require allowance to be zero before setting a new non-zero value.
+    function _approveIfNeeded(ERC20 token, address spender, uint256 amount) internal {
+        uint256 currentAllowance = token.allowance(address(this), spender);
+        if (currentAllowance >= amount) return;
+
+        if (currentAllowance > 0) {
+            token.safeApprove(spender, 0);
+        }
+        token.safeApprove(spender, amount);
     }
 
     /// @notice Sweep accumulated tokens (e.g. filler margin) to a recipient. Owner only.
