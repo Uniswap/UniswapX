@@ -36,8 +36,8 @@ import {CurveBuilder} from "../util/CurveBuilder.sol";
 import {PermitSignature} from "../util/PermitSignature.sol";
 
 /// @notice Tests the OndoGMTokenExecutor JIT mint/redeem flow against both V2 and V3 Dutch reactors.
-/// @dev All tokens are 18-decimal mocks; price is USD with 18 decimals so a quote's USD value is
-///      `price * quantity / 1e18`.
+/// @dev Most tests use 18-decimal mocks. A dedicated safety test exercises a 6-decimal stablecoin path.
+///      Quotes use USD price with 18 decimals, and mock manager value math is `price * quantity / 1e18`.
 contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
     using OrderInfoBuilder for OrderInfo;
     using V2DutchOrderLib for V2DutchOrder;
@@ -151,6 +151,37 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         assertEq(usdtLikeGmToken.balanceOf(firstSwapper), quantity, "first swapper got GM tokens");
         assertEq(usdtLikeGmToken.balanceOf(secondSwapper), quantity, "second swapper got GM tokens");
         assertEq(usdtLikeGmToken.allowance(address(executorV2), address(reactorV2)), type(uint256).max);
+    }
+
+    function testMintBuyGmToken_V2_6DecimalSafety() public {
+        uint8 sixDecimals = 6;
+        uint256 quantity = 100 * 1e6;
+        uint256 cost = 100 * 1e6;
+
+        MockERC20 gmToken6 = new MockERC20("Apple GM 6", "AAPLon6", sixDecimals);
+        MockERC20 stable6 = new MockERC20("USD Coin 6", "USDC6", sixDecimals);
+
+        gmToken6.mint(address(gmManager), 1_000_000 * 1e6);
+        stable6.mint(swapper, cost);
+        stable6.forceApprove(swapper, address(permit2), type(uint256).max);
+
+        Quote memory quote = _quote(QuoteSide.BUY, address(gmToken6), ONE, quantity, 1_002);
+        bytes memory cb = abi.encode(
+            OndoGMTokenExecutor.OndoFill({
+                action: OndoGMTokenExecutor.Action.MINT,
+                quote: quote,
+                signature: _signQuoteWithKey(quote, attestorPrivateKey),
+                stableToken: address(stable6),
+                stableAmount: cost
+            })
+        );
+        SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable6)), cost, address(gmToken6), quantity);
+
+        executorV2.execute(order, cb);
+
+        assertEq(gmToken6.balanceOf(swapper), quantity, "swapper got 6-dec GM tokens");
+        assertEq(stable6.balanceOf(swapper), 0, "swapper spent 6-dec stable");
+        assertEq(stable6.balanceOf(address(gmManager)), cost, "manager received 6-dec deposit");
     }
 
     /* --------------------------------- REDEEM (sell GM token) --------------------------------- */
