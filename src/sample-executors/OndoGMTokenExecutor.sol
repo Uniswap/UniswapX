@@ -115,6 +115,8 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     ///         Mint or redeem GM tokens via Ondo, then approve the output token to the reactor.
     /// @param callbackData abi.encode(OndoFill)
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
+        // callbackData is provided by the filler operating this executor,
+        // so we intentionally do not cross-check it against resolvedOrders
         OndoFill memory fill = abi.decode(callbackData, (OndoFill));
         if (
             (fill.action == Action.MINT && fill.quote.side != QuoteSide.BUY)
