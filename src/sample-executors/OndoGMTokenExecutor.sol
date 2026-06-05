@@ -49,6 +49,8 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     error CallerNotWhitelisted();
     /// @notice thrown if reactorCallback is called by an address other than the reactor
     error MsgSenderNotReactor();
+    /// @notice thrown if callback action does not match quote side
+    error ActionQuoteSideMismatch();
 
     /// @notice Whether to mint GM tokens (buy) or redeem them (sell) during the callback
     enum Action {
@@ -114,6 +116,12 @@ contract OndoGMTokenExecutor is IReactorCallback, Owned {
     /// @param callbackData abi.encode(OndoFill)
     function reactorCallback(ResolvedOrder[] calldata, bytes calldata callbackData) external onlyReactor {
         OndoFill memory fill = abi.decode(callbackData, (OndoFill));
+        if (
+            (fill.action == Action.MINT && fill.quote.side != QuoteSide.BUY)
+                || (fill.action == Action.REDEEM && fill.quote.side != QuoteSide.SELL)
+        ) {
+            revert ActionQuoteSideMismatch();
+        }
 
         if (fill.action == Action.MINT) {
             // Buy side: deposit stablecoin -> mint GM token. `fill.stableToken` is sourced from THIS

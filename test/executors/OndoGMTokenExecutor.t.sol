@@ -313,7 +313,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         executorV2.execute(order, cb);
     }
 
-    function testReverts_InvalidQuoteSideOnMint() public {
+    function testReverts_ActionQuoteSideMismatchOnMint() public {
         uint256 quantity = 100 * ONE;
         uint256 cost = 100 * ONE;
         stable.mint(swapper, cost);
@@ -322,11 +322,11 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         bytes memory cb = _mintCallback(quote, cost);
         SignedOrder memory order = _signV2(reactorV2, ERC20(address(stable)), cost, address(gmToken), quantity);
 
-        vm.expectRevert(MockGMTokenManager.InvalidQuoteSide.selector);
+        vm.expectRevert(OndoGMTokenExecutor.ActionQuoteSideMismatch.selector);
         executorV2.execute(order, cb);
     }
 
-    function testReverts_InvalidQuoteSideOnRedeem() public {
+    function testReverts_ActionQuoteSideMismatchOnRedeem() public {
         uint256 quantity = 100 * ONE;
         uint256 proceeds = 100 * ONE;
         gmToken.mint(swapper, quantity);
@@ -335,7 +335,7 @@ contract OndoGMTokenExecutorTest is Test, PermitSignature, DeployPermit2 {
         bytes memory cb = _redeemCallback(quote, proceeds);
         SignedOrder memory order = _signV2(reactorV2, ERC20(address(gmToken)), quantity, address(stable), proceeds);
 
-        vm.expectRevert(MockGMTokenManager.InvalidQuoteSide.selector);
+        vm.expectRevert(OndoGMTokenExecutor.ActionQuoteSideMismatch.selector);
         executorV2.execute(order, cb);
     }
 
