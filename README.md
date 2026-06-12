@@ -182,6 +182,39 @@ Jump to the docs for [Creating a Filler Integration](https://docs.uniswap.org/co
 | OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explorer.zora.energy/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58) | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
 | Permit2                       | [0x000000000022D473030F116dDEE9F6B43aC78BA3](https://explorer.zora.energy/address/0x000000000022D473030F116dDEE9F6B43aC78BA3) | [Permit2](https://github.com/Uniswap/permit2)                 |
 
+## Robinhood (DutchV3)
+
+| Contract                      | Address                                      | Source                                                        |
+| ---                           | ---                                          | ---                                                           |
+| V3 Dutch Order Reactor        | 0x000000007A1C8e570011EeDF86A2A35593013cBA   | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58   | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | 0x000000000022D473030F116dDEE9F6B43aC78BA3   | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+Robinhood Chain (chainId 4663) is an Arbitrum Orbit L2, so `block.number`
+returns the parent-chain (Ethereum) block estimate. The reactor's
+[`BlockNumberish`](./src/base/BlockNumberish.sol) routes chainId 4663 through
+`ArbSys(0x64).arbBlockNumber()` — the same path as Arbitrum One — so V3 decay
+ticks on L2 block height. Explorer links pending the mainnet explorer URL;
+see [playbook/chains/robinhood.md](./playbook/chains/robinhood.md).
+
+## Arc (DutchV3)
+
+| Contract                      | Address                                      | Source                                                        |
+| ---                           | ---                                          | ---                                                           |
+| V3 Dutch Order Reactor        | 0x0000000015134054eA82AE0bb9fda66b36402C36   | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58   | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | 0x000000000022D473030F116dDEE9F6B43aC78BA3   | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+Arc (chainId 5042) is Circle's stablecoin-native L1: USDC is the gas token,
+exposed natively at 18 decimals and as a 6-decimal ERC-20 predeploy at
+`0x3600000000000000000000000000000000000000` over the same balance. Orders
+must use the ERC-20 address (the API rejects the `0x0` native sentinel —
+there is no wrapped token, and mixing the two representations is a silent
+1e12 decimals error). `block.basefee` is constant (20 gwei in native-USDC
+wei), so `adjustmentPerGweiBaseFee` is set to 0 at order construction.
+Explorer links pending Arcscan mainnet; see
+[playbook/chains/arc.md](./playbook/chains/arc.md).
+
 # Usage
 
 ```

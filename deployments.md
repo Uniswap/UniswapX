@@ -21,6 +21,14 @@ Deployed by `0x2179a60856E37dfeAacA0ab043B931fE224b27B6` on **2026-05-07**
 that ran into a mainnet gas-limit issue, and Tempo's pre-existing OrderQuoter
 from ECO-365 phase 1b).
 
+**Robinhood (4663) + Arc (5042)** deployed by
+`0xA53247dEeC5884B5A10667dee1C378e729a93e03` on **2026-06-12**. Robinhood's
+reactor is built from post-`BlockNumberish`-4663 bytecode (Robinhood is an
+Arbitrum Orbit chain; decay reads `ArbSys.arbBlockNumber()`), so its
+creationCode — and therefore any future chain's mined salt — differs from the
+17 chains deployed before that change. Arc's reactor was mined and deployed
+against the pre-change bytecode. See `playbook/chains/{robinhood,arc}.md`.
+
 ## OrderQuoter address
 
 Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
@@ -37,6 +45,8 @@ Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
 | Worldchain | 480 | ✅ deployed | ✅ Etherscan |
 | Soneium | 1868 | ✅ deployed | ✅ Sourcify (Blockscout) |
 | Tempo | 4217 | ✅ pre-existing (ECO-365 phase 1b) | ✅ Sourcify |
+| Robinhood | 4663 | ✅ deployed 2026-06-12 | ❌ (mainnet explorer URL not yet published) |
+| Arc | 5042 | ✅ deployed 2026-06-12 | ❌ (Arcscan mainnet verifier not yet confirmed) |
 | Base | 8453 | ✅ deployed (recovered after a transient Cloudflare 502) | ✅ Etherscan |
 | Arbitrum | 42161 | ✅ deployed | ✅ Etherscan |
 | Celo | 42220 | ✅ deployed | ✅ Etherscan |
@@ -59,6 +69,8 @@ Same address on every chain: **`0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`**.
 | Worldchain | 480 | [`0x00000000d714EA34028930b762E96bFBe50F42C2`](https://worldscan.org/address/0x00000000d714EA34028930b762E96bFBe50F42C2) | `0xcb2436774C3e191c85056d248EF4260ce5f27A9D` | ✅ |
 | Soneium | 1868 | [`0x000000005aF66799D1a6317714D66800f9CA1406`](https://soneium.blockscout.com/address/0x000000005aF66799D1a6317714D66800f9CA1406) | `0x2bad8182c09f50c8318d769245bea52c32be46cd` | ✅ |
 | Tempo | 4217 | [`0x00000000fc1E66C9f582566EAd00108e55F1c0C6`](https://explorer.tempo.xyz/address/0x00000000fc1E66C9f582566EAd00108e55F1c0C6) | `0xCFB43dC56B55bE9611deD8384201cECf06A9811b` | 🟡 Sourcify (explorer ingest unconfirmed) |
+| Robinhood | 4663 | `0x000000007A1C8e570011EeDF86A2A35593013cBA` | `0x2bad8182c09f50c8318d769245bea52c32be46cd` | ❌ (explorer TBD) |
+| Arc | 5042 | `0x0000000015134054eA82AE0bb9fda66b36402C36` | `0x33f26c5d69e2c40956f22c6195b6a499cf4151e8` | ❌ (explorer TBD) |
 | Base | 8453 | [`0x000000008a8330B5d1F43A62Bf4C673A49f27ba0`](https://basescan.org/address/0x000000008a8330B5d1F43A62Bf4C673A49f27ba0) | `0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9` | ✅ |
 | Arbitrum | 42161 | [`0xB274d5F4b833b61B340b654d600A864fB604a87c`](https://arbiscan.io/address/0xB274d5F4b833b61B340b654d600A864fB604a87c) | (see uniswapx-sdk) | ✅ (pre-existing) |
 | Celo | 42220 | [`0x00000000B8077fdf2281A80bE96f6c282B5d943A`](https://celoscan.io/address/0x00000000B8077fdf2281A80bE96f6c282B5d943A) | `0x0Eb863541278308c3A64F8E908BC646e27BFD071` | ✅ |
@@ -90,6 +102,8 @@ chains.
 | Worldchain | 480 | `0x540948dcd8e6b2dca528a1f562aafa579199ba6ee0ce0a8001cb0e05950117f4` |
 | Soneium | 1868 | `0xcb5a9516b309b1ab2e12992058f2480b4773bbf5f851ea689331ab25c13b6dce` |
 | Tempo | 4217 | `0x5e97c535dc39893f883c8c96ba29f49a7a911d6fd2c584c3b3e02ece1cedb92d` |
+| Robinhood | 4663 | `0xc9abd2162ed894365b5190cb55048bbb9e29b4d1fd448eef999d7e66f34e4e6b` (quoter: `0xe9ebd4c203f899a57dce7b87f10e2a4f94a94489736747462e43de52b4cd24fc`) |
+| Arc | 5042 | `0x9362b52b9b93f7b01e680d43d6f6c7355b0f832148617abfbbcd3a029409c096` (quoter: `0xd2c470b6df102890d28820bb34d0c48d7499a1a3d1df4921da2fb79842140646`) |
 | Base | 8453 | `0xef1b4c1893bba99de9f5f56d1e2f0c9850424ecea2875ae16e95598ce9ab5d09` |
 | Celo | 42220 | `0x02f1c4477908154ab7eac35d95757b57ba9ec04ec944b54c58667f03baf3b760` |
 | Avalanche | 43114 | `0x1ee85f6ea0dc5b7c83f7e7a3d107391022dd1aee0f0fad8483f2b64a1c970afe` |
