@@ -112,9 +112,10 @@ chains.
 
 ## Integration test results
 
-All 16 reactor instances were exercised with the V3 Dutch order integration
+All 18 reactor instances were exercised with the V3 Dutch order integration
 suite (`test/integration/V3DutchOrderIntegration.t.sol`) against their
-respective chain's public RPC, fork pinned to current-block-minus-50:
+respective chain's public RPC, fork pinned to current-block-minus-50
+(Robinhood + Arc added 2026-06-23):
 
 ```
 FOUNDRY_RPC_URL=<chain rpc>
@@ -134,10 +135,11 @@ local EVM). The `OrderQuoter` lens is the real on-chain instance at
 quoter deploy made the fork-deploy fallback that earlier versions of the
 test had unnecessary.
 
-Arbitrum requires a `vm.mockCall` on the ArbSys precompile (`0x64`) since
-the reactor's `BlockNumberish` mixin captures chainid 42161 at deploy time
-and routes block-number reads through ArbSys, which Foundry's local EVM
-doesn't implement.
+Arbitrum One and Robinhood require a `vm.mockCall` on the ArbSys precompile
+(`0x64`) since the reactor's `BlockNumberish` mixin captures the chainid at
+deploy time and routes block-number reads through ArbSys on those chains
+(42161 and 4663 — both Arbitrum Orbit), which Foundry's local EVM doesn't
+implement.
 
 | Chain | ID | Reactor | Tests |
 |---|---|---|---|
@@ -151,6 +153,8 @@ doesn't implement.
 | Worldchain | 480 | `0x00000000d714EA34028930b762E96bFBe50F42C2` | ✅ 6/6 |
 | Soneium | 1868 | `0x000000005aF66799D1a6317714D66800f9CA1406` | ✅ 6/6 |
 | Tempo | 4217 | `0x00000000fc1E66C9f582566EAd00108e55F1c0C6` | ✅ 6/6 |
+| Robinhood | 4663 | `0x000000007A1C8e570011EeDF86A2A35593013cBA` | ✅ 6/6 |
+| Arc | 5042 | `0x0000000015134054eA82AE0bb9fda66b36402C36` | ✅ 6/6 |
 | Base | 8453 | `0x000000008a8330B5d1F43A62Bf4C673A49f27ba0` | ✅ 6/6 |
 | Arbitrum | 42161 | `0xB274d5F4b833b61B340b654d600A864fB604a87c` | ✅ 6/6 |
 | Celo | 42220 | `0x00000000B8077fdf2281A80bE96f6c282B5d943A` | ✅ 6/6 |

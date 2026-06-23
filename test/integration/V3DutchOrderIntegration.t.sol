@@ -151,15 +151,15 @@ contract V3DutchOrderIntegrationTest is Test, PermitSignature {
         quoter = OrderQuoter(payable(quoterAddr));
         permit2 = IPermit2(CANONICAL_PERMIT2);
 
-        // Arbitrum-only: the reactor's `BlockNumberish` mixin captures the
-        // chainid at deploy time and routes block-number reads through the
-        // ArbSys precompile (0x64) on chain 42161. Foundry's local EVM
-        // doesn't implement Arbitrum precompiles, so any forked call from
-        // the reactor that needs a block number reverts with InvalidFEOpcode.
-        // Mock the precompile to return the L1 block number — the test
-        // orders don't have meaningful decay (start == end), so the value
-        // only needs to be non-reverting and monotonic.
-        if (block.chainid == 42161) {
+        // Arbitrum Orbit chains: the reactor's `BlockNumberish` mixin captures
+        // the chainid at deploy time and routes block-number reads through the
+        // ArbSys precompile (0x64) on Arbitrum One (42161) and Robinhood
+        // (4663). Foundry's local EVM doesn't implement Arbitrum precompiles,
+        // so any forked call from the reactor that needs a block number reverts
+        // with InvalidFEOpcode. Mock the precompile to return the L1 block
+        // number — the test orders don't have meaningful decay (start == end),
+        // so the value only needs to be non-reverting and monotonic.
+        if (block.chainid == 42161 || block.chainid == 4663) {
             vm.mockCall(address(0x64), abi.encodeWithSignature("arbBlockNumber()"), abi.encode(block.number));
         }
 
