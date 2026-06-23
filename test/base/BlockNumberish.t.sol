@@ -32,4 +32,12 @@ contract BlockNumberishTest is Test {
         arbSys.setBlockNumber(1);
         assertEq(blockNumberish.getBlockNumberish(), 1);
     }
+
+    function test_getBlockNumberSyscall_robinhood() public {
+        vm.chainId(4663);
+        blockNumberish = new MockBlockNumberish();
+
+        arbSys.setBlockNumber(7);
+        assertEq(blockNumberish.getBlockNumberish(), 7);
+    }
 }

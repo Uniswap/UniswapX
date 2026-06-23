@@ -103,6 +103,29 @@
       "gasEstimateMultiplier": 500,
       "_gasNote": "Tempo charges ~1000 gas/byte for code deposit vs 200 on standard EVM, so forge's default 130% gas estimate is short of actual on-chain cost. 5x ensures the broadcast tx has enough gas headroom to deposit the runtime code. Other chains use forge's default."
     },
+    "4663": {
+      "name": "robinhood",
+      "poolManager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x00000000000000000000000000000000000000001585866b75f2b774c6520080",
+      "expectedReactor": "0x000000007A1C8e570011EeDF86A2A35593013cBA",
+      "minedAt": "2026-06-12T23:10:10Z",
+      "_ownerSource": "PoolManager.owner() verified live 2026-06-12. Owner is the canonical 0x2bad...46cd but has NO code on Robinhood (deploy script warns EOA-on-chain; same situation as other canonical-owner chains).",
+      "_saltNote": "Salt mined against POST-BlockNumberish-4663 bytecode (Robinhood is Arbitrum Orbit; src/base/BlockNumberish.sol routes 4663 through ArbSys). This reactor's creationCode differs from the 17 chains deployed before the 4663 branch — do not expect address parity. Future chains must also mine against the new bytecode; the canonical Tempo salt is retired.",
+      "_deployNote": "DEPLOYED 2026-06-12 (reactor + canonical OrderQuoter 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58). See playbook/chains/robinhood.md.",
+      "minedZeroBytes": "4 leading + 5 total"
+    },
+    "5042": {
+      "name": "arc",
+      "poolManager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+      "owner": "0x33f26c5d69e2c40956f22c6195b6a499cf4151e8",
+      "salt": "0x0000000000000000000000000000000000000000179cec38645d390d013a0040",
+      "expectedReactor": "0x0000000015134054eA82AE0bb9fda66b36402C36",
+      "minedAt": "2026-06-12T22:57:34Z",
+      "_ownerSource": "PoolManager.owner() verified live 2026-06-12; owner is a contract on Arc (171-byte proxy, likely Safe). NOT the canonical owner — canonical salt does not apply; fresh pair mined via scripts/mine-salt.sh 5042.",
+      "_deployNote": "DEPLOYED 2026-06-12 (reactor + canonical OrderQuoter 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58). Mined and deployed against pre-BlockNumberish-4663 bytecode (Arc-first ordering); the later 4663 branch does not affect this deployed reactor. Deployer gas on Arc is native USDC. See playbook/chains/arc.md.",
+      "minedZeroBytes": "4 leading + 4 total"
+    },
     "8453": {
       "name": "base",
       "poolManager": "0x498581ff718922c3f8e6a244956af099b2652b2b",

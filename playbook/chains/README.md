@@ -23,6 +23,8 @@ only.
 | Worldchain | 480 | ⏳ research | [worldchain.md](./worldchain.md) |
 | Soneium | 1868 | ⏳ research | [soneium.md](./soneium.md) |
 | Tempo | 4217 | ✅ DutchV3 live (ECO-365) | (see [../NEW_CHAIN.md §6](../NEW_CHAIN.md)) |
+| Robinhood | 4663 | 🟢 reactor + quoter deployed 2026-06-12 (post-`BlockNumberish`-4663 bytecode); service wiring pending | [robinhood.md](./robinhood.md) |
+| Arc | 5042 | 🟢 reactor + quoter deployed 2026-06-12; service wiring pending | [arc.md](./arc.md) |
 | Base | 8453 | ⏳ research | [base.md](./base.md) |
 | Arbitrum | 42161 | ✅ DutchV3 live (Arbitrum was the first V3 chain) | (skip) |
 | Celo | 42220 | ⏳ research | [celo.md](./celo.md) |

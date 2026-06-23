@@ -11,11 +11,15 @@ contract BlockNumberish {
     function() view returns (uint256) internal immutable _getBlockNumberish;
 
     uint256 private constant ARB_CHAIN_ID = 42161;
+    // Robinhood Chain is an Arbitrum Orbit L2: same split block-number
+    // semantics as Arbitrum One (block.number returns the parent-chain
+    // estimate; ArbSys returns the L2 height).
+    uint256 private constant ROBINHOOD_CHAIN_ID = 4663;
     address private constant ARB_SYS_ADDRESS = 0x0000000000000000000000000000000000000064;
 
     constructor() {
         // Set the function to use based on chainid
-        if (block.chainid == ARB_CHAIN_ID) {
+        if (block.chainid == ARB_CHAIN_ID || block.chainid == ROBINHOOD_CHAIN_ID) {
             _getBlockNumberish = _getBlockNumberSyscall;
         } else {
             _getBlockNumberish = _getBlockNumber;
