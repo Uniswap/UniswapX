@@ -272,22 +272,35 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
 
 ### 3.6 `b/packages/services/trading` (Trading API)
 
-**Files:** `src/models/chain.ts`, `src/api/quote/schema.ts`, `src/lib/util/dutch.ts`, `src/lib/constants.ts`, `src/core/order-factory/dutch/DutchV3OrderFactory.ts`, `src/core/quoters/rfq/RFQQuoter.ts`
+**Files:** `src/models/chain.ts`, `src/lib/constants.ts`, `src/core/order-factory/dutch/DutchV3OrderFactory.ts`, `src/api/quote/schema.ts`
 
-- `src/models/chain.ts`: add `ChainId.<CHAIN>` to `UNISWAPX_SUPPORTED_CHAIN_IDS`. Add a `CHAIN_INFO_MAP` entry: `blockTimeMs`, `pollingIntervalMs`, `orderTypeOverrides[OrderType.DUTCH_V3].deadlineBufferSecs` tuned to the chain.
-- **If the chain has no native token**: do **not** populate `WRAPPED_NATIVE_CURRENCY[CHAIN]`. Don't pick "the closest stablecoin" as a stand-in — that misleads clients. Instead, in `src/api/quote/schema.ts`, hard-reject requests with `tokenIn === '0x0000000000000000000000000000000000000000'` or `tokenOut === '0x0...'` for that chain at the API boundary. Defense in depth above the reactor.
-- `src/lib/constants.ts`: add the chain to `GAS_COMPARISON_MULTIPLIER_BY_CHAIN`. Default is `1.0`; for chains where gas is sub-cent regardless of conditions (Tempo's constant `2e10` attodollars/gas), set to `0`. The `compareQuotes` function in `src/lib/util/dutch.ts` reads this multiplier when comparing RFQ vs Classic quotes.
-- `src/lib/constants.ts`: add the chain to `V3_BLOCK_LENGTH_BY_CHAIN` (e.g., Tempo `60` = 30s wallclock at 500ms blocks).
-- `src/core/order-factory/dutch/DutchV3OrderFactory.ts`: for chains where basefee is constant or non-wei, set `adjustmentPerGweiBaseFee = 0` on V3 inputs and outputs. **This is the actual lever** — these fields are on the swapper-signed `UnsignedV3DutchOrderInfo`, NOT on the cosigner data, so they must be set at order construction time, not by the cosigner. (This is Correction B — see below.)
-- `src/core/quoters/rfq/RFQQuoter.ts`: ensure the protocol-version mapping advertises `UNISWAPX_V3` for the chain, not V2.
-- Feature flag: gate the chain behind a `disable_uniswapx_<chain>` flag in the config-service registry (look for the existing `disable_uniswapx` flag for the pattern). Default-active = OFF until launch. Single runtime step to enable: set the parameter to `{"threshold": 0}`.
+> ⚠️ **This repo drifted hard from earlier versions of this playbook.** The symbols the old playbook named (`UNISWAPX_SUPPORTED_CHAIN_IDS`, `GAS_COMPARISON_MULTIPLIER_BY_CHAIN`, `V3_BLOCK_LENGTH_BY_CHAIN`, a per-chain `disable_uniswapx_<chain>` flag) **no longer exist**. The steps below are the actual current ones (verified during the Robinhood 4663 / Arc 5042 rollout, ECO follow-on). Always re-verify against `main` — grep, don't trust this list blindly.
+
+**There are TWO independent gates, and you must flip BOTH. Missing the second one is the bug we shipped (RFQ silently never fires — see Correction G):**
+
+1. **`CHAIN_INFO_MAP` entry (`src/models/chain.ts`) — order *construction*.** Add `[OrderType.DUTCH_V3]: DEFAULT_DUTCH_V3_ORDER_OVERRIDE` to the chain's `orderTypeOverrides`, plus `blockTimeMs`. Mirror an existing sub-second V3 chain (Tempo). Without it, `DutchV3OrderFactory` can't build the order.
+2. **`UNISWAPX_V3_ROLLOUT_CHAINS` (`src/models/chain.ts`) — RFQ *serving*.** Add `ChainId.<CHAIN>`. This is the allowlist `UNISWAPX_ROUTING_RULES` gates on. Without it, `selectApplicableUniswapXRules` finds no rule → serves `UNISWAPX_VERSION_NONE` → the quote degrades to AMM-only and **`RFQQuoter` is never invoked**. This is the modern equivalent of the old "feature flag" step.
+   - Explicit `UNISWAPX_V3` requests (integrator opt-in) then serve V3 **ungated** — RFQ fires on deploy.
+   - `UNISWAPX_LATEST` (Uniswap frontend) traffic is sampled behind the global `ConfigKey.UNISWAPX_V3_ROLLOUT` FeatureFlag. Confirm that flag's threshold for frontend exposure; explicit-V3 callers don't depend on it.
+
+**Other per-chain settings:**
+- `src/lib/constants.ts` → `CONSTANT_BASE_FEE_CHAINS`: add the chain **only if its base fee is fixed** (Tempo, Arc). `DutchV3OrderFactory` reads `hasConstantBaseFee(chainId)` and sets `adjustmentPerGweiBaseFee = 0` (Correction B). A chain on real EIP-1559 — even one usually pinned at a floor, like Robinhood — does **not** go here.
+- **Native sentinel for no-native chains**: the current code **rewrites** `0x0` → the chain's canonical ERC-20 via `NATIVE_CURRENCY_ADDRESSES_PER_CHAIN[CHAIN]` in `src/api/quote/schema.ts` (for both tokenIn and tokenOut), rather than hard-rejecting. Add that mapping entry (mirror Celo/Tempo). For Arc this maps to the 6-decimal USDC ERC-20 — same safety goal (no decimal ambiguity), different mechanism than the old "reject" advice.
+
+**No longer needed (the code became generic — do NOT re-add per-chain entries):**
+- **Block length**: `getV3BlockLength(chainId) = secondsToBlocks(V3_DECAY_DURATION_SECS, chainId)` derives from sdk-core's per-chain block time. No `V3_BLOCK_LENGTH_BY_CHAIN`.
+- **Gas comparison**: derives from the classic routing quote's gas-adjusted amounts. No `GAS_COMPARISON_MULTIPLIER_BY_CHAIN`.
+- **RFQQuoter protocol version**: request-driven (`protocolToProtocolVersion(params.protocols)`), not per-chain.
+- **`WRAPPED_NATIVE_CURRENCY`**: only for chains with a real native token.
+
+**Dependency bumps (easy to miss — both downstream-pinned, see Correction H):**
+- Bump `@uniswap/sdk-core` to a version that contains the chain's `ChainId` **and** its `AVERAGE_BLOCK_TIMES_SECONDS` entry (`getV3BlockLength`/`getV3BlockLengthOrUndefined` throw/skip without it).
+- Bump `@uniswap/uniswapx-sdk` to the release carrying the new chain's `REACTOR_ADDRESS_MAPPING` entry.
 
 **Tests** to add per chain:
-- `compareQuotes` zeros out gas adjustment when `chainId === <CHAIN>` (if multiplier is 0).
-- API rejects native-sentinel inputs for the chain.
-- `DutchV3OrderFactory` constructs valid orders for the chain with the right `adjustmentPerGweiBaseFee` value.
-- Protocol-version mapping returns V3 for the chain.
-- `WrapUnwrapOrder.test.ts` iterates `CHAINID_NUMBERS`; if the chain has no native, filter it out (mirror the existing Celo handling).
+- Routing: explicit `UNISWAPX_V3` resolves to `UNISWAPX_V3` for the chain (`uniswapxRouting.test.ts`) — guards gate #2.
+- `getV3BlockLength` returns the expected count; `hasConstantBaseFee` returns the right value (`constants.test.ts`).
+- If the chain has no native, `WrapUnwrap*` chain iteration excludes it (mirror existing Celo/Tempo handling).
 
 ---
 
@@ -325,6 +338,34 @@ For chains with no native token, do **not** set `WRAPPED_NATIVE_CURRENCY[CHAIN] 
 ### Correction F: Don't worry about state-creation gas overhead
 
 Chains with elevated state-creation costs (Tempo: 12.5×) sound scary but are economically immaterial when basefee is sub-cent. 250K gas × `2e10` attodollars/gas = $0.005. Don't over-engineer pricing for this — let fillers absorb it.
+
+### Correction G: Trading API has TWO gates — wiring DUTCH_V3 ≠ serving it (the one that bit us on Robinhood/Arc)
+
+This is the highest-value lesson in the doc. On the Robinhood/Arc rollout we deployed everything — reactors, SDK, param-api, x-service, and trading-api's `CHAIN_INFO_MAP` `DUTCH_V3` override — and **RFQ still never fired**. No errors; quotes silently came back AMM-only.
+
+Cause: trading-api gates UniswapX in **two independent places**, and we'd only flipped one:
+
+1. `CHAIN_INFO_MAP[chain].orderTypeOverrides[OrderType.DUTCH_V3]` — lets the factory **construct** a V3 order.
+2. `UNISWAPX_V3_ROLLOUT_CHAINS` (consumed by `UNISWAPX_ROUTING_RULES` / `selectApplicableUniswapXRules` in `lib/util/uniswapxRules.ts`) — decides whether to **serve/offer** UniswapX at all. If the chain isn't in this allowlist, the router serves `UNISWAPX_VERSION_NONE`, the request degrades to AMM-only, and `RFQQuoter` is never even called.
+
+You can have #1 without #2 and everything looks wired but produces zero RFQs. **Always add the chain to `UNISWAPX_V3_ROLLOUT_CHAINS` and add a routing test asserting explicit `UNISWAPX_V3` resolves to V3 for the chain.** This allowlist (+ the global `ConfigKey.UNISWAPX_V3_ROLLOUT` sampling flag for `UNISWAPX_LATEST` frontend traffic) is what the old playbook meant by "the feature flag."
+
+**Debugging note:** the `requestId` in a `/quote` response is the API-Gateway/quote ID. The RFQ sub-request to the param-api gets its **own fresh UUID** (`RFQQuoter` calls `this.uuidGenerator()`). Searching the RFQ/param-api service for the quote's requestId will never match — correlate by APM trace, swapper, or timestamp. Also note `trading` and the param-api (`goudaservice`) ship to **APM/their own log pipelines**, not the default indexed `service:` log view — search spans, and expect service-name/log-index quirks.
+
+### Correction H: Downstream repos pin SDK versions — bump them, a published SDK isn't enough
+
+`sdk-core` and `uniswapx-sdk` being published with the new chain is necessary but **not sufficient**. Each consumer (parameterization-api, x-service, trading-api) pins a specific version, and those pins are routinely stale:
+
+- On Robinhood/Arc, all three were pinned to `@uniswap/sdk-core` `7.14.0` — which predated the chains (`ChainId.ARC` undefined, `ChainId.ROBINHOOD` still the **46630 testnet** id). Code referencing `ChainId.<CHAIN>` won't compile, and `getAverageBlockTimeSecs`/`secondsToBlocks` **throw** for unregistered chains.
+- x-service additionally needs the `uniswapx-sdk` bump for `REACTOR_ADDRESS_MAPPING` — `OffChainUniswapXOrderValidator.validateReactorAddress` rejects orders whose reactor isn't in the mapping.
+
+Per repo: confirm the installed version actually resolves `ChainId.<CHAIN>` to the mainnet id and (for the SDKs) contains the block-time + reactor entries — `node -e "const {ChainId}=require('@uniswap/sdk-core');console.log(ChainId.<CHAIN>)"`. Bump the pin if not. Also mind release ordering: a published patch version can't be republished, so a follow-up SDK change needs a fresh version (we bumped `uniswapx-sdk` 3.0.8→3.0.10 after 3.0.8/3.0.9 had shipped).
+
+### Correction I: Corrections C and D are stale as of the Robinhood/Arc rollout
+
+The parameterization-api and x-service refactored since Tempo — re-verify before applying C/D:
+- **C (two ChainId places in param-api):** now a single `SUPPORTED_CHAINS` in `lib/util/chains.ts` is the source of truth for both the quote injectors and the Joi validator. `lib/config/chains.ts` no longer exists. Per-chain block config is generic via sdk-core (`getV3BlockBuffer` → `secondsToBlocks`), so a chain just needs adding to `SUPPORTED_CHAINS`.
+- **D (chain-scoped retry floor in x-service):** `calculateDutchRetryWaitSeconds` already applies a **global** `Math.max(MIN_RETRY_WAIT_SECONDS = 1, …)`, so sub-second chains can't hot-loop. No per-chain floor needed (Tempo, also sub-second, relies on the global one). Block time is sourced from sdk-core (`getAverageBlockTimeSecs`), not a per-chain `BLOCK_TIME_MS_BY_CHAIN`. x-service still needs the chain in `SUPPORTED_CHAINS` + `OLDEST_BLOCK_BY_CHAIN`; it follows the Tempo precedent of being **absent** from `PRIORITY/HYBRID_ORDER_TARGET_BLOCK_BUFFER` (V3-only chains).
 
 ---
 
@@ -377,21 +418,38 @@ All work landed across the following PRs (each links back to Linear TRA2-12):
 | `x-service` | [Uniswap/uniswapx-service#654](https://github.com/Uniswap/uniswapx-service/pull/654) |
 | `b/packages/services/trading` | [Uniswap/backend#7813](https://github.com/Uniswap/backend/pull/7813) |
 
+### Robinhood (4663) + Arc (5042) — second multi-chain rollout
+
+The reference diffs for "what a rollout actually looks like against current `main`" (more accurate than the Tempo PRs above, since several repos refactored since). Note trading-api needed **two** PRs — the second (`#9615`) is the serving gate that #9599 missed (Correction G):
+
+| Repo | PR |
+|---|---|
+| `x-contracts` (reactors + `BlockNumberish` 4663 branch) | [Uniswap/UniswapX#371](https://github.com/Uniswap/UniswapX/pull/371) |
+| `sdks/uniswapx-sdk` (reactor/quoter/exclusive-filler maps + 3.0.10) | [Uniswap/sdks#615](https://github.com/Uniswap/sdks/pull/615) |
+| `x-parameterization-api` (SUPPORTED_CHAINS + sdk-core bump) | [Uniswap/uniswapx-parameterization-api#457](https://github.com/Uniswap/uniswapx-parameterization-api/pull/457) |
+| `x-service` (SUPPORTED_CHAINS, OLDEST_BLOCK, sdk-core + uniswapx-sdk bumps) | [Uniswap/uniswapx-service#685](https://github.com/Uniswap/uniswapx-service/pull/685) |
+| `b/packages/services/trading` (CHAIN_INFO_MAP + CONSTANT_BASE_FEE + sdk bump) | [Uniswap/backend#9599](https://github.com/Uniswap/backend/pull/9599) |
+| `b/packages/services/trading` (**serving gate** — `UNISWAPX_V3_ROLLOUT_CHAINS`) | [Uniswap/backend#9615](https://github.com/Uniswap/backend/pull/9615) |
+
+sdk-core was a no-op (both `ChainId`s already shipped). Robinhood is Arbitrum Orbit → needed a `BlockNumberish` 4663 branch (ArbSys block number) + a fresh mined salt; Arc is a non-canonical owner so also got its own mined salt. Both chains' per-chain research lives in [`chains/robinhood.md`](./chains/robinhood.md) and [`chains/arc.md`](./chains/arc.md).
+
 ---
 
-## 7. Avalanche / Robinhood quick-start
+## 7. Next-chain quick-start
 
-Before kicking off either, run the §0 questionnaire and §1 audit. Almost all the diff for the next chain will be additive (new entries in maps/enums) — the structural work in parameterization-api (V3 RFQ cosigning + per-chain decay block-length helpers) and trading-api (per-chain gas multiplier + native-sentinel rejection) is now done.
+Run the §0 questionnaire and §1 audit first. Most of the diff is additive (new entries in maps/enums), but **"additive" does not mean "safe to skim"** — the Robinhood/Arc rollout shipped with V3 fully wired yet serving zero RFQs because the `UNISWAPX_V3_ROLLOUT_CHAINS` serving gate was missed (Correction G). Treat §3.6's "two gates" and Corrections G/H as a checklist, and re-grep every named symbol against `main` (this playbook drifts).
 
-**Avalanche specifics worth pre-checking:**
-- `block.number`: standard.
-- `block.basefee`: dynamic (EIP-1559). No special factory tweak.
-- Native: AVAX. WRAPPED_NATIVE_CURRENCY = WAVAX. Standard treatment.
-- Permit2 deployment status — verify with `eth_getCode`.
-- Block time ~2s — no sub-second floor needed.
+Minimum end-to-end checklist for a standard EVM chain:
+- [ ] sdk-core: `ChainId.<CHAIN>` + `AVERAGE_BLOCK_TIMES_SECONDS` entry shipped (often already done).
+- [ ] x-contracts: reactor + OrderQuoter deployed (mine salt; Orbit chains need a `BlockNumberish` branch).
+- [ ] uniswapx-sdk: `REACTOR_ADDRESS_MAPPING` / quoter / exclusive-filler entries, published.
+- [ ] param-api: add to `SUPPORTED_CHAINS`; bump sdk-core pin.
+- [ ] x-service: `SUPPORTED_CHAINS` + `OLDEST_BLOCK_BY_CHAIN`; bump sdk-core **and** uniswapx-sdk pins.
+- [ ] trading-api **gate #1**: `CHAIN_INFO_MAP` `DUTCH_V3` override + `blockTimeMs`.
+- [ ] trading-api **gate #2**: `UNISWAPX_V3_ROLLOUT_CHAINS` (← the one we missed) + bump uniswapx-sdk pin.
+- [ ] trading-api: `CONSTANT_BASE_FEE_CHAINS` (only if fixed basefee); native-sentinel mapping (no-native chains).
+- [ ] Verify with a real explicit-`UNISWAPX_V3` quote in prod and confirm an RFQ span/log appears; set `UNISWAPX_V3_ROLLOUT` threshold for frontend traffic.
 
-**Robinhood specifics worth pre-checking** (likely a Robinhood Chain L2; verify):
-- All §0 questions still apply; treat as an unknown chain until verified.
-- Check whether it has a native token or follows Tempo's stablecoin-only model.
+**Avalanche specifics** (if/when done): standard `block.number` + EIP-1559 basefee; native AVAX, `WRAPPED_NATIVE_CURRENCY = WAVAX`; ~2s blocks; verify Permit2 via `eth_getCode`.
 
-When either lands, file a follow-on Linear ticket and add a row to §6's case-study table.
+When a chain lands, file a follow-on Linear ticket and add a row to §6's case-study table.
