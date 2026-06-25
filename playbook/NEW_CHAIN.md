@@ -284,7 +284,7 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
    - `UNISWAPX_LATEST` (Uniswap frontend) traffic is sampled behind the global `ConfigKey.UNISWAPX_V3_ROLLOUT` FeatureFlag. Confirm that flag's threshold for frontend exposure; explicit-V3 callers don't depend on it.
 
 **Other per-chain settings:**
-- `src/lib/constants.ts` → `CONSTANT_BASE_FEE_CHAINS`: add the chain **only if its base fee is fixed** (Tempo, Arc). `DutchV3OrderFactory` reads `hasConstantBaseFee(chainId)` and sets `adjustmentPerGweiBaseFee = 0` (Correction B). A chain on real EIP-1559 — even one usually pinned at a floor, like Robinhood — does **not** go here.
+- `src/lib/constants.ts` → `CONSTANT_BASE_FEE_CHAINS`: add the chain **only if its base fee is truly fixed** (Tempo only, as of this writing). `DutchV3OrderFactory` reads `hasConstantBaseFee(chainId)` and sets `adjustmentPerGweiBaseFee = 0` (Correction B). A chain on dynamic EIP-1559 does **not** go here — even one usually pinned at a floor (Robinhood), and even one that *looks* flat in a snapshot. ⚠️ **Arc was wrongly added here and later removed (backend#9642):** its USDC-denominated base fee sits at its 20 gwei floor during quiet periods and looked constant, but it's actually dynamic (EWMA-smoothed EIP-1559). Confirm the fee design from the chain's docs, not just an on-chain probe over a low-activity window.
 - **Native sentinel for no-native chains**: the current code **rewrites** `0x0` → the chain's canonical ERC-20 via `NATIVE_CURRENCY_ADDRESSES_PER_CHAIN[CHAIN]` in `src/api/quote/schema.ts` (for both tokenIn and tokenOut), rather than hard-rejecting. Add that mapping entry (mirror Celo/Tempo). For Arc this maps to the 6-decimal USDC ERC-20 — same safety goal (no decimal ambiguity), different mechanism than the old "reject" advice.
 
 **No longer needed (the code became generic — do NOT re-add per-chain entries):**
@@ -399,7 +399,7 @@ See the [Process overview](#process-overview) diagram at the top of this documen
 **Phase 4 — launch**
 1. Ensure new-chain metrics are wired into dashboards (latency, PI, fill rate per MM, decay block math, gas-adjustment, Step Functions retry cadence, `compareQuotes` selection).
 2. Enable serving (the modern equivalent of the old flag): add the chain to trading-api's `UNISWAPX_V3_ROLLOUT_CHAINS` (Correction G), and set the `UNISWAPX_V3_ROLLOUT` threshold for `UNISWAPX_LATEST` frontend traffic. Explicit-`UNISWAPX_V3` callers serve ungated once the chain is in the allowlist.
-3. **Update the public docs site**: add the chain's reactor + OrderQuoter + Permit2 to the deployments page (`Uniswap/docs` → `docs/contracts/uniswapx/04-deployments.md`, renders at [developers.uniswap.org/docs/liquidity/uniswapx/deployments](https://developers.uniswap.org/docs/liquidity/uniswapx/deployments)). Link addresses to the chain's explorer if publicly reachable; otherwise list as plain values with a "explorer pending" note.
+3. **Update the public docs site**: add the chain's reactor + OrderQuoter + Permit2 to the deployments page — now in the **Universe** repo at `apps/dev-portal/content/docs/liquidity/uniswapx/deployments.mdx` (renders at [developers.uniswap.org/docs/liquidity/uniswapx/deployments](https://developers.uniswap.org/docs/liquidity/uniswapx/deployments)). (Previously `Uniswap/docs`; moved into Universe's dev-portal.) Link addresses to the chain's explorer if publicly reachable; otherwise list as plain values with a "explorer pending" note.
 4. Monitor.
 
 **Rollback**: `disable_uniswapx_<chain> = true` short-circuits routing to Classic-only on the chain. Order posting can be disabled in x-service via `SUPPORTED_CHAINS` redeploy. No on-chain rollback needed — unused reactors are inert.
@@ -431,7 +431,8 @@ The reference diffs for "what a rollout actually looks like against current `mai
 | `x-service` (SUPPORTED_CHAINS, OLDEST_BLOCK, sdk-core + uniswapx-sdk bumps) | [Uniswap/uniswapx-service#685](https://github.com/Uniswap/uniswapx-service/pull/685) |
 | `b/packages/services/trading` (CHAIN_INFO_MAP + CONSTANT_BASE_FEE + sdk bump) | [Uniswap/backend#9599](https://github.com/Uniswap/backend/pull/9599) |
 | `b/packages/services/trading` (**serving gate** — `UNISWAPX_V3_ROLLOUT_CHAINS`) | [Uniswap/backend#9615](https://github.com/Uniswap/backend/pull/9615) |
-| `docs` (public deployments page) | [Uniswap/docs#1136](https://github.com/Uniswap/docs/pull/1136) |
+| `universe` (dev-portal deployments page) | [Uniswap/universe#34819](https://github.com/Uniswap/universe/pull/34819) (docs moved here from `Uniswap/docs`; old #1136 closed) |
+| `b/packages/services/trading` (Arc base-fee fix — dynamic, not constant) | [Uniswap/backend#9642](https://github.com/Uniswap/backend/pull/9642) |
 
 sdk-core was a no-op (both `ChainId`s already shipped). Robinhood is Arbitrum Orbit → needed a `BlockNumberish` 4663 branch (ArbSys block number) + a fresh mined salt; Arc is a non-canonical owner so also got its own mined salt. Both chains' per-chain research lives in [`chains/robinhood.md`](./chains/robinhood.md) and [`chains/arc.md`](./chains/arc.md).
 
@@ -451,7 +452,7 @@ Minimum end-to-end checklist for a standard EVM chain:
 - [ ] trading-api **gate #2**: `UNISWAPX_V3_ROLLOUT_CHAINS` (← the one we missed) + bump uniswapx-sdk pin.
 - [ ] trading-api: `CONSTANT_BASE_FEE_CHAINS` (only if fixed basefee); native-sentinel mapping (no-native chains).
 - [ ] Verify with a real explicit-`UNISWAPX_V3` quote in prod and confirm an RFQ span/log appears; set `UNISWAPX_V3_ROLLOUT` threshold for frontend traffic.
-- [ ] **Docs site**: add the chain's reactor + OrderQuoter + Permit2 to the public deployments page (`Uniswap/docs` → `docs/contracts/uniswapx/04-deployments.md`, renders at [developers.uniswap.org/docs/liquidity/uniswapx/deployments](https://developers.uniswap.org/docs/liquidity/uniswapx/deployments)). Match the existing per-chain table; link addresses to the chain's explorer if one is publicly reachable, otherwise list them as plain values and note the explorer is pending.
+- [ ] **Docs site**: add the chain's reactor + OrderQuoter + Permit2 to the public deployments page — Universe repo, `apps/dev-portal/content/docs/liquidity/uniswapx/deployments.mdx` (renders at [developers.uniswap.org/docs/liquidity/uniswapx/deployments](https://developers.uniswap.org/docs/liquidity/uniswapx/deployments)). Match the existing per-chain table; link addresses to the chain's explorer if reachable, otherwise plain values + "explorer pending" note.
 
 **Avalanche specifics** (if/when done): standard `block.number` + EIP-1559 basefee; native AVAX, `WRAPPED_NATIVE_CURRENCY = WAVAX`; ~2s blocks; verify Permit2 via `eth_getCode`.
 
