@@ -215,6 +215,31 @@ wei), so `adjustmentPerGweiBaseFee` is set to 0 at order construction.
 Explorer links pending Arcscan mainnet; see
 [playbook/chains/arc.md](./playbook/chains/arc.md).
 
+## Ink (DutchV3)
+
+| Contract                      | Address                                      | Source                                                        |
+| ---                           | ---                                          | ---                                                           |
+| V3 Dutch Order Reactor        | [0x000000007A1C8e570011EeDF86A2A35593013cBA](https://explorer.inkonchain.com/address/0x000000007A1C8e570011EeDF86A2A35593013cBA)   | [V3DutchOrderReactor](./src/reactors/V3DutchOrderReactor.sol) |
+| OrderQuoter                   | [0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58](https://explorer.inkonchain.com/address/0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58)   | [OrderQuoter](./src/lens/OrderQuoter.sol)                     |
+| Permit2                       | 0x000000000022D473030F116dDEE9F6B43aC78BA3   | [Permit2](https://github.com/Uniswap/permit2)                 |
+
+Ink (chainId 57073) is a standard OP-stack L2 — 1s blocks, real dynamic
+EIP-1559 basefee, native ETH, and EVM-equivalent opcode behavior. No
+chain-specific handling is required: decay ticks on `block.number` via the
+default [`BlockNumberish`](./src/base/BlockNumberish.sol) path, orders may use
+the native sentinel, and `adjustmentPerGweiBaseFee` keeps its standard
+non-zero value.
+
+The reactor shares its address with Robinhood: both chains have the canonical
+`protocolFeeOwner` and the same post-`BlockNumberish`-4663 bytecode, so reusing
+Robinhood's CREATE2 salt converges on one address. It differs from the
+`0x000000005aF6…` address used by the chains deployed before that change, whose
+salt no longer derives from the current `creationCode`. The deployed *runtime*
+does differ from Robinhood's by 3 bytes — the `BlockNumberish` immutable, which
+routes Robinhood through `ArbSys` and Ink through `block.number`; CREATE2 hashes
+the initcode, not the runtime, so the address is unaffected. See
+[playbook/chains/ink.md](./playbook/chains/ink.md).
+
 # Usage
 
 ```

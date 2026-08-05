@@ -7,10 +7,13 @@
 # Per-chain config (chainId, name, RPC default, v4 PoolManager, owner, salt,
 # expectedReactor) lives in `playbook/chains/salts.json`. The owner is derived
 # from the v4 PoolManager.owner() per chain so the V3 reactor's
-# protocolFeeOwner matches the AMM's per-chain governance. The (salt,
-# expectedReactor) pair is mined together via create2crunch against
-# (PERMIT2, owner). Chains where owner == 0x2bad...46cd reuse Tempo's
-# canonical mined salt and converge on 0x000000005aF6...
+# protocolFeeOwner matches the AMM's per-chain governance. Chains whose owner
+# matches the `canonical` block in salts.json reuse that block's (salt,
+# expectedReactor) verbatim and converge on one address; chains with a
+# different owner get their own pair mined via scripts/mine-salt.sh. See that
+# file's top-level comment for the decision procedure -- the canonical pair is
+# bytecode-dependent and is NOT the 0x000000005aF6... used by the chains
+# deployed before chainid 4663 was added to src/base/BlockNumberish.sol.
 #
 # Per chain, runs preconditions before broadcasting (in this order):
 #   1. RPC reachable + correct chainId.
@@ -85,6 +88,7 @@ default_rpc() {
     42161)    echo "https://arb1.arbitrum.io/rpc" ;;
     42220)    echo "https://forno.celo.org" ;;
     43114)    echo "https://api.avax.network/ext/bc/C/rpc" ;;
+    57073)    echo "https://rpc-gel.inkonchain.com" ;;
     59144)    echo "https://rpc.linea.build" ;;
     81457)    echo "https://rpc.blast.io" ;;
     7777777)  echo "https://rpc.zora.energy" ;;
