@@ -29,6 +29,7 @@ only.
 | Arbitrum | 42161 | ✅ DutchV3 live (Arbitrum was the first V3 chain) | (skip) |
 | Celo | 42220 | ⏳ research | [celo.md](./celo.md) |
 | Avalanche | 43114 | ⏳ research | [avalanche.md](./avalanche.md) |
+| Ink | 57073 | 🟢 reactor + quoter deployed 2026-08-05 (reactor shares Robinhood's canonical address); service wiring pending | [ink.md](./ink.md) |
 | Linea | 59144 | ⏳ research | [linea.md](./linea.md) |
 | Blast | 81457 | ⏳ research | [blast.md](./blast.md) |
 | Zora | 7777777 | ⏳ research | [zora.md](./zora.md) |

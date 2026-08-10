@@ -1,13 +1,18 @@
 {
-  "_comment": "Per-chain V3DutchOrderReactor deploy configuration. Owner is derived from the v4 PoolManager.owner() on each chain so the V3 reactor's protocolFeeOwner matches the AMM's per-chain governance. SALT + expectedReactor are mined together per chain via create2crunch against (PERMIT2, owner). Chains where owner == 0x2bad...46cd reuse Tempo's canonical mined salt and converge on 0x000000005aF6...; other chains have their own (salt, address) pair. Update via scripts/mine-salt.sh.",
+  "_comment": "Per-chain V3DutchOrderReactor deploy configuration. Owner is derived from the v4 PoolManager.owner() on each chain so the V3 reactor's protocolFeeOwner matches the AMM's per-chain governance. START HERE FOR A NEW CHAIN: (1) read PoolManager.owner(); (2) if it equals the `canonical` owner below, REUSE that block's (salt, expectedReactor) verbatim — do NOT mine, or you will lose address parity; (3) only if the owner differs, mine a fresh pair via scripts/mine-salt.sh. Reuse works because CREATE2 hashes the initcode, so any two chains with the same bytecode + same owner + same salt converge on one address (the per-chain BlockNumberish immutable differs in the deployed RUNTIME, which does not affect the address).",
   "schemaVersion": 1,
   "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   "create2Factory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
   "canonical": {
-    "_comment": "These three values are the (salt, expected) pair for owner == 0x2bad...46cd. Reused by chains where v4 PoolManager.owner() returns this address.",
+    "_comment": "The (salt, expectedReactor) pair for owner == 0x2bad...46cd under CURRENT (post-BlockNumberish-4663) bytecode. Reuse verbatim on any chain whose v4 PoolManager.owner() returns this address. First mined for Robinhood (4663) and reused for Ink (57073).",
     "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
-    "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
-    "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406"
+    "salt": "0x00000000000000000000000000000000000000001585866b75f2b774c6520080",
+    "expectedReactor": "0x000000007A1C8e570011EeDF86A2A35593013cBA",
+    "_retiredPreBlockNumberish4663": {
+      "_comment": "HISTORICAL — the pair used by the 17 chains deployed before chainid 4663 was added to src/base/BlockNumberish.sol. That change altered V3DutchOrderReactor's creationCode, so this salt no longer derives its address: under current bytecode it produces 0xb90EBE0d009771FA53a0921Af7a7431934f144BC (no zero prefix). Kept only to explain why those chains share a different address. Do NOT use for new deploys.",
+      "salt": "0x0000000000000000000000000000000000000000e931b28b35b132822db301c0",
+      "expectedReactor": "0x000000005aF66799D1a6317714D66800f9CA1406"
+    }
   },
   "chains": {
     "1": {
@@ -111,7 +116,7 @@
       "expectedReactor": "0x000000007A1C8e570011EeDF86A2A35593013cBA",
       "minedAt": "2026-06-12T23:10:10Z",
       "_ownerSource": "PoolManager.owner() verified live 2026-06-12. Owner is the canonical 0x2bad...46cd but has NO code on Robinhood (deploy script warns EOA-on-chain; same situation as other canonical-owner chains).",
-      "_saltNote": "Salt mined against POST-BlockNumberish-4663 bytecode (Robinhood is Arbitrum Orbit; src/base/BlockNumberish.sol routes 4663 through ArbSys). This reactor's creationCode differs from the 17 chains deployed before the 4663 branch — do not expect address parity. Future chains must also mine against the new bytecode; the canonical Tempo salt is retired.",
+      "_saltNote": "Salt mined against POST-BlockNumberish-4663 bytecode (Robinhood is Arbitrum Orbit; src/base/BlockNumberish.sol routes 4663 through ArbSys). This reactor's creationCode differs from the 17 chains deployed before the 4663 branch, so it does not share their 0x000000005aF6... address. This (salt, address) pair IS the current `canonical` pair — a later chain whose PoolManager.owner() is 0x2bad...46cd should reuse it verbatim rather than mining a fresh salt. Ink (57073) reuses it and shares this address.",
       "_deployNote": "DEPLOYED 2026-06-12 (reactor + canonical OrderQuoter 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58). See playbook/chains/robinhood.md.",
       "minedZeroBytes": "4 leading + 5 total"
     },
@@ -152,6 +157,19 @@
       "expectedReactor": "0x00000000862cCF095823fc7576Fa6C7e6b7385ef",
       "minedAt": "2026-05-06T23:32:33Z",
       "minedZeroBytes": "4 leading + 4 total"
+    },
+    "57073": {
+      "name": "ink",
+      "poolManager": "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+      "owner": "0x2bad8182c09f50c8318d769245bea52c32be46cd",
+      "salt": "0x00000000000000000000000000000000000000001585866b75f2b774c6520080",
+      "expectedReactor": "0x000000007A1C8e570011EeDF86A2A35593013cBA",
+      "minedAt": "2026-06-12T23:10:10Z",
+      "minedFor": "robinhood (post-4663 canonical owner reuse)",
+      "_ownerSource": "PoolManager.owner() verified live 2026-08-03 (24009-byte PoolManager at the same address as Soneium/XLayer). Owner is the canonical 0x2bad...46cd but has NO code on Ink (deploy script warns EOA-on-chain; same as other canonical-owner chains).",
+      "_saltNote": "Reuses the post-4663 canonical pair (see the `canonical` block) rather than a freshly mined salt, so Ink converges on the same reactor address as Robinhood. The initcode is byte-identical across the two chains (same post-4663 bytecode, same canonical owner): Robinhood's salt under Ink's initcode hash 0xa0bb393c... derives 0x000000007A1C...3cBA exactly. Note the PRE-4663 canonical Tempo salt does not apply — under current bytecode it derives 0xb90EBE0d009771FA53a0921Af7a7431934f144BC (no zero prefix).",
+      "minedZeroBytes": "4 leading + 5 total",
+      "_deployNote": "DEPLOYED at 0x000000007A1C8e570011EeDF86A2A35593013cBA (canonical post-4663 address, shared with Robinhood) + canonical OrderQuoter 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58. Ink is OP-stack so the reactor takes the standard block.number path. See playbook/chains/ink.md."
     },
     "59144": {
       "name": "linea",

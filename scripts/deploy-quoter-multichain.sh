@@ -67,6 +67,7 @@ default_rpc() {
     42161)    echo "https://arb1.arbitrum.io/rpc" ;;
     42220)    echo "https://forno.celo.org" ;;
     43114)    echo "https://api.avax.network/ext/bc/C/rpc" ;;
+    57073)    echo "https://rpc-gel.inkonchain.com" ;;
     81457)    echo "https://rpc.blast.io" ;;
     7777777)  echo "https://rpc.zora.energy" ;;
   esac
@@ -83,7 +84,9 @@ gas_multiplier() {
 
 # Chains to deploy on. Linea (59144) deliberately excluded for parity with
 # the V3 reactor rollout. zkSync (324) excluded — non-EVM CREATE2.
-CHAINS="1 10 56 130 137 143 196 480 1868 4217 8453 42161 42220 43114 81457 7777777"
+# Override with CHAINS="<id> [<id>...]" to scope a run to specific chains
+# (e.g. a single new chain's rollout) instead of sweeping the whole list.
+CHAINS=${CHAINS:-"1 10 56 130 137 143 196 480 1868 4217 8453 42161 42220 43114 57073 81457 7777777"}
 
 # ---- preflight ----
 

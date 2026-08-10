@@ -213,6 +213,16 @@ For each repo: branch off latest `main` as `<chain>-uniswapx` (e.g., `tempo-unis
 - Add a copy-paste-runnable Tempo-style deploy invocation comment block to `script/DeployDutchV3.s.sol`. Required env var: `FOUNDRY_REACTOR_OWNER` (use the same protocolFeeOwner address as Arbitrum One: `0x2bad8182c09f50c8318d769245bea52c32be46cd`, unless governance has decided otherwise for the new chain).
 - If the chain requires a `BlockNumberish.sol` branch (non-standard `block.number`), add it.
 
+**Salt selection — reuse before you mine.** Read `PoolManager.owner()` first, then:
+
+1. **Owner == the `canonical` owner in `playbook/chains/salts.json`** → **reuse that block's `(salt, expectedReactor)` verbatim.** Do not run `mine-salt.sh`. Reuse is what gives the shared recognizable address: CREATE2 hashes the *initcode*, so same bytecode + same owner + same salt converge on one address across chains. The per-chain `BlockNumberish` immutable differs in the deployed *runtime* (a few bytes) but does not affect the address.
+2. **Owner differs** → mine a fresh pair with `./scripts/mine-salt.sh <chainId>`.
+
+Two traps to watch:
+
+- **`mine-salt.sh` has no reuse check.** It only refuses to re-mine a chain that already has a salt; it will happily mine a redundant one for a canonical-owner chain. Compare the owner against the `canonical` block *before* invoking it.
+- **Any change to `V3DutchOrderReactor`'s `creationCode` retires the current canonical pair** — adding a chainid to `BlockNumberish.sol` does exactly this. When that happens, the first chain deployed from the new bytecode establishes the *new* canonical pair, and its `(salt, expectedReactor)` must be promoted into the `canonical` block so later chains reuse it rather than mining redundantly.
+
 **Deploy command (production):**
 ```bash
 FOUNDRY_REACTOR_OWNER=0x2bad8182c09f50c8318d769245bea52c32be46cd \
