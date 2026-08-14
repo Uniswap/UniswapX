@@ -36,8 +36,14 @@
 #   RPC_HEADER_SECRET=<value>    sent as the `x-internal-service-secret`
 #                                header on `cast` RPC calls (read-only
 #                                preconditions). NOT sent on `forge script`
-#                                calls (simulation/broadcast) — Foundry has no
-#                                mechanism to attach custom headers there.
+#                                calls (simulation/broadcast) — cast supports
+#                                custom headers natively but forge script
+#                                doesn't. These scripts target public
+#                                per-chain RPCs that don't need it; if yours
+#                                does, wrap the forge script invocation with
+#                                scripts/with-rpc-header-proxy.sh instead
+#                                (see .github/workflows/test-integration.yml
+#                                for a working example).
 #
 # Usage:
 #   DEPLOYER_MNEMONIC="word1 word2 ..." ./scripts/deploy-quoter-multichain.sh
