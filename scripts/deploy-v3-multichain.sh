@@ -48,6 +48,11 @@
 #                                stops short of broadcasting.
 #   MIN_BALANCE_WEI=<value>      default 5e16 (~0.05 ETH-equivalent).
 #   RPC_<chainId>=<url>          override the public RPC for a chain.
+#   RPC_HEADER_SECRET=<value>    sent as the `x-internal-service-secret`
+#                                header on `cast` RPC calls (read-only
+#                                preconditions). NOT sent on `forge script`
+#                                calls (simulation/broadcast) — Foundry has no
+#                                mechanism to attach custom headers there.
 #   SALTS_JSON=<path>            override salts.json path
 #                                (default: playbook/chains/salts.json).
 #
@@ -68,6 +73,14 @@ ARACHNID=0x4e59b44847b379578588920cA78FbF26c0B4956C
 SALTS_JSON=${SALTS_JSON:-playbook/chains/salts.json}
 MIN_BALANCE_WEI=${MIN_BALANCE_WEI:-50000000000000000} # ~0.05 ETH-equivalent
 DRY_RUN=${DRY_RUN:-0}
+
+# Authenticates `cast` RPC calls against internal providers. Omitted when
+# unset (public RPCs / local dev). Not applied to forge script — see the
+# RPC_HEADER_SECRET note in the Optional env block above.
+RPC_HEADERS_ARGS=()
+if [[ -n "${RPC_HEADER_SECRET:-}" ]]; then
+  RPC_HEADERS_ARGS=(--rpc-headers "x-internal-service-secret: ${RPC_HEADER_SECRET}")
+fi
 
 # Default RPCs per chain. Override with RPC_<chainId>=<url> at invocation time.
 # Function-based lookup (instead of `declare -A`) so the script works under
@@ -151,7 +164,7 @@ for chainid in $chain_ids; do
   echo "=== $name ($chainid) — $rpc ==="
 
   # 1. RPC reachable + correct chainId
-  observed_chainid_hex=$(cast chain-id --rpc-url "$rpc" 2>/dev/null || echo "")
+  observed_chainid_hex=$(cast chain-id --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "")
   if [[ -z "$observed_chainid_hex" ]]; then
     echo "  [SKIP] RPC unreachable"
     results+=("$name|$chainid|SKIP-RPC-UNREACHABLE")
@@ -183,7 +196,7 @@ for chainid in $chain_ids; do
 
   # 3. PoolManager.owner() at runtime must match salts.json `owner`. If the
   # AMM owner has rotated since mining, the salt is stale.
-  observed_owner=$(cast call "$pool_manager" "owner()(address)" --rpc-url "$rpc" 2>/dev/null || echo "")
+  observed_owner=$(cast call "$pool_manager" "owner()(address)" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "")
   if [[ -z "$observed_owner" ]]; then
     echo "  [SKIP] PoolManager.owner() lookup failed at $pool_manager"
     results+=("$name|$chainid|SKIP-POOLMANAGER-LOOKUP-FAILED")
@@ -197,7 +210,7 @@ for chainid in $chain_ids; do
   fi
 
   # 4. Already deployed?
-  reactor_code=$(cast code "$expected_reactor" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  reactor_code=$(cast code "$expected_reactor" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ "$reactor_code" != "0x" && -n "$reactor_code" ]]; then
     echo "  [SKIP] reactor already deployed at $expected_reactor"
     results+=("$name|$chainid|SKIP-ALREADY-DEPLOYED")
@@ -205,7 +218,7 @@ for chainid in $chain_ids; do
   fi
 
   # 5a. Permit2 code present
-  permit2_code=$(cast code "$PERMIT2" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  permit2_code=$(cast code "$PERMIT2" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ "$permit2_code" == "0x" || -z "$permit2_code" ]]; then
     echo "  [SKIP] Permit2 not deployed at canonical address"
     results+=("$name|$chainid|SKIP-NO-PERMIT2")
@@ -213,7 +226,7 @@ for chainid in $chain_ids; do
   fi
 
   # 5b. Permit2 functional
-  permit2_ds=$(cast call "$PERMIT2" "DOMAIN_SEPARATOR()(bytes32)" --rpc-url "$rpc" 2>/dev/null || echo "")
+  permit2_ds=$(cast call "$PERMIT2" "DOMAIN_SEPARATOR()(bytes32)" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "")
   if [[ -z "$permit2_ds" || "$permit2_ds" == "0x"$(printf '0%.0s' {1..64}) ]]; then
     echo "  [SKIP] Permit2.DOMAIN_SEPARATOR() did not return a valid bytes32 (squatter/non-ABI-compatible contract?)"
     results+=("$name|$chainid|SKIP-PERMIT2-INVALID")
@@ -221,7 +234,7 @@ for chainid in $chain_ids; do
   fi
 
   # 6. Arachnid factory present
-  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ "$arachnid_code" == "0x" || -z "$arachnid_code" ]]; then
     echo "  [SKIP] Arachnid CREATE2 factory not deployed"
     results+=("$name|$chainid|SKIP-NO-ARACHNID")
@@ -229,7 +242,7 @@ for chainid in $chain_ids; do
   fi
 
   # 7. Wallet balance
-  balance=$(cast balance "$DEPLOYER" --rpc-url "$rpc" 2>/dev/null || echo "0")
+  balance=$(cast balance "$DEPLOYER" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0")
   if [[ -z "$balance" ]]; then balance=0; fi
   if [[ "$(ge "$balance" "$MIN_BALANCE_WEI")" != "True" ]]; then
     eth_balance=$(python3 -c "print(int('$balance')/1e18)" 2>/dev/null || echo "?")
@@ -243,7 +256,7 @@ for chainid in $chain_ids; do
   echo "  balance:  $balance wei (~${eth_balance} native)"
 
   # 8. Owner sanity (warn if EOA)
-  owner_code=$(cast code "$owner" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  owner_code=$(cast code "$owner" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ "$owner_code" == "0x" || -z "$owner_code" ]]; then
     echo "  [WARN] owner $owner is an EOA on this chain (expected: multisig). Continuing."
   else

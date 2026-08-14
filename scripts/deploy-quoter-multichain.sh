@@ -33,6 +33,11 @@
 #   DRY_RUN=1                    runs preconditions + simulation, no broadcast
 #   MIN_BALANCE_WEI=<value>      default 5e16 (~0.05 ETH-equivalent)
 #   RPC_<chainId>=<url>          override the public RPC for a chain
+#   RPC_HEADER_SECRET=<value>    sent as the `x-internal-service-secret`
+#                                header on `cast` RPC calls (read-only
+#                                preconditions). NOT sent on `forge script`
+#                                calls (simulation/broadcast) — Foundry has no
+#                                mechanism to attach custom headers there.
 #
 # Usage:
 #   DEPLOYER_MNEMONIC="word1 word2 ..." ./scripts/deploy-quoter-multichain.sh
@@ -48,6 +53,14 @@ ARACHNID=0x4e59b44847b379578588920cA78FbF26c0B4956C
 EXPECTED_QUOTER=0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58
 MIN_BALANCE_WEI=${MIN_BALANCE_WEI:-50000000000000000}
 DRY_RUN=${DRY_RUN:-0}
+
+# Authenticates `cast` RPC calls against internal providers. Omitted when
+# unset (public RPCs / local dev). Not applied to forge script — see the
+# RPC_HEADER_SECRET note in the Optional env block above.
+RPC_HEADERS_ARGS=()
+if [[ -n "${RPC_HEADER_SECRET:-}" ]]; then
+  RPC_HEADERS_ARGS=(--rpc-headers "x-internal-service-secret: ${RPC_HEADER_SECRET}")
+fi
 
 # Default RPCs per chain; override with RPC_<chainId>=<url>. Function-based
 # so the script works under bash 3.2 (macOS default).
@@ -126,7 +139,7 @@ for chainid in $CHAINS; do
   echo "=== chain $chainid — $rpc ==="
 
   # 1. RPC reachable + correct chainId
-  observed_chainid_hex=$(cast chain-id --rpc-url "$rpc" 2>/dev/null || echo "")
+  observed_chainid_hex=$(cast chain-id --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "")
   if [[ -z "$observed_chainid_hex" ]]; then
     echo "  [SKIP] RPC unreachable"
     results+=("$chainid|SKIP-RPC-UNREACHABLE")
@@ -140,7 +153,7 @@ for chainid in $CHAINS; do
   fi
 
   # 2. Already deployed?
-  quoter_code=$(cast code "$EXPECTED_QUOTER" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  quoter_code=$(cast code "$EXPECTED_QUOTER" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ ${#quoter_code} -gt 4 ]]; then
     echo "  [SKIP] quoter already at $EXPECTED_QUOTER"
     results+=("$chainid|SKIP-ALREADY-DEPLOYED")
@@ -148,7 +161,7 @@ for chainid in $CHAINS; do
   fi
 
   # 3. Arachnid factory present
-  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" 2>/dev/null || echo "0x")
+  arachnid_code=$(cast code "$ARACHNID" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0x")
   if [[ ${#arachnid_code} -le 4 ]]; then
     echo "  [SKIP] Arachnid CREATE2 factory not deployed"
     results+=("$chainid|SKIP-NO-ARACHNID")
@@ -156,7 +169,7 @@ for chainid in $CHAINS; do
   fi
 
   # 4. Wallet balance
-  balance=$(cast balance "$DEPLOYER" --rpc-url "$rpc" 2>/dev/null || echo "0")
+  balance=$(cast balance "$DEPLOYER" --rpc-url "$rpc" ${RPC_HEADERS_ARGS[@]+"${RPC_HEADERS_ARGS[@]}"} 2>/dev/null || echo "0")
   if [[ -z "$balance" ]]; then balance=0; fi
   if [[ "$(ge "$balance" "$MIN_BALANCE_WEI")" != "True" ]]; then
     eth_balance=$(python3 -c "print(int('$balance')/1e18)" 2>/dev/null || echo "?")
