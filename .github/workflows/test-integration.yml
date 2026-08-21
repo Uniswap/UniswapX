@@ -52,8 +52,9 @@ jobs:
 
       - name: Run Forge integration tests
         run: |
-          forge test -vvv
+          scripts/with-rpc-header-proxy.sh forge test -vvv
         env:
-          FOUNDRY_RPC_URL: "${{ secrets.RPC_URL }}"
+          UPSTREAM_RPC_URL: "${{ secrets.RPC_URL }}"
+          RPC_HEADER_SECRET: "${{ secrets.RPC_HEADER_SECRET }}"
           FOUNDRY_PROFILE: integration
         id: integration
