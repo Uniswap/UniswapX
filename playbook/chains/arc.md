@@ -1,11 +1,13 @@
 # Arc (chainId 5042)
 
+> ⚠️ **Correction (2026-06-25): Arc's base fee is DYNAMIC, not constant.** The original audit below (probed during a quiet window) recorded a flat 20 gwei base fee and set `adjustmentPerGweiBaseFee = 0` via `CONSTANT_BASE_FEE_CHAINS`. That was wrong: per Arc's stable-fee-design docs, the base fee is EWMA-smoothed EIP-1559 (USDC-denominated; ~$0.01 target, 20 gwei floor, 20,000 gwei ceiling) — it just sits at the floor when idle. Arc was **removed** from `CONSTANT_BASE_FEE_CHAINS` (backend#9642) so it uses the standard dynamic gas adjustment. Ignore the "constant basefee → 0" guidance in items 2 below and in the deploy-params table.
+
 Status: 🟢 **Contracts deployed 2026-06-12** — `V3DutchOrderReactor` at `0x0000000015134054eA82AE0bb9fda66b36402C36` (owner + permit2 verified on-chain), `OrderQuoter` at canonical `0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58`. Explorer verification + SDK/service wiring (Phases 2–4) pending. Config caveats below still apply to the service rollout.
 
 Original audit assessment: 🟡 Has caveats, but mechanically ready — no contract-code changes needed. Circle's stablecoin-native L1 (reth `v1.11.3` execution, Malachite BFT consensus). Permit2 + Arachnid CREATE2 deployer present and functional. Caveats are all config-side, and all have Tempo/Celo precedent:
 
 1. **USDC is the native gas token** with dual representation: 18-decimal native (`eth_getBalance`/`msg.value`) and a 6-decimal ERC-20 interface predeploy at `0x3600000000000000000000000000000000000000` over the *same balance* (verified live: same account shows `9355344270750000000` native and `9355344` via `balanceOf`). Celo-style, not Tempo-style — `CALLVALUE`/`BALANCE` work normally.
-2. **Constant basefee** (20 gwei, unchanged across 1M+ blocks ≈ 5.8 days) → `adjustmentPerGweiBaseFee = 0`, `GAS_COMPARISON_MULTIPLIER = 0`.
+2. ~~**Constant basefee** (20 gwei) → `adjustmentPerGweiBaseFee = 0`.~~ **Wrong — see correction above.** Base fee is dynamic (EWMA EIP-1559); Arc uses the standard adjustment and is NOT in `CONSTANT_BASE_FEE_CHAINS`.
 3. **Sub-second blocks** (~500ms) → Tempo-style `MIN_RETRY_WAIT` floor + `V3_BLOCK_BUFFER = 1`.
 
 v4 **is** deployed (PoolManager `0x8366a39cc670b4001a1121b8f6a443a643e40951`, per sdk-core `ARC_ADDRESSES`); `PoolManager.owner()` returns `0x33f26c5d69e2c40956f22c6195b6a499cf4151e8` (verified live 2026-06-12; a 171-byte proxy on Arc, likely a Safe). That is **not** the canonical owner, so the canonical Tempo salt does **not** apply — **Arc needs its own `(salt, expectedReactor)` pair mined** via `./scripts/mine-salt.sh 5042`, after the Robinhood `BlockNumberish.sol` change lands so both chains share one bytecode state.
@@ -83,7 +85,7 @@ All four maps need new `5042` entries after deploy:
 | `V3_BLOCK_BUFFER` (parameterization-api) | `1` | Fast blocks — Tempo parity. |
 | `getBlockTimeSecs(5042)` (parameterization-api) | `0.5` | — |
 | `GAS_COMPARISON_MULTIPLIER_BY_CHAIN[5042]` | `0` | Gas is constant sub-cent USDC; RFQ-vs-Classic gas comparison is noise. |
-| `adjustmentPerGweiBaseFee` (DutchV3OrderFactory) | `0` for 5042 | Constant basefee (Correction B — set in the factory, not the cosigner). |
+| `adjustmentPerGweiBaseFee` (DutchV3OrderFactory) | **default/dynamic** (NOT 0) | Base fee is dynamic EWMA EIP-1559 — Arc is not in `CONSTANT_BASE_FEE_CHAINS` (corrected in backend#9642). |
 | `WRAPPED_NATIVE_CURRENCY[5042]` | **do not populate** | No wrapped token exists; the ERC-20 interface *is* USDC. Hard-reject `0x0` sentinel at `src/api/quote/schema.ts` (Correction E / Tempo pattern) and require the `0x3600...0000` ERC-20 address. |
 | `PRIORITY_ORDER_TARGET_BLOCK_BUFFER[5042]`, `HYBRID_…[5042]` | `0` with comment | No Priority/Hybrid reactor; `validateReactorAddress` rejects upstream. |
 | `OLDEST_BLOCK_BY_CHAIN[5042]` (x-service) | ~`4829000` (block at 2026-06-12) | — |
