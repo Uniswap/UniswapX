@@ -41,7 +41,7 @@ stateDiagram-v2
 
         state "sdk-core" as SDKBranch {
             SDKCore: 3.1 sdk-core
-            SDKCore: ChainId enum, addresses, block times
+            SDKCore: ChainId enum, addresses,\nAVERAGE_BLOCK_TIMES_SECONDS
             SDKCore --> Publish: Tests pass
             Publish: Publish @uniswap/sdk-core
         }
@@ -69,18 +69,18 @@ stateDiagram-v2
     state "Phase 3 — Service Deploys (1w)" as Phase3 {
         direction LR
         ParamAPI: 3.4 parameterization-api
-        ParamAPI: ChainId in BOTH chains.ts files,\nV3_BLOCK_BUFFER, getBlockTimeSecs
+        ParamAPI: ChainId in SUPPORTED_CHAINS\n(block math from sdk-core)
 
         XService: 3.5 x-service
-        XService: BLOCK_TIME_MS_BY_CHAIN,\nMIN_RETRY_WAIT (sub-second floor),\nPRIORITY/HYBRID buffer entries
+        XService: SUPPORTED_CHAINS,\nOLDEST_BLOCK_BY_CHAIN
 
         TradingAPI: 3.6 trading-api
-        TradingAPI: CHAIN_INFO_MAP, GAS_COMPARISON_MULTIPLIER,\nadjustmentPerGweiBaseFee=0 in factory,\nnative-sentinel rejection at schema
+        TradingAPI: UNISWAPX_V3_ROLLOUT_CHAINS,\nCONSTANT_BASE_FEE_CHAINS,\nDUTCH_V3 override in CHAIN_INFO_MAP
 
         ParamAPI --> XService
         XService --> TradingAPI
         TradingAPI --> FlagOff: All deployed
-        FlagOff: disable_uniswapx_chainId = true
+        FlagOff: chain not yet in UNISWAPX_V3_ROLLOUT_CHAINS
     }
 
     Phase3 --> Phase4: Filler's ready
@@ -88,7 +88,7 @@ stateDiagram-v2
     state "Phase 4 — Launch" as Phase4 {
         Dashboards: Ensure new-chain metrics are wired into dashboards
         Dashboards --> FlipFlag: Dashboards live
-        FlipFlag: Set disable_uniswapx_chainId = false (threshold:0)
+        FlipFlag: Merge routing-rule PR, ramp uniswapx_v3_rollout
         FlipFlag --> Monitor: Traffic flowing
         Monitor: Monitor latency, PI, fill rate per MM
     }
@@ -107,7 +107,7 @@ Answer these before writing a single line of code. Most can be resolved against 
 |---|---|---|
 | **chainId** | Used in every repo's enums, every cosigner signature, every reactor deploy | `4217` |
 | **RPC + explorer URLs** | Needed for env vars and integ tests | `https://rpc.tempo.xyz` / `https://explore.mainnet.tempo.xyz` |
-| **Block time (target)** | Drives `BLOCK_TIME_MS_BY_CHAIN`, decay block-length math, status-polling cadence, Step Functions retry backoff | ~500ms |
+| **Block time (target)** | Registered once in sdk-core `AVERAGE_BLOCK_TIMES_SECONDS`; drives decay block-length math, status-polling cadence, Step Functions retry backoff in every service | ~500ms |
 | **Finality model** | Drives min confirmations for fills; reorg risk | Deterministic sub-second via Simplex BFT |
 | **`block.number` semantics** | Decides whether `BlockNumberish.sol` needs a new branch (Arbitrum special-cases via `ArbSys`) | Standard EVM monotonic counter — no change needed |
 | **`block.basefee` semantics** | Drives V3 reactor's `_updateWithGasAdjustment`; tells us whether to set `adjustmentPerGweiBaseFee = 0` | Constant `2e10` in **attodollars/gas** (1e-18 USD), NOT wei |
@@ -200,6 +200,7 @@ For each repo: branch off latest `main` as `<chain>-uniswapx` (e.g., `tempo-unis
 - Append to `SUPPORTED_CHAINS`.
 - Add a `<CHAIN>_ADDRESSES` block in `addresses.ts` covering v3/v4/router contracts that exist on the chain (or empty placeholders).
 - Wire into `CHAIN_TO_ADDRESSES_MAP`.
+- **Add `[ChainId.<CHAIN>]: <secs>` to `AVERAGE_BLOCK_TIMES_SECONDS` in `chains.ts`.** This is now a hard gate: parameterization-api, x-service, and trading-api all derive their block math from `getAverageBlockTimeSecs(chainId)`, which **throws** for an unregistered chain (added in sdks#583). Sub-second values are fine (Monad = 0.4, Tempo = 0.5).
 - **If the chain has no native token**, omit the WETH9 entry. There's no per-chain "native currency" map that needs special handling — just don't add an entry for chains without a native (Tempo precedent: PR #540 explicitly removed a WETH9 entry that had been added in error).
 - Publish to npm before the next repo can pin against `ChainId.<CHAIN>`. If you want to unblock parallel work, downstream repos can use the numeric chain id with a `// TODO: ChainId.<CHAIN> once sdk-core is bumped` comment.
 
@@ -254,13 +255,12 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
 
 ### 3.4 `x-parameterization-api`
 
-**Files:** `lib/util/chains.ts`, `lib/config/chains.ts`, `lib/constants.ts`, `lib/handlers/hard-quote/handler.ts`
+**Files:** `lib/util/chains.ts`, `.env.example` (only if adding a new secret)
 
-- Add `<CHAIN> = <chainId>` to the `ChainId` enum in `lib/util/chains.ts`. **Also** add to `supportedChains` in `lib/config/chains.ts` (separate file, both required — Joi `chainId` validator gates inbound requests on the latter).
-- Add the chain to `ID_TO_NETWORK_NAME`.
-- Add `RPC_<chainId>` to `.env.example`.
-- Per-chain `V3_BLOCK_BUFFER` (in `lib/constants.ts` as a map): default 4, but tune per chain. Tempo uses 1 because of fast blocks.
-- Per-chain block time entry in `getBlockTimeSecs(chainId)` so `getDecayBlockLength(chainId) = ceil(V3_DEFAULT_DECAY_DURATION_SECS / blockTimeSecs)` produces sensible block counts. `V3_DEFAULT_DECAY_DURATION_SECS = 30` is the standard wallclock decay.
+- Add `ChainId.<CHAIN>` to `SUPPORTED_CHAINS` in `lib/util/chains.ts`. Since uniswapx-parameterization-api#438 this list is the **single source of truth**: it drives the soft/hard-quote injectors, Lambda RPC provisioning, and the Joi `chainId` validator. (The old second copy in `lib/config/chains.ts` — Correction C — no longer exists.)
+- **No per-chain block constants.** `getV3BlockBuffer(chainId) = secondsToBlocks(V3_DECAY_START_BUFFER_SECS = 5, chainId)` reads sdk-core's `getAverageBlockTimeSecs`; the old `V3_BLOCK_BUFFER` map and `getBlockTimeSecs` helper are gone. Make sure the sdk-core entry exists (§3.1) or the hard-quote handler throws.
+- **RPC:** the Lambda builds per-chain URLs as `RPC_PREFIX_URL + chainId` (secret `prod/param-api/rpc-urls`, authenticated with `RPC_HEADER_SECRET`). There is no `RPC_<chainId>` env var to add — instead confirm the internal RPC gateway actually serves the new chainId before Phase 3.
+- Bump `@uniswap/uniswapx-sdk` to a release that carries the chain's reactor/quoter entries (`getReactor` throws `MissingConfiguration` otherwise).
 
 **Do NOT touch:**
 - `lib/cron/fade-rate-v2.ts` — filler circuit-breaker logic, intentionally chain-agnostic. New chains flow through automatically (the SQL view's testnet-exclusion list correctly omits mainnet chain ids).
@@ -270,33 +270,31 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
 
 ### 3.5 `x-service`
 
-**Files:** `lib/util/chain.ts`, `lib/util/constants.ts`, `lib/handlers/check-order-status/util.ts`, `lib/handlers/constants.ts`, `.env.example`
+**Files:** `lib/util/chain.ts`, `lib/util/constants.ts`
 
-- `lib/util/chain.ts`: `<CHAIN> = <chainId>` to enum + `SUPPORTED_CHAINS`.
-- `lib/util/constants.ts`: `BLOCK_TIME_MS_BY_CHAIN[CHAIN] = <ms>` and `OLDEST_BLOCK_BY_CHAIN[CHAIN] = <recent block>`.
-- `lib/handlers/check-order-status/util.ts`: `AVERAGE_BLOCK_TIME(CHAIN)` returning the chain's block time in seconds.
-- **Sub-second blocks**: if the chain's block time is < 1s, add a chain-scoped minimum wait floor in `calculateDutchRetryWaitSeconds` (e.g. `MIN_RETRY_WAIT_SECONDS_<CHAIN> = 2`). Step Functions Wait state granularity is whole seconds; sub-second values round to 0 → hot loop. Apply the floor only to the affected chain — applying globally tightens existing chains unnecessarily (the Tempo PR caught this on review).
-- `lib/handlers/constants.ts`: `PRIORITY_ORDER_TARGET_BLOCK_BUFFER` and `HYBRID_ORDER_TARGET_BLOCK_BUFFER` are typed `Record<ChainId, number>` with no fallback, so the build won't pass without an entry. If the chain doesn't support priority/hybrid orders (no reactor deployed): set the entry to `0` with a comment explaining the value is unreachable because `OffChainUniswapXOrderValidator.validateReactorAddress` rejects orders whose reactor isn't in the SDK mapping.
-- `.env.example`: `RPC_<chainId>=<rpcUrl>`.
-- CDK is already loop-driven over `SUPPORTED_CHAINS`; no infra changes needed unless you find hardcoded chain logic.
+- `lib/util/chain.ts`: add `ChainId.<CHAIN>` to `SUPPORTED_CHAINS`. CDK is loop-driven over this list; no infra changes needed unless you find hardcoded chain logic.
+- `lib/util/constants.ts`: add `[ChainId.<CHAIN>]: <block just below the reactor deploy block>` to `OLDEST_BLOCK_BY_CHAIN` (floors the GS reaper's lookback window).
+- **Block time comes from sdk-core.** `AVERAGE_BLOCK_TIME(chainId)` in `lib/handlers/check-order-status/util.ts` is a re-export of `getAverageBlockTimeSecs`; the old `BLOCK_TIME_MS_BY_CHAIN` map is gone.
+- **Sub-second blocks are handled globally.** `calculateDutchRetryWaitSeconds` applies `MIN_RETRY_WAIT_SECONDS = 1` (Step Functions' minimum representable wait) to every chain, so no chain-scoped `MIN_RETRY_WAIT_SECONDS_<CHAIN>` floor is needed any more (see Correction D).
+- `lib/handlers/constants.ts`: `PRIORITY_ORDER_TARGET_BLOCK_BUFFER` / `HYBRID_ORDER_TARGET_BLOCK_BUFFER` are now `Partial<Record<ChainId, number>>`. **Omit** the chain unless a Priority/Hybrid reactor is deployed there — `OffChainUniswapXOrderValidator.validateReactorAddress` rejects those order types first, so a missing entry is unreachable.
+- **RPC:** same `RPC_PREFIX_URL + chainId` scheme as parameterization-api (no `RPC_<chainId>` env var).
+- Bump `@uniswap/uniswapx-sdk` to the release carrying the chain's entries.
 
 ### 3.6 `b/packages/services/trading` (Trading API)
 
-**Files:** `src/models/chain.ts`, `src/api/quote/schema.ts`, `src/lib/util/dutch.ts`, `src/lib/constants.ts`, `src/core/order-factory/dutch/DutchV3OrderFactory.ts`, `src/core/quoters/rfq/RFQQuoter.ts`
+**Files:** `src/models/chain.ts`, `src/lib/constants.ts`, `src/models/chain.test.ts`, `src/lib/constants.test.ts`, `package.json` (+ `bun.lock`)
 
-- `src/models/chain.ts`: add `ChainId.<CHAIN>` to `UNISWAPX_SUPPORTED_CHAIN_IDS`. Add a `CHAIN_INFO_MAP` entry: `blockTimeMs`, `pollingIntervalMs`, `orderTypeOverrides[OrderType.DUTCH_V3].deadlineBufferSecs` tuned to the chain.
-- **If the chain has no native token**: do **not** populate `WRAPPED_NATIVE_CURRENCY[CHAIN]`. Don't pick "the closest stablecoin" as a stand-in — that misleads clients. Instead, in `src/api/quote/schema.ts`, hard-reject requests with `tokenIn === '0x0000000000000000000000000000000000000000'` or `tokenOut === '0x0...'` for that chain at the API boundary. Defense in depth above the reactor.
-- `src/lib/constants.ts`: add the chain to `GAS_COMPARISON_MULTIPLIER_BY_CHAIN`. Default is `1.0`; for chains where gas is sub-cent regardless of conditions (Tempo's constant `2e10` attodollars/gas), set to `0`. The `compareQuotes` function in `src/lib/util/dutch.ts` reads this multiplier when comparing RFQ vs Classic quotes.
-- `src/lib/constants.ts`: add the chain to `V3_BLOCK_LENGTH_BY_CHAIN` (e.g., Tempo `60` = 30s wallclock at 500ms blocks).
-- `src/core/order-factory/dutch/DutchV3OrderFactory.ts`: for chains where basefee is constant or non-wei, set `adjustmentPerGweiBaseFee = 0` on V3 inputs and outputs. **This is the actual lever** — these fields are on the swapper-signed `UnsignedV3DutchOrderInfo`, NOT on the cosigner data, so they must be set at order construction time, not by the cosigner. (This is Correction B — see below.)
-- `src/core/quoters/rfq/RFQQuoter.ts`: ensure the protocol-version mapping advertises `UNISWAPX_V3` for the chain, not V2.
-- Feature flag: gate the chain behind a `disable_uniswapx_<chain>` flag in the config-service registry (look for the existing `disable_uniswapx` flag for the pattern). Default-active = OFF until launch. Single runtime step to enable: set the parameter to `{"threshold": 0}`.
+- `src/models/chain.ts`: add `ChainId.<CHAIN>` to **`UNISWAPX_V3_ROLLOUT_CHAINS`**. This is the lever that makes the service serve UniswapX on the chain at all: it feeds two entries in `UNISWAPX_ROUTING_RULES` — explicit `UNISWAPX_V3` requests are served **ungated**, and `UNISWAPX_LATEST` traffic is sampled behind the `uniswapx_v3_rollout` percentage flag. It also drives `/supported_chains` (`buildProtocols` advertises `UniswapX` for exactly the chains some rule serves). Forgetting this is what "everything deployed, zero orders" looks like (Monad, Sep 2026).
+- `src/models/chain.ts`: the chain's `CHAIN_INFO_MAP` entry must carry `orderTypeOverrides[OrderType.DUTCH_V3] = DEFAULT_DUTCH_V3_ORDER_OVERRIDE` (300s deadline buffer, $300 minimum order). The `UniswapX V3 rollout config` vitest suite in `chain.test.ts` fails CI if a rollout chain lacks it. Set `pollingIntervalMs` to match the chain cadence.
+- `src/lib/constants.ts`: if `block.basefee` is constant (Tempo, Arc, Monad) add the chain to **`CONSTANT_BASE_FEE_CHAINS`** and extend the `hasConstantBaseFee` cases in `constants.test.ts`. `DutchV3OrderFactory` reads this to set `adjustmentPerGweiBaseFee = 0` on the swapper-signed inputs/outputs (Correction B). The old `GAS_COMPARISON_MULTIPLIER_BY_CHAIN` knob no longer exists.
+- **No per-chain decay length.** `getV3BlockLength(chainId) = secondsToBlocks(V3_DECAY_DURATION_SECS = 8, chainId)` from sdk-core block time (Monad: 20 blocks; Ink: 8). The old `V3_BLOCK_LENGTH_BY_CHAIN` map is gone.
+- **Native token:** if the chain has one, nothing to do. If it has none (Tempo), do **not** populate `WRAPPED_NATIVE_CURRENCY[CHAIN]` with a stablecoin (Correction E) — reject the `0x0` sentinel at the API boundary instead.
+- Bump `@uniswap/uniswapx-sdk` to the release carrying the chain's reactor/quoter entries **in the same PR** — adding a chain to the routing rules on an SDK that lacks its entries converts "chain not offered" into "chain offered, then `MissingConfiguration` thrown".
+- **Feature flags** (config-service): there is no per-chain `disable_uniswapx_<chain>`. The two knobs are `uniswapx_v3_rollout` (percentage threshold for `UNISWAPX_LATEST` on the rollout chains) and `uniswapx_disabled_chains` (JSON array of chain-id strings; a chain listed there serves no UniswapX version regardless of request). `disable_uniswapx` is a per-swapper kill switch, not a chain gate.
 
 **Tests** to add per chain:
-- `compareQuotes` zeros out gas adjustment when `chainId === <CHAIN>` (if multiplier is 0).
-- API rejects native-sentinel inputs for the chain.
-- `DutchV3OrderFactory` constructs valid orders for the chain with the right `adjustmentPerGweiBaseFee` value.
-- Protocol-version mapping returns V3 for the chain.
+- `hasConstantBaseFee(<CHAIN>)` expectation in `constants.test.ts` (true or false, explicitly).
+- The `UniswapX V3 rollout config` suite in `chain.test.ts` is table-driven off `UNISWAPX_ROUTING_RULES` and picks the new chain up automatically.
 - `WrapUnwrapOrder.test.ts` iterates `CHAINID_NUMBERS`; if the chain has no native, filter it out (mirror the existing Celo handling).
 
 ---
@@ -320,13 +318,13 @@ The actual lever is on the **order construction side**: `DutchV3OrderFactory` in
 
 The parameterization-api can still read the live `block.basefee` as a **tripwire** and refuse to cosign if the swapper-signed `startingBaseFee` diverges materially from the observed value (TODO; not implemented as of Tempo).
 
-### Correction C: ChainId enums live in TWO places in parameterization-api
+### Correction C: ChainId enums used to live in TWO places in parameterization-api (fixed)
 
-Both `lib/util/chains.ts` AND `lib/config/chains.ts` need the new chain. The latter gates inbound request validation via Joi; the former is consumed everywhere else. Forgetting the second one means the API rejects Tempo requests at validation even though the cosigner code knows about the chain.
+Historically both `lib/util/chains.ts` AND `lib/config/chains.ts` needed the new chain; forgetting the second one made the Joi validator reject requests for a chain the cosigner knew about. As of uniswapx-parameterization-api#438 there is a single `SUPPORTED_CHAINS` list in `lib/util/chains.ts` that feeds the validator, the injectors, and RPC provisioning. Kept here so the historical PRs make sense.
 
-### Correction D: Sub-second blocks need a chain-scoped retry floor
+### Correction D: Sub-second blocks need a retry floor (now global)
 
-Step Functions Wait state granularity is whole seconds. A `0.5s` retry rounds to `0` → hot loop. Add a chain-scoped floor (`MIN_RETRY_WAIT_SECONDS_<CHAIN>`), not a global one — global floors tighten Arbitrum/Unichain unnecessarily.
+Step Functions Wait state granularity is whole seconds. A `0.5s` retry rounds to `0` → hot loop. The Tempo PR added a chain-scoped `MIN_RETRY_WAIT_SECONDS_TEMPO`; x-service has since replaced it with a global `MIN_RETRY_WAIT_SECONDS = 1` in `calculateDutchRetryWaitSeconds` (1s is the minimum representable wait, so it costs the ≥1s chains nothing). New sub-second chains need no retry-floor change.
 
 ### Correction E: Don't treat "stablecoin native" as wrapped-native
 
@@ -361,16 +359,16 @@ See the [Process overview](#process-overview) diagram at the top of this documen
 **Phase 3 — service deploys (1 week)**
 - Pin trading-api / x-service / parameterization-api to the new SDK release in dev.
 - Deploy parameterization-api → x-service → trading-api in that order.
-- `disable_uniswapx_<chain>` flag stays ON throughout (= UniswapX OFF on the chain).
+- Keep the chain out of `UNISWAPX_V3_ROLLOUT_CHAINS` (or in `uniswapx_disabled_chains`) until fillers are ready; merging the routing-rule PR is what turns explicit `UNISWAPX_V3` on.
 - Internal security review of any new cosigning logic.
 - Exit criterion: filler(s) ready and services healthy.
 
 **Phase 4 — launch**
 1. Ensure new-chain metrics are wired into dashboards (latency, PI, fill rate per MM, decay block math, gas-adjustment, Step Functions retry cadence, `compareQuotes` selection).
-2. Set `disable_uniswapx_<chain>` to `false` (`{"threshold": 0}`). UniswapX routing is now available to any TAPI caller that opts into UniswapX, and all MMs that support the chain receive RFQs.
+2. Merge the trading-api routing-rule PR (explicit `UNISWAPX_V3` goes live ungated), then ramp `uniswapx_v3_rollout` for the chain to sample `UNISWAPX_LATEST` traffic onto V3. All MMs that support the chain receive RFQs.
 3. Monitor.
 
-**Rollback**: `disable_uniswapx_<chain> = true` short-circuits routing to Classic-only on the chain. Order posting can be disabled in x-service via `SUPPORTED_CHAINS` redeploy. No on-chain rollback needed — unused reactors are inert.
+**Rollback**: add the chain id to `uniswapx_disabled_chains` (config-service) to short-circuit routing to Classic-only on the chain without a deploy. Order posting can be disabled in x-service via `SUPPORTED_CHAINS` redeploy. No on-chain rollback needed — unused reactors are inert.
 
 ---
 
@@ -386,6 +384,16 @@ All work landed across the following PRs (each links back to Linear TRA2-12):
 | `x-parameterization-api` | [Uniswap/uniswapx-parameterization-api#438](https://github.com/Uniswap/uniswapx-parameterization-api/pull/438) |
 | `x-service` | [Uniswap/uniswapx-service#654](https://github.com/Uniswap/uniswapx-service/pull/654) |
 | `b/packages/services/trading` | [Uniswap/backend#7813](https://github.com/Uniswap/backend/pull/7813) |
+
+Monad (chainId 143) — multi-chain batch, see [`chains/monad.md`](./chains/monad.md):
+
+| Repo | PR |
+|---|---|
+| `x-contracts` | [Uniswap/UniswapX#368](https://github.com/Uniswap/UniswapX/pull/368) |
+| `sdks/uniswapx-sdk` | [Uniswap/sdks#577](https://github.com/Uniswap/sdks/pull/577) |
+| `x-parameterization-api` | [Uniswap/uniswapx-parameterization-api#438](https://github.com/Uniswap/uniswapx-parameterization-api/pull/438) |
+| `x-service` | [Uniswap/uniswapx-service#654](https://github.com/Uniswap/uniswapx-service/pull/654) |
+| `b/packages/services/trading` | [Uniswap/backend#13174](https://github.com/Uniswap/backend/pull/13174) |
 
 ---
 

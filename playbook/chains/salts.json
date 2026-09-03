@@ -67,7 +67,8 @@
       "salt": "0x00000000000000000000000000000000000000003bf2facff70c91359a150060",
       "expectedReactor": "0x000000000Ac008F7e07210CFb6648e40249232c2",
       "minedAt": "2026-05-06T22:03:03Z",
-      "minedZeroBytes": "4 leading + 4 total"
+      "minedZeroBytes": "4 leading + 4 total",
+      "_deployNote": "DEPLOYED 2026-05-07 at 0x000000000Ac008F7e07210CFb6648e40249232c2 (tx 0x3b745a3e7ddf28b42302eff6059ee8ed08772436b34462b3bdc0d4ddb0093b7f, block 73052303) + canonical OrderQuoter 0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58 (tx 0x5c1307ea8aee1ba2b4c81fab9c06e28d58df935243d3dbc77d3f9772f7534cc6, block 73077229). Both source-verified (Exact Match) on monadscan. Owner is Monad's own PoolManager.owner() 0xE783...EbAd, so the salt was mined fresh (non-canonical owner). Pre-4663 bytecode. See playbook/chains/monad.md."
     },
     "196": {
       "name": "xlayer",

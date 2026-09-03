@@ -1,10 +1,22 @@
 # Monad (chainId 143) — DutchV3 rollout research
 
-**Status:** 🟡 Greenfield UniswapX integration. Permit2 + Arachnid CREATE2 factory present at canonical addresses; no existing reactor / quoter / Permit2 / exclusivity entries for 143 in `uniswapx-sdk`. Standard EVM opcode behavior, but sub-second blocks pull in the same Step Functions retry-floor concern that bit Tempo.
+**Status (2026-09-03):** 🟢 **Contracts deployed, services wired, trading-api routing pending.** `V3DutchOrderReactor` at `0x000000000Ac008F7e07210CFb6648e40249232c2` and `OrderQuoter` at the canonical `0x00000000a3db63Df9078cBF3dF88B4CAdD5a7F58` were deployed 2026-05-07 ([Uniswap/UniswapX#368](https://github.com/Uniswap/UniswapX/pull/368)); both are source-verified (Exact Match) on [monadscan](https://monadscan.com/address/0x000000000Ac008F7e07210CFb6648e40249232c2). Live `owner()` = `0xE783DE89a7F0408687f051e3E6D0BEb62719EbAd` (Monad's `PoolManager.owner()`, so the salt was mined fresh rather than reusing the canonical pair), `permit2()` = canonical.
+
+| Layer | State | Where |
+|---|---|---|
+| `@uniswap/sdk-core` | ✅ `ChainId.MONAD = 143`, `AVERAGE_BLOCK_TIMES_SECONDS[MONAD] = 0.4` | sdks#390, #583 |
+| `@uniswap/uniswapx-sdk` | ✅ Permit2 / quoter / `Dutch_V3` reactor / exclusivity `0x0` — published in `3.0.3`+, current `3.1.1` | sdks#577 |
+| `uniswapx-parameterization-api` | ✅ `ChainId.MONAD` in `SUPPORTED_CHAINS` | uniswapx-parameterization-api#438 |
+| `uniswapx-service` | ✅ `SUPPORTED_CHAINS` + `OLDEST_BLOCK_BY_CHAIN[MONAD] = 73051000` | uniswapx-service#654 |
+| trading-api (`b/packages/services/trading`) | ❌ **Not in `UNISWAPX_V3_ROLLOUT_CHAINS`** → no routing rule matches, no UniswapX served on 143. `CHAIN_INFO_MAP[MONAD]` already carries the `DUTCH_V3` override. Also add to `CONSTANT_BASE_FEE_CHAINS` (basefee pinned at 100 gwei, re-probed 2026-09-03 at block 101,694,471). | [Uniswap/backend#13174](https://github.com/Uniswap/backend/pull/13174) (open) |
+| Phase 4 | ⏳ Ramp `uniswapx_v3_rollout` for 143 once ≥1 filler is quoting; confirm the `RPC_PREFIX_URL` gateway serves 143 for both Lambdas; wire dashboards. | — |
+
+**Exclusivity contract:** no code at the canonical `0x8A66A74e15544db9688B68B06E116f5d19e5dF90` on Monad (re-probed 2026-09-03), so the SDK's zero-address `EXCLUSIVE_FILLER_VALIDATION_MAPPING[143]` entry is correct.
+
+Original audit assessment (2026-05-06): 🟡 Greenfield UniswapX integration. Permit2 + Arachnid CREATE2 factory present at canonical addresses; no existing reactor / quoter / Permit2 / exclusivity entries for 143 in `uniswapx-sdk`. Standard EVM opcode behavior, but sub-second blocks pull in the same Step Functions retry-floor concern that bit Tempo (now handled by x-service's global 1s `MIN_RETRY_WAIT_SECONDS` floor).
 
 **RPC probed:** `https://rpc.monad.xyz` (universe canonical RPC is `getQuicknodeEndpointUrl(UniverseChainId.Monad)`; the public endpoint is sufficient for §0 + §1 probes). Universe config: `/Users/cody.born/repos/universe/packages/uniswap/src/features/chains/evm/info/monad.ts` (`blockTimeMs: 500`, `tradingApiPollingIntervalMs: 150`, native `MON`, WMON `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A`).
-
-## Existing UniswapX coverage on chainId 143
+## Existing UniswapX coverage on chainId 143 (as of the 2026-05-06 audit — all entries below have since landed via sdks#577)
 
 From `sdks/uniswapx-sdk/src/constants.ts`:
 
@@ -53,6 +65,8 @@ From `sdks/uniswapx-sdk/src/constants.ts`:
 | EIP-1559 fields populated | ✅ but pinned | cosigner reads `baseFeePerGas` as tripwire; does not drive adjustment |
 
 ## Deploy parameters
+
+> **2026-09-03 note:** the per-chain knobs below (`V3_BLOCK_LENGTH_BY_CHAIN`, `V3_BLOCK_BUFFER`, `BLOCK_TIME_MS_BY_CHAIN`, `MIN_RETRY_WAIT_SECONDS_MONAD`, `GAS_COMPARISON_MULTIPLIER_BY_CHAIN`, `disable_uniswapx_monad`) no longer exist in the services. Block-derived values now come from sdk-core's `getAverageBlockTimeSecs(143) = 0.4`: trading-api `getV3BlockLength(143) = secondsToBlocks(8, 143) = 20` blocks, param-api `getV3BlockBuffer(143) = secondsToBlocks(5, 143) = 13` blocks, x-service retry floor is a global 1s. The only per-chain edits still required are listed in the status table above. Kept for the reasoning behind each value.
 
 - **`FOUNDRY_REACTOR_OWNER`**: `0x2bad8182c09f50c8318d769245bea52c32be46cd` (Arbitrum One protocolFeeOwner; reuse unless governance specifies otherwise for Monad).
 - **OrderQuoter**: deploy fresh on Monad — no shared deployment exists at chainId 143. If Arachnid CREATE2 vanity is desired, the canonical UniswapX OrderQuoter address (`0xc6ef4C96Ee89e48Eff1C35545DBEED4Ad8dAC9D4`, used on 1/10/8453/130/42161) can be replicated with the same salt + bytecode.
