@@ -17,7 +17,7 @@ only.
 | BNB | 56 | ⏳ research | [bnb.md](./bnb.md) |
 | Unichain | 130 | ⏳ research | [unichain.md](./unichain.md) |
 | Polygon | 137 | ⏳ research | [polygon.md](./polygon.md) |
-| Monad | 143 | ⏳ research | [monad.md](./monad.md) |
+| Monad | 143 | 🟢 reactor + quoter deployed 2026-05-07 (PR #368); SDK + param-api + x-service wired; trading-api routing rule pending | [monad.md](./monad.md) |
 | XLayer | 196 | ⏳ research | [xlayer.md](./xlayer.md) |
 | ZKSync | 324 | ⏳ research | [zksync.md](./zksync.md) |
 | Worldchain | 480 | ⏳ research | [worldchain.md](./worldchain.md) |
