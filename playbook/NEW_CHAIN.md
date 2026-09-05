@@ -61,10 +61,10 @@ stateDiagram-v2
         UniswapXSDK: 3.3 uniswapx-sdk
         UniswapXSDK: PERMIT2_MAPPING,\nREACTOR_ADDRESS_MAPPING[Dutch_V3],\nUNISWAPX_ORDER_QUOTER_MAPPING
         UniswapXSDK --> Release: Tests pass
-        Release: Publish standard @uniswap/uniswapx-sdk release
+        Release: Merge the Version Packages PR\n(this is what publishes to npm)
     }
 
-    Phase2 --> Phase3: Released
+    Phase2 --> Phase3: npm serves the new version
 
     state "Phase 3 — Service Deploys (1w)" as Phase3 {
         direction LR
@@ -253,6 +253,31 @@ Same script also deploys the OrderQuoter lens (or use `script/QuoteV3Order.s.sol
 - Assert `getReactor(<chainId>, OrderType.Dutch_V3)` returns the expected address.
 - Add a decay block-delta test using a chain-realistic block length (e.g. 60 blocks at 0.5s = 30s wallclock for Tempo).
 
+**Releasing it — know which of the two routes you're on.** The `sdks` monorepo releases via changesets (`.github/workflows/semantic-release.yaml`). On every push to `main` the workflow picks a mode by asking one question: **are there any `.changeset/*.md` files left?**
+
+1. **Changesets still pending** → it only *creates or updates* a `chore(sdks): Version Packages` PR holding the version bumps and CHANGELOG entries. **Nothing is published.**
+2. **No changesets pending** → it runs `changeset publish`, which pushes to npm every package whose `package.json` version is not already on the registry.
+
+So publishing needs **both** conditions in the same push to `main`: no pending changesets, *and* a `package.json` version that npm doesn't have yet. That gives two workable routes:
+
+- **Bot route (default).** Your PR adds only a `.changeset/<slug>.md` (`patch` for a new-chain mapping addition). Merging it publishes nothing — it just creates/refreshes the Version Packages PR. **Merging that second PR is what publishes.** Two merges, and the second is easy to forget because your PR is already green.
+- **Self-contained route.** Your PR runs `changeset version` itself, so it carries the version bumps, the CHANGELOG entries, *and* the deletion of the consumed changesets. Merging it satisfies both conditions at once and publishes directly. One merge.
+
+Both are legitimate. What breaks is doing half of either:
+
+- Bumping `package.json` while leaving your changeset in place publishes **nothing** — the workflow stays in mode 1.
+- Taking the self-contained route while a Version Packages PR is open **strands that PR**: it holds the same bumps and CHANGELOG lines, so it goes conflicted, and merging it later can regress a package whose version moved on in the meantime. Close and let the bot regenerate it, or don't take this route while it's open.
+- The self-contained route consumes **every** pending changeset, not just yours, so your PR publishes other people's packages too. Title and describe it accordingly — a release disguised as a one-line fix is a genuine review hazard.
+
+**Phase 2 is not done when the mapping PR merges. It is done when npm serves the new version:**
+
+```bash
+npm view @uniswap/uniswapx-sdk version              # must show the new version
+npm view @uniswap/uniswapx-sdk@<version> version    # 404 = not published yet
+```
+
+Why this matters beyond tidiness: see Correction G — Phase 3 does not merely wait on the release, it breaks without it.
+
 ### 3.4 `x-parameterization-api`
 
 **Files:** `lib/util/chains.ts`, `.env.example` (only if adding a new secret)
@@ -334,6 +359,25 @@ For chains with no native token, do **not** set `WRAPPED_NATIVE_CURRENCY[CHAIN] 
 
 Chains with elevated state-creation costs (Tempo: 12.5×) sound scary but are economically immaterial when basefee is sub-cent. 250K gas × `2e10` attodollars/gas = $0.005. Don't over-engineer pricing for this — let fillers absorb it.
 
+### Correction G: A merged SDK PR is not a released SDK — and Phase 3 hard-fails without the release
+
+Phase 3 repos don't degrade gracefully when the SDK lacks the new chain; they throw. `UnsignedV3DutchOrder.parse(encoded, chainId)` calls `getPermit2(chainId)`, which does:
+
+```ts
+} else if (PERMIT2_MAPPING[chainId]) {
+  return PERMIT2_MAPPING[chainId];
+} else {
+  throw new MissingConfiguration("permit2", chainId.toString());
+}
+```
+
+`getReactor` and `UniswapXOrderQuoter`'s constructor throw the same way. So wiring a chain into a service *before* the SDK publishes converts "chain unsupported" into "chain accepted, then 500s" — strictly worse than doing nothing.
+
+The practical consequences:
+
+1. **Never split "add the chain" and "bump the SDK" across two PRs.** In each Phase 3 repo, the chain-enum addition and the `@uniswap/uniswapx-sdk` bump must land together. Adding the chain to a request validator (e.g. parameterization-api's `SUPPORTED_CHAINS`, which gates the Joi `chainId` check) makes requests reachable the moment it deploys.
+2. **Confirm the version is on npm before starting Phase 3**, not merely that the mapping PR merged. See §3.3.
+
 ---
 
 ## 5. Rollout plan template
@@ -354,7 +398,8 @@ See the [Process overview](#process-overview) diagram at the top of this documen
 
 **Phase 2 — SDK release (1 day)**
 - Replace zero-address placeholders in `uniswapx-sdk/src/constants.ts` with real reactor + quoter addresses.
-- Publish a standard `@uniswap/uniswapx-sdk` release (no canary needed — downstream repos pin the normal version).
+- Ship the mapping PR with a changeset, then merge the resulting `chore(sdks): Version Packages` PR — that second merge is what publishes, and it is easy to forget because the mapping PR is already green. Alternatively run `changeset version` inside your own PR so one merge does both; see §3.3 for when each route is safe.
+- **Exit criterion:** `npm view @uniswap/uniswapx-sdk version` returns the new version. Not "the PR merged." Phase 3 cannot start before this.
 
 **Phase 3 — service deploys (1 week)**
 - Pin trading-api / x-service / parameterization-api to the new SDK release in dev.
