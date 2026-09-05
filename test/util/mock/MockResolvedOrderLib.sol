@@ -7,7 +7,7 @@ import {ResolvedOrderLib} from "../../../src/lib/ResolvedOrderLib.sol";
 contract MockResolvedOrderLib {
     using ResolvedOrderLib for ResolvedOrder;
 
-    function validate(ResolvedOrder memory resolvedOrder, address filler) external view {
+    function validate(ResolvedOrder memory resolvedOrder, address filler) external {
         resolvedOrder.validate(filler);
     }
 }
