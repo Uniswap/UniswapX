@@ -1,5 +1,6 @@
 [profile.default]
 solc = "0.8.30"
+evm_version = "prague"
 src = 'src'
 out = 'out'
 libs = ['lib']
