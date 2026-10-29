@@ -36,10 +36,15 @@ struct DCAIntent {
     PrivateIntent privateIntent; // Private execution parameters - included in EIP-712 signature but zeroed on-chain, only hash revealed
 }
 
+/// @dev Private lifecycle parameters committed in the swapper EIP-712 signature via
+///      `privateIntentHash`, but zeroed in on-chain calldata so they stay off-chain.
+///      `DCAHook` therefore cannot enforce `totalAmount` / `numChunks` itself — the
+///      TEE cosigner is responsible for honouring those signed caps when authorizing
+///      each chunk. On-chain state still tracks cumulative totals for events/readers.
 struct PrivateIntent {
-    uint256 totalAmount; // Total amount on the exact side (input for EXACT_IN, output for EXACT_OUT)
+    uint256 totalAmount; // Total amount on the exact side (input for EXACT_IN, output for EXACT_OUT); cosigner-enforced
     uint256 exactFrequency;
-    uint256 numChunks;
+    uint256 numChunks; // Soft cap on chunks; cosigner-enforced (0 means no signed chunk limit)
     bytes32 salt;
     FeedInfo[] oracleFeeds; // Array of possible oracle feeds
 }

@@ -181,7 +181,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
 
     /// @notice Validates the swapper's EIP-712 signature over the DCA intent
     /// @dev Reconstructs the original signed message by replacing the zeroed privateIntent field with its hash.
-    ///      This preserves privacy by keeping sensitive DCA parameters (totalAmount, frequency, chunks) off-chain
+    ///      This preserves privacy by keeping sensitive DCA parameters (totalAmount, frequency, chunks) off-chain.
+    ///      Because those fields are not available on-chain, terminal caps are enforced by the TEE cosigner,
+    ///      not by `_validateStateAndTiming` / `_validateChunkSize` (see PrivateIntent NatSpec).
     ///      while maintaining signature integrity through hash commitment.
     ///      Supports both EOA signatures (ECDSA) and smart contract wallet signatures (EIP-1271).
     /// @param intent The DCA intent with privateIntent field zeroed for privacy
@@ -328,7 +330,9 @@ contract DCAHook is IPreExecutionHook, IDCAHook {
     }
 
     /// @notice Validates execution state and timing constraints
-    /// @dev Checks cancellation status, deadline, nonce, and period gating
+    /// @dev Checks cancellation status, deadline, nonce, and period gating.
+    ///      Does not enforce signed PrivateIntent.totalAmount / numChunks — those
+    ///      values are zeroed on-chain for privacy and must be enforced by the cosigner.
     /// @param intentId The unique identifier for this DCA intent
     /// @param intent The DCA intent containing timing constraints
     /// @param cosignerData The cosigner data containing the order nonce
