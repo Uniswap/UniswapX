@@ -71,10 +71,11 @@ library ExclusivityLib {
         }
 
         // scale outputs by override amount
+        // Write through the array element; a local OutputToken memory copy would
+        // leave order.outputs unchanged (see #382).
         OutputToken[] memory outputs = order.outputs;
         for (uint256 i = 0; i < outputs.length;) {
-            OutputToken memory output = outputs[i];
-            output.amount = output.amount.mulDivUp(BPS + exclusivityOverrideBps, BPS);
+            outputs[i].amount = outputs[i].amount.mulDivUp(BPS + exclusivityOverrideBps, BPS);
 
             unchecked {
                 i++;
