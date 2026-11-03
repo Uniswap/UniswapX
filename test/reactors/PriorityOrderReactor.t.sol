@@ -474,7 +474,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
-    /// @notice an order cannot be filled if the current block is before the overriden auctionStartBlock
+    /// @notice an order cannot be filled if the current block is before the overridden auctionStartBlock
     function testRevertsBeforeCosignedAuctionTargetBlock() public {
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
 
@@ -499,7 +499,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
-    /// @notice must revert if resolved signer is not the cosigner specified in the order iff the auctionStartBlock is overriden
+    /// @notice must revert if resolved signer is not the cosigner specified in the order iff the auctionStartBlock is overridden
     function testRevertsWrongCosigner() public {
         address wrongCosigner = makeAddr("wrongCosigner");
 
@@ -524,7 +524,7 @@ contract PriorityOrderReactorTest is PermitSignature, DeployPermit2, BaseReactor
         fillContract.execute(signedOrder);
     }
 
-    /// @notice must revert if the cosignature is invalid iff the auctionStartBlock is overriden
+    /// @notice must revert if the cosignature is invalid iff the auctionStartBlock is overridden
     function testRevertsInvalidCosignature() public {
         PriorityOutput[] memory outputs = OutputsBuilder.singlePriority(address(tokenOut), 0, 0, address(swapper));
         PriorityCosignerData memory cosignerData = PriorityCosignerData({auctionTargetBlock: block.number});
